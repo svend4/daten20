@@ -9,7 +9,7 @@
 
 Professional system for managing personal budget service planning documents for social services in Germany.
 
-**Current Version:** 2.5.0 | **Status:** Production-Ready ✅
+**Current Version:** 2.6.0 | **Status:** Production-Ready ✅
 
 ---
 
@@ -83,6 +83,18 @@ Professional system for managing personal budget service planning documents for 
 - ✅ **Notification Center** - Unified notification management
 - ✅ **Opt-out Management** - User preference management
 - ✅ **Analytics Dashboard** - Gateway and notification statistics
+
+### AI Assistant, Mobile Apps & BI Dashboards (v2.6)
+- ✅ **AI Chatbot Engine** - NLP-powered conversational interface with intent detection
+- ✅ **Entity Extraction** - Automatic extraction of service names, regions, rates, hours
+- ✅ **Conversation Management** - Multi-turn dialogs with context preservation
+- ✅ **OLAP Cube** - Multidimensional analysis with slice, dice, drill-down operations
+- ✅ **BI Dashboard Builder** - Visual dashboard creation with widgets (KPI, charts, tables)
+- ✅ **Aggregation Engine** - SUM, AVG, COUNT, MIN, MAX, DISTINCT_COUNT operations
+- ✅ **React Native Mobile App** - Cross-platform iOS/Android app foundation
+- ✅ **Biometric Authentication** - Fingerprint and Face ID support for mobile
+- ✅ **Offline Mode** - Full mobile functionality without network connection
+- ✅ **Real-time Analytics** - Live business intelligence and reporting
 
 ---
 
