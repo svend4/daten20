@@ -211,3 +211,37 @@ websockets>=12.0
 # Collaboration (optional - for enhanced features)
 # aioredis>=2.0.1
 # For Redis pub/sub in real-time collaboration
+
+# v2.8 - External Integrations, Automation & RPA
+# Most integrations use standard library or optional packages
+
+# ERP Integrations (optional - for SAP)
+# pyrfc>=3.2.0
+# For SAP NetWeaver RFC SDK (requires SAP NW RFC SDK)
+
+# CRM Integrations (optional)
+# simple-salesforce>=1.12.0
+# For Salesforce integration
+# hubspot-api-client>=8.0.0
+# For HubSpot integration
+
+# Payment Gateways (optional - for production use)
+# stripe>=7.0.0
+# For Stripe integration
+# paypalrestsdk>=1.13.1
+# For PayPal integration
+# squareup>=29.0.0
+# For Square integration
+
+# Automation & RPA
+# In production, add browser automation tools:
+# selenium>=4.15.0
+# For web automation
+# playwright>=1.40.0
+# Modern browser automation
+
+# ETL & Data Processing
+# Already have pandas and numpy from v2.6
+
+# Webhook Security
+# Already have standard library support (hmac, hashlib)
