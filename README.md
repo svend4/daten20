@@ -9,7 +9,7 @@
 
 Professional system for managing personal budget service planning documents for social services in Germany.
 
-**Current Version:** 3.6.0 | **Status:** IoT & Edge Computing Platform ✅
+**Current Version:** 3.7.0 | **Status:** Advanced Integrations ✅
 
 ---
 
@@ -848,4 +848,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 Built for social services professionals. Now ready for enterprise deployment with complete multi-tenancy, billing, monitoring, and scaling capabilities.
 
-**Version:** 3.6.0 | **Status:** Production Ready | **Last Updated:** January 2026
+**Version:** 3.7.0 | **Status:** Production Ready | **Last Updated:** January 2026
