@@ -9,7 +9,7 @@
 
 Professional system for managing personal budget service planning documents for social services in Germany.
 
-**Current Version:** 3.4.0 | **Status:** Blockchain Integration ✅
+**Current Version:** 3.5.0 | **Status:** AI/ML Services with LLM Integration ✅
 
 ---
 
@@ -684,8 +684,60 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **See [BLOCKCHAIN_V3.4_PLAN.md](docs/BLOCKCHAIN_V3.4_PLAN.md) for architecture details.**
 
-### Future Enhancements (Post-v3.4)
-- [ ] Advanced AI/ML services with LLM integration (v3.5)
+### v3.5 (✅ COMPLETE - January 2026) ⭐ NEW!
+- ✅ **LLM Integration** - Multi-provider support (OpenAI, Anthropic, local models, mock)
+- ✅ **Document Intelligence** - AI-powered document analysis and summarization
+- ✅ **Recommendation Engine** - ML-based recommendations with hybrid filtering
+- ✅ **Text Analysis** - Sentiment analysis, keyword extraction, readability scoring
+- ✅ **Entity Extraction** - NER for dates, money, names, emails, IBANs
+- ✅ **Document Classification** - AI-powered document categorization
+- ✅ **Response Caching** - Efficient LLM response caching with TTL
+
+**Components:**
+1. `ai_services.py` - Unified AI/ML services with LLM, document intelligence, recommendations (~850 lines)
+
+**Features:**
+
+**LLM Integration:**
+- **Multi-Provider Support**: OpenAI (GPT-4, GPT-3.5), Anthropic (Claude), local models, mock provider
+- **Response Caching**: Intelligent caching with 1-hour TTL for cost optimization
+- **Token Counting**: Track token usage and estimate costs
+- **Prompt Templates**: Reusable templates for summarization, Q&A, extraction, translation
+- **Async API**: Non-blocking LLM calls with asyncio
+- **Error Handling**: Graceful fallbacks and retry logic
+
+**Document Intelligence:**
+- **Comprehensive Analysis**: Multi-operation document processing (summarize, entities, sentiment, keywords)
+- **Dual Summarization**: Extractive (fast) and LLM-based (high quality) methods
+- **Entity Extraction**: Automatic extraction of dates, money, names, emails, IBANs, phone numbers
+- **Sentiment Analysis**: Lexicon-based sentiment scoring (positive, negative, neutral)
+- **Keyword Extraction**: TF-IDF and frequency-based keyword identification
+- **Document Classification**: AI-powered categorization (contract, invoice, report, etc.)
+- **Readability Scoring**: Flesch Reading Ease for content accessibility
+- **Language Detection**: Automatic language identification
+
+**Recommendation Engine:**
+- **Content-Based Filtering**: TF-IDF and cosine similarity for content matching
+- **Collaborative Filtering**: User behavior-based recommendations
+- **Hybrid Approach**: Combined content + collaborative for best results
+- **User Interaction Tracking**: View, like, favorite, share tracking
+- **Similarity Scoring**: Feature-based similarity calculation
+- **Configurable Recommendations**: Flexible result count and method selection
+
+**Text Analysis Utilities:**
+- **Word Tokenization**: Smart text splitting with stopword filtering
+- **TF-IDF Calculation**: Term frequency-inverse document frequency scoring
+- **Cosine Similarity**: Vector-based text similarity measurement
+- **Sentiment Lexicon**: Built-in positive/negative word lists
+- **Pattern Matching**: Regex-based entity extraction
+- **Text Normalization**: Case folding, punctuation removal
+
+**Total:** ~850 lines of AI/ML services code
+
+**See [AI_ML_V3.5_PLAN.md](docs/AI_ML_V3.5_PLAN.md) for complete architecture and implementation details.**
+
+### Future Enhancements (Post-v3.5)
+- [ ] Computer Vision & OCR (v3.5 extension)
 - [ ] IoT & Edge Computing (v3.6)
 - [ ] GraphQL gateway with federation (v3.9)
 - [ ] Advanced accessibility features (WCAG 2.1 AAA)
@@ -697,11 +749,12 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📊 Project Statistics
 
-**Total Lines of Code:** 49,000+ (v3.4: +650 lines, v3.1 ext: +1,290 lines, v3.3: +2,565 lines, v3.2: +2,454 lines, v3.1: +3,684 lines)
-**Python Modules:** 71+ (v3.4: +1 blockchain module)
+**Total Lines of Code:** 49,850+ (v3.5: +850 lines, v3.4: +650 lines, v3.1 ext: +1,290 lines, v3.3: +2,565 lines, v3.2: +2,454 lines, v3.1: +3,684 lines)
+**Python Modules:** 72+ (v3.5: +1 AI/ML module, v3.4: +1 blockchain module)
 **Mobile SDKs:** 4 platforms (iOS, Android, React Native, Flutter)
 **Analytics Modules:** 7 (BI, Predictive, Warehouse, OLAP, Mining, Streaming, NL Query)
-**Enterprise Features:** 10 major modules (Multi-Tenancy, Billing, White-Label, Monitoring, Scaling, Portal, Analytics, Microservices, Mobile, Blockchain)
+**AI/ML Modules:** 3 services (LLM Integration, Document Intelligence, Recommendation Engine)
+**Enterprise Features:** 11 major modules (Multi-Tenancy, Billing, White-Label, Monitoring, Scaling, Portal, Analytics, Microservices, Mobile, Blockchain, AI/ML)
 **Documentation:** 13+ comprehensive guides (v3.1: +1 Analytics guide)
 **Supported Languages:** 6 (RU, DE, EN, UK, PL, FR)
 **Test Coverage:** 75%+
@@ -728,4 +781,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 Built for social services professionals. Now ready for enterprise deployment with complete multi-tenancy, billing, monitoring, and scaling capabilities.
 
-**Version:** 3.4.0 | **Status:** Production Ready | **Last Updated:** January 2026
+**Version:** 3.5.0 | **Status:** Production Ready | **Last Updated:** January 2026
