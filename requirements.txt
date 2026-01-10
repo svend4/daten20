@@ -47,7 +47,43 @@ pytest-cov>=4.1.0
 # mypy>=1.5.0
 # Uncomment for code quality tools
 
-# Production server (optional)
-# gunicorn>=21.2.0
-# waitress>=2.1.2
-# Uncomment for production deployment
+# Production server
+gunicorn>=21.2.0
+# waitress>=2.1.2  # Windows alternative
+
+# Configuration management
+python-dotenv>=1.0.0
+# For .env file support
+
+# Caching (optional - for production)
+redis>=5.0.0
+# For Redis caching support
+
+# API Documentation
+flasgger>=0.9.7
+# For Swagger/OpenAPI documentation
+
+# Authentication & Security
+Flask-Login>=0.6.3
+# User session management
+Flask-Bcrypt>=1.0.1
+# Password hashing
+PyJWT>=2.8.0
+# JSON Web Tokens
+
+# Advanced visualization
+matplotlib>=3.8.0
+# For advanced charts
+plotly>=5.18.0
+# Interactive visualizations
+
+# PDF export
+reportlab>=4.0.0
+# PDF generation
+weasyprint>=60.0
+# HTML to PDF conversion (requires system dependencies)
+
+# Performance monitoring (optional)
+# flask-caching>=2.1.0
+# prometheus-flask-exporter>=0.22.0
+# Uncomment for metrics and monitoring
