@@ -1,22 +1,53 @@
+# ==========================================
+# DOCUMENT MANAGEMENT SYSTEM - DEPENDENCIES
+# ==========================================
+
 # Core dependencies
 PyYAML>=6.0
 # For YAML configuration files
 
+# Web Framework
+Flask>=3.0.0
+# For web UI and REST API
+
+# Excel/CSV Export
+openpyxl>=3.1.0
+# For Excel file export/import
+xlrd>=2.0.0
+# For reading old Excel files (.xls)
+
+# Testing
+pytest>=7.4.0
+# Unit testing framework
+pytest-cov>=4.1.0
+# Code coverage for tests
+
 # Optional dependencies for enhanced functionality
 
-# PDF export (optional)
+# PDF export (optional - requires system dependencies)
 # weasyprint>=60.0
-# Uncomment to enable PDF export
+# Uncomment to enable PDF export (requires Cairo, Pango)
 
 # DOCX export (optional)
 # python-docx>=0.8.11
 # Uncomment to enable DOCX export
 
-# Web interface (optional)
-Flask>=3.0.0
-# For web UI
+# Data visualization (optional)
+# matplotlib>=3.7.0
+# plotly>=5.17.0
+# Uncomment for advanced charts
+
+# Email notifications (optional)
+# Emails work with standard library (smtplib)
+# No additional dependencies needed
 
 # Development dependencies (optional)
-# pytest>=7.0.0
-# black>=22.0.0
-# flake8>=5.0.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.5.0
+# Uncomment for code quality tools
+
+# Production server (optional)
+# gunicorn>=21.2.0
+# waitress>=2.1.2
+# Uncomment for production deployment

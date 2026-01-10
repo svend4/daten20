@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Генератор документов - DMS{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4"><i class="bi bi-file-earmark-arrow-down"></i> Генератор документов</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Создать документ</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Выберите услугу *</label>
+                        <select class="form-select" name="service_id" required>
+                            <option value="">-- Выберите услугу --</option>
+                            {% for service in services %}
+                            <option value="{{ service.id }}">
+                                {{ service.basic_info.service_name }} ({{ service.basic_info.region }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Формат документа *</label>
+                        <select class="form-select" name="format" required>
+                            <option value="html" selected>HTML (Веб-страница)</option>
+                            <option value="txt">TXT (Текстовый файл)</option>
+                            <option value="md">Markdown</option>
+                        </select>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Информация:</strong> Генерация PDF и DOCX требует дополнительных библиотек.
+                        Используйте HTML для лучшего результата.
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-file-earmark-arrow-down"></i> Сгенерировать документ
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Пакетная генерация</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Для пакетной генерации документов используйте CLI:
+                </p>
+                <pre class="bg-light p-3 rounded"><code>python src/document_generator.py --batch config/examples --format html</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - DMS{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-file-earmark-text"></i> Всего услуг
+                </h5>
+                <h2 class="card-text">{{ stats.total_services }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-currency-euro"></i> Средняя ставка
+                </h5>
+                <h2 class="card-text">{{ stats.avg_brutto_rate|currency }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-geo-alt"></i> Регионов
+                </h5>
+                <h2 class="card-text">{{ stats.by_region|length }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-tags"></i> Типов услуг
+                </h5>
+                <h2 class="card-text">{{ stats.by_type|length }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Быстрые действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('service_new') }}" class="btn btn-lg btn-primary w-100">
+                            <i class="bi bi-plus-circle"></i><br>
+                            Создать услугу
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('calculator_page') }}" class="btn btn-lg btn-success w-100">
+                            <i class="bi bi-calculator"></i><br>
+                            Расчет стоимости
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('generator_page') }}" class="btn btn-lg btn-info w-100">
+                            <i class="bi bi-file-earmark-arrow-down"></i><br>
+                            Генерация документа
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('analytics_page') }}" class="btn btn-lg btn-warning w-100">
+                            <i class="bi bi-graph-up"></i><br>
+                            Аналитика
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Services -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Последние услуги</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_services %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Регион</th>
+                                    <th>Ставка</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service in recent_services %}
+                                <tr>
+                                    <td>{{ service.id }}</td>
+                                    <td>{{ service.basic_info.service_name }}</td>
+                                    <td>{{ service.basic_info.region }}</td>
+                                    <td>{{ service.financial.brutto_rate|currency }}</td>
+                                    <td>
+                                        <a href="{{ url_for('service_detail', service_id=service.id) }}"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center">
+                        <a href="{{ url_for('services_list') }}" class="btn btn-primary">
+                            Посмотреть все услуги <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Услуги не найдены.
+                        <a href="{{ url_for('service_new') }}">Создайте первую услугу</a>
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Services by Region -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-geo-alt"></i> По регионам</h5>
+            </div>
+            <div class="card-body">
+                {% if stats.by_region %}
+                    <ul class="list-group list-group-flush">
+                        {% for region, count in stats.by_region.items() %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ region or 'Не указан' }}
+                            <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">Нет данных</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Services by Type -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-tags"></i> По типам</h5>
+            </div>
+            <div class="card-body">
+                {% if stats.by_type %}
+                    <ul class="list-group list-group-flush">
+                        {% for type, count in stats.by_type.items() %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ type }}
+                            <span class="badge bg-success rounded-pill">{{ count }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">Нет данных</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
