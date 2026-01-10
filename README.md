@@ -9,7 +9,7 @@
 
 Professional system for managing personal budget service planning documents for social services in Germany.
 
-**Current Version:** 3.0.0 | **Status:** Enterprise Scale ✅
+**Current Version:** 3.1.0 | **Status:** Analytics & BI ✅
 
 ---
 
@@ -132,6 +132,18 @@ Professional system for managing personal budget service planning documents for 
 - ✅ **Multi-Language Support** - German and English text processing
 - ✅ **Model Persistence** - Save/load trained models for reuse
 
+### Advanced Analytics & BI (v3.1) ⭐ NEW!
+- ✅ **Business Intelligence Dashboard** - Executive KPI tracking (MRR, ARR, Churn, CLV, NRR, CAC)
+- ✅ **KPI Calculator** - Real-time business metrics calculation with trend analysis
+- ✅ **Custom Dashboard Builder** - Visual dashboard creation with widgets and charts
+- ✅ **Report Generator** - Export to PDF, Excel, PowerPoint, CSV, JSON formats
+- ✅ **Report Scheduler** - Automated daily, weekly, monthly, quarterly reports
+- ✅ **Predictive Analytics Engine** - ARIMA, Prophet, LSTM forecasting
+- ✅ **Revenue Forecasting** - Monthly and annual recurring revenue predictions
+- ✅ **Churn Prediction** - Machine learning-based customer churn risk assessment
+- ✅ **Scenario Analysis** - What-if analysis with Monte Carlo simulations
+- ✅ **Confidence Intervals** - Statistical confidence bounds for forecasts
+
 ### Multi-tenancy & Enterprise Scale (v3.0)
 - ✅ **Multi-Tenancy Framework** - Database-per-tenant, schema-per-tenant, shared database isolation strategies
 - ✅ **Tenant Provisioning** - Automated tenant setup with resource quotas and subscription plans
@@ -225,6 +237,12 @@ python src/web_app.py
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture and design |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Production deployment guide (600+ lines) |
 | [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md) | Complete deployment checklist |
+
+### Analytics & BI (v3.1) ⭐ NEW!
+
+| Document | Description |
+|----------|-------------|
+| **[ANALYTICS_V3.1_GUIDE.md](docs/ANALYTICS_V3.1_GUIDE.md)** | **Complete Analytics & BI guide (500+ lines)** |
 
 ### Enterprise Features (v3.0) ⭐
 
@@ -563,10 +581,22 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **See [V3.0_RELEASE_NOTES.md](docs/V3.0_RELEASE_NOTES.md) for complete details.**
 
-### Future Enhancements (Post-v3.0)
-- [ ] Microservices architecture
-- [ ] Advanced BI dashboards with real-time analytics
-- [ ] Enhanced AI/ML capabilities
+### v3.1 (✅ COMPLETED - January 2026) ⭐
+- ✅ Business Intelligence Dashboard with KPI tracking
+- ✅ Predictive Analytics Engine (ARIMA, Prophet, LSTM)
+- ✅ Revenue & churn forecasting
+- ✅ Custom report builder & scheduler
+- ✅ Monte Carlo simulations & scenario analysis
+
+**See [ANALYTICS_V3.1_GUIDE.md](docs/ANALYTICS_V3.1_GUIDE.md) for complete details.**
+
+### Future Enhancements (Post-v3.1)
+- [ ] Data Warehouse with ETL pipelines (v3.2)
+- [ ] OLAP Cube engine for multidimensional analysis (v3.2)
+- [ ] Real-time streaming analytics (v3.2)
+- [ ] Natural Language Query interface (v3.2)
+- [ ] Microservices architecture (v3.3)
+- [ ] Enhanced AI/ML capabilities (v3.5)
 - [ ] Blockchain integration for immutable audit trail
 - [ ] Native mobile SDKs (iOS/Android)
 - [ ] GraphQL gateway with federation
@@ -579,10 +609,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📊 Project Statistics
 
-**Total Lines of Code:** 40,000+
-**Python Modules:** 60+
-**Enterprise Features:** 6 major modules
-**Documentation:** 12+ comprehensive guides
+**Total Lines of Code:** 42,000+ (v3.1: +2,000 lines)
+**Python Modules:** 63+ (v3.1: +3 analytics modules)
+**Enterprise Features:** 7 major modules (Multi-Tenancy, Billing, White-Label, Monitoring, Scaling, Portal, Analytics)
+**Documentation:** 13+ comprehensive guides (v3.1: +1 Analytics guide)
 **Supported Languages:** 6 (RU, DE, EN, UK, PL, FR)
 **Test Coverage:** 75%+
 **Production Deployments:** Docker, Kubernetes, Cloud-ready
