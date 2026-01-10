@@ -9,7 +9,7 @@
 
 Professional system for managing personal budget service planning documents for social services in Germany.
 
-**Current Version:** 2.4.0 | **Status:** Production-Ready ✅
+**Current Version:** 2.5.0 | **Status:** Production-Ready ✅
 
 ---
 
@@ -73,6 +73,16 @@ Professional system for managing personal budget service planning documents for 
 - ✅ **Predictive Analytics** - Trend analysis, forecasting, anomaly detection
 - ✅ **Smart Insights** - AI-generated recommendations and actionable insights
 - ✅ **PWA Support** - Progressive web app with offline capabilities
+
+### SSO, Notifications & API Gateway (v2.5)
+- ✅ **SAML 2.0 SSO** - Single Sign-On with multiple Identity Providers
+- ✅ **Email Digests** - Daily, weekly, monthly summaries with HTML templates
+- ✅ **SMS Notifications** - Twilio integration with 8 default templates
+- ✅ **Web Push Notifications** - Browser notifications with VAPID authentication
+- ✅ **API Gateway** - Request routing, rate limiting, circuit breaker
+- ✅ **Notification Center** - Unified notification management
+- ✅ **Opt-out Management** - User preference management
+- ✅ **Analytics Dashboard** - Gateway and notification statistics
 
 ---
 
