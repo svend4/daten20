@@ -9,8 +9,8 @@ Modules:
 - data_warehouse: Data warehousing with ETL pipelines ✅
 - olap_cube: OLAP cube engine for multidimensional analysis ✅
 - data_mining: Data mining and pattern discovery ✅
-- streaming_analytics: Real-time streaming analytics (future v3.2)
-- nlq_engine: Natural language query interface (future v3.2)
+- streaming_analytics: Real-time streaming analytics ✅
+- nl_query: Natural language query interface ✅
 """
 
 from .bi_dashboard import (
@@ -77,6 +77,34 @@ from .data_mining import (
     Cluster
 )
 
+from .streaming_analytics import (
+    get_stream_processor,
+    StreamProcessor,
+    WindowManager,
+    StreamAggregator,
+    ComplexEventProcessor,
+    StreamEvent,
+    Window,
+    StreamMetrics,
+    WindowType,
+    AggregationType,
+    EventType
+)
+
+from .nl_query import (
+    get_nl_processor,
+    NLQueryProcessor,
+    IntentClassifier,
+    EntityExtractor,
+    QueryGenerator,
+    ParsedQuery,
+    Entity,
+    TimeRange,
+    QueryIntent,
+    AggregateFunction,
+    TimeGranularity
+)
+
 __all__ = [
     # BI Dashboard
     'get_bi_dashboard',
@@ -136,6 +164,31 @@ __all__ = [
     'AprioriMiner',
     'AssociationRule',
     'Cluster',
+
+    # Streaming Analytics
+    'get_stream_processor',
+    'StreamProcessor',
+    'WindowManager',
+    'StreamAggregator',
+    'ComplexEventProcessor',
+    'StreamEvent',
+    'Window',
+    'StreamMetrics',
+    'WindowType',
+    'EventType',
+
+    # Natural Language Query
+    'get_nl_processor',
+    'NLQueryProcessor',
+    'IntentClassifier',
+    'EntityExtractor',
+    'QueryGenerator',
+    'ParsedQuery',
+    'Entity',
+    'TimeRange',
+    'QueryIntent',
+    'AggregateFunction',
+    'TimeGranularity',
 ]
 
-__version__ = '3.1.0'
+__version__ = '3.1.1'
