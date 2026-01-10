@@ -268,3 +268,44 @@ scikit-learn>=1.3.0
 # For natural language toolkit
 
 # Already have pandas and numpy from v2.6 for data processing
+
+# v3.0 - Multi-tenancy & Enterprise Scale
+# Multi-tenancy - uses standard library (threading, uuid, dataclasses)
+# Most features use existing dependencies
+
+# White-labeling - Pillow already included from v2.2
+
+# Monitoring - prometheus-client and psutil already included from v2.2
+
+# Horizontal Scaling & Load Balancing (optional - for production deployments)
+# consul>=1.1.0
+# For service discovery with Consul
+# etcd3>=0.12.0
+# For service discovery with etcd
+# kazoo>=2.9.0
+# For service discovery with Zookeeper
+
+# Container orchestration (optional - client libraries)
+# kubernetes>=28.1.0
+# For Kubernetes API client
+# docker>=7.0.0
+# For Docker API client
+
+# Distributed tracing (optional - for production)
+# opentelemetry-api>=1.21.0
+# OpenTelemetry API
+# opentelemetry-sdk>=1.21.0
+# OpenTelemetry SDK
+# opentelemetry-instrumentation-flask>=0.42b0
+# Flask instrumentation
+# jaeger-client>=4.8.0
+# For Jaeger tracing
+
+# Advanced monitoring (optional - for production)
+# statsd>=4.0.0
+# StatsD client
+# datadog>=0.48.0
+# Datadog monitoring
+
+# Load testing v3.0 (optional)
+# Already have locust from v2.3 for load testing
