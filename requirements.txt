@@ -245,3 +245,26 @@ websockets>=12.0
 
 # Webhook Security
 # Already have standard library support (hmac, hashlib)
+
+# v2.9 - Machine Learning Models
+# Core ML libraries (required for production)
+scikit-learn>=1.3.0
+# For classical ML algorithms (SVM, Random Forest, etc.)
+
+# Optional ML libraries
+# transformers>=4.35.0
+# For BERT and transformer models
+# torch>=2.1.0
+# For deep learning (PyTorch)
+# tensorflow>=2.15.0
+# For deep learning (TensorFlow)
+
+# NLP libraries (optional)
+# spacy>=3.7.0
+# For advanced NER and NLP
+# gensim>=4.3.0
+# For topic modeling (LDA)
+# nltk>=3.8.0
+# For natural language toolkit
+
+# Already have pandas and numpy from v2.6 for data processing
