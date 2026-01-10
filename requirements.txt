@@ -83,7 +83,36 @@ reportlab>=4.0.0
 weasyprint>=60.0
 # HTML to PDF conversion (requires system dependencies)
 
-# Performance monitoring (optional)
-# flask-caching>=2.1.0
-# prometheus-flask-exporter>=0.22.0
-# Uncomment for metrics and monitoring
+# v2.2 - Security & Advanced Features
+pyotp>=2.9.0
+# TOTP for 2FA
+qrcode>=7.4.0
+# QR code generation for 2FA
+Pillow>=10.0.0
+# Image processing for QR codes
+Flask-CORS>=4.0.0
+# CORS support
+Flask-SocketIO>=5.3.0
+# WebSockets for real-time notifications
+graphene>=3.3.0
+# GraphQL support
+flask-graphql>=2.0.1
+# Flask GraphQL integration
+
+# Monitoring & Metrics
+prometheus-client>=0.19.0
+# Prometheus metrics
+psutil>=5.9.0
+# System metrics
+
+# Backup & Scheduling
+schedule>=1.2.0
+# Task scheduling
+
+# Development & CI/CD (optional)
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.5.0
+# safety>=2.3.0
+# bandit>=1.7.0
+# Uncomment for code quality and security tools
