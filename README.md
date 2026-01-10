@@ -9,7 +9,7 @@
 
 Professional system for managing personal budget service planning documents for social services in Germany.
 
-**Current Version:** 3.5.0 | **Status:** AI/ML Services with LLM Integration ✅
+**Current Version:** 3.6.0 | **Status:** IoT & Edge Computing Platform ✅
 
 ---
 
@@ -736,12 +736,78 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **See [AI_ML_V3.5_PLAN.md](docs/AI_ML_V3.5_PLAN.md) for complete architecture and implementation details.**
 
-### Future Enhancements (Post-v3.5)
+### v3.6 (✅ COMPLETE - January 2026) ⭐ NEW!
+- ✅ **Device Management** - IoT device registration, lifecycle, digital twins
+- ✅ **MQTT Broker** - Lightweight pub/sub messaging with QoS support
+- ✅ **Edge Computing Platform** - Local processing with edge functions
+- ✅ **Telemetry Pipeline** - Time-series data ingestion and querying
+- ✅ **Device Shadows** - Digital twin state synchronization
+- ✅ **Device Groups** - Organize devices for batch operations
+- ✅ **Edge Caching** - Local caching for offline capability
+
+**Components:**
+1. `iot_services.py` - Unified IoT and edge computing services (~950 lines)
+
+**Features:**
+
+**Device Management:**
+- **Device Registration**: Complete device lifecycle (provision, activate, deactivate)
+- **Device Types**: Sensors, actuators, gateways, cameras, controllers
+- **Device Status**: Real-time online/offline tracking with heartbeat
+- **Device Shadows (Digital Twins)**: Desired vs reported state synchronization
+- **Device Groups**: Organize devices for batch operations
+- **Device Tags**: Custom labeling and categorization
+- **Location Tracking**: Physical location (GPS, room, floor, building)
+- **Firmware Management**: Version tracking and OTA update support
+- **Metadata**: Custom properties per device
+
+**MQTT Broker:**
+- **Pub/Sub Messaging**: Topic-based publish/subscribe pattern
+- **QoS Levels**: At-most-once (0), at-least-once (1), exactly-once (2)
+- **Topic Wildcards**: Single-level (+) and multi-level (#) wildcards
+- **Retained Messages**: Store last message for new subscribers
+- **Message Routing**: Efficient topic matching and delivery
+- **Statistics**: Track published, delivered messages, active subscriptions
+- **Async Handlers**: Non-blocking message callbacks
+
+**Edge Computing Platform:**
+- **Edge Nodes**: Register and manage edge computing nodes
+- **Edge Functions**: Deploy Python functions to edge for local processing
+- **Function Execution**: Execute functions with input data
+- **Edge Cache**: Local caching with TTL for offline scenarios
+- **Node Metrics**: CPU, memory, disk usage monitoring
+- **Node Health**: Heartbeat-based health checking
+- **Resource Management**: Memory and timeout limits per function
+- **Trigger Support**: Event-based function triggering (MQTT topics)
+
+**Telemetry Pipeline:**
+- **Data Ingestion**: High-throughput telemetry data collection
+- **Batch Ingestion**: Efficient bulk data loading
+- **Time-Series Storage**: Store 10,000+ points per metric
+- **Query Interface**: Time range filtering and limits
+- **Latest Values**: Quick access to current readings
+- **Aggregation**: avg, sum, min, max, count operations
+- **Quality Tracking**: Data quality indicators (0.0-1.0)
+- **Metadata**: Custom metadata per telemetry point
+
+**Use Cases:**
+- **Smart Office**: Temperature, humidity, occupancy, lighting, HVAC automation
+- **Document Tracking**: Smart scanners, RFID tracking, automated filing
+- **Environmental Monitoring**: Air quality, noise, light, motion sensors
+- **Asset Tracking**: BLE beacons, GPS, RFID tags, geofencing
+- **Energy Management**: Consumption monitoring, usage optimization
+- **Predictive Maintenance**: Equipment health monitoring and alerts
+
+**Total:** ~950 lines of IoT & edge computing code
+
+**See [IOT_EDGE_V3.6_PLAN.md](docs/IOT_EDGE_V3.6_PLAN.md) for complete architecture and implementation details.**
+
+### Future Enhancements (Post-v3.6)
 - [ ] Computer Vision & OCR (v3.5 extension)
-- [ ] IoT & Edge Computing (v3.6)
-- [ ] GraphQL gateway with federation (v3.9)
-- [ ] Advanced accessibility features (WCAG 2.1 AAA)
-- [ ] More external integrations (100+ planned)
+- [ ] Advanced integrations (v3.7)
+- [ ] Governance & compliance (v3.8)
+- [ ] Developer platform (v3.9)
+- [ ] Next-gen platform (v4.0)
 
 **See [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) for detailed roadmap.**
 
@@ -749,12 +815,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📊 Project Statistics
 
-**Total Lines of Code:** 49,850+ (v3.5: +850 lines, v3.4: +650 lines, v3.1 ext: +1,290 lines, v3.3: +2,565 lines, v3.2: +2,454 lines, v3.1: +3,684 lines)
-**Python Modules:** 72+ (v3.5: +1 AI/ML module, v3.4: +1 blockchain module)
+**Total Lines of Code:** 50,800+ (v3.6: +950 lines, v3.5: +850 lines, v3.4: +650 lines, v3.1 ext: +1,290 lines, v3.3: +2,565 lines, v3.2: +2,454 lines, v3.1: +3,684 lines)
+**Python Modules:** 73+ (v3.6: +1 IoT module, v3.5: +1 AI/ML module, v3.4: +1 blockchain module)
 **Mobile SDKs:** 4 platforms (iOS, Android, React Native, Flutter)
 **Analytics Modules:** 7 (BI, Predictive, Warehouse, OLAP, Mining, Streaming, NL Query)
 **AI/ML Modules:** 3 services (LLM Integration, Document Intelligence, Recommendation Engine)
-**Enterprise Features:** 11 major modules (Multi-Tenancy, Billing, White-Label, Monitoring, Scaling, Portal, Analytics, Microservices, Mobile, Blockchain, AI/ML)
+**IoT Modules:** 4 services (Device Manager, MQTT Broker, Edge Platform, Telemetry Pipeline)
+**Enterprise Features:** 12 major modules (Multi-Tenancy, Billing, White-Label, Monitoring, Scaling, Portal, Analytics, Microservices, Mobile, Blockchain, AI/ML, IoT)
 **Documentation:** 13+ comprehensive guides (v3.1: +1 Analytics guide)
 **Supported Languages:** 6 (RU, DE, EN, UK, PL, FR)
 **Test Coverage:** 75%+
@@ -781,4 +848,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 Built for social services professionals. Now ready for enterprise deployment with complete multi-tenancy, billing, monitoring, and scaling capabilities.
 
-**Version:** 3.5.0 | **Status:** Production Ready | **Last Updated:** January 2026
+**Version:** 3.6.0 | **Status:** Production Ready | **Last Updated:** January 2026
