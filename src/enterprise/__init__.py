@@ -7,6 +7,7 @@ Provides enterprise-grade capabilities:
 - Advanced monitoring and metrics
 - Horizontal scaling and load balancing
 - Billing and subscriptions
+- Tenant self-service portal
 """
 
 from .multitenancy import (
@@ -60,6 +61,16 @@ from .billing import (
     get_billing_engine
 )
 
+from .tenant_portal import (
+    APIKeyStatus,
+    WebhookEvent,
+    APIKey,
+    Webhook,
+    TeamMember,
+    TenantPortalAPI,
+    get_tenant_portal
+)
+
 __all__ = [
     # Multi-tenancy
     'IsolationStrategy',
@@ -106,4 +117,13 @@ __all__ = [
     'Payment',
     'BillingEngine',
     'get_billing_engine',
+
+    # Tenant Portal
+    'APIKeyStatus',
+    'WebhookEvent',
+    'APIKey',
+    'Webhook',
+    'TeamMember',
+    'TenantPortalAPI',
+    'get_tenant_portal',
 ]

@@ -163,6 +163,13 @@ Professional system for managing personal budget service planning documents for 
 - ✅ **Revenue Recognition** - Proration for plan changes and subscription management
 - ✅ **Trial Periods** - 14-30 day trial periods per plan
 - ✅ **Discount Codes** - Percentage and fixed-amount discount coupons
+- ✅ **Tenant Portal API** - Complete self-service portal with 6 service modules
+- ✅ **Dashboard Service** - Real-time analytics with usage statistics and health monitoring
+- ✅ **Billing Management** - View invoices, change plans, manage subscriptions, payment methods
+- ✅ **Team Management** - Invite members, manage roles (owner, admin, member, viewer), permissions
+- ✅ **API Keys Management** - Create, list, revoke API keys with scopes and expiration
+- ✅ **Webhooks Management** - Configure webhooks for 9 event types with delivery tracking
+- ✅ **Usage Analytics** - Daily usage charts with statistics (total, average, peak)
 
 ---
 
