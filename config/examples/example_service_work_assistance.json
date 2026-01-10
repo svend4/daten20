@@ -1,0 +1,57 @@
+{
+  "basic_info": {
+    "service_name": "Ассистент на рабочем месте",
+    "target_group": "Люди с инвалидностью в рабочей среде",
+    "region": "Hamburg",
+    "provider_type": "Сертифицированный специалист",
+    "document_date": "10.01.2026",
+    "document_version": "1.0",
+    "responsible_person": "Петр Шмидт, руководитель отдела"
+  },
+  "financial": {
+    "brutto_rate": 28.00,
+    "employer_rates": {
+      "kv_er": 7.3,
+      "kv_zusatz_er": 0.8,
+      "pv_er": 1.525,
+      "pv_er_sn": 2.025,
+      "rv_er": 9.3,
+      "av_er": 1.2,
+      "uv_er": 1.3
+    },
+    "umlages": {
+      "u1": 0.9,
+      "u2": 0.4,
+      "u3": 0.09
+    },
+    "surcharges": {
+      "night": 25,
+      "weekend": 50,
+      "holiday": 100,
+      "urgent": 15
+    },
+    "materials_per_month": 75.00,
+    "materials_per_hour": 0.00,
+    "admin_percent": 5.0,
+    "admin_per_hour": 0.00,
+    "region_coefficient": 1.25
+  },
+  "system_settings": {
+    "use_umlages": true,
+    "use_vacation_reserve": false,
+    "surcharge_base": "full_cost",
+    "service_type": "professional"
+  },
+  "funding": {
+    "payer": "Rentenversicherung",
+    "documents": [
+      "Bewilligung vom 01.01.2026",
+      "Maßnahmebescheid Nr. 2026-RV-1234"
+    ]
+  },
+  "custom_fields": {
+    "Arbeitgeber": "Tech Solutions GmbH",
+    "Arbeitsort": "Hafen City, Hamburg",
+    "Arbeitszeiten": "Mo-Fr 09:00-17:00"
+  }
+}

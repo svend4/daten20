@@ -1,0 +1,22 @@
+# Core dependencies
+PyYAML>=6.0
+# For YAML configuration files
+
+# Optional dependencies for enhanced functionality
+
+# PDF export (optional)
+# weasyprint>=60.0
+# Uncomment to enable PDF export
+
+# DOCX export (optional)
+# python-docx>=0.8.11
+# Uncomment to enable DOCX export
+
+# Web interface (optional)
+Flask>=3.0.0
+# For web UI
+
+# Development dependencies (optional)
+# pytest>=7.0.0
+# black>=22.0.0
+# flake8>=5.0.0
