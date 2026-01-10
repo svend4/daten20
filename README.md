@@ -9,7 +9,7 @@
 
 Professional system for managing personal budget service planning documents for social services in Germany.
 
-**Current Version:** 2.8.0 | **Status:** Production-Ready ✅
+**Current Version:** 2.9.0 | **Status:** Production-Ready ✅
 
 ---
 
@@ -119,6 +119,18 @@ Professional system for managing personal budget service planning documents for 
 - ✅ **Bot Orchestration** - Scheduled automation with retry logic and error recovery
 - ✅ **Multi-System Support** - 27 external systems integration
 - ✅ **Payment Processing** - Full payment lifecycle with refunds and subscriptions
+
+### Machine Learning Models (v2.9)
+- ✅ **Document Classification** - TF-IDF + SVM, BERT models for 10 document categories
+- ✅ **Auto-Tagging System** - TF-IDF, TextRank, LDA topic modeling for automatic tagging
+- ✅ **Anomaly Detection** - Z-score, IQR, pattern deviation with 6 anomaly types
+- ✅ **Named Entity Recognition** - Extract 8 entity types (Person, Organization, Date, Money, IBAN, etc.)
+- ✅ **Recommendation Engine** - Collaborative & content-based filtering with hybrid approach
+- ✅ **Predictive Analytics** - Time series forecasting with trend analysis and confidence intervals
+- ✅ **Model Training & Evaluation** - Accuracy, precision, recall, F1-score metrics
+- ✅ **Feature Extraction** - Advanced text preprocessing and feature engineering
+- ✅ **Multi-Language Support** - German and English text processing
+- ✅ **Model Persistence** - Save/load trained models for reuse
 
 ---
 
