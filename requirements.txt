@@ -171,3 +171,20 @@ requests>=2.31.0
 # Additional utilities
 pytz>=2024.1
 # Timezone support
+
+# v2.6 - AI Assistant, Mobile Apps & BI Dashboards
+# AI/NLP (optional - for advanced chatbot)
+# openai>=1.3.0
+# For OpenAI GPT integration
+# anthropic>=0.7.0
+# For Claude integration
+
+# BI/Analytics
+pandas>=2.1.0
+# Data manipulation for BI
+numpy>=1.24.0
+# Numerical computing
+
+# Additional utilities for v2.6
+python-dateutil>=2.8.2
+# Date utilities
