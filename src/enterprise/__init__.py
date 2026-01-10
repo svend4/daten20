@@ -6,12 +6,13 @@ Provides enterprise-grade capabilities:
 - White-labeling and customization
 - Advanced monitoring and metrics
 - Horizontal scaling and load balancing
+- Billing and subscriptions
 """
 
 from .multitenancy import (
     IsolationStrategy,
     TenantStatus,
-    SubscriptionPlan,
+    SubscriptionPlan as SubscriptionTier,  # Enum of plan tiers
     Tenant,
     TenantManager,
     TenantContextManager,
@@ -46,11 +47,24 @@ from .scaling import (
     get_scaling_engine
 )
 
+from .billing import (
+    BillingCycle,
+    PaymentStatus,
+    InvoiceStatus,
+    PaymentMethod,
+    SubscriptionPlan,  # Full plan dataclass with pricing
+    Subscription,
+    Invoice,
+    Payment,
+    BillingEngine,
+    get_billing_engine
+)
+
 __all__ = [
     # Multi-tenancy
     'IsolationStrategy',
     'TenantStatus',
-    'SubscriptionPlan',
+    'SubscriptionTier',  # Renamed from SubscriptionPlan to avoid conflict
     'Tenant',
     'TenantManager',
     'TenantContextManager',
@@ -80,4 +94,16 @@ __all__ = [
     'ScalingConfig',
     'ScalingEngine',
     'get_scaling_engine',
+
+    # Billing
+    'BillingCycle',
+    'PaymentStatus',
+    'InvoiceStatus',
+    'PaymentMethod',
+    'SubscriptionPlan',
+    'Subscription',
+    'Invoice',
+    'Payment',
+    'BillingEngine',
+    'get_billing_engine',
 ]

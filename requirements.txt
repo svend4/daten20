@@ -309,3 +309,13 @@ scikit-learn>=1.3.0
 
 # Load testing v3.0 (optional)
 # Already have locust from v2.3 for load testing
+
+# Billing & Subscriptions (optional - for production payment processing)
+# stripe>=7.0.0
+# For Stripe payment integration (already listed in v2.8)
+# paypalrestsdk>=1.13.1
+# For PayPal integration (already listed in v2.8)
+# recurly>=4.0.0
+# For Recurly subscription management
+# chargebee>=2.0.0
+# For Chargebee billing platform

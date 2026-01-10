@@ -155,6 +155,14 @@ Professional system for managing personal budget service planning documents for 
 - ✅ **Circuit Breaker** - Failure detection and recovery with half-open state
 - ✅ **Session Affinity** - Sticky sessions for stateful applications
 - ✅ **Horizontal Scaling** - Support for 1-100+ instances with automatic load distribution
+- ✅ **Billing & Subscriptions** - 4 subscription plans (FREE, STARTER, PROFESSIONAL, ENTERPRISE)
+- ✅ **Usage Metering** - Track API calls, storage, documents with overage billing
+- ✅ **Automated Invoicing** - Invoice generation with line items, tax calculation, and due dates
+- ✅ **Payment Processing** - Credit card, bank transfer, PayPal, Stripe integration
+- ✅ **Dunning Management** - Failed payment retry with exponential backoff
+- ✅ **Revenue Recognition** - Proration for plan changes and subscription management
+- ✅ **Trial Periods** - 14-30 day trial periods per plan
+- ✅ **Discount Codes** - Percentage and fixed-amount discount coupons
 
 ---
 
