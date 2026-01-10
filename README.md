@@ -9,7 +9,7 @@
 
 Professional system for managing personal budget service planning documents for social services in Germany.
 
-**Current Version:** 2.6.0 | **Status:** Production-Ready ✅
+**Current Version:** 2.7.0 | **Status:** Production-Ready ✅
 
 ---
 
@@ -95,6 +95,18 @@ Professional system for managing personal budget service planning documents for 
 - ✅ **Biometric Authentication** - Fingerprint and Face ID support for mobile
 - ✅ **Offline Mode** - Full mobile functionality without network connection
 - ✅ **Real-time Analytics** - Live business intelligence and reporting
+
+### Compliance, Workflow Engine & Collaboration (v2.7)
+- ✅ **GDPR Compliance** - Complete GDPR framework with data subject rights, consent management
+- ✅ **HIPAA Compliance** - PHI protection, access controls, breach notifications
+- ✅ **SOC 2 Framework** - Trust Services Criteria with 29 controls across 5 categories
+- ✅ **Workflow Engine** - Visual workflow designer with 8 node types, parallel execution
+- ✅ **Operational Transformation** - Real-time conflict resolution for collaborative editing
+- ✅ **Team Spaces** - Team collaboration with channels, @mentions, reactions
+- ✅ **Real-time Editing** - Collaborative document editing with cursor tracking
+- ✅ **Version History** - Document snapshots and restoration
+- ✅ **Activity Feed** - Team activity tracking with notifications
+- ✅ **Permission Management** - Role-based access control for teams
 
 ---
 
