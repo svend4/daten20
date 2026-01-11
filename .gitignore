@@ -77,7 +77,7 @@ Thumbs.db
 *.tflite
 *.keras
 checkpoints/
-models/
+/models/
 saved_models/
 *.model
 *.joblib
