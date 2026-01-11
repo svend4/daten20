@@ -1,114 +1,123 @@
 """
-🚀 Fully Autonomous Platform Module
+Autonomous Agent Ecosystem Module (v12.0)
 
-Provides complete system autonomy with self-learning, multi-agent coordination,
-autonomous planning, self-monitoring, goal generation, and human-AI collaboration.
+This module provides comprehensive autonomous agent capabilities for creating
+intelligent, goal-oriented agents capable of reasoning, planning, acting,
+learning, and collaborating.
 
-Version: 5.0.0
+Core Systems:
+- Agent Orchestrator: Multi-agent coordination and task allocation
+- Reasoning Engine: Symbolic and neural reasoning, planning
+- Action Executor: Tool use, API integration, environment interaction
+- Memory System: Episodic, semantic, procedural, and working memory
+- Learning Module: Reinforcement learning, meta-learning, skill acquisition
+- Communication Framework: Inter-agent messaging and negotiation
+- Goal Management: Hierarchical planning and dynamic replanning
+
+Example Usage:
+    from autonomous import get_agent_orchestrator, get_reasoning_engine
+
+    # Register an agent
+    orchestrator = get_agent_orchestrator()
+    profile = await orchestrator.register_agent(
+        agent_id="agent_1",
+        capabilities=["research", "coding"],
+        skills={"python": 0.9, "analysis": 0.8},
+        specializations=["data_science"]
+    )
+
+    # Reason about a problem
+    reasoner = get_reasoning_engine()
+    await reasoner.add_fact("has_data(sensor_1)")
+    await reasoner.add_rule("r1", ["has_data(X)"], "can_analyze(X)")
+    result = await reasoner.forward_chain("can_analyze(sensor_1)")
 """
 
-__version__ = '5.0.0'
-
 from .autonomous_services import (
-    # Autonomous Decision Engine
-    DecisionType,
-    DecisionContext,
-    DecisionResult,
-    AutonomousDecisionEngine,
-    get_decision_engine,
+    # Enums
+    AgentStatus,
+    TaskPriority,
+    ReasoningMode,
+    MemoryType,
+    LearningAlgorithm,
+    MessageType,
+    GoalType,
+    GoalStatus,
 
-    # Self-Learning System
-    LearningMode,
-    LearningTask,
-    LearningProgress,
-    SelfLearningSystem,
-    get_self_learning_system,
-
-    # Multi-Agent Coordinator
-    AgentRole,
-    Agent,
-    CollaborativeTask,
-    MultiAgentCoordinator,
-    get_multi_agent_coordinator,
-
-    # Autonomous Planner
-    PlanType,
-    PlanningGoal,
-    Plan,
-    AutonomousPlanner,
-    get_autonomous_planner,
-
-    # Self-Monitor & Repair
-    HealthStatus,
-    SystemMetric,
-    Anomaly,
-    RepairAction,
-    SelfMonitor,
-    get_self_monitor,
-
-    # Goal Generator
-    GoalSource,
+    # Data Classes
+    AgentProfile,
+    Task,
+    InferenceResult,
+    Action,
+    ActionResult,
+    Memory,
+    Episode,
+    Experience,
+    Policy,
+    Message,
     Goal,
-    GoalProgress,
-    GoalGenerator,
-    get_goal_generator,
+    Plan,
 
-    # Human-AI Collaborator
-    AutonomyLevel,
-    HumanRequest,
-    CollaborationSession,
-    HumanAICollaborator,
-    get_human_ai_collaborator,
+    # Service Classes
+    AgentOrchestrator,
+    ReasoningEngine,
+    ActionExecutor,
+    MemorySystem,
+    LearningModule,
+    CommunicationFramework,
+    GoalManagementSystem,
+
+    # Singleton Getters
+    get_agent_orchestrator,
+    get_reasoning_engine,
+    get_action_executor,
+    get_memory_system,
+    get_learning_module,
+    get_communication_framework,
+    get_goal_management_system,
 )
 
+__version__ = '12.0.0'
 __all__ = [
-    # Autonomous Decision Engine
-    'DecisionType',
-    'DecisionContext',
-    'DecisionResult',
-    'AutonomousDecisionEngine',
-    'get_decision_engine',
+    # Enums
+    'AgentStatus',
+    'TaskPriority',
+    'ReasoningMode',
+    'MemoryType',
+    'LearningAlgorithm',
+    'MessageType',
+    'GoalType',
+    'GoalStatus',
 
-    # Self-Learning System
-    'LearningMode',
-    'LearningTask',
-    'LearningProgress',
-    'SelfLearningSystem',
-    'get_self_learning_system',
-
-    # Multi-Agent Coordinator
-    'AgentRole',
-    'Agent',
-    'CollaborativeTask',
-    'MultiAgentCoordinator',
-    'get_multi_agent_coordinator',
-
-    # Autonomous Planner
-    'PlanType',
-    'PlanningGoal',
-    'Plan',
-    'AutonomousPlanner',
-    'get_autonomous_planner',
-
-    # Self-Monitor & Repair
-    'HealthStatus',
-    'SystemMetric',
-    'Anomaly',
-    'RepairAction',
-    'SelfMonitor',
-    'get_self_monitor',
-
-    # Goal Generator
-    'GoalSource',
+    # Data Classes
+    'AgentProfile',
+    'Task',
+    'InferenceResult',
+    'Action',
+    'ActionResult',
+    'Memory',
+    'Episode',
+    'Experience',
+    'Policy',
+    'Message',
     'Goal',
-    'GoalProgress',
-    'GoalGenerator',
-    'get_goal_generator',
+    'Plan',
 
-    # Human-AI Collaborator
-    'AutonomyLevel',
-    'HumanRequest',
-    'CollaborationSession',
-    'HumanAICollaborator',
-    'get_human_ai_collaborator',
+    # Service Classes
+    'AgentOrchestrator',
+    'ReasoningEngine',
+    'ActionExecutor',
+    'MemorySystem',
+    'LearningModule',
+    'CommunicationFramework',
+    'GoalManagementSystem',
+
+    # Singleton Getters
+    'get_agent_orchestrator',
+    'get_reasoning_engine',
+    'get_action_executor',
+    'get_memory_system',
+    'get_learning_module',
+    'get_communication_framework',
+    'get_goal_management_system',
 ]
