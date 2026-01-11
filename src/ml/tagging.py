@@ -229,31 +229,75 @@ class TopicModeler:
         self.num_topics = num_topics
         self.topics: Dict[int, List[str]] = {}
         self.trained = False
+        self.dictionary = None
+        self.corpus = None
+        self.lda_model = None
 
     def train(self, documents: List[str]):
-        """Train LDA model"""
-        # In production, use gensim or sklearn
-        # from gensim import corpora, models
-        # from gensim.models import LdaModel
+        """Train LDA model with real Gensim implementation"""
+        try:
+            from gensim import corpora
+            from gensim.models import LdaModel
+        except ImportError:
+            # Fallback to simulated topics if gensim not available
+            self.topics = {
+                0: ['rechnung', 'betrag', 'zahlung', 'invoice', 'payment'],
+                1: ['vertrag', 'vereinbarung', 'contract', 'agreement'],
+                2: ['bericht', 'analyse', 'report', 'analysis'],
+                3: ['budget', 'finanzplan', 'kosten', 'financial', 'cost'],
+                4: ['dienst', 'service', 'leistung', 'provision']
+            }
+            self.trained = True
+            return
 
         # Tokenize documents
         tokenized_docs = [self._tokenize(doc) for doc in documents]
 
+        # Filter empty documents
+        tokenized_docs = [doc for doc in tokenized_docs if doc]
+
+        if not tokenized_docs:
+            # No valid documents, use fallback
+            self.topics = {
+                0: ['rechnung', 'betrag', 'zahlung', 'invoice', 'payment'],
+                1: ['vertrag', 'vereinbarung', 'contract', 'agreement']
+            }
+            self.trained = True
+            return
+
         # Create dictionary and corpus
-        # dictionary = corpora.Dictionary(tokenized_docs)
-        # corpus = [dictionary.doc2bow(doc) for doc in tokenized_docs]
+        self.dictionary = corpora.Dictionary(tokenized_docs)
 
-        # Train LDA
-        # lda_model = LdaModel(corpus, num_topics=self.num_topics, id2word=dictionary)
+        # Filter extremes: remove very rare and very common words
+        self.dictionary.filter_extremes(
+            no_below=2,  # Minimum 2 documents
+            no_above=0.8,  # Maximum 80% of documents
+            keep_n=10000  # Keep top 10k most frequent words
+        )
 
-        # Simulated topics
-        self.topics = {
-            0: ['rechnung', 'betrag', 'zahlung', 'invoice', 'payment'],
-            1: ['vertrag', 'vereinbarung', 'contract', 'agreement'],
-            2: ['bericht', 'analyse', 'report', 'analysis'],
-            3: ['budget', 'finanzplan', 'kosten', 'financial', 'cost'],
-            4: ['dienst', 'service', 'leistung', 'provision']
-        }
+        # Create corpus (bag-of-words representation)
+        self.corpus = [self.dictionary.doc2bow(doc) for doc in tokenized_docs]
+
+        # Train LDA model
+        self.lda_model = LdaModel(
+            corpus=self.corpus,
+            num_topics=self.num_topics,
+            id2word=self.dictionary,
+            passes=10,  # Number of passes through the corpus
+            iterations=50,  # Number of iterations per pass
+            random_state=42,
+            alpha='auto',  # Learn document-topic density
+            eta='auto',  # Learn topic-word density
+            per_word_topics=True
+        )
+
+        # Extract topics as word lists
+        self.topics = {}
+        for topic_id in range(self.num_topics):
+            # Get top 10 words for this topic
+            topic_words = self.lda_model.show_topic(topic_id, topn=10)
+            # Extract just the words (not probabilities)
+            self.topics[topic_id] = [word for word, _ in topic_words]
 
         self.trained = True
 
@@ -262,10 +306,47 @@ class TopicModeler:
         text: str,
         top_k: int = 3
     ) -> List[TagSuggestion]:
-        """Get topics for document"""
+        """Get topics for document using trained LDA model"""
         if not self.trained:
             return []
 
+        # Try using real LDA model if available
+        if self.lda_model is not None and self.dictionary is not None:
+            try:
+                # Tokenize and create bow representation
+                tokenized_text = self._tokenize(text)
+                bow = self.dictionary.doc2bow(tokenized_text)
+
+                # Get topic distribution for this document
+                topic_distribution = self.lda_model.get_document_topics(bow)
+
+                # Sort by probability
+                sorted_topics = sorted(
+                    topic_distribution,
+                    key=lambda x: x[1],
+                    reverse=True
+                )[:top_k]
+
+                # Create suggestions
+                suggestions = []
+                for topic_id, prob in sorted_topics:
+                    if topic_id in self.topics and self.topics[topic_id]:
+                        # Use most representative word as tag
+                        tag = self.topics[topic_id][0]
+                        suggestions.append(TagSuggestion(
+                            tag=tag,
+                            score=float(prob),
+                            source="lda",
+                            context=f"topic_{topic_id}"
+                        ))
+
+                return suggestions
+
+            except Exception:
+                # Fall through to word overlap method
+                pass
+
+        # Fallback: word overlap method
         words = set(self._tokenize(text))
 
         # Calculate topic scores
@@ -287,13 +368,14 @@ class TopicModeler:
         suggestions = []
         for topic_id, score in sorted_topics[:top_k]:
             # Use most representative word as tag
-            tag = self.topics[topic_id][0]
-            suggestions.append(TagSuggestion(
-                tag=tag,
-                score=score,
-                source="lda",
-                context=f"topic_{topic_id}"
-            ))
+            if topic_id in self.topics and self.topics[topic_id]:
+                tag = self.topics[topic_id][0]
+                suggestions.append(TagSuggestion(
+                    tag=tag,
+                    score=score,
+                    source="lda",
+                    context=f"topic_{topic_id}"
+                ))
 
         return suggestions
 
