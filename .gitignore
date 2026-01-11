@@ -150,6 +150,7 @@ site/
 # Coverage reports
 .coverage.*
 coverage.xml
+coverage.json
 *.cover
 
 # Profiling
