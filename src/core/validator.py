@@ -77,10 +77,12 @@ class EnhancedValidator:
             r'(?:/?|[/?]\S+)$', re.IGNORECASE
         ),
         'iban': re.compile(r'^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$'),
+        'bic': re.compile(r'^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$'),  # BIC/SWIFT
         'postal_code_de': re.compile(r'^\d{5}$'),
         'postal_code_general': re.compile(r'^[A-Z0-9\s-]{3,10}$', re.IGNORECASE),
         'ipv4': re.compile(r'^(\d{1,3}\.){3}\d{1,3}$'),
         'ipv6': re.compile(r'^([0-9a-fA-F]{0,4}:){7}[0-9a-fA-F]{0,4}$'),
+        'mac_address': re.compile(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'),
         'uuid': re.compile(
             r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
             re.IGNORECASE
@@ -89,6 +91,17 @@ class EnhancedValidator:
         'credit_card': re.compile(r'^\d{13,19}$'),
         'tax_id_de': re.compile(r'^\d{11}$'),  # German tax ID
         'vat_id_de': re.compile(r'^DE\d{9}$'),  # German VAT ID
+        'ssn_us': re.compile(r'^\d{3}-\d{2}-\d{4}$'),  # US Social Security Number
+        'isbn10': re.compile(r'^\d{9}[\dX]$'),  # ISBN-10
+        'isbn13': re.compile(r'^97[89]\d{10}$'),  # ISBN-13
+        'ean13': re.compile(r'^\d{13}$'),  # EAN-13 barcode
+        'vin': re.compile(r'^[A-HJ-NPR-Z0-9]{17}$'),  # Vehicle Identification Number
+        'bitcoin_address': re.compile(r'^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$'),  # Bitcoin address
+        'ethereum_address': re.compile(r'^0x[a-fA-F0-9]{40}$'),  # Ethereum address
+        'latitude': re.compile(r'^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)$'),  # Latitude
+        'longitude': re.compile(r'^[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$'),  # Longitude
+        'passport_de': re.compile(r'^[CFGHJKLMNPRTVWXYZ0-9]{9}$'),  # German passport
+        'license_plate_de': re.compile(r'^[A-ZÄÖÜ]{1,3}-[A-Z]{1,2}\s?\d{1,4}[EH]?$'),  # German license plate
     }
 
     def __init__(self):
@@ -185,6 +198,273 @@ class EnhancedValidator:
         if country == 'DE':
             return bool(self.PATTERNS['vat_id_de'].match(value))
         return False
+
+    def validate_bic(self, value: str) -> bool:
+        """Validate BIC/SWIFT code"""
+        if not value:
+            return False
+        bic = value.replace(' ', '').upper()
+        return bool(self.PATTERNS['bic'].match(bic))
+
+    def validate_mac_address(self, value: str) -> bool:
+        """Validate MAC address (supports : and - separators)"""
+        if not value:
+            return False
+        return bool(self.PATTERNS['mac_address'].match(value))
+
+    def validate_ssn(self, value: str, country: str = 'US') -> bool:
+        """Validate Social Security Number"""
+        if not value:
+            return False
+        if country == 'US':
+            return bool(self.PATTERNS['ssn_us'].match(value))
+        return False
+
+    def validate_isbn(self, value: str) -> bool:
+        """Validate ISBN-10 or ISBN-13"""
+        if not value:
+            return False
+
+        # Remove hyphens and spaces
+        isbn = value.replace('-', '').replace(' ', '')
+
+        # Check ISBN-10
+        if self.PATTERNS['isbn10'].match(isbn):
+            # Validate checksum
+            total = sum((10 - i) * (int(c) if c != 'X' else 10)
+                       for i, c in enumerate(isbn))
+            return total % 11 == 0
+
+        # Check ISBN-13
+        if self.PATTERNS['isbn13'].match(isbn):
+            # Validate checksum
+            total = sum(int(c) * (3 if i % 2 else 1) for i, c in enumerate(isbn))
+            return total % 10 == 0
+
+        return False
+
+    def validate_ean(self, value: str) -> bool:
+        """Validate EAN-13 barcode"""
+        if not value:
+            return False
+
+        if not self.PATTERNS['ean13'].match(value):
+            return False
+
+        # Validate checksum
+        total = sum(int(c) * (3 if i % 2 else 1) for i, c in enumerate(value[:-1]))
+        checksum = (10 - (total % 10)) % 10
+        return checksum == int(value[-1])
+
+    def validate_vin(self, value: str) -> bool:
+        """Validate Vehicle Identification Number (VIN)"""
+        if not value:
+            return False
+
+        vin = value.upper()
+        if not self.PATTERNS['vin'].match(vin):
+            return False
+
+        # Additional VIN validation (exclude I, O, Q)
+        if any(c in 'IOQ' for c in vin):
+            return False
+
+        return True
+
+    def validate_bitcoin_address(self, value: str) -> bool:
+        """Validate Bitcoin address (basic format check)"""
+        if not value:
+            return False
+        return bool(self.PATTERNS['bitcoin_address'].match(value))
+
+    def validate_ethereum_address(self, value: str) -> bool:
+        """Validate Ethereum address"""
+        if not value:
+            return False
+        return bool(self.PATTERNS['ethereum_address'].match(value))
+
+    def validate_coordinates(self, latitude: str, longitude: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate geographic coordinates
+
+        Returns:
+            (is_valid, error_message)
+        """
+        if not latitude or not longitude:
+            return False, "Both latitude and longitude are required"
+
+        if not self.PATTERNS['latitude'].match(str(latitude)):
+            return False, "Invalid latitude (must be between -90 and 90)"
+
+        if not self.PATTERNS['longitude'].match(str(longitude)):
+            return False, "Invalid longitude (must be between -180 and 180)"
+
+        return True, None
+
+    def validate_passport(self, value: str, country: str = 'DE') -> bool:
+        """Validate passport number"""
+        if not value:
+            return False
+
+        if country == 'DE':
+            passport = value.upper().replace(' ', '')
+            return bool(self.PATTERNS['passport_de'].match(passport))
+
+        return False
+
+    def validate_license_plate(self, value: str, country: str = 'DE') -> bool:
+        """Validate license plate number"""
+        if not value:
+            return False
+
+        if country == 'DE':
+            plate = value.upper().strip()
+            return bool(self.PATTERNS['license_plate_de'].match(plate))
+
+        return False
+
+    def validate_file_path(self, value: str, must_exist: bool = False) -> tuple[bool, Optional[str]]:
+        """
+        Validate file path
+
+        Args:
+            value: File path to validate
+            must_exist: If True, check if file exists
+
+        Returns:
+            (is_valid, error_message)
+        """
+        if not value:
+            return False, "File path cannot be empty"
+
+        # Basic path validation (no invalid characters)
+        invalid_chars = ['<', '>', ':', '"', '|', '?', '*']
+        if any(char in value for char in invalid_chars):
+            return False, f"File path contains invalid characters: {invalid_chars}"
+
+        if must_exist:
+            from pathlib import Path
+            if not Path(value).exists():
+                return False, f"File does not exist: {value}"
+
+        return True, None
+
+    def validate_domain(self, value: str) -> bool:
+        """Validate domain name"""
+        if not value:
+            return False
+
+        # Domain regex
+        domain_pattern = re.compile(
+            r'^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$',
+            re.IGNORECASE
+        )
+        return bool(domain_pattern.match(value))
+
+    def validate_json(self, value: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate JSON string
+
+        Returns:
+            (is_valid, error_message)
+        """
+        if not value:
+            return False, "JSON string cannot be empty"
+
+        import json
+        try:
+            json.loads(value)
+            return True, None
+        except json.JSONDecodeError as e:
+            return False, f"Invalid JSON: {str(e)}"
+
+    def validate_age(self, value: Any, min_age: int = 0, max_age: int = 150) -> tuple[bool, Optional[str]]:
+        """
+        Validate age value
+
+        Returns:
+            (is_valid, error_message)
+        """
+        try:
+            age = int(value)
+            if age < min_age:
+                return False, f"Age must be at least {min_age}"
+            if age > max_age:
+                return False, f"Age must be at most {max_age}"
+            return True, None
+        except (ValueError, TypeError):
+            return False, "Age must be a valid number"
+
+    def validate_username(
+        self,
+        value: str,
+        min_length: int = 3,
+        max_length: int = 20,
+        allow_special: bool = False
+    ) -> tuple[bool, Optional[str]]:
+        """
+        Validate username
+
+        Returns:
+            (is_valid, error_message)
+        """
+        if not value:
+            return False, "Username cannot be empty"
+
+        if len(value) < min_length:
+            return False, f"Username must be at least {min_length} characters"
+
+        if len(value) > max_length:
+            return False, f"Username must be at most {max_length} characters"
+
+        # Check characters
+        if allow_special:
+            pattern = r'^[a-zA-Z0-9_.-]+$'
+        else:
+            pattern = r'^[a-zA-Z0-9_]+$'
+
+        if not re.match(pattern, value):
+            allowed = "letters, numbers, and _.-" if allow_special else "letters, numbers, and _"
+            return False, f"Username can only contain {allowed}"
+
+        return True, None
+
+    def validate_password_strength(
+        self,
+        value: str,
+        min_length: int = 8,
+        require_uppercase: bool = True,
+        require_lowercase: bool = True,
+        require_digit: bool = True,
+        require_special: bool = True
+    ) -> tuple[bool, List[str]]:
+        """
+        Validate password strength
+
+        Returns:
+            (is_valid, list_of_issues)
+        """
+        issues = []
+
+        if not value:
+            return False, ["Password cannot be empty"]
+
+        if len(value) < min_length:
+            issues.append(f"Password must be at least {min_length} characters")
+
+        if require_uppercase and not re.search(r'[A-Z]', value):
+            issues.append("Password must contain at least one uppercase letter")
+
+        if require_lowercase and not re.search(r'[a-z]', value):
+            issues.append("Password must contain at least one lowercase letter")
+
+        if require_digit and not re.search(r'\d', value):
+            issues.append("Password must contain at least one digit")
+
+        if require_special and not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
+            issues.append("Password must contain at least one special character")
+
+        return len(issues) == 0, issues
 
     def validate_range(
         self,
