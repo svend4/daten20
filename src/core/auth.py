@@ -433,3 +433,7 @@ def get_auth_manager() -> AuthManager:
     if _auth_manager is None:
         _auth_manager = AuthManager()
     return _auth_manager
+
+
+# Alias for backward compatibility
+AuthService = AuthManager

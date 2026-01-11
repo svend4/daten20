@@ -447,3 +447,7 @@ class Database:
         except Exception as e:
             logger.error(f"Error retrieving statistics: {e}", exc_info=True)
             raise
+
+
+# Alias for backward compatibility
+DocumentDatabase = Database

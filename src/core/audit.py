@@ -468,3 +468,7 @@ def get_audit_logger() -> AuditLogger:
     if _audit_logger is None:
         _audit_logger = AuditLogger()
     return _audit_logger
+
+
+# Alias for backward compatibility
+AuditService = AuditLogger
