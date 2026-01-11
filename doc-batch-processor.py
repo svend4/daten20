@@ -59,6 +59,7 @@ import logging
 import time
 import hashlib
 import pickle
+from tqdm import tqdm
 
 # Import core modules
 from src.core.parser import DocumentParser
@@ -253,22 +254,34 @@ class BatchProcessor:
                 for file_path in files_to_process
             }
 
-            # Collect results
-            for future in as_completed(futures):
-                file_path = futures[future]
+            # Collect results with progress bar
+            with tqdm(total=len(files_to_process), desc="Processing documents",
+                     unit="doc", ncols=100, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
+                for future in as_completed(futures):
+                    file_path = futures[future]
 
-                try:
-                    result = future.result()
-                    job.results.append(result)
-                    job.processed += 1
+                    try:
+                        result = future.result()
+                        job.results.append(result)
+                        job.processed += 1
 
-                    # Update statistics
-                    job.total_entities += result.get('entity_count', 0)
-                    job.total_relations += result.get('relation_count', 0)
+                        # Update statistics
+                        job.total_entities += result.get('entity_count', 0)
+                        job.total_relations += result.get('relation_count', 0)
 
-                    # Log progress
-                    progress = (job.processed + job.failed) / job.total_files * 100
-                    logger.info(f"Progress: {progress:.1f}% ({job.processed}/{job.total_files})")
+                        # Update progress bar
+                        pbar.update(1)
+                        pbar.set_postfix({
+                            'Processed': job.processed,
+                            'Failed': job.failed,
+                            'Entities': job.total_entities,
+                            'Relations': job.total_relations
+                        })
+
+                        # Log progress (less frequently with tqdm)
+                        if job.processed % 10 == 0:
+                            progress = (job.processed + job.failed) / job.total_files * 100
+                            logger.info(f"Progress: {progress:.1f}% ({job.processed}/{job.total_files})")
 
                 except Exception as e:
                     logger.error(f"Failed to process {file_path}: {e}")
@@ -279,10 +292,19 @@ class BatchProcessor:
                     })
                     job.failed += 1
 
-                # Save checkpoint every 10 files
-                if (job.processed + job.failed) % 10 == 0:
-                    job.updated_at = datetime.now()
-                    job.save_checkpoint()
+                    # Update progress bar for failed files
+                    pbar.update(1)
+                    pbar.set_postfix({
+                        'Processed': job.processed,
+                        'Failed': job.failed,
+                        'Entities': job.total_entities,
+                        'Relations': job.total_relations
+                    })
+
+                    # Save checkpoint every 10 files
+                    if (job.processed + job.failed) % 10 == 0:
+                        job.updated_at = datetime.now()
+                        job.save_checkpoint()
 
         # Finalize job
         job.end_time = time.time()
