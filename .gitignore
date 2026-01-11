@@ -62,3 +62,148 @@ logs/
 
 # OS
 Thumbs.db
+
+# AI/ML specific
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.pb
+*.tflite
+*.keras
+checkpoints/
+models/
+saved_models/
+*.model
+*.joblib
+
+# Data files
+data/
+datasets/
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# ML Experiment tracking
+mlruns/
+wandb/
+runs/
+tensorboard/
+outputs/
+logs/
+experiments/
+
+# Vector databases
+chromadb/
+faiss_index/
+*.index
+
+# Large files
+*.bin
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.rar
+
+# Cache directories
+.cache/
+__pypackages__/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Cloud credentials
+*credentials.json
+*service-account*.json
+*.pem
+*.key
+
+# Kubernetes
+*.kubeconfig
+
+# Generated documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+site/
+
+# Coverage reports
+.coverage.*
+coverage.xml
+*.cover
+
+# Profiling
+*.prof
+*.lprof
+
+# Frontend builds (if any)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Backup files
+*.backup
+*.bak~
+
+# Monitoring data
+prometheus_data/
+grafana_data/
+
+# Redis dumps
+dump.rdb
+
+# SQLite dumps
+*.sql
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Airflow
+airflow.db
+airflow.cfg
+unittests.cfg
+
+# Ray
+/tmp/ray
+
+# Dask
+dask-worker-space/
+
+# macOS
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+ehthumbs.db
+Desktop.ini
+
+# Application specific
+uploads/
+downloads/
+temp/
+tmp/
+cache/
