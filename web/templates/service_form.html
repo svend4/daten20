@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}{% if edit_mode %}Редактировать{% else %}Создать{% endif %} услугу - DMS{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('services_list') }}">Услуги</a></li>
+                <li class="breadcrumb-item active">{% if edit_mode %}Редактировать{% else %}Создать{% endif %}</li>
+            </ol>
+        </nav>
+
+        <h1 class="mb-4">
+            <i class="bi bi-{% if edit_mode %}pencil{% else %}plus-circle{% endif %}"></i>
+            {% if edit_mode %}Редактировать услугу{% else %}Создать новую услугу{% endif %}
+        </h1>
+    </div>
+</div>
+
+<form method="post">
+    <div class="row">
+        <!-- Basic Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Базовая информация</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Название услуги *</label>
+                        <input type="text" class="form-control" name="service_name"
+                               value="{{ service.basic_info.service_name }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Целевая группа *</label>
+                        <input type="text" class="form-control" name="target_group"
+                               value="{{ service.basic_info.target_group }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Регион *</label>
+                        <select class="form-select" name="region" required>
+                            <option value="">Выберите регион</option>
+                            {% for region in regions %}
+                            <option value="{{ region }}"
+                                    {% if service.basic_info.region == region %}selected{% endif %}>
+                                {{ region }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Тип исполнителя</label>
+                        <input type="text" class="form-control" name="provider_type"
+                               value="{{ service.basic_info.provider_type }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Дата документа</label>
+                        <input type="text" class="form-control" name="document_date"
+                               value="{{ service.basic_info.document_date }}"
+                               placeholder="ДД.ММ.ГГГГ">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ответственный</label>
+                        <input type="text" class="form-control" name="responsible_person"
+                               value="{{ service.basic_info.responsible_person }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Parameters -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-currency-euro"></i> Финансовые параметры</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Ставка брутто €/ч *</label>
+                        <input type="number" step="0.01" class="form-control" name="brutto_rate"
+                               value="{{ service.financial.brutto_rate if service.financial.brutto_rate else '' }}"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Материалы/проезд/связь €/месяц</label>
+                        <input type="number" step="0.01" class="form-control" name="materials_per_month"
+                               value="{{ service.financial.materials_per_month if service.financial.materials_per_month else '0' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Административные расходы %</label>
+                        <input type="number" step="0.1" class="form-control" name="admin_percent"
+                               value="{{ service.financial.admin_percent if service.financial.admin_percent else '5' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Режим расчета</label>
+                        <select class="form-select" name="use_umlages">
+                            <option value="true"
+                                    {% if service.system_settings.use_umlages %}selected{% endif %}>
+                                С умлагами (U1/U2/U3)
+                            </option>
+                            <option value="false"
+                                    {% if service.system_settings.use_vacation_reserve %}selected{% endif %}>
+                                С резервом отпуск/больничные
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">База применения надбавок</label>
+                        <select class="form-select" name="surcharge_base">
+                            <option value="full_cost"
+                                    {% if service.system_settings.surcharge_base == 'full_cost' %}selected{% endif %}>
+                                К полной стоимости часа
+                            </option>
+                            <option value="brutto_only"
+                                    {% if service.system_settings.surcharge_base == 'brutto_only' %}selected{% endif %}>
+                                К ставке брутто
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Тип услуги</label>
+                        <select class="form-select" name="service_type">
+                            {% for key, value in service_types.items() %}
+                            <option value="{{ key }}"
+                                    {% if service.system_settings.service_type == key %}selected{% endif %}>
+                                {{ value }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Funding -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-wallet2"></i> Источники финансирования</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Плательщик</label>
+                        <select class="form-select" name="payer">
+                            <option value="">Выберите плательщика</option>
+                            {% for source in funding_sources %}
+                            <option value="{{ source }}"
+                                    {% if service.funding.payer == source %}selected{% endif %}>
+                                {{ source }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('services_list') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Отмена
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i>
+                    {% if edit_mode %}Сохранить изменения{% else %}Создать услугу{% endif %}
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

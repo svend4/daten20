@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}{{ service.basic_info.service_name }} - DMS{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('services_list') }}">Услуги</a></li>
+                <li class="breadcrumb-item active">{{ service.basic_info.service_name }}</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>{{ service.basic_info.service_name }}</h1>
+            <div class="btn-group">
+                <a href="{{ url_for('service_edit', service_id=service.id) }}" class="btn btn-warning">
+                    <i class="bi bi-pencil"></i> Редактировать
+                </a>
+                <button type="button" class="btn btn-danger" onclick="deleteService()">
+                    <i class="bi bi-trash"></i> Удалить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Basic Info -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Базовая информация</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th width="40%">ID:</th>
+                        <td>{{ service.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Название:</th>
+                        <td><strong>{{ service.basic_info.service_name }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Целевая группа:</th>
+                        <td>{{ service.basic_info.target_group }}</td>
+                    </tr>
+                    <tr>
+                        <th>Регион:</th>
+                        <td><span class="badge bg-info">{{ service.basic_info.region }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Тип исполнителя:</th>
+                        <td>{{ service.basic_info.provider_type }}</td>
+                    </tr>
+                    <tr>
+                        <th>Дата документа:</th>
+                        <td>{{ service.basic_info.document_date }}</td>
+                    </tr>
+                    <tr>
+                        <th>Версия:</th>
+                        <td>{{ service.version }}</td>
+                    </tr>
+                    <tr>
+                        <th>Ответственный:</th>
+                        <td>{{ service.basic_info.responsible_person }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Info -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-currency-euro"></i> Финансовая информация</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th width="50%">Ставка брутто:</th>
+                        <td><strong>{{ service.financial.brutto_rate|currency }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Региональный коэффициент:</th>
+                        <td>{{ service.financial.region_coefficient }}</td>
+                    </tr>
+                    <tr>
+                        <th>Материалы/месяц:</th>
+                        <td>{{ service.financial.materials_per_month|currency }}</td>
+                    </tr>
+                    <tr>
+                        <th>Админ расходы:</th>
+                        <td>{{ service.financial.admin_percent|percentage }}</td>
+                    </tr>
+                    <tr>
+                        <th>Режим расчета:</th>
+                        <td>
+                            {% if service.system_settings.use_umlages %}
+                                <span class="badge bg-primary">С умлагами (U1/U2/U3)</span>
+                            {% else %}
+                                <span class="badge bg-secondary">С резервом отпуск/больничные</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Тип услуги:</th>
+                        <td><span class="badge bg-info">{{ service.system_settings.service_type }}</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cost Breakdown -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-calculator"></i> Расчет стоимости</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Компоненты стоимости:</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Ставка брутто:</td>
+                                <td class="text-end">{{ breakdown.brutto_rate|currency }}</td>
+                            </tr>
+                            <tr>
+                                <td>Социальные отчисления:</td>
+                                <td class="text-end">{{ breakdown.total_insurance|currency }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    {% if breakdown.calculation_mode == 'with_umlages' %}
+                                        Умлаги (U1+U2+U3):
+                                    {% else %}
+                                        Резерв отпуск/больничные:
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if breakdown.calculation_mode == 'with_umlages' %}
+                                        {{ breakdown.total_umlages|currency }}
+                                    {% else %}
+                                        {{ breakdown.vacation_reserve|currency }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Материалы:</td>
+                                <td class="text-end">{{ breakdown.materials_cost|currency }}</td>
+                            </tr>
+                            <tr>
+                                <td>Административные расходы:</td>
+                                <td class="text-end">{{ breakdown.admin_cost|currency }}</td>
+                            </tr>
+                            <tr class="table-primary">
+                                <td><strong>Базовая стоимость часа:</strong></td>
+                                <td class="text-end"><strong>{{ breakdown.base_hourly_cost|currency }}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Итоговая стоимость:</h6>
+                        <div class="alert alert-success">
+                            <h4 class="mb-0">
+                                <i class="bi bi-currency-euro"></i>
+                                {{ breakdown.final_hourly_rate|currency }} / час
+                            </h4>
+                        </div>
+
+                        <p class="text-muted small">
+                            * С учетом регионального коэффициента {{ breakdown.region_coefficient }}
+                        </p>
+
+                        <h6 class="mt-3">Примеры расчета:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>10 часов:</span>
+                                <strong>{{ (breakdown.final_hourly_rate * 10)|currency }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>40 часов (неделя):</span>
+                                <strong>{{ (breakdown.final_hourly_rate * 40)|currency }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>160 часов (месяц):</span>
+                                <strong>{{ (breakdown.final_hourly_rate * 160)|currency }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Funding & Versions -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-wallet2"></i> Финансирование</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Плательщик:</strong> {{ service.funding.payer }}</p>
+                {% if service.funding.documents %}
+                    <p><strong>Документы:</strong></p>
+                    <ul>
+                        {% for doc in service.funding.documents %}
+                        <li>{{ doc }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> История версий</h5>
+            </div>
+            <div class="card-body">
+                {% if versions %}
+                    <ul class="list-group">
+                        {% for version in versions %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>Версия {{ version.version }}</strong>
+                                <small class="text-muted">{{ version.created_at }}</small>
+                            </div>
+                            <small>{{ version.notes }}</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">История версий недоступна</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteService() {
+    if (confirm('Вы уверены, что хотите удалить эту услугу?')) {
+        fetch('/services/{{ service.id }}/delete', {
+            method: 'POST',
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = '{{ url_for("services_list") }}';
+            } else {
+                alert('Ошибка при удалении услуги');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

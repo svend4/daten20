@@ -1,0 +1,887 @@
+{
+  "dashboards": [
+    {
+      "id": "dms-enterprise-overview",
+      "title": "DMS Enterprise Overview",
+      "description": "High-level overview of all enterprise metrics",
+      "tags": ["enterprise", "overview"],
+      "panels": [
+        {
+          "id": 1,
+          "title": "Active Tenants",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "count(dms_tenant_status{status=\"active\"})",
+              "legendFormat": "Active Tenants"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 2,
+          "title": "Total API Calls (Last Hour)",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "sum(increase(dms_http_requests_total[1h]))",
+              "legendFormat": "API Calls"
+            }
+          ],
+          "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 3,
+          "title": "Active Subscriptions",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "count(dms_subscription_status{status=\"active\"})",
+              "legendFormat": "Subscriptions"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 4,
+          "title": "Monthly Recurring Revenue (MRR)",
+          "type": "stat",
+          "unit": "currencyEUR",
+          "targets": [
+            {
+              "expr": "sum(dms_subscription_mrr)",
+              "legendFormat": "MRR"
+            }
+          ],
+          "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 5,
+          "title": "System Health",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "dms_health_status",
+              "legendFormat": "Health"
+            }
+          ],
+          "thresholds": [
+            {"value": 0, "color": "red"},
+            {"value": 1, "color": "green"}
+          ],
+          "gridPos": {"x": 0, "y": 4, "w": 6, "h": 4}
+        },
+        {
+          "id": 6,
+          "title": "API Response Time (p95)",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, rate(dms_http_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "p95 Response Time"
+            }
+          ],
+          "gridPos": {"x": 6, "y": 4, "w": 18, "h": 8}
+        },
+        {
+          "id": 7,
+          "title": "Request Rate by Endpoint",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "sum(rate(dms_http_requests_total[5m])) by (endpoint)",
+              "legendFormat": "{{endpoint}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8}
+        },
+        {
+          "id": 8,
+          "title": "Error Rate",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "sum(rate(dms_http_requests_total{status=~\"5..\"}[5m])) / sum(rate(dms_http_requests_total[5m]))",
+              "legendFormat": "Error Rate"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8}
+        }
+      ]
+    },
+    {
+      "id": "dms-multi-tenancy",
+      "title": "Multi-Tenancy Metrics",
+      "description": "Tenant-specific metrics and resource usage",
+      "tags": ["tenancy", "resources"],
+      "panels": [
+        {
+          "id": 1,
+          "title": "Tenants by Tier",
+          "type": "pie",
+          "targets": [
+            {
+              "expr": "count(dms_tenant_status) by (tier)",
+              "legendFormat": "{{tier}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8}
+        },
+        {
+          "id": 2,
+          "title": "Tenants by Status",
+          "type": "pie",
+          "targets": [
+            {
+              "expr": "count(dms_tenant_status) by (status)",
+              "legendFormat": "{{status}}"
+            }
+          ],
+          "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8}
+        },
+        {
+          "id": 3,
+          "title": "Tenants by Isolation Strategy",
+          "type": "pie",
+          "targets": [
+            {
+              "expr": "count(dms_tenant_status) by (isolation_strategy)",
+              "legendFormat": "{{isolation_strategy}}"
+            }
+          ],
+          "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8}
+        },
+        {
+          "id": 4,
+          "title": "Resource Usage by Tenant",
+          "type": "table",
+          "targets": [
+            {
+              "expr": "dms_tenant_storage_gb",
+              "legendFormat": "{{tenant_name}}"
+            },
+            {
+              "expr": "dms_tenant_documents_count",
+              "legendFormat": "{{tenant_name}}"
+            },
+            {
+              "expr": "dms_tenant_users_count",
+              "legendFormat": "{{tenant_name}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 8, "w": 24, "h": 10}
+        },
+        {
+          "id": 5,
+          "title": "Quota Usage Percentage",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "(dms_tenant_storage_gb / dms_tenant_storage_limit) * 100",
+              "legendFormat": "{{tenant_name}} Storage"
+            },
+            {
+              "expr": "(dms_tenant_api_calls / dms_tenant_api_limit) * 100",
+              "legendFormat": "{{tenant_name}} API Calls"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 18, "w": 24, "h": 8}
+        }
+      ]
+    },
+    {
+      "id": "dms-billing-revenue",
+      "title": "Billing & Revenue Analytics",
+      "description": "Financial metrics and subscription analytics",
+      "tags": ["billing", "revenue"],
+      "panels": [
+        {
+          "id": 1,
+          "title": "Monthly Recurring Revenue (MRR)",
+          "type": "graph",
+          "unit": "currencyEUR",
+          "targets": [
+            {
+              "expr": "sum(dms_subscription_mrr) by (plan)",
+              "legendFormat": "{{plan}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8}
+        },
+        {
+          "id": 2,
+          "title": "Annual Recurring Revenue (ARR)",
+          "type": "stat",
+          "unit": "currencyEUR",
+          "targets": [
+            {
+              "expr": "sum(dms_subscription_mrr) * 12",
+              "legendFormat": "ARR"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 3,
+          "title": "Average Revenue Per User (ARPU)",
+          "type": "stat",
+          "unit": "currencyEUR",
+          "targets": [
+            {
+              "expr": "sum(dms_subscription_mrr) / count(dms_subscription_status{status=\"active\"})",
+              "legendFormat": "ARPU"
+            }
+          ],
+          "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 4,
+          "title": "Churn Rate",
+          "type": "stat",
+          "unit": "percent",
+          "targets": [
+            {
+              "expr": "count(dms_subscription_status{status=\"cancelled\"}) / count(dms_subscription_status)",
+              "legendFormat": "Churn Rate"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 4, "w": 6, "h": 4}
+        },
+        {
+          "id": 5,
+          "title": "Trial Conversion Rate",
+          "type": "stat",
+          "unit": "percent",
+          "targets": [
+            {
+              "expr": "(count(dms_subscription_status{trial=\"false\",status=\"active\"}) / count(dms_subscription_trial_started)) * 100",
+              "legendFormat": "Conversion"
+            }
+          ],
+          "gridPos": {"x": 18, "y": 4, "w": 6, "h": 4}
+        },
+        {
+          "id": 6,
+          "title": "Subscriptions by Plan",
+          "type": "bar",
+          "targets": [
+            {
+              "expr": "count(dms_subscription_status{status=\"active\"}) by (plan)",
+              "legendFormat": "{{plan}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8}
+        },
+        {
+          "id": 7,
+          "title": "Revenue by Plan",
+          "type": "bar",
+          "unit": "currencyEUR",
+          "targets": [
+            {
+              "expr": "sum(dms_subscription_mrr) by (plan)",
+              "legendFormat": "{{plan}}"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8}
+        },
+        {
+          "id": 8,
+          "title": "Invoice Status",
+          "type": "pie",
+          "targets": [
+            {
+              "expr": "count(dms_invoice_status) by (status)",
+              "legendFormat": "{{status}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 16, "w": 8, "h": 8}
+        },
+        {
+          "id": 9,
+          "title": "Outstanding Invoices Value",
+          "type": "stat",
+          "unit": "currencyEUR",
+          "targets": [
+            {
+              "expr": "sum(dms_invoice_amount{status=\"pending\"})",
+              "legendFormat": "Outstanding"
+            }
+          ],
+          "gridPos": {"x": 8, "y": 16, "w": 8, "h": 4}
+        },
+        {
+          "id": 10,
+          "title": "Payment Success Rate",
+          "type": "gauge",
+          "unit": "percent",
+          "targets": [
+            {
+              "expr": "(count(dms_payment_status{status=\"completed\"}) / count(dms_payment_status)) * 100",
+              "legendFormat": "Success Rate"
+            }
+          ],
+          "thresholds": [
+            {"value": 0, "color": "red"},
+            {"value": 90, "color": "yellow"},
+            {"value": 95, "color": "green"}
+          ],
+          "gridPos": {"x": 16, "y": 16, "w": 8, "h": 8}
+        }
+      ]
+    },
+    {
+      "id": "dms-performance",
+      "title": "Performance & Scaling",
+      "description": "System performance and scaling metrics",
+      "tags": ["performance", "scaling"],
+      "panels": [
+        {
+          "id": 1,
+          "title": "CPU Usage",
+          "type": "graph",
+          "unit": "percent",
+          "targets": [
+            {
+              "expr": "dms_resource_cpu_percent",
+              "legendFormat": "CPU"
+            }
+          ],
+          "thresholds": [
+            {"value": 80, "color": "yellow"},
+            {"value": 90, "color": "red"}
+          ],
+          "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8}
+        },
+        {
+          "id": 2,
+          "title": "Memory Usage",
+          "type": "graph",
+          "unit": "percent",
+          "targets": [
+            {
+              "expr": "dms_resource_memory_percent",
+              "legendFormat": "Memory"
+            }
+          ],
+          "thresholds": [
+            {"value": 80, "color": "yellow"},
+            {"value": 90, "color": "red"}
+          ],
+          "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8}
+        },
+        {
+          "id": 3,
+          "title": "Disk Usage",
+          "type": "graph",
+          "unit": "percent",
+          "targets": [
+            {
+              "expr": "dms_resource_disk_percent",
+              "legendFormat": "Disk"
+            }
+          ],
+          "thresholds": [
+            {"value": 80, "color": "yellow"},
+            {"value": 90, "color": "red"}
+          ],
+          "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8}
+        },
+        {
+          "id": 4,
+          "title": "Response Time Percentiles",
+          "type": "graph",
+          "unit": "ms",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.50, rate(dms_http_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "p50"
+            },
+            {
+              "expr": "histogram_quantile(0.95, rate(dms_http_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "p95"
+            },
+            {
+              "expr": "histogram_quantile(0.99, rate(dms_http_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "p99"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8}
+        },
+        {
+          "id": 5,
+          "title": "Database Query Performance",
+          "type": "graph",
+          "unit": "ms",
+          "targets": [
+            {
+              "expr": "rate(dms_database_query_duration_seconds_sum[5m]) / rate(dms_database_query_duration_seconds_count[5m])",
+              "legendFormat": "Avg Query Time"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8}
+        },
+        {
+          "id": 6,
+          "title": "Active Instances by Service",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "count(dms_service_instance_status{status=\"healthy\"}) by (service)",
+              "legendFormat": "{{service}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 16, "w": 12, "h": 6}
+        },
+        {
+          "id": 7,
+          "title": "Load Balancer Distribution",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "rate(dms_load_balancer_requests_total[5m]) by (instance_id)",
+              "legendFormat": "{{instance_id}}"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 16, "w": 12, "h": 6}
+        },
+        {
+          "id": 8,
+          "title": "Circuit Breaker Status",
+          "type": "table",
+          "targets": [
+            {
+              "expr": "dms_circuit_breaker_status",
+              "legendFormat": "{{service}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 22, "w": 24, "h": 6}
+        }
+      ]
+    },
+    {
+      "id": "dms-health-alerts",
+      "title": "Health & Alerts",
+      "description": "System health monitoring and active alerts",
+      "tags": ["health", "alerts"],
+      "panels": [
+        {
+          "id": 1,
+          "title": "Overall Health Status",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "dms_health_status",
+              "legendFormat": "Health"
+            }
+          ],
+          "valueMappings": [
+            {"value": 0, "text": "Unhealthy", "color": "red"},
+            {"value": 1, "text": "Degraded", "color": "yellow"},
+            {"value": 2, "text": "Healthy", "color": "green"}
+          ],
+          "gridPos": {"x": 0, "y": 0, "w": 6, "h": 6}
+        },
+        {
+          "id": 2,
+          "title": "Health Checks",
+          "type": "table",
+          "targets": [
+            {
+              "expr": "dms_health_check_status",
+              "legendFormat": "{{check_name}}"
+            },
+            {
+              "expr": "dms_health_check_response_time_ms",
+              "legendFormat": "{{check_name}}"
+            }
+          ],
+          "gridPos": {"x": 6, "y": 0, "w": 18, "h": 6}
+        },
+        {
+          "id": 3,
+          "title": "Active Alerts by Severity",
+          "type": "bar",
+          "targets": [
+            {
+              "expr": "count(dms_alert_active) by (severity)",
+              "legendFormat": "{{severity}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 6, "w": 12, "h": 8}
+        },
+        {
+          "id": 4,
+          "title": "Alert Timeline",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "count(dms_alert_active) by (severity)",
+              "legendFormat": "{{severity}}"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 6, "w": 12, "h": 8}
+        },
+        {
+          "id": 5,
+          "title": "Recent Alerts",
+          "type": "logs",
+          "targets": [
+            {
+              "expr": "{job=\"dms\"} |= \"ALERT\"",
+              "legendFormat": ""
+            }
+          ],
+          "gridPos": {"x": 0, "y": 14, "w": 24, "h": 10}
+        },
+        {
+          "id": 6,
+          "title": "Alert Resolution Time",
+          "type": "graph",
+          "unit": "s",
+          "targets": [
+            {
+              "expr": "dms_alert_resolution_time_seconds",
+              "legendFormat": "{{alert_name}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8}
+        },
+        {
+          "id": 7,
+          "title": "Failed Health Checks",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "rate(dms_health_check_failures_total[5m])",
+              "legendFormat": "{{check_name}}"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8}
+        }
+      ]
+    },
+    {
+      "id": "dms-white-label",
+      "title": "White-Label Analytics",
+      "description": "White-labeling and customization metrics",
+      "tags": ["white-label", "customization"],
+      "panels": [
+        {
+          "id": 1,
+          "title": "Custom Domains",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "count(dms_custom_domain_status{verified=\"true\"})",
+              "legendFormat": "Verified Domains"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 2,
+          "title": "Custom Branding Configs",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "count(dms_whitelabel_config)",
+              "legendFormat": "Configs"
+            }
+          ],
+          "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 3,
+          "title": "Email Templates",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "count(dms_email_template)",
+              "legendFormat": "Templates"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 4,
+          "title": "Active Languages",
+          "type": "stat",
+          "targets": [
+            {
+              "expr": "count(count(dms_localization_language) by (language))",
+              "legendFormat": "Languages"
+            }
+          ],
+          "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4}
+        },
+        {
+          "id": 5,
+          "title": "Domain Verification Status",
+          "type": "pie",
+          "targets": [
+            {
+              "expr": "count(dms_custom_domain_status) by (verified)",
+              "legendFormat": "{{verified}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 4, "w": 8, "h": 8}
+        },
+        {
+          "id": 6,
+          "title": "SSL Certificate Status",
+          "type": "pie",
+          "targets": [
+            {
+              "expr": "count(dms_custom_domain_ssl) by (status)",
+              "legendFormat": "{{status}}"
+            }
+          ],
+          "gridPos": {"x": 8, "y": 4, "w": 8, "h": 8}
+        },
+        {
+          "id": 7,
+          "title": "Theme Adoption",
+          "type": "bar",
+          "targets": [
+            {
+              "expr": "count(dms_theme_mode) by (mode)",
+              "legendFormat": "{{mode}}"
+            }
+          ],
+          "gridPos": {"x": 16, "y": 4, "w": 8, "h": 8}
+        }
+      ]
+    },
+    {
+      "id": "dms-usage-analytics",
+      "title": "Usage Analytics",
+      "description": "Detailed usage metrics and analytics",
+      "tags": ["usage", "analytics"],
+      "panels": [
+        {
+          "id": 1,
+          "title": "API Calls per Second",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "rate(dms_api_calls_total[1m])",
+              "legendFormat": "RPS"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8}
+        },
+        {
+          "id": 2,
+          "title": "Storage Growth",
+          "type": "graph",
+          "unit": "decgbytes",
+          "targets": [
+            {
+              "expr": "sum(dms_tenant_storage_gb)",
+              "legendFormat": "Total Storage"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8}
+        },
+        {
+          "id": 3,
+          "title": "Document Operations",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "rate(dms_document_operations_total[5m]) by (operation)",
+              "legendFormat": "{{operation}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8}
+        },
+        {
+          "id": 4,
+          "title": "User Activity",
+          "type": "graph",
+          "targets": [
+            {
+              "expr": "count(dms_user_session_active)",
+              "legendFormat": "Active Sessions"
+            }
+          ],
+          "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8}
+        },
+        {
+          "id": 5,
+          "title": "Top API Endpoints",
+          "type": "bar",
+          "targets": [
+            {
+              "expr": "topk(10, sum(rate(dms_http_requests_total[1h])) by (endpoint))",
+              "legendFormat": "{{endpoint}}"
+            }
+          ],
+          "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8}
+        },
+        {
+          "id": 6,
+          "title": "Cache Hit Rate",
+          "type": "gauge",
+          "unit": "percent",
+          "targets": [
+            {
+              "expr": "(sum(rate(dms_cache_hits_total[5m])) / sum(rate(dms_cache_operations_total[5m]))) * 100",
+              "legendFormat": "Hit Rate"
+            }
+          ],
+          "thresholds": [
+            {"value": 0, "color": "red"},
+            {"value": 70, "color": "yellow"},
+            {"value": 90, "color": "green"}
+          ],
+          "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8}
+        }
+      ]
+    }
+  ],
+  "prometheus_recording_rules": [
+    {
+      "name": "dms_enterprise_rules",
+      "interval": "30s",
+      "rules": [
+        {
+          "record": "dms:mrr:sum",
+          "expr": "sum(dms_subscription_mrr)"
+        },
+        {
+          "record": "dms:arr:sum",
+          "expr": "sum(dms_subscription_mrr) * 12"
+        },
+        {
+          "record": "dms:arpu:avg",
+          "expr": "sum(dms_subscription_mrr) / count(dms_subscription_status{status=\"active\"})"
+        },
+        {
+          "record": "dms:api_calls:rate5m",
+          "expr": "rate(dms_api_calls_total[5m])"
+        },
+        {
+          "record": "dms:http_request_duration:p95",
+          "expr": "histogram_quantile(0.95, rate(dms_http_request_duration_seconds_bucket[5m]))"
+        },
+        {
+          "record": "dms:http_request_duration:p99",
+          "expr": "histogram_quantile(0.99, rate(dms_http_request_duration_seconds_bucket[5m]))"
+        },
+        {
+          "record": "dms:error_rate:5m",
+          "expr": "sum(rate(dms_http_requests_total{status=~\"5..\"}[5m])) / sum(rate(dms_http_requests_total[5m]))"
+        }
+      ]
+    }
+  ],
+  "alert_rules": [
+    {
+      "name": "dms_enterprise_alerts",
+      "rules": [
+        {
+          "alert": "HighErrorRate",
+          "expr": "dms:error_rate:5m > 0.05",
+          "for": "5m",
+          "labels": {"severity": "warning"},
+          "annotations": {
+            "summary": "High error rate detected",
+            "description": "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+          }
+        },
+        {
+          "alert": "HighResponseTime",
+          "expr": "dms:http_request_duration:p95 > 1",
+          "for": "5m",
+          "labels": {"severity": "warning"},
+          "annotations": {
+            "summary": "High response time detected",
+            "description": "P95 response time is {{ $value }}s"
+          }
+        },
+        {
+          "alert": "HighCPUUsage",
+          "expr": "dms_resource_cpu_percent > 90",
+          "for": "5m",
+          "labels": {"severity": "critical"},
+          "annotations": {
+            "summary": "High CPU usage",
+            "description": "CPU usage is {{ $value }}%"
+          }
+        },
+        {
+          "alert": "HighMemoryUsage",
+          "expr": "dms_resource_memory_percent > 90",
+          "for": "5m",
+          "labels": {"severity": "critical"},
+          "annotations": {
+            "summary": "High memory usage",
+            "description": "Memory usage is {{ $value }}%"
+          }
+        },
+        {
+          "alert": "ServiceDown",
+          "expr": "up{job=\"dms\"} == 0",
+          "for": "1m",
+          "labels": {"severity": "critical"},
+          "annotations": {
+            "summary": "Service is down",
+            "description": "DMS service {{ $labels.instance }} is down"
+          }
+        },
+        {
+          "alert": "HealthCheckFailing",
+          "expr": "dms_health_check_status == 0",
+          "for": "3m",
+          "labels": {"severity": "warning"},
+          "annotations": {
+            "summary": "Health check failing",
+            "description": "Health check {{ $labels.check_name }} is failing"
+          }
+        },
+        {
+          "alert": "CircuitBreakerOpen",
+          "expr": "dms_circuit_breaker_status == 2",
+          "for": "2m",
+          "labels": {"severity": "warning"},
+          "annotations": {
+            "summary": "Circuit breaker open",
+            "description": "Circuit breaker for {{ $labels.service }} is open"
+          }
+        },
+        {
+          "alert": "LowDiskSpace",
+          "expr": "dms_resource_disk_percent > 85",
+          "for": "10m",
+          "labels": {"severity": "warning"},
+          "annotations": {
+            "summary": "Low disk space",
+            "description": "Disk usage is {{ $value }}%"
+          }
+        },
+        {
+          "alert": "HighInvoiceFailureRate",
+          "expr": "(count(dms_invoice_status{status=\"failed\"}) / count(dms_invoice_status)) > 0.1",
+          "for": "15m",
+          "labels": {"severity": "warning"},
+          "annotations": {
+            "summary": "High invoice failure rate",
+            "description": "Invoice failure rate is {{ $value | humanizePercentage }}"
+          }
+        },
+        {
+          "alert": "TenantQuotaExceeded",
+          "expr": "(dms_tenant_storage_gb / dms_tenant_storage_limit) > 0.95",
+          "for": "5m",
+          "labels": {"severity": "info"},
+          "annotations": {
+            "summary": "Tenant quota almost exceeded",
+            "description": "Tenant {{ $labels.tenant_name }} is at {{ $value | humanizePercentage }} of storage quota"
+          }
+        }
+      ]
+    }
+  ]
+}
