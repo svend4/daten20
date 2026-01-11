@@ -300,3 +300,6 @@ class TemplateParser:
                 results.append((i, line.strip()))
 
         return results
+
+# Alias for backward compatibility
+DocumentParser = TemplateParser

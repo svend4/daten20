@@ -175,3 +175,6 @@ class TemplateValidator:
                 result.is_valid = False
 
         return result
+
+# Alias for backward compatibility
+DocumentValidator = TemplateValidator

@@ -8,17 +8,61 @@ This module provides the foundational components:
 - Export functionality
 - Caching & Monitoring
 - Backup & Audit
+
+Note: Some imports are optional to avoid dependency issues.
 """
 
-from .database import Database
-from .auth import AuthService
-from .parser import TemplateParser
-from .validator import TemplateValidator
+# Optional imports with fallbacks
+try:
+    from .database import Database
+except ImportError as e:
+    print(f"Warning: Database not available: {e}")
+    Database = None
+
+try:
+    from .auth import AuthService
+except ImportError as e:
+    print(f"Warning: AuthService not available (requires flask, jwt): {e}")
+    AuthService = None
+
+try:
+    from .parser import TemplateParser
+except ImportError as e:
+    print(f"Warning: TemplateParser not available: {e}")
+    TemplateParser = None
+
+try:
+    from .validator import TemplateValidator
+except ImportError as e:
+    print(f"Warning: TemplateValidator not available: {e}")
+    TemplateValidator = None
+
 from .exporter import DocumentExporter
-from .cache import CacheService
-from .monitoring import MonitoringService
-from .backup import BackupService
-from .audit import AuditService
+
+try:
+    from .cache import CacheService
+except ImportError as e:
+    print(f"Warning: CacheService not available: {e}")
+    CacheService = None
+
+try:
+    from .monitoring import MonitoringService
+except ImportError as e:
+    print(f"Warning: MonitoringService not available: {e}")
+    MonitoringService = None
+
+try:
+    from .backup import BackupService
+except ImportError as e:
+    print(f"Warning: BackupService not available: {e}")
+    BackupService = None
+
+try:
+    from .audit import AuditService
+except ImportError as e:
+    print(f"Warning: AuditService not available: {e}")
+    AuditService = None
+
 from .logger import setup_logger, get_logger
 
 __all__ = [

@@ -9,7 +9,7 @@ Provides automatic tag generation and assignment:
 - Multi-label classification
 """
 
-from typing import Optional, List, Dict, Any, Set
+from typing import Optional, List, Dict, Any, Set, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
