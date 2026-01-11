@@ -1,0 +1,55 @@
+# Development and Testing Dependencies
+# =====================================
+# Install with: pip install -r requirements-dev.txt
+
+# Testing Framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+pytest-xdist>=3.3.1          # Parallel test execution
+pytest-timeout>=2.1.0         # Test timeouts
+pytest-watch>=4.2.0           # Watch mode for tests
+
+# Coverage
+coverage[toml]>=7.3.0
+
+# Code Quality
+black>=23.7.0                 # Code formatter
+isort>=5.12.0                 # Import sorter
+flake8>=6.1.0                 # Linter
+pylint>=2.17.5                # Static analyzer
+mypy>=1.5.0                   # Type checker
+bandit>=1.7.5                 # Security linter
+
+# Testing Utilities
+Faker>=19.3.1                 # Generate fake data for tests
+freezegun>=1.2.2              # Mock datetime for tests
+responses>=0.23.3             # Mock HTTP requests
+testfixtures>=7.2.0           # Test fixtures and utilities
+
+# Documentation
+sphinx>=7.1.2                 # Documentation generator
+sphinx-rtd-theme>=1.3.0       # ReadTheDocs theme
+sphinx-autodoc-typehints>=1.24.0
+
+# Development Tools
+ipython>=8.14.0               # Enhanced Python shell
+ipdb>=0.13.13                 # IPython debugger
+pre-commit>=3.3.3             # Git hooks manager
+
+# Performance Testing
+pytest-benchmark>=4.0.0       # Benchmark tests
+memory-profiler>=0.61.0       # Memory profiling
+
+# Mocking and Fixtures
+factory-boy>=3.3.0            # Test fixtures
+pytest-factoryboy>=2.5.1      # pytest integration for factory-boy
+
+# Reporting
+pytest-html>=3.2.0            # HTML test reports
+pytest-json-report>=1.5.0     # JSON test reports
+
+# Type Checking
+types-PyYAML>=6.0.12.11
+types-requests>=2.31.0.2
+types-setuptools>=68.1.0.0

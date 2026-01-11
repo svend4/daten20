@@ -36,6 +36,10 @@ class SystemSettings:
     service_type: str = "social"  # domestic, social, medical, professional, educational
 
 
+# Alias for backward compatibility
+ServiceConfig = SystemSettings
+
+
 @dataclass
 class Service:
     """Complete service definition"""

@@ -387,7 +387,7 @@ class ReportGenerator:
 
     def generate_pdf(self, report: Report) -> bytes:
         """
-        Generate PDF report
+        Generate PDF report using ReportLab
 
         Args:
             report: Report configuration
@@ -395,53 +395,404 @@ class ReportGenerator:
         Returns:
             PDF file as bytes
         """
-        # TODO: Implement with ReportLab or WeasyPrint
-        # This is a placeholder implementation
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+        from io import BytesIO
 
-        pdf_content = f"""
-        PDF REPORT: {report.name}
-        Generated: {datetime.now()}
+        # Create PDF in memory
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
 
-        KPIs:
-        {self._format_kpis_text(report.kpis)}
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#1f4788'),
+            spaceAfter=30,
+            alignment=TA_CENTER
+        )
+        story.append(Paragraph(report.name, title_style))
+        story.append(Spacer(1, 0.2*inch))
 
-        Charts: {len(report.charts)} visualizations included
+        # Report metadata
+        meta_style = styles['Normal']
+        story.append(Paragraph(f"<b>Description:</b> {report.description}", meta_style))
+        story.append(Paragraph(f"<b>Generated:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", meta_style))
+        story.append(Paragraph(f"<b>Created by:</b> {report.created_by}", meta_style))
+        story.append(Spacer(1, 0.3*inch))
 
-        Filters: {json.dumps(report.filters, indent=2)}
-        """
+        # KPIs Section
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=16,
+            textColor=colors.HexColor('#2c5aa0'),
+            spaceAfter=12
+        )
+        story.append(Paragraph("Key Performance Indicators", heading_style))
 
-        return pdf_content.encode('utf-8')
+        # KPI Table
+        kpi_data = [['KPI', 'Value', 'Change', 'Trend', 'Target']]
+        for kpi in report.kpis:
+            trend_symbol = '↑' if kpi.trend == 'up' else '↓' if kpi.trend == 'down' else '→'
+            target_str = f"{kpi.target} {kpi.unit}" if kpi.target else 'N/A'
+            kpi_data.append([
+                kpi.name,
+                f"{kpi.value} {kpi.unit}",
+                f"{kpi.change_percentage:+.2f}%",
+                f"{trend_symbol} {kpi.trend}",
+                target_str
+            ])
+
+        kpi_table = Table(kpi_data, colWidths=[2.5*inch, 1.5*inch, 1*inch, 1*inch, 1*inch])
+        kpi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5aa0')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+        ]))
+        story.append(kpi_table)
+        story.append(Spacer(1, 0.3*inch))
+
+        # Charts Section
+        if report.charts:
+            story.append(Paragraph("Visualizations & Charts", heading_style))
+            chart_data = [['#', 'Chart Type', 'Title', 'Data Points']]
+            for idx, chart in enumerate(report.charts, 1):
+                chart_data.append([
+                    str(idx),
+                    chart.chart_type.value.title(),
+                    chart.title,
+                    str(len(chart.labels))
+                ])
+
+            chart_table = Table(chart_data, colWidths=[0.5*inch, 1.5*inch, 3*inch, 1*inch])
+            chart_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5aa0')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+            ]))
+            story.append(chart_table)
+            story.append(Spacer(1, 0.3*inch))
+
+        # Filters
+        if report.filters:
+            story.append(Paragraph("Applied Filters", heading_style))
+            filter_text = json.dumps(report.filters, indent=2)
+            filter_para = Paragraph(f"<pre>{filter_text}</pre>", styles['Code'])
+            story.append(filter_para)
+
+        # Build PDF
+        doc.build(story)
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+
+        return pdf_bytes
 
     def generate_excel(self, report: Report) -> bytes:
         """
-        Generate Excel workbook
+        Generate Excel workbook using openpyxl
 
         Creates multiple sheets:
         - Summary (KPIs)
-        - Data tables
-        - Charts
+        - Charts Info
+        - Metadata
         """
-        # TODO: Implement with openpyxl or xlsxwriter
-        # Placeholder implementation
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        from io import BytesIO
 
-        excel_data = {
-            "summary": self._kpis_to_dict(report.kpis),
-            "charts": [chart.title for chart in report.charts],
-            "metadata": {
-                "generated_at": datetime.now().isoformat(),
-                "report_name": report.name
-            }
-        }
+        wb = Workbook()
 
-        return json.dumps(excel_data, indent=2).encode('utf-8')
+        # === Summary Sheet (KPIs) ===
+        ws_summary = wb.active
+        ws_summary.title = "KPI Summary"
+
+        # Header styling
+        header_fill = PatternFill(start_color="2C5AA0", end_color="2C5AA0", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=12)
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
+        # Report title
+        ws_summary['A1'] = report.name
+        ws_summary['A1'].font = Font(bold=True, size=16, color="1F4788")
+        ws_summary.merge_cells('A1:F1')
+        ws_summary['A1'].alignment = Alignment(horizontal='center')
+
+        ws_summary['A2'] = f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        ws_summary['A2'].font = Font(italic=True, size=10)
+        ws_summary.merge_cells('A2:F2')
+
+        # KPI Headers
+        headers = ['KPI Name', 'Value', 'Unit', 'Change %', 'Trend', 'Target']
+        for col_num, header in enumerate(headers, 1):
+            cell = ws_summary.cell(row=4, column=col_num, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = border
+
+        # KPI Data
+        for row_num, kpi in enumerate(report.kpis, 5):
+            ws_summary.cell(row=row_num, column=1, value=kpi.name).border = border
+            ws_summary.cell(row=row_num, column=2, value=kpi.value).border = border
+            ws_summary.cell(row=row_num, column=3, value=kpi.unit).border = border
+            ws_summary.cell(row=row_num, column=4, value=kpi.change_percentage).border = border
+
+            # Trend cell with color
+            trend_cell = ws_summary.cell(row=row_num, column=5, value=kpi.trend)
+            trend_cell.border = border
+            if kpi.trend == 'up':
+                trend_cell.font = Font(color="00B050")
+            elif kpi.trend == 'down':
+                trend_cell.font = Font(color="FF0000")
+
+            target_val = kpi.target if kpi.target else 'N/A'
+            ws_summary.cell(row=row_num, column=6, value=target_val).border = border
+
+        # Auto-adjust column widths
+        for col in range(1, 7):
+            ws_summary.column_dimensions[get_column_letter(col)].width = 18
+
+        # === Charts Sheet ===
+        ws_charts = wb.create_sheet("Charts Info")
+
+        # Headers
+        chart_headers = ['#', 'Chart Type', 'Title', 'Data Points', 'Datasets']
+        for col_num, header in enumerate(chart_headers, 1):
+            cell = ws_charts.cell(row=1, column=col_num, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center')
+            cell.border = border
+
+        # Chart data
+        for row_num, (idx, chart) in enumerate(enumerate(report.charts, 1), 2):
+            ws_charts.cell(row=row_num, column=1, value=idx).border = border
+            ws_charts.cell(row=row_num, column=2, value=chart.chart_type.value).border = border
+            ws_charts.cell(row=row_num, column=3, value=chart.title).border = border
+            ws_charts.cell(row=row_num, column=4, value=len(chart.labels)).border = border
+            ws_charts.cell(row=row_num, column=5, value=len(chart.datasets)).border = border
+
+        # Auto-adjust
+        for col in range(1, 6):
+            ws_charts.column_dimensions[get_column_letter(col)].width = 20
+
+        # === Metadata Sheet ===
+        ws_meta = wb.create_sheet("Metadata")
+
+        metadata_items = [
+            ('Report ID', report.id),
+            ('Report Name', report.name),
+            ('Description', report.description),
+            ('Created At', report.created_at.strftime('%Y-%m-%d %H:%M:%S')),
+            ('Created By', report.created_by),
+            ('Number of KPIs', len(report.kpis)),
+            ('Number of Charts', len(report.charts)),
+            ('Export Format', report.format.value),
+        ]
+
+        for row_num, (key, value) in enumerate(metadata_items, 1):
+            key_cell = ws_meta.cell(row=row_num, column=1, value=key)
+            key_cell.font = Font(bold=True)
+            key_cell.border = border
+
+            val_cell = ws_meta.cell(row=row_num, column=2, value=str(value))
+            val_cell.border = border
+
+        ws_meta.column_dimensions['A'].width = 20
+        ws_meta.column_dimensions['B'].width = 40
+
+        # Filters (if any)
+        if report.filters:
+            ws_meta.cell(row=len(metadata_items) + 2, column=1, value='Filters:').font = Font(bold=True)
+            ws_meta.cell(row=len(metadata_items) + 3, column=1, value=json.dumps(report.filters, indent=2))
+
+        # Save to bytes
+        buffer = BytesIO()
+        wb.save(buffer)
+        excel_bytes = buffer.getvalue()
+        buffer.close()
+
+        return excel_bytes
 
     def generate_powerpoint(self, report: Report) -> bytes:
-        """Generate PowerPoint presentation"""
-        # TODO: Implement with python-pptx
-        # Placeholder
+        """
+        Generate PowerPoint presentation using python-pptx
 
-        ppt_content = f"PowerPoint: {report.name}\nSlides: {len(report.charts) + 1}"
-        return ppt_content.encode('utf-8')
+        Creates slides for:
+        - Title slide
+        - KPI summary slide
+        - Individual chart slides
+        """
+        from pptx import Presentation
+        from pptx.util import Inches, Pt
+        from pptx.enum.text import PP_ALIGN
+        from pptx.dml.color import RGBColor
+        from io import BytesIO
+
+        prs = Presentation()
+        prs.slide_width = Inches(10)
+        prs.slide_height = Inches(7.5)
+
+        # === Title Slide ===
+        title_slide_layout = prs.slide_layouts[0]  # Title slide layout
+        slide = prs.slides.add_slide(title_slide_layout)
+        title = slide.shapes.title
+        subtitle = slide.placeholders[1]
+
+        title.text = report.name
+        subtitle.text = f"{report.description}\n\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M')}\nCreated by: {report.created_by}"
+
+        # Style title
+        title.text_frame.paragraphs[0].font.size = Pt(44)
+        title.text_frame.paragraphs[0].font.bold = True
+        title.text_frame.paragraphs[0].font.color.rgb = RGBColor(31, 71, 136)
+
+        # === KPI Summary Slide ===
+        bullet_slide_layout = prs.slide_layouts[1]  # Title and content
+        slide = prs.slides.add_slide(bullet_slide_layout)
+        shapes = slide.shapes
+
+        title_shape = shapes.title
+        body_shape = shapes.placeholders[1]
+
+        title_shape.text = "Key Performance Indicators"
+
+        tf = body_shape.text_frame
+        tf.clear()
+
+        for kpi in report.kpis:
+            p = tf.add_paragraph()
+            trend_arrow = '↑' if kpi.trend == 'up' else '↓' if kpi.trend == 'down' else '→'
+            p.text = f"{kpi.name}: {kpi.value} {kpi.unit} ({kpi.change_percentage:+.2f}% {trend_arrow})"
+            p.level = 0
+            p.font.size = Pt(18)
+
+            # Color based on trend
+            if kpi.trend == 'up':
+                p.font.color.rgb = RGBColor(0, 176, 80)
+            elif kpi.trend == 'down':
+                p.font.color.rgb = RGBColor(255, 0, 0)
+
+            # Add target if available
+            if kpi.target:
+                p_target = tf.add_paragraph()
+                p_target.text = f"Target: {kpi.target} {kpi.unit}"
+                p_target.level = 1
+                p_target.font.size = Pt(14)
+                p_target.font.italic = True
+
+        # === Chart Slides ===
+        for idx, chart in enumerate(report.charts, 1):
+            slide = prs.slides.add_slide(bullet_slide_layout)
+            shapes = slide.shapes
+
+            title_shape = shapes.title
+            body_shape = shapes.placeholders[1]
+
+            title_shape.text = f"Chart {idx}: {chart.title}"
+
+            tf = body_shape.text_frame
+            tf.clear()
+
+            # Chart info
+            p = tf.add_paragraph()
+            p.text = f"Type: {chart.chart_type.value.title()}"
+            p.font.size = Pt(18)
+
+            p = tf.add_paragraph()
+            p.text = f"Data Points: {len(chart.labels)}"
+            p.font.size = Pt(16)
+
+            p = tf.add_paragraph()
+            p.text = f"Datasets: {len(chart.datasets)}"
+            p.font.size = Pt(16)
+
+            # Labels preview
+            if chart.labels:
+                p = tf.add_paragraph()
+                p.text = "Labels:"
+                p.font.size = Pt(16)
+                p.font.bold = True
+
+                labels_preview = chart.labels[:5]  # Show first 5
+                for label in labels_preview:
+                    p_label = tf.add_paragraph()
+                    p_label.text = f"• {label}"
+                    p_label.level = 1
+                    p_label.font.size = Pt(14)
+
+                if len(chart.labels) > 5:
+                    p_more = tf.add_paragraph()
+                    p_more.text = f"... and {len(chart.labels) - 5} more"
+                    p_more.level = 1
+                    p_more.font.size = Pt(14)
+                    p_more.font.italic = True
+
+        # === Metadata Slide ===
+        slide = prs.slides.add_slide(bullet_slide_layout)
+        shapes = slide.shapes
+
+        title_shape = shapes.title
+        body_shape = shapes.placeholders[1]
+
+        title_shape.text = "Report Metadata"
+
+        tf = body_shape.text_frame
+        tf.clear()
+
+        metadata_items = [
+            f"Report ID: {report.id}",
+            f"Created: {report.created_at.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"KPIs: {len(report.kpis)}",
+            f"Charts: {len(report.charts)}",
+        ]
+
+        for item in metadata_items:
+            p = tf.add_paragraph()
+            p.text = item
+            p.font.size = Pt(16)
+
+        # Filters
+        if report.filters:
+            p = tf.add_paragraph()
+            p.text = f"Filters: {json.dumps(report.filters, indent=2)}"
+            p.font.size = Pt(14)
+            p.font.italic = True
+
+        # Save to bytes
+        buffer = BytesIO()
+        prs.save(buffer)
+        ppt_bytes = buffer.getvalue()
+        buffer.close()
+
+        return ppt_bytes
 
     def generate_json(self, report: Report) -> str:
         """Generate JSON report"""

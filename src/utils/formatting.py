@@ -258,3 +258,101 @@ def title_box(text: str) -> str:
     middle = "║  " + text + "  ║"
     bottom = "╚" + "═" * width + "╝"
     return "\n".join([top, middle, bottom])
+
+# ========== Additional formatting functions ==========
+
+def format_currency(amount: float, currency: str = "€", decimals: int = 2) -> str:
+    """
+    Format a number as currency
+
+    Args:
+        amount: Amount to format
+        currency: Currency symbol (default: €)
+        decimals: Number of decimal places
+
+    Returns:
+        Formatted currency string
+
+    Examples:
+        >>> format_currency(1234.56)
+        '1.234,56 €'
+        >>> format_currency(1000, currency="$")
+        '1.000,00 $'
+    """
+    # Format with German-style thousands separator (.) and decimal comma (,)
+    formatted = f"{amount:,.{decimals}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{formatted} {currency}"
+
+
+def format_percentage(value: float, decimals: int = 1, include_sign: bool = True) -> str:
+    """
+    Format a number as percentage
+
+    Args:
+        value: Value to format (e.g., 0.075 for 7.5%)
+        decimals: Number of decimal places
+        include_sign: Whether to include % sign
+
+    Returns:
+        Formatted percentage string
+
+    Examples:
+        >>> format_percentage(0.075)
+        '7.5%'
+        >>> format_percentage(12.345, decimals=2)
+        '12.35%'
+    """
+    formatted = f"{value:.{decimals}f}"
+    return f"{formatted}%" if include_sign else formatted
+
+
+def format_date(date_obj, format_str: str = "%d.%m.%Y") -> str:
+    """
+    Format a date object as string
+
+    Args:
+        date_obj: datetime or date object (or string to pass through)
+        format_str: Format string (default: DD.MM.YYYY)
+
+    Returns:
+        Formatted date string
+
+    Examples:
+        >>> from datetime import datetime
+        >>> format_date(datetime(2026, 1, 11))
+        '11.01.2026'
+    """
+    from datetime import datetime, date
+
+    # If already a string, return as-is
+    if isinstance(date_obj, str):
+        return date_obj
+
+    # If datetime or date object, format it
+    if isinstance(date_obj, (datetime, date)):
+        return date_obj.strftime(format_str)
+
+    # Fallback
+    return str(date_obj)
+
+
+def truncate_text(text: str, max_length: int = 80, suffix: str = "...") -> str:
+    """
+    Truncate text to maximum length
+
+    Args:
+        text: Text to truncate
+        max_length: Maximum length (including suffix)
+        suffix: Suffix to add (default: ...)
+
+    Returns:
+        Truncated text
+
+    Examples:
+        >>> truncate_text("This is a very long text", max_length=15)
+        'This is a ve...'
+    """
+    if len(text) <= max_length:
+        return text
+
+    return text[:max_length - len(suffix)] + suffix

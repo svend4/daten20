@@ -1,0 +1,19 @@
+Document Sample 1
+==================
+
+This is the first sample document for testing purposes.
+It contains multiple paragraphs and entities.
+
+Name: Max Mustermann
+Email: max.mustermann@example.com
+Phone: +49 123 456789
+Location: Berlin, Germany
+Date: 15.03.2025
+
+This document discusses various topics including:
+- Natural Language Processing
+- Machine Learning
+- Document Management Systems
+
+The content is structured with clear sections and formatting.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.

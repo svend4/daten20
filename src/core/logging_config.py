@@ -61,7 +61,7 @@ class LoggingConfig:
         enable_json: bool = False,
         rotation_size: int = 10 * 1024 * 1024,  # 10 MB
         backup_count: int = 5,
-        logger_name: Optional<str> = None,
+        logger_name: Optional[str] = None,
     ) -> logging.Logger:
         """
         Setup logging configuration
@@ -223,3 +223,6 @@ __all__ = [
     "setup_logger",
     "get_logger",
 ]
+
+# Alias for backward compatibility
+setup_logging = setup_logger

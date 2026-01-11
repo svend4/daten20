@@ -13,6 +13,45 @@ class DocumentExporter:
         """Initialize exporter"""
         pass
 
+    def export(self, content: str, output_path: str, format: str = "txt", **kwargs) -> bool:
+        """
+        Generic export method that dispatches to appropriate format-specific method
+
+        Args:
+            content: Document content
+            output_path: Output file path
+            format: Output format (txt, md, html, pdf, docx)
+            **kwargs: Additional format-specific arguments
+
+        Returns:
+            True if successful, False otherwise
+        """
+        format = format.lower()
+
+        try:
+            if format in ["txt", "text"]:
+                self.export_to_text(content, output_path)
+                return True
+            elif format in ["md", "markdown"]:
+                metadata = kwargs.get("metadata", None)
+                self.export_to_markdown(content, output_path, metadata)
+                return True
+            elif format == "html":
+                title = kwargs.get("title", "Document")
+                self.export_to_html(content, output_path, title)
+                return True
+            elif format == "pdf":
+                title = kwargs.get("title", "Document")
+                return self.export_to_pdf(content, output_path, title)
+            elif format == "docx":
+                title = kwargs.get("title", "Document")
+                return self.export_to_docx(content, output_path, title)
+            else:
+                raise ValueError(f"Unsupported format: {format}")
+        except Exception as e:
+            print(f"Export failed: {e}")
+            return False
+
     def export_to_text(self, content: str, output_path: str) -> None:
         """
         Export to plain text file
