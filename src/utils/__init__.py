@@ -12,7 +12,6 @@ from .constants import (
     REGIONAL_COEFFICIENTS,
     FUNDING_SOURCES,
     EXPORT_FORMATS,
-    DEFAULT_SETTINGS,
 )
 from .formatting import (
     format_currency,
@@ -34,7 +33,6 @@ __all__ = [
     "REGIONAL_COEFFICIENTS",
     "FUNDING_SOURCES",
     "EXPORT_FORMATS",
-    "DEFAULT_SETTINGS",
     # Formatting
     "format_currency",
     "format_percentage",

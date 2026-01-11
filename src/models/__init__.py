@@ -8,8 +8,7 @@ Core data models for the document management system:
 """
 
 from .service import Service, BasicInfo, Funding, SystemSettings, ServiceConfig
-from .financial import FinancialParameters, FinancialData
-from .template import Template, TemplateField
+from .financial import FinancialParameters
 
 __all__ = [
     # Service Models
@@ -20,10 +19,6 @@ __all__ = [
     "ServiceConfig",
     # Financial Models
     "FinancialParameters",
-    "FinancialData",
-    # Template Models
-    "Template",
-    "TemplateField",
 ]
 
 __version__ = "2.3.0"
