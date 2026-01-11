@@ -1,0 +1,26 @@
+Confidential Document with PII
+================================
+
+Personal Information:
+Name: Max Mustermann
+Date of Birth: 15.03.1990
+Email: max.mustermann@example.com
+Phone: +49 123 456 789
+Mobile: +49 176 12345678
+
+Address Information:
+Street: Hauptstraße 123
+City: Berlin
+Postal Code: 10115
+Country: Germany
+
+Financial Information:
+IBAN: DE89370400440532013000
+Bank: Deutsche Bank
+
+Additional Information:
+IP Address: 192.168.1.100
+Date: 20.01.2025
+
+This document contains sensitive personal data and should be handled with care.
+All personal information must be protected according to GDPR regulations.

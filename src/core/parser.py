@@ -13,12 +13,12 @@ from ..utils.helpers import extract_variables
 class TemplateParser:
     """Parser for mega-template documents"""
 
-    def __init__(self, template_path: str):
+    def __init__(self, template_path: Optional[str] = None):
         """
         Initialize parser
 
         Args:
-            template_path: Path to template file
+            template_path: Path to template file (optional for generic parsing)
         """
         self.template_path = template_path
         self.lines: List[str] = []
@@ -26,16 +26,33 @@ class TemplateParser:
 
     def load(self) -> None:
         """Load template file into memory"""
+        if self.template_path is None:
+            raise ValueError("Cannot load: no template_path specified")
         with open(self.template_path, 'r', encoding='utf-8') as f:
             self.lines = f.readlines()
 
-    def parse(self) -> TemplateStructure:
+    def parse(self, file_path: Optional[str] = None):
         """
-        Parse template and extract structure
+        Parse template/document and extract structure or content
+
+        Args:
+            file_path: Optional file path for parsing arbitrary documents.
+                      If provided, returns dict with text content.
+                      If None, parses template and returns TemplateStructure.
 
         Returns:
-            TemplateStructure object
+            TemplateStructure object OR dict with "text" key (for generic parsing)
         """
+        # Generic document parsing (for new applications)
+        if file_path is not None:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    text = f.read()
+                return {"text": text, "file_path": file_path}
+            except Exception as e:
+                return {"text": "", "file_path": file_path, "error": str(e)}
+
+        # Template parsing (original functionality)
         if not self.lines:
             self.load()
 

@@ -1,0 +1,21 @@
+Document Sample 2
+==================
+
+This is the second sample document for testing purposes.
+It contains multiple paragraphs and entities with some changes.
+
+Name: John Doe
+Email: john.doe@example.com
+Phone: +49 987 654321
+Location: Munich, Germany
+Date: 20.03.2025
+
+This document discusses various topics including:
+- Natural Language Processing
+- Deep Learning
+- Document Management Systems
+- Text Analytics
+
+The content is structured with clear sections and formatting.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Additional content added in version 2.

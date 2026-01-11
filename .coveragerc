@@ -1,0 +1,105 @@
+# Coverage configuration for Document Management System
+# This file configures code coverage measurement
+
+[run]
+# Source packages/directories to measure
+source =
+    src
+    .
+
+# Files/directories to omit from coverage
+omit =
+    */tests/*
+    */test_*
+    */__pycache__/*
+    */venv/*
+    */env/*
+    */.venv/*
+    */site-packages/*
+    */conftest.py
+    setup.py
+    */__init__.py
+
+# Enable branch coverage
+branch = True
+
+# Enable parallel processing
+parallel = True
+
+# Data file location
+data_file = .coverage
+
+[report]
+# Precision for coverage percentages
+precision = 2
+
+# Show lines that weren't executed
+show_missing = True
+
+# Don't skip fully covered files
+skip_covered = False
+
+# Skip empty files
+skip_empty = True
+
+# Exclude lines/blocks from coverage reporting
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+
+    # Don't complain about missing debug code
+    def __repr__
+    def __str__
+
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+    raise ValueError
+
+    # Don't complain if non-runnable code isn't run
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+    # Don't complain about abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+    @abstract
+
+    # Don't complain about overload definitions
+    @overload
+    @typing.overload
+
+    # Don't complain about pass statements
+    pass
+
+    # Don't complain about ellipsis
+    \.\.\.
+
+# Ignore errors from missing source files
+ignore_errors = False
+
+# Sort report by coverage percentage
+sort = Cover
+
+[html]
+# Directory for HTML report
+directory = htmlcov
+
+# Title for HTML report
+title = Document Management System - Coverage Report
+
+[xml]
+# XML output file
+output = coverage.xml
+
+[json]
+# JSON output file
+output = coverage.json
+pretty_print = True
+
+[paths]
+# Map source paths for combining coverage data from different environments
+source =
+    src/
+    */site-packages/
