@@ -6,6 +6,10 @@
 [![Tests](https://img.shields.io/badge/tests-172%20passed-green.svg)](tests/)
 [![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)]()
 
+[![CI](https://github.com/svend4/daten20/actions/workflows/ci.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/ci.yml)
+[![Security](https://github.com/svend4/daten20/actions/workflows/security.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/security.yml)
+[![Performance](https://github.com/svend4/daten20/actions/workflows/performance.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/performance.yml)
+
 **Enterprise-Ready Document Management System для планирования социальных услуг**
 
 Комплексная система управления документами с AI/ML возможностями, аналитикой и автоматизацией. Production-ready решение с 172/172 пройденными тестами.

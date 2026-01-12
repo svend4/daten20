@@ -1,0 +1,239 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.2.3)'
+        required: true
+        type: string
+
+jobs:
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Validate version format
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION="${GITHUB_REF#refs/tags/v}"
+        fi
+
+        if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$'; then
+          echo "❌ Invalid version format: $VERSION"
+          echo "   Expected format: X.Y.Z or X.Y.Z-suffix"
+          exit 1
+        fi
+        echo "✅ Version format is valid: $VERSION"
+
+    - name: Check CHANGELOG
+      run: |
+        if ! grep -q "## \[" CHANGELOG.md; then
+          echo "⚠️  Warning: CHANGELOG.md may not be updated"
+        fi
+
+  build:
+    name: Build Release Assets
+    runs-on: ubuntu-latest
+    needs: validate-release
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel setuptools twine
+
+    - name: Build package
+      run: |
+        python -m build
+        ls -lh dist/
+
+    - name: Verify package
+      run: |
+        twine check dist/*
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+        retention-days: 90
+
+  test-release:
+    name: Test Release Package
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+
+    - name: Install package
+      run: |
+        pip install dist/*.whl
+
+    - name: Test installation
+      run: |
+        python -c "import src; print('Package installed successfully')"
+
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build, test-release]
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+
+    - name: Generate release notes
+      id: release-notes
+      run: |
+        VERSION="${GITHUB_REF#refs/tags/v}"
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+        # Extract changelog for this version
+        if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+          sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | head -n -1 > release-notes.md
+        else
+          echo "Release $VERSION" > release-notes.md
+          echo "" >> release-notes.md
+          echo "See CHANGELOG.md for details." >> release-notes.md
+        fi
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/*
+          LICENSE
+          README.md
+        body_path: release-notes.md
+        draft: false
+        prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
+        generate_release_notes: true
+
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [create-github-release]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: pypi
+      url: https://pypi.org/project/daten20/
+
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        skip-existing: true
+
+  build-docker-release:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [create-github-release]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract version
+      id: version
+      run: |
+        VERSION="${GITHUB_REF#refs/tags/v}"
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "major=$(echo $VERSION | cut -d. -f1)" >> $GITHUB_OUTPUT
+        echo "minor=$(echo $VERSION | cut -d. -f1-2)" >> $GITHUB_OUTPUT
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}:latest
+          ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+          ghcr.io/${{ github.repository }}:${{ steps.version.outputs.major }}
+          ghcr.io/${{ github.repository }}:${{ steps.version.outputs.minor }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        labels: |
+          org.opencontainers.image.title=Daten20
+          org.opencontainers.image.description=Advanced Document Management System
+          org.opencontainers.image.version=${{ steps.version.outputs.version }}
+          org.opencontainers.image.source=${{ github.repositoryUrl }}
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [publish-pypi, build-docker-release]
+    if: always()
+
+    steps:
+    - name: Generate notification
+      run: |
+        VERSION="${GITHUB_REF#refs/tags/v}"
+        echo "🎉 Release $VERSION completed!"
+        echo ""
+        echo "Published to:"
+        echo "- GitHub Releases"
+        echo "- PyPI (if configured)"
+        echo "- Docker Registry (if configured)"
