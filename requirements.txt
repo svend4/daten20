@@ -494,6 +494,8 @@ imageio-ffmpeg==0.4.9
 # OCR (v8 - Computer Vision)
 pytesseract==0.3.10
 easyocr==1.7.1
+pdf2image>=1.16.0
+# PDF to image conversion for OCR
 
 # Cloud Services
 boto3==1.34.10
