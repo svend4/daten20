@@ -283,28 +283,28 @@ class BatchProcessor:
                             progress = (job.processed + job.failed) / job.total_files * 100
                             logger.info(f"Progress: {progress:.1f}% ({job.processed}/{job.total_files})")
 
-                except Exception as e:
-                    logger.error(f"Failed to process {file_path}: {e}")
-                    job.errors.append({
-                        "file_path": str(file_path),
-                        "error": str(e),
-                        "timestamp": datetime.now().isoformat()
-                    })
-                    job.failed += 1
+                    except Exception as e:
+                        logger.error(f"Failed to process {file_path}: {e}")
+                        job.errors.append({
+                            "file_path": str(file_path),
+                            "error": str(e),
+                            "timestamp": datetime.now().isoformat()
+                        })
+                        job.failed += 1
 
-                    # Update progress bar for failed files
-                    pbar.update(1)
-                    pbar.set_postfix({
-                        'Processed': job.processed,
-                        'Failed': job.failed,
-                        'Entities': job.total_entities,
-                        'Relations': job.total_relations
-                    })
+                        # Update progress bar for failed files
+                        pbar.update(1)
+                        pbar.set_postfix({
+                            'Processed': job.processed,
+                            'Failed': job.failed,
+                            'Entities': job.total_entities,
+                            'Relations': job.total_relations
+                        })
 
-                    # Save checkpoint every 10 files
-                    if (job.processed + job.failed) % 10 == 0:
-                        job.updated_at = datetime.now()
-                        job.save_checkpoint()
+                        # Save checkpoint every 10 files
+                        if (job.processed + job.failed) % 10 == 0:
+                            job.updated_at = datetime.now()
+                            job.save_checkpoint()
 
         # Finalize job
         job.end_time = time.time()
