@@ -48,21 +48,21 @@ class TestCompletenessDimension:
     def test_section_detection(self):
         """Test detection of document sections"""
         text = """
-        # Introduction
-        This is the introduction.
+# Introduction
+This is the introduction.
 
-        ## Background
-        Background information here.
+## Background
+Background information here.
 
-        ### Methods
-        Methodology section.
+### Methods
+Methodology section.
 
-        # Results
-        Results of the analysis.
+# Results
+Results of the analysis.
 
-        # Conclusion
-        Final thoughts.
-        """
+# Conclusion
+Final thoughts.
+"""
 
         # Detect headers (markdown or similar)
         headers = re.findall(r'^#{1,6}\s+(.+)$', text, re.MULTILINE)
@@ -339,16 +339,17 @@ class TestReadabilityDimension:
 
     def test_passive_voice_detection(self):
         """Test detection of passive voice (readability concern)"""
-        passive_text = "The ball was thrown by John."
-        active_text = "John threw the ball."
+        passive_text = "The document was created by the team."
+        active_text = "The team created the document."
 
-        # Simple passive voice detection: "was/were" + past participle
+        # Simple passive voice detection: "was/were" + past participle ending in "ed"
         passive_pattern = r'\b(was|were|is|are|been|being)\s+\w+ed\b'
 
         has_passive = bool(re.search(passive_pattern, passive_text))
         has_passive_active = bool(re.search(passive_pattern, active_text))
 
         assert has_passive
+        assert not has_passive_active
 
     def test_readability_scoring(self):
         """Test overall readability scoring"""
