@@ -22,7 +22,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.ml.ner import NERService
+from src.ml.ner import NEREngine
 
 
 class TestCompletenessDimension:
