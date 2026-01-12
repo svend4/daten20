@@ -32,9 +32,9 @@ tqdm>=4.66.0
 # weasyprint>=60.0
 # Uncomment to enable PDF export (requires Cairo, Pango)
 
-# DOCX export (optional)
-# python-docx>=0.8.11
-# Uncomment to enable DOCX export
+# DOCX export
+python-docx>=0.8.11
+# Professional DOCX document generation
 
 # Data visualization (optional)
 # matplotlib>=3.7.0
