@@ -87,11 +87,31 @@ class Database:
                 ''')
                 logger.debug("Versions table created/verified")
 
+                # Subscriptions table (for BI dashboard)
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS subscriptions (
+                        id TEXT PRIMARY KEY,
+                        tenant_id TEXT NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'active',
+                        billing_cycle TEXT NOT NULL,
+                        amount REAL NOT NULL,
+                        currency TEXT DEFAULT 'EUR',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        canceled_at TIMESTAMP NULL,
+                        metadata_json TEXT DEFAULT '{}'
+                    )
+                ''')
+                logger.debug("Subscriptions table created/verified")
+
                 # Create indexes
                 cursor.execute('CREATE INDEX IF NOT EXISTS idx_services_name ON services(name)')
                 cursor.execute('CREATE INDEX IF NOT EXISTS idx_services_region ON services(region)')
                 cursor.execute('CREATE INDEX IF NOT EXISTS idx_financial_service ON financial_data(service_id)')
                 cursor.execute('CREATE INDEX IF NOT EXISTS idx_versions_service ON versions(service_id)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_tenant ON subscriptions(tenant_id)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_created ON subscriptions(created_at)')
                 logger.debug("Database indexes created/verified")
 
                 conn.commit()
@@ -447,6 +467,267 @@ class Database:
         except Exception as e:
             logger.error(f"Error retrieving statistics: {e}", exc_info=True)
             raise
+
+    def create_subscription(
+        self,
+        subscription_id: str,
+        tenant_id: str,
+        billing_cycle: str,
+        amount: float,
+        status: str = 'active',
+        currency: str = 'EUR',
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """
+        Create new subscription record
+
+        Args:
+            subscription_id: Unique subscription ID
+            tenant_id: Tenant/customer ID
+            billing_cycle: 'monthly' or 'yearly'
+            amount: Subscription amount
+            status: Subscription status (default: 'active')
+            currency: Currency code (default: 'EUR')
+            metadata: Additional metadata
+
+        Returns:
+            True if successful
+        """
+        try:
+            logger.info(f"Creating subscription: {subscription_id} for tenant {tenant_id}")
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                cursor.execute('''
+                    INSERT INTO subscriptions
+                    (id, tenant_id, status, billing_cycle, amount, currency, metadata_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    subscription_id,
+                    tenant_id,
+                    status,
+                    billing_cycle,
+                    amount,
+                    currency,
+                    json.dumps(metadata or {})
+                ))
+
+                conn.commit()
+
+            logger.info(f"Subscription created successfully: {subscription_id}")
+            return True
+        except sqlite3.IntegrityError as e:
+            logger.warning(f"Subscription {subscription_id} already exists: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Error creating subscription: {e}", exc_info=True)
+            raise
+
+    def get_subscriptions(
+        self,
+        tenant_id: Optional[str] = None,
+        status: Optional[str] = None,
+        as_of_date: Optional[datetime] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get subscriptions with optional filters
+
+        Args:
+            tenant_id: Filter by tenant ID
+            status: Filter by status
+            as_of_date: Get subscriptions as of this date
+
+        Returns:
+            List of subscription dictionaries
+        """
+        try:
+            filters_log = []
+            if tenant_id:
+                filters_log.append(f"tenant={tenant_id}")
+            if status:
+                filters_log.append(f"status={status}")
+            if as_of_date:
+                filters_log.append(f"as_of={as_of_date}")
+
+            filter_str = ", ".join(filters_log) if filters_log else "no filters"
+            logger.debug(f"Fetching subscriptions: {filter_str}")
+
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                query = 'SELECT id, tenant_id, status, billing_cycle, amount, currency, created_at, metadata_json FROM subscriptions WHERE 1=1'
+                params = []
+
+                if tenant_id:
+                    query += ' AND tenant_id = ?'
+                    params.append(tenant_id)
+
+                if status:
+                    query += ' AND status = ?'
+                    params.append(status)
+
+                if as_of_date:
+                    query += ' AND created_at <= ?'
+                    params.append(as_of_date.isoformat())
+
+                query += ' ORDER BY created_at DESC'
+
+                cursor.execute(query, params)
+
+                subscriptions = []
+                for row in cursor.fetchall():
+                    subscriptions.append({
+                        'id': row[0],
+                        'tenant_id': row[1],
+                        'status': row[2],
+                        'billing_cycle': row[3],
+                        'amount': row[4],
+                        'currency': row[5],
+                        'created_at': row[6],
+                        'metadata': json.loads(row[7]) if row[7] else {}
+                    })
+
+            logger.info(f"Retrieved {len(subscriptions)} subscriptions")
+            return subscriptions
+        except Exception as e:
+            logger.error(f"Error fetching subscriptions: {e}", exc_info=True)
+            raise
+
+    def update_subscription_status(
+        self,
+        subscription_id: str,
+        status: str
+    ) -> bool:
+        """
+        Update subscription status
+
+        Args:
+            subscription_id: Subscription ID
+            status: New status
+
+        Returns:
+            True if successful
+        """
+        try:
+            logger.info(f"Updating subscription {subscription_id} status to: {status}")
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                cursor.execute('''
+                    UPDATE subscriptions
+                    SET status = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (status, subscription_id))
+
+                conn.commit()
+                updated = cursor.rowcount > 0
+
+                if updated:
+                    logger.info(f"Subscription {subscription_id} updated successfully")
+                else:
+                    logger.warning(f"Subscription {subscription_id} not found")
+
+                return updated
+        except Exception as e:
+            logger.error(f"Error updating subscription: {e}", exc_info=True)
+            raise
+
+    def delete_subscription(self, subscription_id: str) -> bool:
+        """
+        Delete subscription
+
+        Args:
+            subscription_id: Subscription ID
+
+        Returns:
+            True if deleted
+        """
+        try:
+            logger.info(f"Deleting subscription: {subscription_id}")
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM subscriptions WHERE id = ?', (subscription_id,))
+                conn.commit()
+
+                deleted = cursor.rowcount > 0
+                if deleted:
+                    logger.info(f"Subscription deleted: {subscription_id}")
+                else:
+                    logger.warning(f"Subscription not found: {subscription_id}")
+
+                return deleted
+        except Exception as e:
+            logger.error(f"Error deleting subscription: {e}", exc_info=True)
+            raise
+
+    def initialize_sample_subscriptions(self, tenant_id: str = "tenant_001") -> int:
+        """
+        Initialize sample subscription data for testing
+
+        Args:
+            tenant_id: Tenant ID for sample data
+
+        Returns:
+            Number of subscriptions created
+        """
+        logger.info(f"Initializing sample subscriptions for tenant: {tenant_id}")
+
+        sample_data = [
+            {
+                'id': f'sub_{tenant_id}_monthly_1',
+                'billing_cycle': 'monthly',
+                'amount': 99.00,
+                'status': 'active',
+                'metadata': {'plan': 'professional', 'users': 5}
+            },
+            {
+                'id': f'sub_{tenant_id}_monthly_2',
+                'billing_cycle': 'monthly',
+                'amount': 49.00,
+                'status': 'active',
+                'metadata': {'plan': 'basic', 'users': 2}
+            },
+            {
+                'id': f'sub_{tenant_id}_yearly_1',
+                'billing_cycle': 'yearly',
+                'amount': 990.00,
+                'status': 'active',
+                'metadata': {'plan': 'professional', 'users': 5, 'discount': '15%'}
+            },
+            {
+                'id': f'sub_{tenant_id}_yearly_2',
+                'billing_cycle': 'yearly',
+                'amount': 490.00,
+                'status': 'active',
+                'metadata': {'plan': 'basic', 'users': 2, 'discount': '15%'}
+            },
+            {
+                'id': f'sub_{tenant_id}_monthly_canceled',
+                'billing_cycle': 'monthly',
+                'amount': 199.00,
+                'status': 'canceled',
+                'metadata': {'plan': 'enterprise', 'users': 20}
+            },
+        ]
+
+        created_count = 0
+        for sub in sample_data:
+            try:
+                success = self.create_subscription(
+                    subscription_id=sub['id'],
+                    tenant_id=tenant_id,
+                    billing_cycle=sub['billing_cycle'],
+                    amount=sub['amount'],
+                    status=sub['status'],
+                    metadata=sub['metadata']
+                )
+                if success:
+                    created_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to create sample subscription {sub['id']}: {e}")
+
+        logger.info(f"Created {created_count} sample subscriptions")
+        return created_count
 
 
 # Alias for backward compatibility

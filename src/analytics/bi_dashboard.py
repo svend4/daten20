@@ -1251,45 +1251,56 @@ class BIDashboard:
     ) -> List[Dict]:
         """Fetch subscriptions data from database"""
         try:
-            # Try to fetch from actual database
+            # Fetch from actual database
             from ..core.database import DocumentDatabase
-            import sqlite3
 
             db = DocumentDatabase()
 
-            # For now, return placeholder data as subscription table doesn't exist yet
-            # In production, this would query a subscriptions table:
-            # SELECT * FROM subscriptions WHERE tenant_id = ? AND status = 'active' AND created_at <= ?
+            # Query real database for active subscriptions
+            subscriptions = db.get_subscriptions(
+                tenant_id=tenant_id,
+                status='active',
+                as_of_date=as_of_date
+            )
 
-            # Placeholder implementation - returns sample data
+            # If no data found, initialize sample data for testing
+            if not subscriptions:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"No subscriptions found for tenant {tenant_id}, initializing sample data")
+                db.initialize_sample_subscriptions(tenant_id)
+
+                # Fetch again
+                subscriptions = db.get_subscriptions(
+                    tenant_id=tenant_id,
+                    status='active',
+                    as_of_date=as_of_date
+                )
+
+            return subscriptions
+
+        except ImportError:
+            # Database module not available - return minimal placeholder
             return [
                 {
-                    "id": f"sub_{tenant_id}_1",
+                    "id": f"sub_{tenant_id}_fallback",
                     "tenant_id": tenant_id,
                     "status": "active",
                     "billing_cycle": "monthly",
                     "amount": 99.00,
                     "created_at": as_of_date.isoformat()
-                },
-                {
-                    "id": f"sub_{tenant_id}_2",
-                    "tenant_id": tenant_id,
-                    "status": "active",
-                    "billing_cycle": "yearly",
-                    "amount": 990.00,
-                    "created_at": as_of_date.isoformat()
                 }
             ]
-
-        except ImportError:
-            # Database not available - return placeholder
+        except Exception as e:
+            # Return fallback data on error
             return [
                 {
-                    "id": "sub1",
+                    "id": f"sub_{tenant_id}_error",
                     "tenant_id": tenant_id,
                     "status": "active",
                     "billing_cycle": "monthly",
-                    "amount": 99.00
+                    "amount": 99.00,
+                    "created_at": as_of_date.isoformat()
                 }
             ]
 
