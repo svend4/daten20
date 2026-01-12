@@ -434,3 +434,7 @@ def init_cache(backend: str = 'simple', **kwargs):
     global _cache_manager
     _cache_manager = CacheManager(backend, **kwargs)
     logger.info(f"Cache system initialized: {backend}")
+
+
+# Alias for backward compatibility
+CacheService = CacheManager

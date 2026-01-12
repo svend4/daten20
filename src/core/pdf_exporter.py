@@ -430,3 +430,7 @@ def export_html_to_pdf(
 
     logger.info(f"Generated PDF from HTML: {output_path}")
     return output_path
+
+
+# Alias for backward compatibility
+PDFReportExporter = PDFExporter
