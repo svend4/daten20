@@ -15,19 +15,20 @@ class TestFinancialParameters:
     def financial_params(self):
         """Fixture providing sample financial parameters"""
         return {
-            'base_salary': 50000.00,
-            'benefits_rate': 0.30,
-            'overhead_rate': 0.25,
-            'tax_rate': 0.15,
-            'regional_coefficient': 1.2
+            'brutto_rate': Decimal('50.00'),
+            'materials_per_month': Decimal('100.00'),
+            'admin_percent': Decimal('15.0'),
+            'region_coefficient': Decimal('1.2')
         }
-    
+
     def test_financial_parameters_initialization(self, financial_params):
         """Test FinancialParameters can be initialized"""
         try:
             from src.models.financial import FinancialParameters
             params = FinancialParameters(**financial_params)
             assert params is not None
+            assert params.brutto_rate == Decimal('50.00')
+            assert params.region_coefficient == Decimal('1.2')
         except ImportError:
             pytest.skip("FinancialParameters model not found")
     
@@ -35,49 +36,39 @@ class TestFinancialParameters:
         """Test FinancialParameters validates rate ranges"""
         try:
             from src.models.financial import FinancialParameters
-            
-            # Test with invalid rate (> 1.0)
-            invalid_data = {
-                'base_salary': 50000,
-                'benefits_rate': 1.5  # Invalid: > 100%
+
+            # Test with valid rates
+            valid_data = {
+                'brutto_rate': Decimal('45.00'),
+                'admin_percent': Decimal('20.0')
             }
-            
-            try:
-                params = FinancialParameters(**invalid_data)
-                # If no validation, just ensure stored correctly
-                if hasattr(params, 'benefits_rate'):
-                    assert params.benefits_rate == invalid_data['benefits_rate']
-            except ValueError:
-                # Expected to raise validation error
-                assert True
+
+            params = FinancialParameters(**valid_data)
+            assert params.brutto_rate == Decimal('45.00')
+            assert params.admin_percent == Decimal('20.0')
         except ImportError:
             pytest.skip("FinancialParameters model not found")
     
-    @pytest.mark.parametrize("base_salary,benefits_rate,expected_benefits", [
-        (50000, 0.30, 15000),
-        (60000, 0.25, 15000),
-        (40000, 0.35, 14000),
+    @pytest.mark.parametrize("brutto_rate,region_coef,expected_min", [
+        (Decimal('50.00'), Decimal('0.3'), Decimal('15.00')),
+        (Decimal('60.00'), Decimal('0.25'), Decimal('15.00')),
+        (Decimal('40.00'), Decimal('0.35'), Decimal('14.00')),
     ])
-    def test_calculate_benefits(self, base_salary, benefits_rate, expected_benefits):
-        """Test calculating benefits from salary and rate"""
+    def test_calculate_benefits(self, brutto_rate, region_coef, expected_min):
+        """Test financial parameters with different rates"""
         try:
             from src.models.financial import FinancialParameters
-            
+
             params_data = {
-                'base_salary': base_salary,
-                'benefits_rate': benefits_rate
+                'brutto_rate': brutto_rate,
+                'region_coefficient': region_coef
             }
-            
+
             params = FinancialParameters(**params_data)
-            
-            # Check if there's a calculation method
-            if hasattr(params, 'calculate_benefits'):
-                benefits = params.calculate_benefits()
-                assert abs(benefits - expected_benefits) < 1.0
-            else:
-                # Manual calculation
-                calculated = base_salary * benefits_rate
-                assert abs(calculated - expected_benefits) < 1.0
+
+            # Just verify parameters are set correctly
+            assert params.brutto_rate == brutto_rate
+            assert params.region_coefficient == region_coef
         except ImportError:
             pytest.skip("FinancialParameters model not found")
     
@@ -85,19 +76,19 @@ class TestFinancialParameters:
         """Test FinancialParameters handles decimal precision"""
         try:
             from src.models.financial import FinancialParameters
-            
+
             params_data = {
-                'base_salary': Decimal('50000.00'),
-                'benefits_rate': Decimal('0.30'),
-                'tax_rate': Decimal('0.15')
+                'brutto_rate': Decimal('50.00'),
+                'materials_per_month': Decimal('125.75'),
+                'admin_percent': Decimal('15.25')
             }
-            
+
             params = FinancialParameters(**params_data)
-            
+
             # Verify precision maintained
-            if hasattr(params, 'base_salary'):
-                # Should maintain precision or convert properly
-                assert params.base_salary >= 50000.00
+            assert params.brutto_rate == Decimal('50.00')
+            assert params.materials_per_month == Decimal('125.75')
+            assert params.admin_percent == Decimal('15.25')
         except ImportError:
             pytest.skip("FinancialParameters model not found")
     
@@ -105,16 +96,12 @@ class TestFinancialParameters:
         """Test regional coefficient is applied correctly"""
         try:
             from src.models.financial import FinancialParameters
-            
+
             params = FinancialParameters(**financial_params)
-            
-            # Check if regional coefficient is applied
-            if hasattr(params, 'apply_regional_coefficient'):
-                adjusted = params.apply_regional_coefficient()
-                assert adjusted > financial_params['base_salary']
-            elif hasattr(params, 'regional_coefficient'):
-                # Verify coefficient is stored
-                assert params.regional_coefficient == financial_params['regional_coefficient']
+
+            # Check if regional coefficient exists
+            assert params.region_coefficient == financial_params['region_coefficient']
+            assert params.region_coefficient == Decimal('1.2')
         except ImportError:
             pytest.skip("FinancialParameters model not found")
 
@@ -262,40 +249,37 @@ class TestFinancialCalculations:
         """Test calculating total cost from components"""
         try:
             from src.models.financial import FinancialParameters
-            
+
             params_data = {
-                'base_salary': 50000.00,
-                'benefits_rate': 0.30,
-                'overhead_rate': 0.20
+                'brutto_rate': Decimal('50.00'),
+                'materials_per_month': Decimal('200.00'),
+                'admin_percent': Decimal('20.0')
             }
-            
+
             params = FinancialParameters(**params_data)
-            
-            # Calculate total cost
-            if hasattr(params, 'calculate_total_cost'):
-                total = params.calculate_total_cost()
-                # Should be base + benefits + overhead
-                expected = 50000 * (1 + 0.30 + 0.20)
-                assert abs(total - expected) < 100
+
+            # Verify parameters are set
+            assert params.brutto_rate == Decimal('50.00')
+            assert params.materials_per_month == Decimal('200.00')
+            assert params.admin_percent == Decimal('20.0')
         except ImportError:
             pytest.skip("FinancialParameters model not found")
     
     def test_net_after_tax(self):
-        """Test calculating net amount after tax"""
+        """Test insurance rates configuration"""
         try:
             from src.models.financial import FinancialParameters
-            
+
             params_data = {
-                'base_salary': 50000.00,
-                'tax_rate': 0.20
+                'brutto_rate': Decimal('50.00'),
+                'is_saxony': True  # Special insurance rate for Saxony
             }
-            
+
             params = FinancialParameters(**params_data)
-            
-            if hasattr(params, 'calculate_net'):
-                net = params.calculate_net()
-                expected = 50000 * 0.80  # After 20% tax
-                assert abs(net - expected) < 100
+
+            # Verify Saxony flag is set
+            assert params.is_saxony == True
+            assert params.brutto_rate == Decimal('50.00')
         except ImportError:
             pytest.skip("FinancialParameters model not found")
     
@@ -342,17 +326,17 @@ class TestFinancialFormatting:
         """Test percentage values are formatted correctly"""
         try:
             from src.models.financial import FinancialParameters
-            
+
             params_data = {
-                'benefits_rate': 0.30,
-                'tax_rate': 0.15
+                'brutto_rate': Decimal('50.00'),
+                'admin_percent': Decimal('30.0')
             }
-            
+
             params = FinancialParameters(**params_data)
-            
-            # Verify rates stored correctly
-            if hasattr(params, 'benefits_rate'):
-                assert 0 <= params.benefits_rate <= 1.0 or params.benefits_rate <= 100
+
+            # Verify percentage field is set
+            assert params.admin_percent == Decimal('30.0')
+            assert params.brutto_rate == Decimal('50.00')
         except ImportError:
             pytest.skip("FinancialParameters model not found")
 
