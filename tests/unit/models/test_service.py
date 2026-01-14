@@ -14,21 +14,25 @@ class TestServiceModel:
     @pytest.fixture
     def service_data(self):
         """Fixture providing sample service data"""
+        from src.models.service import BasicInfo, SystemSettings, Funding
+        from src.models.financial import FinancialParameters
+        from decimal import Decimal
         return {
             'id': 1,
-            'name': 'Test Service',
-            'description': 'Test Description',
-            'status': 'active',
+            'basic_info': BasicInfo(service_name='Test Service', region='North'),
+            'financial': FinancialParameters(brutto_rate=Decimal('50.00')),
+            'system_settings': SystemSettings(),
+            'funding': Funding(),
             'created_at': datetime.now()
         }
-    
+
     def test_service_initialization(self, service_data):
         """Test Service model can be initialized"""
         try:
             from src.models.service import Service
             service = Service(**service_data)
             assert service is not None
-            assert hasattr(service, 'name') or service.get('name')
+            assert service.basic_info.service_name == 'Test Service'
         except ImportError:
             pytest.skip("Service model not found")
     
@@ -37,12 +41,13 @@ class TestServiceModel:
         try:
             from src.models.service import Service
             service = Service(**service_data)
-            
-            # Check if it's a dict-like or object-like
-            if hasattr(service, 'name'):
-                assert service.name == service_data['name']
-            else:
-                assert service['name'] == service_data['name']
+
+            # Check dataclass attributes
+            assert service.id == 1
+            assert service.basic_info.service_name == 'Test Service'
+            assert service.basic_info.region == 'North'
+            assert service.financial is not None
+            assert service.system_settings is not None
         except ImportError:
             pytest.skip("Service model not found")
     
@@ -64,23 +69,19 @@ class TestServiceModel:
             pytest.skip("Service model not found")
     
     @pytest.mark.parametrize("field,value", [
-        ("name", "Updated Name"),
-        ("description", "Updated Description"),
-        ("status", "inactive"),
+        ("service_name", "Updated Name"),
+        ("region", "South"),
+        ("target_group", "Seniors"),
     ])
     def test_service_field_updates(self, service_data, field, value):
         """Test updating Service model fields"""
         try:
             from src.models.service import Service
             service = Service(**service_data)
-            
-            # Update field
-            if hasattr(service, field):
-                setattr(service, field, value)
-                assert getattr(service, field) == value
-            elif isinstance(service, dict):
-                service[field] = value
-                assert service[field] == value
+
+            # Update basic_info fields
+            setattr(service.basic_info, field, value)
+            assert getattr(service.basic_info, field) == value
         except ImportError:
             pytest.skip("Service model not found")
 
@@ -93,19 +94,22 @@ class TestBasicInfo:
         """Fixture providing sample BasicInfo data"""
         return {
             'service_name': 'Test Service',
-            'service_type': 'Healthcare',
+            'target_group': 'Seniors',
             'region': 'North',
-            'address': '123 Test St',
-            'phone': '555-0100',
-            'email': 'test@example.com'
+            'provider_type': 'Healthcare',
+            'document_date': '2026-01-13',
+            'document_version': '1.0',
+            'responsible_person': 'John Doe'
         }
-    
+
     def test_basic_info_initialization(self, basic_info_data):
         """Test BasicInfo can be initialized"""
         try:
             from src.models.service import BasicInfo
             info = BasicInfo(**basic_info_data)
             assert info is not None
+            assert info.service_name == 'Test Service'
+            assert info.region == 'North'
         except ImportError:
             pytest.skip("BasicInfo model not found")
     
@@ -125,18 +129,18 @@ class TestBasicInfo:
         """Test BasicInfo validates contact information"""
         try:
             from src.models.service import BasicInfo
-            
+
             valid_data = {
                 'service_name': 'Test',
-                'email': 'valid@example.com',
-                'phone': '555-0100'
+                'responsible_person': 'John Doe',
+                'provider_type': 'Healthcare'
             }
-            
+
             info = BasicInfo(**valid_data)
-            
-            # Check email format if validation exists
-            if hasattr(info, 'email'):
-                assert '@' in info.email
+
+            # Check that responsible_person is set
+            assert info.responsible_person == 'John Doe'
+            assert info.provider_type == 'Healthcare'
         except ImportError:
             pytest.skip("BasicInfo model not found")
 
@@ -148,66 +152,56 @@ class TestFunding:
     def funding_data(self):
         """Fixture providing sample Funding data"""
         return {
-            'source': 'Federal Grant',
-            'amount': 100000.00,
-            'start_date': datetime.now(),
-            'end_date': datetime.now(),
-            'status': 'active'
+            'payer': 'Federal Grant Agency',
+            'documents': ['contract.pdf', 'budget.xlsx']
         }
-    
+
     def test_funding_initialization(self, funding_data):
         """Test Funding can be initialized"""
         try:
             from src.models.service import Funding
             funding = Funding(**funding_data)
             assert funding is not None
+            assert funding.payer == 'Federal Grant Agency'
+            assert len(funding.documents) == 2
         except ImportError:
             pytest.skip("Funding model not found")
     
     def test_funding_amount_validation(self):
-        """Test Funding validates amount is positive"""
+        """Test Funding validates payer field"""
         try:
             from src.models.service import Funding
-            
-            # Test with negative amount
-            invalid_data = {
-                'source': 'Test',
-                'amount': -1000.00
+
+            # Test with payer
+            data = {
+                'payer': 'Insurance Company',
+                'documents': []
             }
-            
-            try:
-                funding = Funding(**invalid_data)
-                # If no validation, ensure amount is stored correctly
-                if hasattr(funding, 'amount'):
-                    assert funding.amount == invalid_data['amount']
-            except ValueError:
-                # Expected to raise error for negative amount
-                assert True
+
+            funding = Funding(**data)
+            assert funding.payer == 'Insurance Company'
+            assert funding.documents == []
         except ImportError:
             pytest.skip("Funding model not found")
     
-    @pytest.mark.parametrize("amount,expected_formatted", [
-        (1000.00, "$1,000.00"),
-        (1500.50, "$1,500.50"),
-        (100, "$100.00"),
+    @pytest.mark.parametrize("payer,num_docs", [
+        ("Insurance A", 1),
+        ("Insurance B", 3),
+        ("Government", 0),
     ])
-    def test_funding_amount_formatting(self, amount, expected_formatted):
-        """Test Funding amount formatting"""
+    def test_funding_amount_formatting(self, payer, num_docs):
+        """Test Funding with different payers and documents"""
         try:
             from src.models.service import Funding
-            
+
             funding_data = {
-                'source': 'Test',
-                'amount': amount
+                'payer': payer,
+                'documents': [f'doc{i}.pdf' for i in range(num_docs)]
             }
-            
+
             funding = Funding(**funding_data)
-            
-            # Check if there's a format method
-            if hasattr(funding, 'format_amount'):
-                formatted = funding.format_amount()
-                assert '$' in formatted
-                assert str(int(amount)) in formatted.replace(',', '')
+            assert funding.payer == payer
+            assert len(funding.documents) == num_docs
         except ImportError:
             pytest.skip("Funding model not found")
 
@@ -229,17 +223,18 @@ class TestSystemSettings:
         try:
             from src.models.service import SystemSettings
             settings = SystemSettings()
-            
-            # Check for common settings attributes
-            common_attrs = ['language', 'timezone', 'currency', 'date_format']
-            
-            for attr in common_attrs:
-                if hasattr(settings, attr):
-                    assert getattr(settings, attr) is not None
-                    break
-            else:
-                # If none found, just pass the test
-                assert True
+
+            # Check for actual SystemSettings attributes
+            assert hasattr(settings, 'use_umlages')
+            assert hasattr(settings, 'use_vacation_reserve')
+            assert hasattr(settings, 'surcharge_base')
+            assert hasattr(settings, 'service_type')
+
+            # Check defaults
+            assert settings.use_umlages == True
+            assert settings.use_vacation_reserve == False
+            assert settings.surcharge_base == "full_cost"
+            assert settings.service_type == "social"
         except ImportError:
             pytest.skip("SystemSettings model not found")
     
@@ -248,15 +243,16 @@ class TestSystemSettings:
         try:
             from src.models.service import SystemSettings
             settings = SystemSettings()
-            
-            # Try updating a setting
-            if hasattr(settings, 'language'):
-                original = settings.language
-                settings.language = 'en'
-                assert settings.language == 'en'
-            elif isinstance(settings, dict):
-                settings['language'] = 'en'
-                assert settings['language'] == 'en'
+
+            # Update settings
+            settings.use_umlages = False
+            assert settings.use_umlages == False
+
+            settings.service_type = 'medical'
+            assert settings.service_type == 'medical'
+
+            settings.surcharge_base = 'brutto_only'
+            assert settings.surcharge_base == 'brutto_only'
         except ImportError:
             pytest.skip("SystemSettings model not found")
 
@@ -268,19 +264,20 @@ class TestServiceConfig:
     def config_data(self):
         """Fixture providing sample ServiceConfig data"""
         return {
-            'max_capacity': 100,
-            'operating_hours': '9:00-17:00',
-            'appointment_duration': 30,
-            'allow_walk_ins': True,
-            'require_referral': False
+            'use_umlages': True,
+            'use_vacation_reserve': True,
+            'surcharge_base': 'full_cost',
+            'service_type': 'medical'
         }
-    
+
     def test_service_config_initialization(self, config_data):
         """Test ServiceConfig can be initialized"""
         try:
             from src.models.service import ServiceConfig
             config = ServiceConfig(**config_data)
             assert config is not None
+            assert config.use_umlages == True
+            assert config.service_type == 'medical'
         except (ImportError, TypeError):
             pytest.skip("ServiceConfig model not found")
     
@@ -289,31 +286,24 @@ class TestServiceConfig:
         try:
             from src.models.service import ServiceConfig
             config = ServiceConfig(**config_data)
-            
+
             # Check boolean fields
-            if hasattr(config, 'allow_walk_ins'):
-                assert isinstance(config.allow_walk_ins, bool)
-            if hasattr(config, 'require_referral'):
-                assert isinstance(config.require_referral, bool)
+            assert isinstance(config.use_umlages, bool)
+            assert isinstance(config.use_vacation_reserve, bool)
+            assert config.use_umlages == True
+            assert config.use_vacation_reserve == True
         except ImportError:
             pytest.skip("ServiceConfig model not found")
     
     def test_service_config_capacity_validation(self):
-        """Test ServiceConfig validates capacity"""
+        """Test ServiceConfig validates service type"""
         try:
             from src.models.service import ServiceConfig
-            
-            # Test with invalid capacity
-            invalid_data = {'max_capacity': -10}
-            
-            try:
-                config = ServiceConfig(**invalid_data)
-                # If no validation, just ensure it's stored
-                if hasattr(config, 'max_capacity'):
-                    assert config.max_capacity == invalid_data['max_capacity']
-            except ValueError:
-                # Expected to raise error
-                assert True
+
+            # Test with different service types
+            for service_type in ['social', 'medical', 'professional', 'educational']:
+                config = ServiceConfig(service_type=service_type)
+                assert config.service_type == service_type
         except ImportError:
             pytest.skip("ServiceConfig model not found")
 

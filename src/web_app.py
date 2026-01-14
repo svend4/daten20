@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
+from flasgger import Swagger
 
 from src.core.database import Database
 from src.core.parser import TemplateParser
@@ -28,6 +29,7 @@ from src.document_generator import DocumentGenerator
 from src.service_manager import ServiceManager
 from src.utils.helpers import load_config, save_config
 from src.utils.constants import SERVICE_TYPES, REGIONAL_COEFFICIENTS, FUNDING_SOURCES
+from src.api_docs import api_docs_bp
 
 # Initialize Flask app
 app = Flask(__name__,
@@ -35,6 +37,52 @@ app = Flask(__name__,
             static_folder='../web/static')
 app.secret_key = 'your-secret-key-change-in-production'  # Change in production!
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Initialize Swagger UI
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec',
+            "route": '/api/apispec.json',
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/api/docs"
+}
+
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "Document Management System API",
+        "description": "REST API for Document Management System",
+        "version": "4.1.0",
+        "contact": {
+            "name": "DMS Support",
+            "url": "https://github.com/svend4/daten20"
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "X-API-Key",
+            "in": "header"
+        }
+    },
+    "security": [
+        {
+            "ApiKeyAuth": []
+        }
+    ]
+}
+
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
+
+# Register API documentation blueprint
+app.register_blueprint(api_docs_bp)
 
 # Initialize components
 db = Database()
@@ -586,6 +634,8 @@ def main():
     print("  - Generator:     http://localhost:5000/generator")
     print("  - Analytics:     http://localhost:5000/analytics")
     print("  - API:           http://localhost:5000/api/")
+    print("  - API Docs:      http://localhost:5000/api/docs (Swagger UI)")
+    print("  - API ReDoc:     http://localhost:5000/api/redoc")
     print()
     print("Press Ctrl+C to stop the server")
     print("=" * 60)

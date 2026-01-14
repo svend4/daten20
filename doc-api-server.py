@@ -212,6 +212,9 @@ if FASTAPI_AVAILABLE:
             "name": "Document Intelligence API",
             "version": "1.0.0",
             "docs": "/docs",
+            "redoc": "/redoc",
+            "openapi_spec": "/openapi.json",
+            "unified_docs": "http://localhost:5000/api/docs",
             "health": "/api/v1/health"
         }
 
