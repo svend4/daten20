@@ -5,12 +5,16 @@ Advanced Analytics & Business Intelligence components.
 
 Modules:
 - bi_dashboard: Business Intelligence dashboards and KPI tracking ✅
+- bi_dashboard_ui: Advanced BI Dashboard UI with React components ✅
 - predictive_analytics: Forecasting and predictive modeling ✅
 - data_warehouse: Data warehousing with ETL pipelines ✅
 - olap_cube: OLAP cube engine for multidimensional analysis ✅
 - data_mining: Data mining and pattern discovery ✅
 - streaming_analytics: Real-time streaming analytics ✅
 - nl_query: Natural language query interface ✅
+- etl_orchestrator: Enterprise ETL pipeline orchestration ✅
+- realtime_bi: Real-time BI updates via WebSocket ✅
+- analytics_api: Unified Analytics API (single entry point) ✅
 """
 
 from .bi_dashboard import (
@@ -105,6 +109,48 @@ from .nl_query import (
     TimeGranularity
 )
 
+from .etl_orchestrator import (
+    get_orchestrator,
+    ETLOrchestrator,
+    ETLTask,
+    Pipeline,
+    PipelineRun,
+    TaskStatus,
+    PipelineStatus,
+    TaskMetrics
+)
+
+from .realtime_bi import (
+    RealtimeBIServer,
+    DataStreamManager,
+    ClientConnection,
+    DataUpdate,
+    UpdateType,
+    ConnectionState
+)
+
+from .bi_dashboard_ui import (
+    DashboardBuilder,
+    BIDashboardAPI,
+    ReactComponent,
+    DashboardTemplates,
+    RealtimeDashboardUpdates,
+    Dashboard,
+    Widget,
+    DashboardTheme,
+    LayoutType,
+    WidgetType
+)
+
+from .analytics_api import (
+    get_analytics_api,
+    AnalyticsAPI,
+    AnalyticsQuery,
+    AnalyticsResult,
+    QueryType,
+    AggregationLevel
+)
+
 __all__ = [
     # BI Dashboard
     'get_bi_dashboard',
@@ -189,6 +235,44 @@ __all__ = [
     'QueryIntent',
     'AggregateFunction',
     'TimeGranularity',
+
+    # ETL Orchestrator
+    'get_orchestrator',
+    'ETLOrchestrator',
+    'ETLTask',
+    'Pipeline',
+    'PipelineRun',
+    'TaskStatus',
+    'PipelineStatus',
+    'TaskMetrics',
+
+    # Real-time BI
+    'RealtimeBIServer',
+    'DataStreamManager',
+    'ClientConnection',
+    'DataUpdate',
+    'UpdateType',
+    'ConnectionState',
+
+    # BI Dashboard UI
+    'DashboardBuilder',
+    'BIDashboardAPI',
+    'ReactComponent',
+    'DashboardTemplates',
+    'RealtimeDashboardUpdates',
+    'Dashboard',
+    'Widget',
+    'DashboardTheme',
+    'LayoutType',
+    'WidgetType',
+
+    # Unified Analytics API
+    'get_analytics_api',
+    'AnalyticsAPI',
+    'AnalyticsQuery',
+    'AnalyticsResult',
+    'QueryType',
+    'AggregationLevel',
 ]
 
-__version__ = '3.1.1'
+__version__ = '3.1.2'
