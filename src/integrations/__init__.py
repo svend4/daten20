@@ -1,21 +1,89 @@
 """
 Integrations Module - v3.7
 
-Provides external integrations with:
-- ERP systems (SAP, Oracle, Dynamics)
-- CRM systems (Salesforce, HubSpot, Zoho)
-- Payment gateways (Stripe, PayPal, Square)
-- Webhooks
-- Cloud Storage (Google Drive, Dropbox, OneDrive, S3)
-- Productivity Suites (Google Workspace, Microsoft 365)
-- Communication Platforms (Slack, Teams, Discord)
-- E-Signature Services (DocuSign, Adobe Sign)
-- Calendar Integration (Google Calendar, Outlook)
-- File Conversion (Documents, Images, Spreadsheets)
+Advanced enterprise integrations with cloud storage, productivity suites,
+communication platforms, e-signature services, calendar, and file conversion.
+
+Modules:
+- cloud_storage: Google Drive, Dropbox, OneDrive, S3, Azure Blob
+- productivity: Google Workspace, Microsoft 365, Docs, Sheets, Email
+- communication: Slack, Microsoft Teams, Discord messaging
+- esignature: DocuSign, Adobe Sign digital signatures
+- calendar: Google Calendar, Outlook event management
+- file_conversion: Document, image, spreadsheet format conversion
+
+Legacy:
+- erp: ERP system integrations (SAP, Oracle, Dynamics)
+- crm: CRM integrations (Salesforce, HubSpot, Zoho)
+- payments: Payment gateways (Stripe, PayPal, Square)
+- webhooks: Webhook management
 
 Version: 3.7.0
 """
 
+__version__ = '3.7.0'
+
+# Cloud Storage
+from .cloud_storage import (
+    StorageManager,
+    StorageProvider,
+    CloudFile,
+    SharePermission,
+    FilePermission,
+    get_storage_manager,
+)
+
+# Productivity Suite
+from .productivity import (
+    ProductivityManager,
+    ProductivitySuite,
+    Document,
+    Spreadsheet,
+    Email,
+    DocumentEditor,
+    SpreadsheetManager,
+    EmailClient,
+    get_productivity_client,
+)
+
+# Communication Platforms
+from .communication import (
+    CommunicationManager,
+    Platform,
+    Channel,
+    Message,
+    MessageFormatter,
+    WebhookManager,
+    get_communication_client,
+)
+
+# E-Signature
+from .esignature import (
+    ESignatureManager,
+    SignatureProvider,
+    SignatureRequest,
+    SignatureStatus,
+    Signer,
+    get_esignature_client,
+)
+
+# Calendar & Scheduling
+from .calendar import (
+    CalendarManager,
+    CalendarProvider,
+    CalendarEvent,
+    get_calendar_client,
+)
+
+# File Conversion
+from .file_conversion import (
+    FileConverter,
+    FileFormat,
+    ConversionResult,
+    get_file_converter,
+)
+
+# Legacy integrations (v2.8)
 from .erp import (
     ERPIntegrationEngine,
     get_erp_engine,
@@ -42,43 +110,61 @@ from .payments import (
 )
 
 from .webhooks import (
-    WebhookManager,
+    WebhookManager as LegacyWebhookManager,
     get_webhook_manager,
     WebhookEvent
 )
 
-# v3.7 Advanced Integrations
-from .integration_services import (
-    # Cloud Storage
-    CloudStorageProvider,
-    StorageManager,
-    get_storage_manager,
-    # Productivity
-    ProductivityProvider,
-    ProductivityClient,
-    get_productivity_client,
-    # Communication
-    CommunicationProvider,
-    CommunicationClient,
-    get_communication_client,
-    # E-Signature
-    ESignatureProvider,
-    ESignatureClient,
-    SignatureRequest,
-    SignatureStatus,
-    get_esignature_client,
-    # Calendar
-    CalendarProvider,
-    CalendarClient,
-    CalendarEvent,
-    get_calendar_client,
-    # File Conversion
-    FileConverter,
-    get_file_converter,
-)
-
 __all__ = [
-    # v2.8 Integrations
+    # Cloud Storage
+    'StorageManager',
+    'StorageProvider',
+    'CloudFile',
+    'SharePermission',
+    'FilePermission',
+    'get_storage_manager',
+
+    # Productivity Suite
+    'ProductivityManager',
+    'ProductivitySuite',
+    'Document',
+    'Spreadsheet',
+    'Email',
+    'DocumentEditor',
+    'SpreadsheetManager',
+    'EmailClient',
+    'get_productivity_client',
+
+    # Communication Platforms
+    'CommunicationManager',
+    'Platform',
+    'Channel',
+    'Message',
+    'MessageFormatter',
+    'WebhookManager',
+    'get_communication_client',
+
+    # E-Signature
+    'ESignatureManager',
+    'SignatureProvider',
+    'SignatureRequest',
+    'SignatureStatus',
+    'Signer',
+    'get_esignature_client',
+
+    # Calendar & Scheduling
+    'CalendarManager',
+    'CalendarProvider',
+    'CalendarEvent',
+    'get_calendar_client',
+
+    # File Conversion
+    'FileConverter',
+    'FileFormat',
+    'ConversionResult',
+    'get_file_converter',
+
+    # Legacy (v2.8)
     'ERPIntegrationEngine',
     'get_erp_engine',
     'configure_erp_engine',
@@ -88,7 +174,7 @@ __all__ = [
     'PaymentGateway',
     'get_payment_gateway',
     'configure_payment_gateway',
-    'WebhookManager',
+    'LegacyWebhookManager',
     'get_webhook_manager',
     'ERPSystem',
     'EntityType',
@@ -98,30 +184,4 @@ __all__ = [
     'PaymentMethod',
     'PaymentStatus',
     'WebhookEvent',
-    # v3.7 Cloud Storage
-    'CloudStorageProvider',
-    'StorageManager',
-    'get_storage_manager',
-    # v3.7 Productivity
-    'ProductivityProvider',
-    'ProductivityClient',
-    'get_productivity_client',
-    # v3.7 Communication
-    'CommunicationProvider',
-    'CommunicationClient',
-    'get_communication_client',
-    # v3.7 E-Signature
-    'ESignatureProvider',
-    'ESignatureClient',
-    'SignatureRequest',
-    'SignatureStatus',
-    'get_esignature_client',
-    # v3.7 Calendar
-    'CalendarProvider',
-    'CalendarClient',
-    'CalendarEvent',
-    'get_calendar_client',
-    # v3.7 File Conversion
-    'FileConverter',
-    'get_file_converter',
 ]
