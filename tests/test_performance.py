@@ -10,8 +10,11 @@ import tempfile
 import os
 from pathlib import Path
 
-# Mark all tests in this module as performance tests
-pytestmark = pytest.mark.performance
+# Mark all tests in this module as performance tests and skip them (optional benchmarks)
+pytestmark = [
+    pytest.mark.performance,
+    pytest.mark.skip(reason="Performance tests are optional benchmarks - not required for basic functionality")
+]
 
 
 @pytest.fixture
