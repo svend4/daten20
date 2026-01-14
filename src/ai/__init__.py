@@ -19,10 +19,23 @@ Components:
 - Embeddings: Semantic search, document similarity, clustering
 - Content Generation: Templates, translation, paraphrasing, grammar
 
-Version: 3.5.0
+Version: 3.5.0 (Complete)
 """
 
 __version__ = '3.5.0'
+
+# Unified AI/ML API
+from .ai_ml_api import (
+    AIMLAPI,
+    AIMLConfig,
+    AIOperation,
+    get_ai_ml_api,
+    summarize,
+    classify,
+    recommend,
+    sentiment,
+    translate_text,
+)
 
 # LLM Integration
 from .llm_integration import (
@@ -110,6 +123,17 @@ from .ai_services import (
 )
 
 __all__ = [
+    # Unified API
+    'AIMLAPI',
+    'AIMLConfig',
+    'AIOperation',
+    'get_ai_ml_api',
+    'summarize',
+    'classify',
+    'recommend',
+    'sentiment',
+    'translate_text',
+
     # LLM Integration
     'LLMProvider',
     'LLMConfig',
