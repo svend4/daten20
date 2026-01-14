@@ -162,25 +162,45 @@ def service_detail(service_id):
 
 
 @app.route('/services/new', methods=['GET', 'POST'])
+@rate_limit(requests=20, window=300)  # 20 creates per 5 minutes
 def service_new():
     """Create new service"""
     if request.method == 'POST':
         try:
+            # Input validation
+            input_validator = InputValidator()
+
             # Build service from form data
             service = Service()
 
-            # Basic info
-            service.basic_info.service_name = request.form.get('service_name')
-            service.basic_info.target_group = request.form.get('target_group')
-            service.basic_info.region = request.form.get('region')
-            service.basic_info.provider_type = request.form.get('provider_type')
+            # Basic info with validation
+            service.basic_info.service_name = input_validator.validate_string(
+                request.form.get('service_name', ''), min_length=1, max_length=200
+            )
+            service.basic_info.target_group = input_validator.validate_string(
+                request.form.get('target_group', ''), max_length=500
+            )
+            service.basic_info.region = input_validator.validate_enum(
+                request.form.get('region', ''), list(REGIONAL_COEFFICIENTS.keys())
+            )
+            service.basic_info.provider_type = input_validator.validate_string(
+                request.form.get('provider_type', ''), max_length=100
+            )
             service.basic_info.document_date = request.form.get('document_date')
-            service.basic_info.responsible_person = request.form.get('responsible_person')
+            service.basic_info.responsible_person = input_validator.validate_string(
+                request.form.get('responsible_person', ''), max_length=200
+            )
 
-            # Financial
-            service.financial.brutto_rate = Decimal(request.form.get('brutto_rate', '0'))
-            service.financial.materials_per_month = Decimal(request.form.get('materials_per_month', '0'))
-            service.financial.admin_percent = Decimal(request.form.get('admin_percent', '5'))
+            # Financial with validation
+            service.financial.brutto_rate = input_validator.validate_decimal(
+                request.form.get('brutto_rate', '0'), min_value=Decimal('0'), max_value=Decimal('1000000')
+            )
+            service.financial.materials_per_month = input_validator.validate_decimal(
+                request.form.get('materials_per_month', '0'), min_value=Decimal('0'), max_value=Decimal('1000000')
+            )
+            service.financial.admin_percent = input_validator.validate_decimal(
+                request.form.get('admin_percent', '5'), min_value=Decimal('0'), max_value=Decimal('100')
+            )
 
             region_coef = REGIONAL_COEFFICIENTS.get(service.basic_info.region, 1.0)
             service.financial.region_coefficient = Decimal(str(region_coef))
@@ -229,6 +249,7 @@ def service_new():
 
 
 @app.route('/services/<int:service_id>/edit', methods=['GET', 'POST'])
+@rate_limit(requests=30, window=300)  # 30 edits per 5 minutes
 def service_edit(service_id):
     """Edit existing service"""
     service = db.get_service(service_id)
@@ -239,17 +260,36 @@ def service_edit(service_id):
 
     if request.method == 'POST':
         try:
-            # Update service from form
-            service.basic_info.service_name = request.form.get('service_name')
-            service.basic_info.target_group = request.form.get('target_group')
-            service.basic_info.region = request.form.get('region')
-            service.basic_info.provider_type = request.form.get('provider_type')
-            service.basic_info.document_date = request.form.get('document_date')
-            service.basic_info.responsible_person = request.form.get('responsible_person')
+            # Input validation
+            input_validator = InputValidator()
 
-            service.financial.brutto_rate = Decimal(request.form.get('brutto_rate', '0'))
-            service.financial.materials_per_month = Decimal(request.form.get('materials_per_month', '0'))
-            service.financial.admin_percent = Decimal(request.form.get('admin_percent', '5'))
+            # Update service from form with validation
+            service.basic_info.service_name = input_validator.validate_string(
+                request.form.get('service_name', ''), min_length=1, max_length=200
+            )
+            service.basic_info.target_group = input_validator.validate_string(
+                request.form.get('target_group', ''), max_length=500
+            )
+            service.basic_info.region = input_validator.validate_enum(
+                request.form.get('region', ''), list(REGIONAL_COEFFICIENTS.keys())
+            )
+            service.basic_info.provider_type = input_validator.validate_string(
+                request.form.get('provider_type', ''), max_length=100
+            )
+            service.basic_info.document_date = request.form.get('document_date')
+            service.basic_info.responsible_person = input_validator.validate_string(
+                request.form.get('responsible_person', ''), max_length=200
+            )
+
+            service.financial.brutto_rate = input_validator.validate_decimal(
+                request.form.get('brutto_rate', '0'), min_value=Decimal('0'), max_value=Decimal('1000000')
+            )
+            service.financial.materials_per_month = input_validator.validate_decimal(
+                request.form.get('materials_per_month', '0'), min_value=Decimal('0'), max_value=Decimal('1000000')
+            )
+            service.financial.admin_percent = input_validator.validate_decimal(
+                request.form.get('admin_percent', '5'), min_value=Decimal('0'), max_value=Decimal('100')
+            )
 
             region_coef = REGIONAL_COEFFICIENTS.get(service.basic_info.region, 1.0)
             service.financial.region_coefficient = Decimal(str(region_coef))
@@ -274,6 +314,7 @@ def service_edit(service_id):
 
 
 @app.route('/services/<int:service_id>/delete', methods=['POST'])
+@rate_limit(requests=10, window=300)  # 10 deletes per 5 minutes
 def service_delete(service_id):
     """Delete service"""
     if db.delete_service(service_id):
@@ -285,6 +326,7 @@ def service_delete(service_id):
 
 
 @app.route('/calculator', methods=['GET', 'POST'])
+@rate_limit(requests=50, window=60)  # 50 calculations per minute
 def calculator_page():
     """Financial calculator page"""
     result = None
@@ -293,16 +335,39 @@ def calculator_page():
         try:
             from src.models.financial import FinancialParameters
 
-            params = FinancialParameters(
-                brutto_rate=Decimal(request.form.get('brutto_rate', '0'))
+            # Input validation
+            input_validator = InputValidator()
+
+            # Validate brutto_rate
+            brutto_rate = input_validator.validate_decimal(
+                request.form.get('brutto_rate', '0'),
+                min_value=Decimal('0'),
+                max_value=Decimal('1000000')
             )
+
+            params = FinancialParameters(brutto_rate=brutto_rate)
 
             region = request.form.get('region')
             if region:
+                # Validate region
+                region = input_validator.validate_enum(region, list(REGIONAL_COEFFICIENTS.keys()))
                 params.region_coefficient = Decimal(str(REGIONAL_COEFFICIENTS.get(region, 1.0)))
 
-            params.materials_per_month = Decimal(request.form.get('materials', '0'))
-            params.admin_percent = Decimal(request.form.get('admin', '5'))
+            # Validate materials
+            materials = input_validator.validate_decimal(
+                request.form.get('materials', '0'),
+                min_value=Decimal('0'),
+                max_value=Decimal('1000000')
+            )
+            params.materials_per_month = materials
+
+            # Validate admin percent
+            admin = input_validator.validate_decimal(
+                request.form.get('admin', '5'),
+                min_value=Decimal('0'),
+                max_value=Decimal('100')
+            )
+            params.admin_percent = admin
             params.use_umlages = request.form.get('mode') != 'reserve'
             params.use_vacation_reserve = not params.use_umlages
 
