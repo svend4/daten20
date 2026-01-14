@@ -10,25 +10,57 @@ from pathlib import Path
 from ..models.service import Service
 from ..utils.constants import DATABASE_FILE
 from .logger import get_logger
+from .connection_pool import get_connection_pool, ConnectionPool
+from .migrations import MigrationManager, register_all_migrations
 
 # Module logger
 logger = get_logger(__name__)
 
 
 class Database:
-    """SQLite database manager"""
+    """SQLite database manager with connection pooling and migrations"""
 
-    def __init__(self, db_path: str = DATABASE_FILE):
+    def __init__(self, db_path: str = DATABASE_FILE, pool_size: int = 5):
         """
         Initialize database
 
         Args:
             db_path: Path to database file
+            pool_size: Size of connection pool
         """
         self.db_path = db_path
-        logger.info(f"Initializing database at {db_path}")
+        logger.info(f"Initializing database at {db_path} with pool size {pool_size}")
+
+        # Initialize connection pool
+        self.pool = get_connection_pool(db_path, pool_size)
+
+        # Run migrations
+        self._run_migrations()
+
+        # Ensure schema exists (for compatibility)
         self._ensure_db_exists()
+
         logger.debug("Database initialization complete")
+
+    def _run_migrations(self):
+        """Run database migrations."""
+        logger.info("Checking database migrations")
+        try:
+            migration_manager = MigrationManager(self.db_path)
+            register_all_migrations(migration_manager)
+
+            current_version = migration_manager.get_current_version()
+            pending = migration_manager.get_pending_migrations()
+
+            if pending:
+                logger.info(f"Applying {len(pending)} pending migrations")
+                migration_manager.migrate_to_latest()
+            else:
+                logger.info(f"Database is up to date (version {current_version})")
+
+        except Exception as e:
+            logger.warning(f"Migration check failed: {e}")
+            # Continue anyway for backward compatibility
 
     def _ensure_db_exists(self) -> None:
         """Ensure database and tables exist"""
@@ -135,7 +167,8 @@ class Database:
             service.created_at = datetime.now()
             service.updated_at = datetime.now()
 
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 config_json = service.to_json()
@@ -177,8 +210,6 @@ class Database:
                 ))
                 logger.debug(f"Initial version created for service {service_id}")
 
-                conn.commit()
-
             service.id = service_id
             logger.info(f"Service created successfully: ID={service_id}, name={service.basic_info.service_name}")
             return service_id
@@ -198,7 +229,9 @@ class Database:
         """
         try:
             logger.debug(f"Retrieving service with ID: {service_id}")
-            with sqlite3.connect(self.db_path) as conn:
+
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 cursor.execute('SELECT config_json FROM services WHERE id = ?', (service_id,))
