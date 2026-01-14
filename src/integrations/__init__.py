@@ -18,10 +18,21 @@ Legacy:
 - payments: Payment gateways (Stripe, PayPal, Square)
 - webhooks: Webhook management
 
-Version: 3.7.0
+Version: 3.7.0 (Complete)
 """
 
 __version__ = '3.7.0'
+
+# Unified Integrations API
+from .integrations_api import (
+    IntegrationsAPI,
+    IntegrationsConfig,
+    IntegrationOperation,
+    get_integrations_api,
+    upload_file,
+    send_message,
+    request_signature,
+)
 
 # Cloud Storage
 from .cloud_storage import (
@@ -116,6 +127,15 @@ from .webhooks import (
 )
 
 __all__ = [
+    # Unified API
+    'IntegrationsAPI',
+    'IntegrationsConfig',
+    'IntegrationOperation',
+    'get_integrations_api',
+    'upload_file',
+    'send_message',
+    'request_signature',
+
     # Cloud Storage
     'StorageManager',
     'StorageProvider',
