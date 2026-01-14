@@ -13,10 +13,18 @@ Modules:
 - audit_management: Audit planning, findings, and remediation
 - policy_management: Policy lifecycle and acknowledgment tracking
 
-Version: 3.8.0
+Version: 3.8.0 (Complete)
 """
 
 __version__ = '3.8.0'
+
+# Unified Governance API (SIMPLE VERSION)
+from .governance_api_simple import (
+    GovernanceAPI,
+    GovernanceConfig,
+    GovernanceOperation,
+    get_governance_api,
+)
 
 # Records Management
 from .records_management import (
@@ -104,6 +112,12 @@ from .policy_management import (
 )
 
 __all__ = [
+    # Unified API (SIMPLE VERSION)
+    'GovernanceAPI',
+    'GovernanceConfig',
+    'GovernanceOperation',
+    'get_governance_api',
+
     # Records Management
     'RecordsManager',
     'RecordClass',

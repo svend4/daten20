@@ -14,10 +14,18 @@ Components:
 - Developer Portal: Documentation and API playground
 - API Gateway v2: Advanced routing and transformation
 
-Version: 3.9.0
+Version: 3.9.0 (Complete)
 """
 
 __version__ = '3.9.0'
+
+# Unified Developer API (SIMPLE VERSION)
+from .developer_api_simple import (
+    DeveloperPlatformAPI,
+    DeveloperConfig,
+    DeveloperOperation,
+    get_developer_api,
+)
 
 from .developer_services import (
     # SDK Generator
@@ -50,6 +58,12 @@ from .developer_services import (
 )
 
 __all__ = [
+    # Unified API (SIMPLE VERSION)
+    'DeveloperPlatformAPI',
+    'DeveloperConfig',
+    'DeveloperOperation',
+    'get_developer_api',
+
     # SDK Generator
     'SupportedLanguage',
     'SDKConfig',
