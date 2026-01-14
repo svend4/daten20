@@ -5,6 +5,7 @@ Immutable audit trail with blockchain technology.
 
 Modules:
 - blockchain_core: Block and chain management
+- document_registry: Blockchain document registry with multi-chain support
 - transaction_manager: Transaction handling and validation
 - consensus: Proof of Authority consensus mechanism
 - merkle_tree: Merkle tree for efficient verification
@@ -24,10 +25,31 @@ from .blockchain_core import (
     get_blockchain
 )
 
+from .document_registry import (
+    BlockchainDocumentRegistry,
+    DocumentHasher,
+    SmartContractInterface,
+    DocumentHash,
+    BlockchainTransaction,
+    DocumentRegistryEntry,
+    ProofOfExistence,
+    BlockchainNetwork,
+    DocumentEventType
+)
+
 __all__ = [
     'Block',
     'Blockchain',
     'BlockValidator',
     'GenesisBlock',
     'get_blockchain',
+    'BlockchainDocumentRegistry',
+    'DocumentHasher',
+    'SmartContractInterface',
+    'DocumentHash',
+    'BlockchainTransaction',
+    'DocumentRegistryEntry',
+    'ProofOfExistence',
+    'BlockchainNetwork',
+    'DocumentEventType',
 ]
