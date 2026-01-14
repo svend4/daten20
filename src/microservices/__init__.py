@@ -4,13 +4,14 @@ Microservices Module - v3.2
 Microservices architecture components for enterprise scalability.
 
 Modules:
-- service_mesh: Service discovery, load balancing, circuit breakers
-- api_gateway: API routing, protocol translation, rate limiting
-- event_bus: Event-driven architecture with CQRS and Event Sourcing
-- config_server: Centralized configuration management
-- service_registry: Service registration, discovery, and health monitoring
-- distributed_tracing: OpenTelemetry integration with Jaeger/Zipkin support
-- orchestration: Kubernetes operators and container orchestration
+- service_mesh: Service discovery, load balancing, circuit breakers ✅
+- api_gateway: API routing, protocol translation, rate limiting ✅
+- event_bus: Event-driven architecture with CQRS and Event Sourcing ✅
+- config_server: Centralized configuration management ✅
+- service_registry: Service registration, discovery, and health monitoring ✅
+- distributed_tracing: OpenTelemetry integration with Jaeger/Zipkin support ✅
+- orchestration: Kubernetes operators and container orchestration ✅
+- microservices_api: Unified Microservices API (single entry point) ✅
 
 Version: 3.2.0 (Complete)
 """
@@ -140,6 +141,16 @@ from .orchestration import (
     ProbeType
 )
 
+# Unified Microservices API
+from .microservices_api import (
+    get_microservices_api,
+    MicroservicesAPI,
+    ServiceHealth,
+    RouteConfig,
+    EventHandler,
+    TraceContext
+)
+
 __all__ = [
     # Service Mesh
     'ServiceMesh',
@@ -243,4 +254,11 @@ __all__ = [
     'DeploymentStrategy',
     'ResourceType',
     'ProbeType',
+    # Unified Microservices API
+    'get_microservices_api',
+    'MicroservicesAPI',
+    'ServiceHealth',
+    'RouteConfig',
+    'EventHandler',
+    'TraceContext',
 ]
