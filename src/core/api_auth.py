@@ -114,7 +114,7 @@ class APIKeyManager:
 
         # Calculate expiration
         expires_at = None
-        if expires_in_days:
+        if expires_in_days is not None:
             expires_at = (datetime.now() + timedelta(days=expires_in_days)).isoformat()
 
         # Store in database
@@ -263,7 +263,7 @@ class APIKeyManager:
 
             cursor.execute('''
                 DELETE FROM api_keys
-                WHERE expires_at < datetime('now')
+                WHERE expires_at IS NOT NULL AND expires_at < datetime('now')
             ''')
 
             deleted = cursor.rowcount
