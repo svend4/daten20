@@ -42,13 +42,24 @@ from src.core.input_validation import (
     FlaskRequestValidator,
     ValidationError
 )
+from src.core.https_config import HTTPSConfig, configure_flask_https
+from src.core.csrf_protection import csrf, csrf_exempt
 
 # Initialize Flask app
 app = Flask(__name__,
             template_folder='../web/templates',
             static_folder='../web/static')
-app.secret_key = 'your-secret-key-change-in-production'  # Change in production!
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')  # Change in production!
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['ENV'] = os.getenv('FLASK_ENV', 'development')
+
+# Initialize HTTPS configuration
+https_config = HTTPSConfig()
+if app.config['ENV'] == 'production':
+    configure_flask_https(app, https_config)
+
+# Initialize CSRF protection
+csrf.init_app(app)
 
 # Initialize Swagger UI
 swagger_config = {
@@ -470,6 +481,7 @@ def search_page():
 
 @app.route('/api/services', methods=['GET'])
 @rate_limit(requests=100, window=60)  # 100 requests per minute
+@csrf_exempt
 def api_services_list():
     """API: List all services"""
     # Input validation
@@ -512,6 +524,7 @@ def api_services_list():
 
 @app.route('/api/services/<int:service_id>', methods=['GET'])
 @rate_limit(requests=100, window=60)  # 100 requests per minute
+@csrf_exempt
 def api_service_get(service_id):
     """API: Get service by ID"""
     # Input validation
@@ -531,6 +544,7 @@ def api_service_get(service_id):
 
 @app.route('/api/services', methods=['POST'])
 @rate_limit(requests=10, window=60)  # 10 creates per minute (stricter limit)
+@csrf_exempt
 def api_service_create():
     """API: Create new service"""
     try:
@@ -609,6 +623,7 @@ def api_service_create():
 
 @app.route('/api/services/<int:service_id>', methods=['PUT'])
 @rate_limit(requests=20, window=60)  # 20 updates per minute
+@csrf_exempt
 def api_service_update(service_id):
     """API: Update service"""
     try:
@@ -677,6 +692,7 @@ def api_service_update(service_id):
 
 @app.route('/api/services/<int:service_id>', methods=['DELETE'])
 @rate_limit(requests=10, window=60)  # 10 deletes per minute (stricter limit)
+@csrf_exempt
 def api_service_delete(service_id):
     """API: Delete service"""
     # Input validation
@@ -697,6 +713,7 @@ def api_service_delete(service_id):
 
 @app.route('/api/calculate', methods=['POST'])
 @rate_limit(requests=50, window=60)  # 50 calculations per minute
+@csrf_exempt
 def api_calculate():
     """API: Calculate service cost"""
     try:
@@ -765,6 +782,7 @@ def api_calculate():
 
 @app.route('/api/statistics', methods=['GET'])
 @rate_limit(requests=100, window=60)  # 100 requests per minute
+@csrf_exempt
 def api_statistics():
     """API: Get statistics"""
     stats = db.get_statistics()
@@ -777,6 +795,7 @@ def api_statistics():
 
 @app.route('/api/search', methods=['GET'])
 @rate_limit(requests=50, window=60)  # 50 searches per minute
+@csrf_exempt
 def api_search():
     """API: Search services"""
     query = request.args.get('q', '')
