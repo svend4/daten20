@@ -15,10 +15,21 @@ Components:
 - Quantum ML: Quantum neural networks and quantum SVM
 - Quantum Optimization: MaxCut, TSP, portfolio optimization
 
-Version: 4.1.0
+Version: 4.1.0 (Complete)
 """
 
 __version__ = '4.1.0'
+
+# Unified Quantum API (SIMPLE VERSION)
+from .quantum_api_simple import (
+    QuantumAPI,
+    QuantumConfig,
+    QuantumOperation,
+    get_quantum_api,
+    build_circuit,
+    run_grover_search,
+    solve_maxcut,
+)
 
 from .quantum_services import (
     # Quantum Circuit Engine
@@ -81,6 +92,15 @@ from .quantum_services import (
 )
 
 __all__ = [
+    # Unified API (SIMPLE VERSION)
+    'QuantumAPI',
+    'QuantumConfig',
+    'QuantumOperation',
+    'get_quantum_api',
+    'build_circuit',
+    'run_grover_search',
+    'solve_maxcut',
+
     # Quantum Circuit Engine
     'QuantumGate',
     'GateType',
