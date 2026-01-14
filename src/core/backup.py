@@ -19,6 +19,14 @@ from threading import Thread
 
 logger = logging.getLogger('dms.backup')
 
+# Try to import encryption support
+try:
+    from .backup_encryption import BackupEncryption
+    ENCRYPTION_AVAILABLE = True
+except ImportError:
+    logger.warning("Backup encryption not available (cryptography package not installed)")
+    ENCRYPTION_AVAILABLE = False
+
 
 class BackupManager:
     """Manage automated backups."""
@@ -27,7 +35,9 @@ class BackupManager:
         self,
         backup_dir: str = 'backups',
         retention_days: int = 30,
-        max_backups: int = 50
+        max_backups: int = 50,
+        encrypt: bool = False,
+        encryption_key: Optional[bytes] = None
     ):
         """
         Initialize backup manager.
@@ -36,11 +46,25 @@ class BackupManager:
             backup_dir: Directory to store backups
             retention_days: Days to retain backups
             max_backups: Maximum number of backups to keep
+            encrypt: Enable backup encryption
+            encryption_key: Encryption key (auto-generated if not provided)
         """
         self.backup_dir = Path(backup_dir)
         self.backup_dir.mkdir(parents=True, exist_ok=True)
         self.retention_days = retention_days
         self.max_backups = max_backups
+        self.encrypt = encrypt
+
+        # Initialize encryption if enabled
+        self.encryptor = None
+        if encrypt:
+            if not ENCRYPTION_AVAILABLE:
+                raise RuntimeError(
+                    "Encryption requested but not available. "
+                    "Install: pip install cryptography"
+                )
+            self.encryptor = BackupEncryption(key=encryption_key)
+            logger.info("Backup encryption enabled")
 
     def create_backup(self, include_files: bool = True) -> str:
         """
@@ -78,6 +102,15 @@ class BackupManager:
                     tar.add(exports_dir, arcname='exports')
                     logger.info("Added exports to backup")
 
+        # Encrypt backup if enabled
+        if self.encrypt and self.encryptor:
+            encrypted_path = backup_path.with_suffix(backup_path.suffix + '.encrypted')
+            self.encryptor.encrypt_file(str(backup_path), str(encrypted_path), compress=False)
+            # Remove unencrypted backup
+            backup_path.unlink()
+            backup_path = encrypted_path
+            logger.info("Backup encrypted")
+
         # Cleanup old backups
         self._cleanup_old_backups()
 
@@ -96,8 +129,19 @@ class BackupManager:
 
         logger.warning(f"Restoring from backup: {backup_path}")
 
+        # Decrypt if encrypted
+        actual_backup_path = backup_path
+        if backup_path.endswith('.encrypted'):
+            if not self.encryptor:
+                raise RuntimeError("Backup is encrypted but no encryption key provided")
+
+            logger.info("Decrypting backup...")
+            decrypted_path = backup_path[:-10]  # Remove .encrypted
+            self.encryptor.decrypt_file(backup_path, decrypted_path, compressed=False)
+            actual_backup_path = decrypted_path
+
         # Extract backup
-        with tarfile.open(backup_path, 'r:gz') as tar:
+        with tarfile.open(actual_backup_path, 'r:gz') as tar:
             tar.extractall('.')
 
         logger.info("Backup restored successfully")

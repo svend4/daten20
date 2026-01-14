@@ -25,6 +25,8 @@ from src.utils.formatting import (
 )
 from src.utils.helpers import format_currency, format_percentage, round_currency, load_config
 from src.utils.constants import REGIONAL_COEFFICIENTS
+from src.core.input_validation import InputValidator, ValidationError
+from src.core.financial_validation import FinancialValidator
 
 
 class FinancialCalculator:
@@ -32,7 +34,7 @@ class FinancialCalculator:
 
     def __init__(self):
         """Initialize calculator"""
-        pass
+        self.validator = FinancialValidator()
 
     def calculate_hourly_rate(self, params: FinancialParameters) -> CostBreakdown:
         """
@@ -43,7 +45,13 @@ class FinancialCalculator:
 
         Returns:
             CostBreakdown with all calculations
+
+        Raises:
+            ValidationError: If parameters are invalid
         """
+        # Validate all financial parameters comprehensively
+        self.validator.validate_financial_parameters(params)
+
         breakdown = CostBreakdown(brutto_rate=params.brutto_rate)
 
         # Step 1: Calculate social insurance contributions (employer's share)
@@ -153,13 +161,22 @@ class FinancialCalculator:
 
         Returns:
             CostBreakdown with surcharges
+
+        Raises:
+            ValidationError: If surcharge types are invalid
         """
+        # Validate surcharge types and values
+        for surcharge_type in surcharge_types:
+            surcharge_value = params.surcharges.get(surcharge_type)
+            self.validator.validate_surcharge(surcharge_type, surcharge_value)
+
         breakdown = self.calculate_hourly_rate(params)
 
         # Calculate surcharges
         total_surcharge_percent = Decimal("0")
         for surcharge_type in surcharge_types:
             surcharge_value = params.surcharges.get(surcharge_type)
+
             breakdown.surcharges_applied[surcharge_type] = surcharge_value
             total_surcharge_percent += surcharge_value
 
@@ -200,7 +217,13 @@ class FinancialCalculator:
 
         Returns:
             ServiceCost with total calculation
+
+        Raises:
+            ValidationError: If hours are invalid
         """
+        # Validate hours
+        validated_hours = self.validator.validate_hours(hours)
+
         if surcharge_types:
             breakdown = self.calculate_with_surcharge(params, surcharge_types)
         else:
@@ -427,6 +450,13 @@ def main():
 
     # Create calculator
     calc = FinancialCalculator()
+
+    # Validate CLI arguments
+    try:
+        validated_args = calc.validator.validate_cli_args(vars(args))
+    except ValidationError as e:
+        print(error(f"Ошибка валидации аргументов: {e}"))
+        return 1
 
     # Create parameters
     if args.config:

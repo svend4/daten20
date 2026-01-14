@@ -30,13 +30,36 @@ from src.service_manager import ServiceManager
 from src.utils.helpers import load_config, save_config
 from src.utils.constants import SERVICE_TYPES, REGIONAL_COEFFICIENTS, FUNDING_SOURCES
 from src.api_docs import api_docs_bp
+from src.core.rate_limiter import (
+    rate_limit,
+    RateLimitExceeded,
+    handle_rate_limit_exceeded,
+    GlobalRateLimiters,
+    get_client_id_from_request
+)
+from src.core.input_validation import (
+    InputValidator,
+    FlaskRequestValidator,
+    ValidationError
+)
+from src.core.https_config import HTTPSConfig, configure_flask_https
+from src.core.csrf_protection import csrf, csrf_exempt
 
 # Initialize Flask app
 app = Flask(__name__,
             template_folder='../web/templates',
             static_folder='../web/static')
-app.secret_key = 'your-secret-key-change-in-production'  # Change in production!
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')  # Change in production!
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['ENV'] = os.getenv('FLASK_ENV', 'development')
+
+# Initialize HTTPS configuration
+https_config = HTTPSConfig()
+if app.config['ENV'] == 'production':
+    configure_flask_https(app, https_config)
+
+# Initialize CSRF protection
+csrf.init_app(app)
 
 # Initialize Swagger UI
 swagger_config = {
@@ -150,25 +173,45 @@ def service_detail(service_id):
 
 
 @app.route('/services/new', methods=['GET', 'POST'])
+@rate_limit(requests=20, window=300)  # 20 creates per 5 minutes
 def service_new():
     """Create new service"""
     if request.method == 'POST':
         try:
+            # Input validation
+            input_validator = InputValidator()
+
             # Build service from form data
             service = Service()
 
-            # Basic info
-            service.basic_info.service_name = request.form.get('service_name')
-            service.basic_info.target_group = request.form.get('target_group')
-            service.basic_info.region = request.form.get('region')
-            service.basic_info.provider_type = request.form.get('provider_type')
+            # Basic info with validation
+            service.basic_info.service_name = input_validator.validate_string(
+                request.form.get('service_name', ''), min_length=1, max_length=200
+            )
+            service.basic_info.target_group = input_validator.validate_string(
+                request.form.get('target_group', ''), max_length=500
+            )
+            service.basic_info.region = input_validator.validate_enum(
+                request.form.get('region', ''), list(REGIONAL_COEFFICIENTS.keys())
+            )
+            service.basic_info.provider_type = input_validator.validate_string(
+                request.form.get('provider_type', ''), max_length=100
+            )
             service.basic_info.document_date = request.form.get('document_date')
-            service.basic_info.responsible_person = request.form.get('responsible_person')
+            service.basic_info.responsible_person = input_validator.validate_string(
+                request.form.get('responsible_person', ''), max_length=200
+            )
 
-            # Financial
-            service.financial.brutto_rate = Decimal(request.form.get('brutto_rate', '0'))
-            service.financial.materials_per_month = Decimal(request.form.get('materials_per_month', '0'))
-            service.financial.admin_percent = Decimal(request.form.get('admin_percent', '5'))
+            # Financial with validation
+            service.financial.brutto_rate = input_validator.validate_decimal(
+                request.form.get('brutto_rate', '0'), min_value=Decimal('0'), max_value=Decimal('1000000')
+            )
+            service.financial.materials_per_month = input_validator.validate_decimal(
+                request.form.get('materials_per_month', '0'), min_value=Decimal('0'), max_value=Decimal('1000000')
+            )
+            service.financial.admin_percent = input_validator.validate_decimal(
+                request.form.get('admin_percent', '5'), min_value=Decimal('0'), max_value=Decimal('100')
+            )
 
             region_coef = REGIONAL_COEFFICIENTS.get(service.basic_info.region, 1.0)
             service.financial.region_coefficient = Decimal(str(region_coef))
@@ -217,6 +260,7 @@ def service_new():
 
 
 @app.route('/services/<int:service_id>/edit', methods=['GET', 'POST'])
+@rate_limit(requests=30, window=300)  # 30 edits per 5 minutes
 def service_edit(service_id):
     """Edit existing service"""
     service = db.get_service(service_id)
@@ -227,17 +271,36 @@ def service_edit(service_id):
 
     if request.method == 'POST':
         try:
-            # Update service from form
-            service.basic_info.service_name = request.form.get('service_name')
-            service.basic_info.target_group = request.form.get('target_group')
-            service.basic_info.region = request.form.get('region')
-            service.basic_info.provider_type = request.form.get('provider_type')
-            service.basic_info.document_date = request.form.get('document_date')
-            service.basic_info.responsible_person = request.form.get('responsible_person')
+            # Input validation
+            input_validator = InputValidator()
 
-            service.financial.brutto_rate = Decimal(request.form.get('brutto_rate', '0'))
-            service.financial.materials_per_month = Decimal(request.form.get('materials_per_month', '0'))
-            service.financial.admin_percent = Decimal(request.form.get('admin_percent', '5'))
+            # Update service from form with validation
+            service.basic_info.service_name = input_validator.validate_string(
+                request.form.get('service_name', ''), min_length=1, max_length=200
+            )
+            service.basic_info.target_group = input_validator.validate_string(
+                request.form.get('target_group', ''), max_length=500
+            )
+            service.basic_info.region = input_validator.validate_enum(
+                request.form.get('region', ''), list(REGIONAL_COEFFICIENTS.keys())
+            )
+            service.basic_info.provider_type = input_validator.validate_string(
+                request.form.get('provider_type', ''), max_length=100
+            )
+            service.basic_info.document_date = request.form.get('document_date')
+            service.basic_info.responsible_person = input_validator.validate_string(
+                request.form.get('responsible_person', ''), max_length=200
+            )
+
+            service.financial.brutto_rate = input_validator.validate_decimal(
+                request.form.get('brutto_rate', '0'), min_value=Decimal('0'), max_value=Decimal('1000000')
+            )
+            service.financial.materials_per_month = input_validator.validate_decimal(
+                request.form.get('materials_per_month', '0'), min_value=Decimal('0'), max_value=Decimal('1000000')
+            )
+            service.financial.admin_percent = input_validator.validate_decimal(
+                request.form.get('admin_percent', '5'), min_value=Decimal('0'), max_value=Decimal('100')
+            )
 
             region_coef = REGIONAL_COEFFICIENTS.get(service.basic_info.region, 1.0)
             service.financial.region_coefficient = Decimal(str(region_coef))
@@ -262,6 +325,7 @@ def service_edit(service_id):
 
 
 @app.route('/services/<int:service_id>/delete', methods=['POST'])
+@rate_limit(requests=10, window=300)  # 10 deletes per 5 minutes
 def service_delete(service_id):
     """Delete service"""
     if db.delete_service(service_id):
@@ -273,6 +337,7 @@ def service_delete(service_id):
 
 
 @app.route('/calculator', methods=['GET', 'POST'])
+@rate_limit(requests=50, window=60)  # 50 calculations per minute
 def calculator_page():
     """Financial calculator page"""
     result = None
@@ -281,16 +346,39 @@ def calculator_page():
         try:
             from src.models.financial import FinancialParameters
 
-            params = FinancialParameters(
-                brutto_rate=Decimal(request.form.get('brutto_rate', '0'))
+            # Input validation
+            input_validator = InputValidator()
+
+            # Validate brutto_rate
+            brutto_rate = input_validator.validate_decimal(
+                request.form.get('brutto_rate', '0'),
+                min_value=Decimal('0'),
+                max_value=Decimal('1000000')
             )
+
+            params = FinancialParameters(brutto_rate=brutto_rate)
 
             region = request.form.get('region')
             if region:
+                # Validate region
+                region = input_validator.validate_enum(region, list(REGIONAL_COEFFICIENTS.keys()))
                 params.region_coefficient = Decimal(str(REGIONAL_COEFFICIENTS.get(region, 1.0)))
 
-            params.materials_per_month = Decimal(request.form.get('materials', '0'))
-            params.admin_percent = Decimal(request.form.get('admin', '5'))
+            # Validate materials
+            materials = input_validator.validate_decimal(
+                request.form.get('materials', '0'),
+                min_value=Decimal('0'),
+                max_value=Decimal('1000000')
+            )
+            params.materials_per_month = materials
+
+            # Validate admin percent
+            admin = input_validator.validate_decimal(
+                request.form.get('admin', '5'),
+                min_value=Decimal('0'),
+                max_value=Decimal('100')
+            )
+            params.admin_percent = admin
             params.use_umlages = request.form.get('mode') != 'reserve'
             params.use_vacation_reserve = not params.use_umlages
 
@@ -307,6 +395,7 @@ def calculator_page():
 
 
 @app.route('/generator', methods=['GET', 'POST'])
+@rate_limit(requests=10, window=300)  # 10 document generations per 5 minutes
 def generator_page():
     """Document generator page"""
     if request.method == 'POST':
@@ -391,12 +480,38 @@ def search_page():
 # ==================== REST API ROUTES ====================
 
 @app.route('/api/services', methods=['GET'])
+@rate_limit(requests=100, window=60)  # 100 requests per minute
+@csrf_exempt
 def api_services_list():
     """API: List all services"""
+    # Input validation
+    input_validator = InputValidator()
+
     region = request.args.get('region')
     service_type = request.args.get('type')
-    limit = int(request.args.get('limit', 100))
-    offset = int(request.args.get('offset', 0))
+
+    # Validate limit and offset
+    limit = input_validator.validate_integer(
+        request.args.get('limit', 100),
+        min_value=1,
+        max_value=1000
+    )
+    offset = input_validator.validate_integer(
+        request.args.get('offset', 0),
+        min_value=0
+    )
+
+    # Validate region if provided
+    if region:
+        region = input_validator.validate_enum(
+            region, list(REGIONAL_COEFFICIENTS.keys())
+        )
+
+    # Validate service_type if provided
+    if service_type:
+        service_type = input_validator.validate_enum(
+            service_type, list(SERVICE_TYPES.keys())
+        )
 
     services = db.list_services(limit=limit, offset=offset, region=region, service_type=service_type)
 
@@ -408,8 +523,14 @@ def api_services_list():
 
 
 @app.route('/api/services/<int:service_id>', methods=['GET'])
+@rate_limit(requests=100, window=60)  # 100 requests per minute
+@csrf_exempt
 def api_service_get(service_id):
     """API: Get service by ID"""
+    # Input validation
+    input_validator = InputValidator()
+    service_id = input_validator.validate_integer(service_id, min_value=1)
+
     service = db.get_service(service_id)
 
     if not service:
@@ -422,10 +543,52 @@ def api_service_get(service_id):
 
 
 @app.route('/api/services', methods=['POST'])
+@rate_limit(requests=10, window=60)  # 10 creates per minute (stricter limit)
+@csrf_exempt
 def api_service_create():
     """API: Create new service"""
     try:
         data = request.get_json()
+
+        # Input validation
+        input_validator = InputValidator()
+
+        # Validate basic info fields
+        if 'basic_info' in data:
+            basic = data['basic_info']
+            if 'service_name' in basic:
+                basic['service_name'] = input_validator.validate_string(
+                    basic['service_name'], min_length=1, max_length=200
+                )
+            if 'target_group' in basic:
+                basic['target_group'] = input_validator.validate_string(
+                    basic['target_group'], max_length=500
+                )
+            if 'region' in basic:
+                basic['region'] = input_validator.validate_enum(
+                    basic['region'], list(REGIONAL_COEFFICIENTS.keys())
+                )
+            if 'responsible_person' in basic:
+                basic['responsible_person'] = input_validator.validate_string(
+                    basic['responsible_person'], max_length=200
+                )
+
+        # Validate financial fields
+        if 'financial' in data:
+            financial = data['financial']
+            if 'brutto_rate' in financial:
+                financial['brutto_rate'] = input_validator.validate_decimal(
+                    financial['brutto_rate'], min_value=Decimal('0')
+                )
+            if 'materials_per_month' in financial:
+                financial['materials_per_month'] = input_validator.validate_decimal(
+                    financial['materials_per_month'], min_value=Decimal('0')
+                )
+            if 'admin_percent' in financial:
+                financial['admin_percent'] = input_validator.validate_decimal(
+                    financial['admin_percent'], min_value=Decimal('0'), max_value=Decimal('100')
+                )
+
         service = Service.from_dict(data)
 
         # Validate
@@ -446,6 +609,11 @@ def api_service_create():
             'message': 'Service created successfully'
         }), 201
 
+    except ValidationError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
     except Exception as e:
         return jsonify({
             'success': False,
@@ -454,14 +622,52 @@ def api_service_create():
 
 
 @app.route('/api/services/<int:service_id>', methods=['PUT'])
+@rate_limit(requests=20, window=60)  # 20 updates per minute
+@csrf_exempt
 def api_service_update(service_id):
     """API: Update service"""
     try:
+        # Validate service_id
+        input_validator = InputValidator()
+        service_id = input_validator.validate_integer(service_id, min_value=1)
+
         service = db.get_service(service_id)
         if not service:
             return jsonify({'success': False, 'error': 'Service not found'}), 404
 
         data = request.get_json()
+
+        # Input validation (same as create)
+        if 'basic_info' in data:
+            basic = data['basic_info']
+            if 'service_name' in basic:
+                basic['service_name'] = input_validator.validate_string(
+                    basic['service_name'], min_length=1, max_length=200
+                )
+            if 'target_group' in basic:
+                basic['target_group'] = input_validator.validate_string(
+                    basic['target_group'], max_length=500
+                )
+            if 'region' in basic:
+                basic['region'] = input_validator.validate_enum(
+                    basic['region'], list(REGIONAL_COEFFICIENTS.keys())
+                )
+
+        if 'financial' in data:
+            financial = data['financial']
+            if 'brutto_rate' in financial:
+                financial['brutto_rate'] = input_validator.validate_decimal(
+                    financial['brutto_rate'], min_value=Decimal('0')
+                )
+            if 'materials_per_month' in financial:
+                financial['materials_per_month'] = input_validator.validate_decimal(
+                    financial['materials_per_month'], min_value=Decimal('0')
+                )
+            if 'admin_percent' in financial:
+                financial['admin_percent'] = input_validator.validate_decimal(
+                    financial['admin_percent'], min_value=Decimal('0'), max_value=Decimal('100')
+                )
+
         updated_service = Service.from_dict(data)
         updated_service.id = service_id
 
@@ -472,6 +678,11 @@ def api_service_update(service_id):
             'message': 'Service updated successfully'
         })
 
+    except ValidationError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
     except Exception as e:
         return jsonify({
             'success': False,
@@ -480,8 +691,14 @@ def api_service_update(service_id):
 
 
 @app.route('/api/services/<int:service_id>', methods=['DELETE'])
+@rate_limit(requests=10, window=60)  # 10 deletes per minute (stricter limit)
+@csrf_exempt
 def api_service_delete(service_id):
     """API: Delete service"""
+    # Input validation
+    input_validator = InputValidator()
+    service_id = input_validator.validate_integer(service_id, min_value=1)
+
     if db.delete_service(service_id):
         return jsonify({
             'success': True,
@@ -495,6 +712,8 @@ def api_service_delete(service_id):
 
 
 @app.route('/api/calculate', methods=['POST'])
+@rate_limit(requests=50, window=60)  # 50 calculations per minute
+@csrf_exempt
 def api_calculate():
     """API: Calculate service cost"""
     try:
@@ -502,18 +721,42 @@ def api_calculate():
 
         data = request.get_json()
 
-        params = FinancialParameters(
-            brutto_rate=Decimal(str(data.get('brutto_rate', 0)))
+        # Input validation
+        input_validator = InputValidator()
+
+        # Validate brutto_rate
+        brutto_rate = input_validator.validate_decimal(
+            data.get('brutto_rate', 0),
+            min_value=Decimal('0'),
+            max_value=Decimal('1000000')  # Max 1M per hour
         )
 
+        params = FinancialParameters(brutto_rate=brutto_rate)
+
+        # Validate region
         if 'region' in data:
-            params.region_coefficient = Decimal(str(REGIONAL_COEFFICIENTS.get(data['region'], 1.0)))
+            region = input_validator.validate_enum(
+                data['region'], list(REGIONAL_COEFFICIENTS.keys())
+            )
+            params.region_coefficient = Decimal(str(REGIONAL_COEFFICIENTS.get(region, 1.0)))
 
+        # Validate materials
         if 'materials_per_month' in data:
-            params.materials_per_month = Decimal(str(data['materials_per_month']))
+            materials = input_validator.validate_decimal(
+                data['materials_per_month'],
+                min_value=Decimal('0'),
+                max_value=Decimal('1000000')
+            )
+            params.materials_per_month = materials
 
+        # Validate admin percent
         if 'admin_percent' in data:
-            params.admin_percent = Decimal(str(data['admin_percent']))
+            admin = input_validator.validate_decimal(
+                data['admin_percent'],
+                min_value=Decimal('0'),
+                max_value=Decimal('100')
+            )
+            params.admin_percent = admin
 
         params.use_umlages = data.get('use_umlages', True)
         params.use_vacation_reserve = not params.use_umlages
@@ -525,6 +768,11 @@ def api_calculate():
             'breakdown': breakdown.to_dict()
         })
 
+    except ValidationError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
     except Exception as e:
         return jsonify({
             'success': False,
@@ -533,6 +781,8 @@ def api_calculate():
 
 
 @app.route('/api/statistics', methods=['GET'])
+@rate_limit(requests=100, window=60)  # 100 requests per minute
+@csrf_exempt
 def api_statistics():
     """API: Get statistics"""
     stats = db.get_statistics()
@@ -544,6 +794,8 @@ def api_statistics():
 
 
 @app.route('/api/search', methods=['GET'])
+@rate_limit(requests=50, window=60)  # 50 searches per minute
+@csrf_exempt
 def api_search():
     """API: Search services"""
     query = request.args.get('q', '')
@@ -553,6 +805,22 @@ def api_search():
             'success': False,
             'error': 'Query parameter required'
         }), 400
+
+    # Input validation
+    input_validator = InputValidator()
+
+    # Validate search query
+    query = input_validator.validate_string(query, min_length=1, max_length=200)
+
+    # Check for SQL injection attempts
+    if input_validator.check_sql_injection(query):
+        return jsonify({
+            'success': False,
+            'error': 'Invalid search query'
+        }), 400
+
+    # Sanitize query
+    query = input_validator.sanitize_html(query)
 
     services = db.search_services(query)
 
@@ -564,6 +832,25 @@ def api_search():
 
 
 # ==================== ERROR HANDLERS ====================
+
+@app.errorhandler(RateLimitExceeded)
+def rate_limit_exceeded_handler(error):
+    """Rate limit exceeded handler"""
+    return handle_rate_limit_exceeded(error)
+
+
+@app.errorhandler(ValidationError)
+def validation_error_handler(error):
+    """Validation error handler"""
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'error': 'validation_error',
+            'message': str(error)
+        }), 400
+    flash(str(error), 'error')
+    return redirect(request.referrer or url_for('index'))
+
 
 @app.errorhandler(404)
 def not_found(error):

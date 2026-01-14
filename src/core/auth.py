@@ -185,6 +185,38 @@ class AuthManager:
             )
         ''')
 
+        # Create refresh tokens table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS refresh_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                revoked INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+
+        # Create token blacklist table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS token_blacklist (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token TEXT UNIQUE NOT NULL,
+                blacklisted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                reason TEXT
+            )
+        ''')
+
+        # Create index for faster lookups
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)
+        ''')
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_token_blacklist_token ON token_blacklist(token)
+        ''')
+
         # Create default admin user if none exists
         cursor.execute('SELECT COUNT(*) FROM users WHERE role = ?', (Role.ADMIN.value,))
         if cursor.fetchone()[0] == 0:
@@ -365,6 +397,11 @@ class AuthManager:
             Token payload or None if invalid
         """
         try:
+            # Check if token is blacklisted
+            if self.is_token_blacklisted(token):
+                logger.warning("Token is blacklisted")
+                return None
+
             payload = jwt.decode(token, secret_key, algorithms=['HS256'])
             return payload
         except jwt.ExpiredSignatureError:
@@ -373,6 +410,285 @@ class AuthManager:
         except jwt.InvalidTokenError as e:
             logger.warning(f"Invalid token: {e}")
             return None
+
+    def generate_refresh_token(self, user: User, secret_key: str, expires_in: int = 2592000) -> str:
+        """
+        Generate refresh token for user (default 30 days).
+
+        Args:
+            user: User object
+            secret_key: Secret key for signing
+            expires_in: Token expiration in seconds (default 30 days)
+
+        Returns:
+            Refresh token string
+        """
+        import secrets
+
+        # Generate unique refresh token
+        token_id = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+
+        payload = {
+            'user_id': user.id,
+            'token_id': token_id,
+            'type': 'refresh',
+            'exp': expires_at,
+            'iat': datetime.utcnow()
+        }
+
+        token = jwt.encode(payload, secret_key, algorithm='HS256')
+
+        # Store refresh token in database
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO refresh_tokens (user_id, token, expires_at)
+            VALUES (?, ?, ?)
+        ''', (user.id, token, expires_at.isoformat()))
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Generated refresh token for user {user.username}")
+        return token
+
+    def verify_refresh_token(self, token: str, secret_key: str) -> Optional[User]:
+        """
+        Verify refresh token and return user.
+
+        Args:
+            token: Refresh token
+            secret_key: Secret key for verification
+
+        Returns:
+            User object or None if invalid
+        """
+        try:
+            # Decode token
+            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+
+            if payload.get('type') != 'refresh':
+                logger.warning("Token is not a refresh token")
+                return None
+
+            # Check if token exists and is not revoked
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                SELECT user_id, revoked, expires_at FROM refresh_tokens
+                WHERE token = ?
+            ''', (token,))
+
+            row = cursor.fetchone()
+            conn.close()
+
+            if not row:
+                logger.warning("Refresh token not found in database")
+                return None
+
+            user_id, revoked, expires_at = row
+
+            if revoked:
+                logger.warning("Refresh token has been revoked")
+                return None
+
+            if datetime.fromisoformat(expires_at) < datetime.utcnow():
+                logger.warning("Refresh token expired")
+                return None
+
+            # Load and return user
+            return self.load_user(user_id)
+
+        except jwt.ExpiredSignatureError:
+            logger.warning("Refresh token expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"Invalid refresh token: {e}")
+            return None
+
+    def revoke_refresh_token(self, token: str) -> bool:
+        """
+        Revoke a refresh token.
+
+        Args:
+            token: Refresh token to revoke
+
+        Returns:
+            True if revoked successfully
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                UPDATE refresh_tokens
+                SET revoked = 1
+                WHERE token = ?
+            ''', (token,))
+
+            rows_affected = cursor.rowcount
+            conn.commit()
+            conn.close()
+
+            if rows_affected > 0:
+                logger.info("Refresh token revoked")
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to revoke refresh token: {e}")
+            return False
+
+    def revoke_all_user_tokens(self, user_id: int) -> bool:
+        """
+        Revoke all refresh tokens for a user.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            True if successful
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                UPDATE refresh_tokens
+                SET revoked = 1
+                WHERE user_id = ? AND revoked = 0
+            ''', (user_id,))
+
+            rows_affected = cursor.rowcount
+            conn.commit()
+            conn.close()
+
+            logger.info(f"Revoked {rows_affected} refresh tokens for user {user_id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to revoke user tokens: {e}")
+            return False
+
+    def blacklist_token(self, token: str, reason: str = "logout", expires_in: int = 3600) -> bool:
+        """
+        Add access token to blacklist.
+
+        Args:
+            token: Access token to blacklist
+            reason: Reason for blacklisting
+            expires_in: How long to keep in blacklist (seconds)
+
+        Returns:
+            True if blacklisted successfully
+        """
+        try:
+            expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                INSERT OR IGNORE INTO token_blacklist (token, expires_at, reason)
+                VALUES (?, ?, ?)
+            ''', (token, expires_at.isoformat(), reason))
+
+            conn.commit()
+            conn.close()
+
+            logger.info(f"Token blacklisted: {reason}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to blacklist token: {e}")
+            return False
+
+    def is_token_blacklisted(self, token: str) -> bool:
+        """
+        Check if token is blacklisted.
+
+        Args:
+            token: Token to check
+
+        Returns:
+            True if blacklisted
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                SELECT expires_at FROM token_blacklist
+                WHERE token = ?
+            ''', (token,))
+
+            row = cursor.fetchone()
+            conn.close()
+
+            if not row:
+                return False
+
+            # Check if blacklist entry expired
+            expires_at = datetime.fromisoformat(row[0])
+            if expires_at < datetime.utcnow():
+                # Clean up expired entry
+                self._remove_expired_blacklist_entries()
+                return False
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to check blacklist: {e}")
+            return False
+
+    def _remove_expired_blacklist_entries(self):
+        """Clean up expired blacklist entries."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                DELETE FROM token_blacklist
+                WHERE expires_at < ?
+            ''', (datetime.utcnow().isoformat(),))
+
+            rows_deleted = cursor.rowcount
+            conn.commit()
+            conn.close()
+
+            if rows_deleted > 0:
+                logger.debug(f"Cleaned up {rows_deleted} expired blacklist entries")
+
+        except Exception as e:
+            logger.error(f"Failed to clean blacklist: {e}")
+
+    def logout(self, access_token: str, refresh_token: Optional[str] = None) -> bool:
+        """
+        Logout user by blacklisting tokens.
+
+        Args:
+            access_token: Access token to blacklist
+            refresh_token: Optional refresh token to revoke
+
+        Returns:
+            True if successful
+        """
+        success = True
+
+        # Blacklist access token
+        if access_token:
+            success = success and self.blacklist_token(access_token, reason="logout")
+
+        # Revoke refresh token
+        if refresh_token:
+            success = success and self.revoke_refresh_token(refresh_token)
+
+        logger.info("User logged out")
+        return success
 
 
 # Decorators for access control
