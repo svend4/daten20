@@ -26,6 +26,7 @@ from src.utils.formatting import (
 from src.utils.helpers import format_currency, format_percentage, round_currency, load_config
 from src.utils.constants import REGIONAL_COEFFICIENTS
 from src.core.input_validation import InputValidator, ValidationError
+from src.core.financial_validation import FinancialValidator
 
 
 class FinancialCalculator:
@@ -33,7 +34,7 @@ class FinancialCalculator:
 
     def __init__(self):
         """Initialize calculator"""
-        pass
+        self.validator = FinancialValidator()
 
     def calculate_hourly_rate(self, params: FinancialParameters) -> CostBreakdown:
         """
@@ -48,45 +49,8 @@ class FinancialCalculator:
         Raises:
             ValidationError: If parameters are invalid
         """
-        # Validate input parameters
-        validator = InputValidator()
-
-        # Validate brutto_rate
-        if params.brutto_rate < Decimal("0"):
-            raise ValidationError("Brutto rate must be non-negative")
-        if params.brutto_rate > Decimal("1000000"):
-            raise ValidationError("Brutto rate exceeds maximum (1,000,000)")
-
-        # Validate region coefficient
-        if params.region_coefficient < Decimal("0.1"):
-            raise ValidationError("Region coefficient must be at least 0.1")
-        if params.region_coefficient > Decimal("10"):
-            raise ValidationError("Region coefficient exceeds maximum (10)")
-
-        # Validate materials cost
-        if params.materials_per_hour < Decimal("0"):
-            raise ValidationError("Materials cost must be non-negative")
-        if params.materials_per_hour > Decimal("100000"):
-            raise ValidationError("Materials cost exceeds maximum (100,000)")
-
-        # Validate admin percent
-        if params.admin_percent < Decimal("0"):
-            raise ValidationError("Admin percent must be non-negative")
-        if params.admin_percent > Decimal("100"):
-            raise ValidationError("Admin percent exceeds maximum (100)")
-
-        # Validate insurance rates
-        for rate_name, rate_value in [
-            ("KV", params.insurance_rates.kv_er),
-            ("PV", params.insurance_rates.pv_er),
-            ("RV", params.insurance_rates.rv_er),
-            ("AV", params.insurance_rates.av_er),
-            ("UV", params.insurance_rates.uv_er)
-        ]:
-            if rate_value < Decimal("0"):
-                raise ValidationError(f"{rate_name} rate must be non-negative")
-            if rate_value > Decimal("100"):
-                raise ValidationError(f"{rate_name} rate exceeds maximum (100%)")
+        # Validate all financial parameters comprehensively
+        self.validator.validate_financial_parameters(params)
 
         breakdown = CostBreakdown(brutto_rate=params.brutto_rate)
 
@@ -201,16 +165,10 @@ class FinancialCalculator:
         Raises:
             ValidationError: If surcharge types are invalid
         """
-        # Validate surcharge types
-        validator = InputValidator()
-        valid_surcharge_types = ["night", "weekend", "holiday", "urgent"]
-
+        # Validate surcharge types and values
         for surcharge_type in surcharge_types:
-            if surcharge_type not in valid_surcharge_types:
-                raise ValidationError(
-                    f"Invalid surcharge type: {surcharge_type}. "
-                    f"Allowed: {', '.join(valid_surcharge_types)}"
-                )
+            surcharge_value = params.surcharges.get(surcharge_type)
+            self.validator.validate_surcharge(surcharge_type, surcharge_value)
 
         breakdown = self.calculate_hourly_rate(params)
 
@@ -218,12 +176,6 @@ class FinancialCalculator:
         total_surcharge_percent = Decimal("0")
         for surcharge_type in surcharge_types:
             surcharge_value = params.surcharges.get(surcharge_type)
-
-            # Validate surcharge percentage
-            if surcharge_value < Decimal("0"):
-                raise ValidationError(f"Surcharge {surcharge_type} must be non-negative")
-            if surcharge_value > Decimal("200"):
-                raise ValidationError(f"Surcharge {surcharge_type} exceeds maximum (200%)")
 
             breakdown.surcharges_applied[surcharge_type] = surcharge_value
             total_surcharge_percent += surcharge_value
@@ -270,12 +222,7 @@ class FinancialCalculator:
             ValidationError: If hours are invalid
         """
         # Validate hours
-        validator = InputValidator()
-
-        if hours < Decimal("0"):
-            raise ValidationError("Hours must be non-negative")
-        if hours > Decimal("10000"):
-            raise ValidationError("Hours exceed maximum (10,000)")
+        validated_hours = self.validator.validate_hours(hours)
 
         if surcharge_types:
             breakdown = self.calculate_with_surcharge(params, surcharge_types)
@@ -503,6 +450,13 @@ def main():
 
     # Create calculator
     calc = FinancialCalculator()
+
+    # Validate CLI arguments
+    try:
+        validated_args = calc.validator.validate_cli_args(vars(args))
+    except ValidationError as e:
+        print(error(f"Ошибка валидации аргументов: {e}"))
+        return 1
 
     # Create parameters
     if args.config:
