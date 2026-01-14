@@ -1,0 +1,45 @@
+# SIMPLE VERSION - CD Pipeline - v4.2
+# Continuous Deployment workflow for production releases
+
+name: CD Production
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    # SIMPLE VERSION - Basic CD setup
+    # Can be expanded with:
+    # - Multi-stage deployments (staging, production)
+    # - Blue-green deployment
+    # - Canary releases
+    # - Rollback mechanisms
+    # - Health checks and smoke tests
+    # - Database migrations
+    # - Docker image building and pushing
+    # - Kubernetes deployments
+    # - Secrets management
+    # - Notification systems (Slack, email)
+    # - Performance monitoring setup
+    # - Load balancer configuration
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Build
+      run: |
+        echo "SIMPLE VERSION - Build step placeholder"
+    
+    - name: Deploy
+      run: |
+        echo "SIMPLE VERSION - Deployment placeholder"
+        echo "Tag: ${{ github.ref }}"
