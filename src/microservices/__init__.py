@@ -8,10 +8,11 @@ Modules:
 - api_gateway: API routing, protocol translation, rate limiting
 - event_bus: Event-driven architecture with CQRS and Event Sourcing
 - config_server: Centralized configuration management
-- distributed_tracing: OpenTelemetry integration (future)
-- container_orchestration: Kubernetes operators (future)
+- service_registry: Service registration, discovery, and health monitoring
+- distributed_tracing: OpenTelemetry integration with Jaeger/Zipkin support
+- orchestration: Kubernetes operators and container orchestration
 
-Version: 3.2.0
+Version: 3.2.0 (Complete)
 """
 
 __version__ = '3.2.0'
@@ -88,6 +89,57 @@ from .config_server import (
     get_config_server
 )
 
+# Service Registry & Discovery
+from .service_registry import (
+    ServiceRegistry as RegistryServiceRegistry,
+    ConsulServiceRegistry,
+    EurekaServiceRegistry,
+    ServiceInstance as RegistryServiceInstance,
+    ServiceMetadata,
+    HealthCheck,
+    LoadMetrics,
+    ServiceStatus as RegistryServiceStatus,
+    DiscoveryType,
+    get_registry,
+    register_service,
+    deregister_service,
+    discover_services
+)
+
+# Distributed Tracing
+from .distributed_tracing import (
+    Tracer,
+    Span,
+    SpanContext,
+    Trace,
+    SpanEvent,
+    SpanLink,
+    SpanKind,
+    SpanStatus as TracingSpanStatus,
+    SpanExporter,
+    ConsoleSpanExporter,
+    JaegerSpanExporter,
+    ZipkinSpanExporter,
+    TracingBackend,
+    TraceAnalyzer
+)
+
+# Container Orchestration
+from .orchestration import (
+    KubernetesManifest,
+    HelmChartGenerator,
+    KubernetesOperator,
+    DeploymentController,
+    ContainerSpec,
+    ResourceRequirements,
+    Probe,
+    AutoscalingConfig,
+    NetworkPolicyRule,
+    DeploymentStrategy,
+    ResourceType,
+    ProbeType
+)
+
 __all__ = [
     # Service Mesh
     'ServiceMesh',
@@ -149,4 +201,46 @@ __all__ = [
     'FeatureFlagType',
     'ConfigChangeType',
     'get_config_server',
+    # Service Registry & Discovery
+    'RegistryServiceRegistry',
+    'ConsulServiceRegistry',
+    'EurekaServiceRegistry',
+    'RegistryServiceInstance',
+    'ServiceMetadata',
+    'HealthCheck',
+    'LoadMetrics',
+    'RegistryServiceStatus',
+    'DiscoveryType',
+    'get_registry',
+    'register_service',
+    'deregister_service',
+    'discover_services',
+    # Distributed Tracing
+    'Tracer',
+    'Span',
+    'SpanContext',
+    'Trace',
+    'SpanEvent',
+    'SpanLink',
+    'SpanKind',
+    'TracingSpanStatus',
+    'SpanExporter',
+    'ConsoleSpanExporter',
+    'JaegerSpanExporter',
+    'ZipkinSpanExporter',
+    'TracingBackend',
+    'TraceAnalyzer',
+    # Container Orchestration
+    'KubernetesManifest',
+    'HelmChartGenerator',
+    'KubernetesOperator',
+    'DeploymentController',
+    'ContainerSpec',
+    'ResourceRequirements',
+    'Probe',
+    'AutoscalingConfig',
+    'NetworkPolicyRule',
+    'DeploymentStrategy',
+    'ResourceType',
+    'ProbeType',
 ]
