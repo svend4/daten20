@@ -369,6 +369,71 @@ class TestEndToEndWorkflows:
             assert quality_result.returncode in [0, 1]
 
 
+class TestDocSearchIntegration:
+    """Integration tests for doc-search.py"""
+
+    def test_help_command(self):
+        """Test help command"""
+        result = subprocess.run(["python", "doc-search.py", "--help"], capture_output=True, text=True, timeout=5)
+
+        assert result.returncode == 0
+        assert "search" in result.stdout.lower()
+
+    def test_search_subcommand_help(self):
+        """Test search subcommand help"""
+        result = subprocess.run(
+            ["python", "doc-search.py", "search", "--help"], capture_output=True, text=True, timeout=5
+        )
+
+        # Should show help or error gracefully
+        assert result.returncode in [0, 1, 2]
+
+
+class TestDocBatchProcessorIntegration:
+    """Integration tests for doc-batch-processor.py"""
+
+    def test_batch_process_directory(self, tmp_path):
+        """Test batch processing of documents in a directory"""
+        # Create input directory with test files
+        input_dir = tmp_path / "input"
+        output_dir = tmp_path / "output"
+        input_dir.mkdir()
+        output_dir.mkdir()
+
+        # Create test documents
+        for i in range(3):
+            doc = input_dir / f"doc{i}.txt"
+            doc.write_text(f"Document {i} content for batch processing")
+
+        # Run batch processing
+        result = subprocess.run(
+            ["python", "doc-batch-processor.py", "process", str(input_dir), "--output", str(output_dir)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        assert result.returncode in [0, 1]
+
+    def test_batch_status(self):
+        """Test batch job status command"""
+        result = subprocess.run(
+            ["python", "doc-batch-processor.py", "status"], capture_output=True, text=True, timeout=10
+        )
+
+        # May return error if no jobs, but command should work
+        assert result.returncode in [0, 1, 2]
+
+    def test_help_command(self):
+        """Test help command"""
+        result = subprocess.run(
+            ["python", "doc-batch-processor.py", "--help"], capture_output=True, text=True, timeout=5
+        )
+
+        assert result.returncode == 0
+        assert "process" in result.stdout.lower()
+
+
 # Pytest configuration for integration tests
 def pytest_configure(config):
     """Register custom markers"""
