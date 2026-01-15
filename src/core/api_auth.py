@@ -239,7 +239,7 @@ class APIKeyManager:
                 SELECT id, key_prefix, name, created_at, last_used_at,
                        expires_at, is_active, permissions, rate_limit
                 FROM api_keys
-                WHERE user_id = ?
+                WHERE user_id = ? AND is_active = 1
                 ORDER BY created_at DESC
             ''', (user_id,))
         else:
@@ -247,6 +247,7 @@ class APIKeyManager:
                 SELECT id, key_prefix, name, user_id, created_at, last_used_at,
                        expires_at, is_active, permissions, rate_limit
                 FROM api_keys
+                WHERE is_active = 1
                 ORDER BY created_at DESC
             ''')
 
@@ -261,10 +262,13 @@ class APIKeyManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
+            # Get current time in ISO format to match stored format
+            current_time = datetime.now().isoformat()
+
             cursor.execute('''
                 DELETE FROM api_keys
-                WHERE expires_at IS NOT NULL AND expires_at < datetime('now')
-            ''')
+                WHERE expires_at IS NOT NULL AND expires_at < ?
+            ''', (current_time,))
 
             deleted = cursor.rowcount
             conn.commit()
