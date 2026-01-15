@@ -9,7 +9,7 @@ repos:
     rev: 24.1.1
     hooks:
       - id: black
-        language_version: python3.9
+        language_version: python3.11
         args: ['--line-length=120']
         exclude: ^(data/|backups/|logs/|\.venv/|venv/|build/|dist/)
 
@@ -143,7 +143,7 @@ fail_fast: false
 
 # Default language version
 default_language_version:
-  python: python3.9
+  python: python3.11
 
 # Minimum pre-commit version
 minimum_pre_commit_version: '3.0.0'

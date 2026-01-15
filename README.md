@@ -3,26 +3,27 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Tests](https://img.shields.io/badge/tests-172%20passed-green.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-284%20passed-green.svg)](tests/)
 [![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)]()
 
-[![CI](https://github.com/svend4/daten20/actions/workflows/ci.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/ci.yml)
-[![Security](https://github.com/svend4/daten20/actions/workflows/security.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/security.yml)
-[![Performance](https://github.com/svend4/daten20/actions/workflows/performance.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/performance.yml)
+[![Tests](https://github.com/svend4/daten20/actions/workflows/tests.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/svend4/daten20/branch/main/graph/badge.svg)](https://codecov.io/gh/svend4/daten20)
+[![Python 3.9 | 3.10 | 3.11](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)](https://www.python.org/downloads/)
 
 **Enterprise-Ready Document Management System для планирования социальных услуг**
 
-Комплексная система управления документами с AI/ML возможностями, аналитикой и автоматизацией. Production-ready решение с 172/172 пройденными тестами.
+Комплексная система управления документами с AI/ML возможностями, аналитикой и автоматизацией. Production-ready решение с 284/284 пройденными тестами и полным CI/CD pipeline.
 
 ---
 
 ## 📊 Статус проекта
 
-- **Версия:** 4.1 (11 января 2026)
+- **Версия:** 4.2 (15 января 2026)
 - **Статус:** ✅ Production-Ready
-- **Тестовое покрытие:** 172/172 тестов пройдено успешно
+- **Тестовое покрытие:** 284/284 тестов пройдено успешно
+- **CI/CD:** GitHub Actions с multi-Python testing (3.9, 3.10, 3.11)
 - **Размер кода:** ~131,000+ строк в 173 исходных файлах
-- **Документация:** 78+ документов
+- **Документация:** 80+ документов
 - **Язык:** Python 3.9+
 
 ---
@@ -376,4 +377,4 @@ python tests/performance/test_performance.py
 
 ---
 
-**Document Management System v4.1** - Production-Ready с 11 января 2026 ✅
+**Document Management System v4.2** - Production-Ready с CI/CD - 15 января 2026 ✅
