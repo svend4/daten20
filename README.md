@@ -7,6 +7,7 @@
 [![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)]()
 
 [![CI](https://github.com/svend4/daten20/actions/workflows/ci.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/ci.yml)
+[![Tests](https://github.com/svend4/daten20/actions/workflows/tests.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/tests.yml)
 [![Security](https://github.com/svend4/daten20/actions/workflows/security.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/security.yml)
 [![Performance](https://github.com/svend4/daten20/actions/workflows/performance.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/performance.yml)
 
