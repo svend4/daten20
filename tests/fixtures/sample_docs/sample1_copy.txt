@@ -1,19 +1,27 @@
-Document Sample 1
-==================
+Document Management System
+==========================
 
-This is the first sample document for testing purposes.
-It contains multiple paragraphs and entities.
+This is a sample document for testing purposes.
 
-Name: Max Mustermann
-Email: max.mustermann@example.com
-Phone: +49 123 456789
-Location: Berlin, Germany
-Date: 15.03.2025
+Introduction
+------------
+The Document Management System (DMS) is a comprehensive solution for managing documents in social services planning. It provides tools for document processing, search, analysis, and quality assessment.
 
-This document discusses various topics including:
-- Natural Language Processing
-- Machine Learning
-- Document Management Systems
+Key Features:
+- Document parsing and text extraction
+- Semantic search capabilities
+- Quality assessment tools
+- GDPR-compliant anonymization
+- Named Entity Recognition (NER)
+- Document comparison and versioning
 
-The content is structured with clear sections and formatting.
-Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Technical Details
+-----------------
+The system is built using Python 3.9+ and leverages machine learning libraries such as spaCy, scikit-learn, and TensorFlow for advanced text processing.
+
+Contact Information:
+- Email: info@example.com
+- Phone: +49 123 456789
+- Address: Musterstrasse 123, 12345 Berlin
+
+Last Updated: 15.03.2025
