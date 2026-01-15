@@ -34,7 +34,20 @@ import uuid
 from collections import defaultdict
 from contextlib import contextmanager
 
+# Optional HTTP library for Jaeger/Zipkin integration
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
+
+if not REQUESTS_AVAILABLE:
+    logger.warning(
+        "requests library not available for Jaeger/Zipkin HTTP API. "
+        "Install with: pip install requests"
+    )
 
 
 class SpanKind(str, Enum):
@@ -237,16 +250,58 @@ class JaegerSpanExporter(SpanExporter):
         self.endpoint = endpoint
 
     def export(self, spans: List[Span]) -> bool:
-        """Export spans to Jaeger"""
+        """
+        Export spans to Jaeger using HTTP API
+
+        Sends spans to Jaeger collector via Thrift HTTP protocol.
+        Supports both standard Jaeger API and Jaeger Query Service.
+        """
         try:
             # Convert spans to Jaeger format
             jaeger_spans = self._convert_to_jaeger_format(spans)
 
-            # TODO: Send to Jaeger using HTTP API
-            # For now, just log
-            logger.info(f"Would export {len(spans)} spans to Jaeger at {self.endpoint}")
+            # Send to Jaeger using HTTP API
+            if not REQUESTS_AVAILABLE:
+                logger.warning(
+                    f"Cannot export to Jaeger: requests library not installed. "
+                    f"Would export {len(spans)} spans to {self.endpoint}"
+                )
+                return False
 
-            return True
+            logger.info(f"Exporting {len(spans)} spans to Jaeger at {self.endpoint}")
+
+            # Prepare Jaeger batch
+            batch = {
+                "batch": {
+                    "spans": jaeger_spans.get("spans", []),
+                    "process": {
+                        "serviceName": "dms",  # Service name
+                        "tags": []
+                    }
+                }
+            }
+
+            # Send POST request to Jaeger collector
+            response = requests.post(
+                self.endpoint,
+                json=batch,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+
+            if response.status_code in (200, 202, 204):
+                logger.info(f"Successfully exported {len(spans)} spans to Jaeger")
+                return True
+            else:
+                logger.error(
+                    f"Jaeger export failed with status {response.status_code}: "
+                    f"{response.text[:200]}"
+                )
+                return False
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"HTTP error while exporting to Jaeger: {e}")
+            return False
         except Exception as e:
             logger.error(f"Failed to export to Jaeger: {e}")
             return False
@@ -295,15 +350,48 @@ class ZipkinSpanExporter(SpanExporter):
         self.endpoint = endpoint
 
     def export(self, spans: List[Span]) -> bool:
-        """Export spans to Zipkin"""
+        """
+        Export spans to Zipkin using HTTP API
+
+        Sends spans to Zipkin collector via JSON over HTTP.
+        Compatible with Zipkin v2 API format.
+        """
         try:
             # Convert spans to Zipkin format
             zipkin_spans = self._convert_to_zipkin_format(spans)
 
-            # TODO: Send to Zipkin using HTTP API
-            logger.info(f"Would export {len(spans)} spans to Zipkin at {self.endpoint}")
+            # Send to Zipkin using HTTP API
+            if not REQUESTS_AVAILABLE:
+                logger.warning(
+                    f"Cannot export to Zipkin: requests library not installed. "
+                    f"Would export {len(spans)} spans to {self.endpoint}"
+                )
+                return False
 
-            return True
+            logger.info(f"Exporting {len(spans)} spans to Zipkin at {self.endpoint}")
+
+            # Send POST request to Zipkin collector
+            # Zipkin v2 API expects a JSON array of spans
+            response = requests.post(
+                self.endpoint,
+                json=zipkin_spans,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+
+            if response.status_code in (200, 202, 204):
+                logger.info(f"Successfully exported {len(spans)} spans to Zipkin")
+                return True
+            else:
+                logger.error(
+                    f"Zipkin export failed with status {response.status_code}: "
+                    f"{response.text[:200]}"
+                )
+                return False
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"HTTP error while exporting to Zipkin: {e}")
+            return False
         except Exception as e:
             logger.error(f"Failed to export to Zipkin: {e}")
             return False

@@ -323,6 +323,35 @@ class S3BackupProvider:
             logger.error(f"S3 delete failed: {e}")
             return False
 
+    def get_backup_metadata(self, remote_key: str) -> Optional[Dict]:
+        """
+        Get backup metadata from S3.
+
+        Args:
+            remote_key: S3 object key
+
+        Returns:
+            Dictionary with metadata or None if not found
+        """
+        try:
+            response = self.s3_client.head_object(
+                Bucket=self.bucket_name,
+                Key=remote_key
+            )
+
+            metadata = response.get('Metadata', {})
+            return {
+                'size': response['ContentLength'],
+                'last_modified': response['LastModified'].isoformat(),
+                'etag': response['ETag'],
+                'sha256': metadata.get('sha256'),
+                **metadata
+            }
+
+        except (ClientError, BotoCoreError) as e:
+            logger.error(f"Failed to get S3 metadata: {e}")
+            return None
+
 
 class GCSBackupProvider:
     """Google Cloud Storage backup provider."""
@@ -463,6 +492,37 @@ class GCSBackupProvider:
         except gcs_exceptions.GoogleAPIError as e:
             logger.error(f"GCS delete failed: {e}")
             return False
+
+    def get_backup_metadata(self, remote_key: str) -> Optional[Dict]:
+        """
+        Get backup metadata from GCS.
+
+        Args:
+            remote_key: GCS blob name
+
+        Returns:
+            Dictionary with metadata or None if not found
+        """
+        try:
+            blob = self.bucket.blob(remote_key)
+            blob.reload()  # Load metadata from GCS
+
+            metadata = {
+                'size': blob.size,
+                'last_modified': blob.updated.isoformat() if blob.updated else None,
+                'md5_hash': blob.md5_hash,
+                'crc32c': blob.crc32c,
+            }
+
+            # Add custom metadata
+            if blob.metadata:
+                metadata.update(blob.metadata)
+
+            return metadata
+
+        except gcs_exceptions.GoogleAPIError as e:
+            logger.error(f"Failed to get GCS metadata: {e}")
+            return None
 
 
 class OffsiteBackupManager:
@@ -708,16 +768,109 @@ class OffsiteBackupManager:
         """
         Verify backup integrity by downloading and checking checksum.
 
+        This method performs a complete integrity verification:
+        1. Retrieves backup metadata (including stored checksum)
+        2. Downloads backup to temporary location
+        3. Calculates checksum of downloaded file
+        4. Compares calculated checksum with stored checksum
+        5. Reports verification result
+
         Args:
             remote_key: Remote backup key
 
         Returns:
-            True if backup is valid
+            True if backup is valid and checksum matches
         """
-        logger.info(f"Verifying backup: {remote_key}")
+        logger.info(f"Verifying backup integrity: {remote_key}")
 
-        # TODO: Implement checksum verification
-        # For now, just check if backup exists and is downloadable
+        # Step 1: Get backup metadata (including checksum)
+        metadata = self.provider.get_backup_metadata(remote_key)
+        if not metadata:
+            logger.error(f"Backup not found: {remote_key}")
+            return False
+
+        stored_checksum = metadata.get('sha256')
+        if not stored_checksum:
+            logger.warning(f"No checksum found in metadata for {remote_key}")
+            logger.warning("Backup exists but cannot verify integrity (no stored checksum)")
+            # Still check if backup is downloadable
+            return self._verify_basic(remote_key)
+
+        logger.info(f"Stored checksum: {stored_checksum}")
+        logger.info(f"Backup size: {metadata.get('size', 'unknown')} bytes")
+
+        # Step 2: Download backup to temporary location
+        import tempfile
+        temp_dir = tempfile.mkdtemp(prefix='dms_verify_')
+        temp_file = os.path.join(temp_dir, 'backup_verify.tmp')
+
+        try:
+            logger.info(f"Downloading backup to temporary location: {temp_file}")
+            success = self.provider.download_backup(remote_key, temp_file)
+
+            if not success:
+                logger.error(f"Failed to download backup for verification")
+                return False
+
+            # Step 3: Calculate checksum of downloaded file
+            logger.info("Calculating checksum of downloaded backup...")
+            calculated_checksum = self._calculate_file_checksum(temp_file)
+            logger.info(f"Calculated checksum: {calculated_checksum}")
+
+            # Step 4: Compare checksums
+            if calculated_checksum == stored_checksum:
+                logger.info("✓ Checksum verification PASSED - backup is valid")
+                return True
+            else:
+                logger.error("✗ Checksum verification FAILED - backup may be corrupted")
+                logger.error(f"Expected: {stored_checksum}")
+                logger.error(f"Got:      {calculated_checksum}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error during backup verification: {e}")
+            return False
+
+        finally:
+            # Step 5: Cleanup temporary files
+            try:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+                if os.path.exists(temp_dir):
+                    os.rmdir(temp_dir)
+                logger.debug(f"Cleaned up temporary files: {temp_dir}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temporary files: {e}")
+
+    def _calculate_file_checksum(self, file_path: str) -> str:
+        """
+        Calculate SHA-256 checksum of file.
+
+        Args:
+            file_path: Path to file
+
+        Returns:
+            SHA-256 checksum as hex string
+        """
+        sha256_hash = hashlib.sha256()
+
+        with open(file_path, 'rb') as f:
+            # Read in chunks to handle large files
+            for chunk in iter(lambda: f.read(8192), b''):
+                sha256_hash.update(chunk)
+
+        return sha256_hash.hexdigest()
+
+    def _verify_basic(self, remote_key: str) -> bool:
+        """
+        Basic verification - just check if backup exists and is downloadable.
+
+        Args:
+            remote_key: Remote backup key
+
+        Returns:
+            True if backup exists
+        """
         backups = self.list_backups()
         for backup in backups:
             if backup['key'] == remote_key:

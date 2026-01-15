@@ -501,6 +501,7 @@ class ConsulServiceRegistry(ServiceRegistry):
     Consul-based service registry
 
     Integrates with HashiCorp Consul for service discovery.
+    Uses Consul HTTP API for all operations.
     """
 
     def __init__(self, consul_url: str = "http://localhost:8500", **kwargs):
@@ -513,10 +514,185 @@ class ConsulServiceRegistry(ServiceRegistry):
         super().__init__(**kwargs)
         self.consul_url = consul_url.rstrip('/')
 
-    # TODO: Implement Consul API integration
-    # - Use Consul HTTP API for registration
-    # - Sync with Consul catalog
-    # - Handle Consul events
+        # Check if requests is available
+        try:
+            import requests
+            self.requests = requests
+        except ImportError:
+            logger.warning(
+                "requests library not available. Consul integration will not work. "
+                "Install with: pip install requests"
+            )
+            self.requests = None
+
+    def register(
+        self,
+        service_name: str,
+        host: str,
+        port: int,
+        service_id: Optional[str] = None,
+        metadata: Optional[ServiceMetadata] = None,
+        health_check: Optional[HealthCheck] = None
+    ) -> str:
+        """
+        Register service with Consul
+
+        Args:
+            service_name: Name of the service
+            host: Service host
+            port: Service port
+            service_id: Optional service ID
+            metadata: Service metadata
+            health_check: Health check configuration
+
+        Returns:
+            Service ID
+        """
+        # First register locally
+        service_id = super().register(
+            service_name, host, port, service_id, metadata, health_check
+        )
+
+        # Then register with Consul
+        if not self.requests:
+            logger.warning("Cannot register with Consul: requests not available")
+            return service_id
+
+        try:
+            # Prepare Consul service definition
+            consul_service = {
+                "ID": service_id,
+                "Name": service_name,
+                "Address": host,
+                "Port": port,
+                "Tags": metadata.tags if metadata else [],
+                "Meta": metadata.metadata if metadata else {}
+            }
+
+            # Add health check if provided
+            if health_check:
+                consul_service["Check"] = {
+                    "HTTP": health_check.url,
+                    "Interval": f"{health_check.interval}s",
+                    "Timeout": f"{health_check.timeout}s"
+                }
+
+            # Register with Consul
+            response = self.requests.put(
+                f"{self.consul_url}/v1/agent/service/register",
+                json=consul_service,
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                logger.info(f"Service {service_id} registered with Consul")
+            else:
+                logger.error(
+                    f"Failed to register with Consul: {response.status_code} - "
+                    f"{response.text[:200]}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error registering with Consul: {e}")
+
+        return service_id
+
+    def deregister(self, service_id: str) -> bool:
+        """
+        Deregister service from Consul
+
+        Args:
+            service_id: Service ID to deregister
+
+        Returns:
+            True if successful
+        """
+        # Deregister locally
+        result = super().deregister(service_id)
+
+        # Deregister from Consul
+        if not self.requests:
+            return result
+
+        try:
+            response = self.requests.put(
+                f"{self.consul_url}/v1/agent/service/deregister/{service_id}",
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                logger.info(f"Service {service_id} deregistered from Consul")
+            else:
+                logger.error(
+                    f"Failed to deregister from Consul: {response.status_code}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error deregistering from Consul: {e}")
+
+        return result
+
+    def sync_from_consul(self) -> int:
+        """
+        Sync service catalog from Consul
+
+        Fetches all services from Consul and updates local registry.
+
+        Returns:
+            Number of services synced
+        """
+        if not self.requests:
+            logger.warning("Cannot sync from Consul: requests not available")
+            return 0
+
+        try:
+            # Get all services from Consul
+            response = self.requests.get(
+                f"{self.consul_url}/v1/catalog/services",
+                timeout=10
+            )
+
+            if response.status_code != 200:
+                logger.error(f"Failed to fetch Consul services: {response.status_code}")
+                return 0
+
+            services = response.json()
+            synced_count = 0
+
+            # Sync each service
+            for service_name in services.keys():
+                # Get service details
+                detail_response = self.requests.get(
+                    f"{self.consul_url}/v1/catalog/service/{service_name}",
+                    timeout=10
+                )
+
+                if detail_response.status_code == 200:
+                    service_instances = detail_response.json()
+
+                    for instance in service_instances:
+                        # Register in local registry
+                        try:
+                            super().register(
+                                service_name=service_name,
+                                host=instance.get('ServiceAddress', instance.get('Address')),
+                                port=instance.get('ServicePort'),
+                                service_id=instance.get('ServiceID'),
+                                metadata=ServiceMetadata(
+                                    tags=instance.get('ServiceTags', []),
+                                    metadata=instance.get('ServiceMeta', {})
+                                )
+                            )
+                            synced_count += 1
+                        except Exception as e:
+                            logger.warning(f"Failed to sync service {service_name}: {e}")
+
+            logger.info(f"Synced {synced_count} services from Consul")
+            return synced_count
+
+        except Exception as e:
+            logger.error(f"Error syncing from Consul: {e}")
+            return 0
 
 
 class EurekaServiceRegistry(ServiceRegistry):
@@ -524,6 +700,7 @@ class EurekaServiceRegistry(ServiceRegistry):
     Eureka-based service registry
 
     Integrates with Netflix Eureka for service discovery.
+    Uses Eureka REST API for all operations.
     """
 
     def __init__(self, eureka_url: str = "http://localhost:8761/eureka", **kwargs):
@@ -535,11 +712,274 @@ class EurekaServiceRegistry(ServiceRegistry):
         """
         super().__init__(**kwargs)
         self.eureka_url = eureka_url.rstrip('/')
+        self._heartbeat_threads: Dict[str, threading.Thread] = {}
+        self._heartbeat_interval = 30  # seconds
 
-    # TODO: Implement Eureka API integration
-    # - Register with Eureka server
-    # - Send heartbeats
-    # - Fetch service catalog
+        # Check if requests is available
+        try:
+            import requests
+            self.requests = requests
+        except ImportError:
+            logger.warning(
+                "requests library not available. Eureka integration will not work. "
+                "Install with: pip install requests"
+            )
+            self.requests = None
+
+    def register(
+        self,
+        service_name: str,
+        host: str,
+        port: int,
+        service_id: Optional[str] = None,
+        metadata: Optional[ServiceMetadata] = None,
+        health_check: Optional[HealthCheck] = None
+    ) -> str:
+        """
+        Register service with Eureka
+
+        Args:
+            service_name: Name of the service
+            host: Service host
+            port: Service port
+            service_id: Optional service ID
+            metadata: Service metadata
+            health_check: Health check configuration
+
+        Returns:
+            Service ID
+        """
+        # First register locally
+        service_id = super().register(
+            service_name, host, port, service_id, metadata, health_check
+        )
+
+        # Then register with Eureka
+        if not self.requests:
+            logger.warning("Cannot register with Eureka: requests not available")
+            return service_id
+
+        try:
+            # Prepare Eureka instance definition
+            eureka_instance = {
+                "instance": {
+                    "instanceId": service_id,
+                    "hostName": host,
+                    "app": service_name.upper(),
+                    "ipAddr": host,
+                    "status": "UP",
+                    "port": {
+                        "$": port,
+                        "@enabled": "true"
+                    },
+                    "dataCenterInfo": {
+                        "@class": "com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo",
+                        "name": "MyOwn"
+                    },
+                    "metadata": metadata.metadata if metadata else {}
+                }
+            }
+
+            # Register with Eureka
+            response = self.requests.post(
+                f"{self.eureka_url}/apps/{service_name.upper()}",
+                json=eureka_instance,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+
+            if response.status_code in (200, 204):
+                logger.info(f"Service {service_id} registered with Eureka")
+
+                # Start heartbeat thread
+                self._start_heartbeat(service_id, service_name)
+            else:
+                logger.error(
+                    f"Failed to register with Eureka: {response.status_code} - "
+                    f"{response.text[:200]}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error registering with Eureka: {e}")
+
+        return service_id
+
+    def deregister(self, service_id: str) -> bool:
+        """
+        Deregister service from Eureka
+
+        Args:
+            service_id: Service ID to deregister
+
+        Returns:
+            True if successful
+        """
+        # Stop heartbeat thread
+        self._stop_heartbeat(service_id)
+
+        # Get service info for Eureka deregistration
+        instance = self.get_instance(service_id)
+
+        # Deregister locally
+        result = super().deregister(service_id)
+
+        # Deregister from Eureka
+        if not self.requests or not instance:
+            return result
+
+        try:
+            app_name = instance.service_name.upper()
+            response = self.requests.delete(
+                f"{self.eureka_url}/apps/{app_name}/{service_id}",
+                timeout=10
+            )
+
+            if response.status_code in (200, 204):
+                logger.info(f"Service {service_id} deregistered from Eureka")
+            else:
+                logger.error(
+                    f"Failed to deregister from Eureka: {response.status_code}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error deregistering from Eureka: {e}")
+
+        return result
+
+    def _start_heartbeat(self, service_id: str, service_name: str):
+        """
+        Start heartbeat thread for service
+
+        Args:
+            service_id: Service ID
+            service_name: Service name
+        """
+        def heartbeat_loop():
+            while self._running and service_id in self._heartbeat_threads:
+                try:
+                    self._send_heartbeat(service_id, service_name)
+                    time.sleep(self._heartbeat_interval)
+                except Exception as e:
+                    logger.error(f"Heartbeat error for {service_id}: {e}")
+
+        thread = threading.Thread(
+            target=heartbeat_loop,
+            daemon=True,
+            name=f"eureka-heartbeat-{service_id}"
+        )
+        self._heartbeat_threads[service_id] = thread
+        thread.start()
+        logger.info(f"Started heartbeat for service {service_id}")
+
+    def _stop_heartbeat(self, service_id: str):
+        """
+        Stop heartbeat thread for service
+
+        Args:
+            service_id: Service ID
+        """
+        if service_id in self._heartbeat_threads:
+            del self._heartbeat_threads[service_id]
+            logger.info(f"Stopped heartbeat for service {service_id}")
+
+    def _send_heartbeat(self, service_id: str, service_name: str) -> bool:
+        """
+        Send heartbeat to Eureka
+
+        Args:
+            service_id: Service ID
+            service_name: Service name
+
+        Returns:
+            True if successful
+        """
+        if not self.requests:
+            return False
+
+        try:
+            response = self.requests.put(
+                f"{self.eureka_url}/apps/{service_name.upper()}/{service_id}",
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                logger.debug(f"Heartbeat sent for service {service_id}")
+                return True
+            else:
+                logger.warning(
+                    f"Heartbeat failed for {service_id}: {response.status_code}"
+                )
+                return False
+
+        except Exception as e:
+            logger.error(f"Error sending heartbeat for {service_id}: {e}")
+            return False
+
+    def fetch_from_eureka(self) -> int:
+        """
+        Fetch service catalog from Eureka
+
+        Fetches all services from Eureka and updates local registry.
+
+        Returns:
+            Number of services fetched
+        """
+        if not self.requests:
+            logger.warning("Cannot fetch from Eureka: requests not available")
+            return 0
+
+        try:
+            # Get all applications from Eureka
+            response = self.requests.get(
+                f"{self.eureka_url}/apps",
+                headers={"Accept": "application/json"},
+                timeout=10
+            )
+
+            if response.status_code != 200:
+                logger.error(f"Failed to fetch Eureka apps: {response.status_code}")
+                return 0
+
+            apps_data = response.json()
+            fetched_count = 0
+
+            # Parse Eureka response
+            applications = apps_data.get('applications', {}).get('application', [])
+
+            # Handle single application case
+            if isinstance(applications, dict):
+                applications = [applications]
+
+            for app in applications:
+                app_name = app.get('name', '').lower()
+                instances = app.get('instance', [])
+
+                # Handle single instance case
+                if isinstance(instances, dict):
+                    instances = [instances]
+
+                for instance in instances:
+                    try:
+                        # Register in local registry
+                        super().register(
+                            service_name=app_name,
+                            host=instance.get('ipAddr', instance.get('hostName')),
+                            port=instance.get('port', {}).get('$', 0),
+                            service_id=instance.get('instanceId'),
+                            metadata=ServiceMetadata(
+                                metadata=instance.get('metadata', {})
+                            )
+                        )
+                        fetched_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch instance {instance.get('instanceId')}: {e}")
+
+            logger.info(f"Fetched {fetched_count} services from Eureka")
+            return fetched_count
+
+        except Exception as e:
+            logger.error(f"Error fetching from Eureka: {e}")
+            return 0
 
 
 # Singleton registry instance
