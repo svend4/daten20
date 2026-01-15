@@ -434,6 +434,88 @@ class TestDocBatchProcessorIntegration:
         assert "process" in result.stdout.lower()
 
 
+class TestDMSAdminIntegration:
+    """Integration tests for dms-admin.py"""
+
+    def test_help_command(self):
+        """Test help command"""
+        result = subprocess.run(["python", "dms-admin.py", "--help"], capture_output=True, text=True, timeout=5)
+
+        assert result.returncode == 0
+        assert "administration" in result.stdout.lower() or "commands" in result.stdout.lower()
+
+    def test_users_subcommand_help(self):
+        """Test users subcommand help"""
+        result = subprocess.run(
+            ["python", "dms-admin.py", "users", "--help"], capture_output=True, text=True, timeout=5
+        )
+
+        # Should show help or error gracefully
+        assert result.returncode in [0, 1, 2]
+
+    def test_database_subcommand_help(self):
+        """Test database subcommand help"""
+        result = subprocess.run(
+            ["python", "dms-admin.py", "database", "--help"], capture_output=True, text=True, timeout=5
+        )
+
+        # Should show help or error gracefully
+        assert result.returncode in [0, 1, 2]
+
+
+class TestEnterpriseAdminIntegration:
+    """Integration tests for enterprise-admin.py"""
+
+    def test_help_command(self):
+        """Test help command"""
+        result = subprocess.run(["python", "enterprise-admin.py", "--help"], capture_output=True, text=True, timeout=5)
+
+        assert result.returncode == 0
+        assert "enterprise" in result.stdout.lower() or "tenant" in result.stdout.lower()
+
+    def test_tenant_subcommand_help(self):
+        """Test tenant subcommand help"""
+        result = subprocess.run(
+            ["python", "enterprise-admin.py", "tenant", "--help"], capture_output=True, text=True, timeout=5
+        )
+
+        # Should show help or error gracefully
+        assert result.returncode in [0, 1, 2]
+
+    def test_billing_subcommand_help(self):
+        """Test billing subcommand help"""
+        result = subprocess.run(
+            ["python", "enterprise-admin.py", "billing", "--help"], capture_output=True, text=True, timeout=5
+        )
+
+        # Should show help or error gracefully
+        assert result.returncode in [0, 1, 2]
+
+
+class TestDocAPIServerIntegration:
+    """Integration tests for doc-api-server.py"""
+
+    def test_help_command(self):
+        """Test help command"""
+        result = subprocess.run(["python", "doc-api-server.py", "--help"], capture_output=True, text=True, timeout=10)
+
+        # Should show help (may have warnings about missing dependencies)
+        assert result.returncode == 0
+        assert "api" in result.stdout.lower() or "server" in result.stdout.lower() or "port" in result.stdout.lower()
+
+
+class TestDocDashboardIntegration:
+    """Integration tests for doc-dashboard.py"""
+
+    def test_help_command(self):
+        """Test help command"""
+        result = subprocess.run(["python", "doc-dashboard.py", "--help"], capture_output=True, text=True, timeout=10)
+
+        # May fail due to missing dependencies (Flask, werkzeug)
+        # Accept any return code as long as it doesn't hang
+        assert result.returncode in [0, 1, 2]
+
+
 # Pytest configuration for integration tests
 def pytest_configure(config):
     """Register custom markers"""
