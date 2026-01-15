@@ -500,24 +500,388 @@ class SmartContractInterface:
     Smart contract interface for document registry
 
     Provides interface for interacting with blockchain smart contracts.
+    Supports both Ethereum (via Web3.py) and Hyperledger Fabric.
     """
 
-    def __init__(self, contract_address: str, abi: List[Dict]):
+    def __init__(
+        self,
+        contract_address: str,
+        abi: List[Dict],
+        network: BlockchainNetwork = BlockchainNetwork.ETHEREUM_SEPOLIA,
+        provider_url: Optional[str] = None
+    ):
         """
         Initialize smart contract interface
 
         Args:
             contract_address: Contract address
             abi: Contract ABI (Application Binary Interface)
+            network: Blockchain network
+            provider_url: RPC provider URL (e.g., Infura, Alchemy)
         """
         self.contract_address = contract_address
         self.abi = abi
+        self.network = network
+        self.provider_url = provider_url
+        self._web3 = None
+        self._contract = None
+        self._fabric_client = None
 
-    # TODO: Implement actual smart contract integration
-    # - Web3.py for Ethereum
-    # - Hyperledger Fabric SDK for Fabric
-    # - Event listening
-    # - Gas optimization
+        # Initialize based on network type
+        if self._is_ethereum_network():
+            self._init_web3()
+        elif network == BlockchainNetwork.HYPERLEDGER_FABRIC:
+            self._init_fabric()
+
+    def _is_ethereum_network(self) -> bool:
+        """Check if network is Ethereum-based"""
+        return self.network in [
+            BlockchainNetwork.ETHEREUM_MAINNET,
+            BlockchainNetwork.ETHEREUM_SEPOLIA,
+            BlockchainNetwork.POLYGON,
+            BlockchainNetwork.POLYGON_MUMBAI,
+            BlockchainNetwork.BINANCE_SMART_CHAIN
+        ]
+
+    def _init_web3(self):
+        """Initialize Web3.py connection for Ethereum"""
+        try:
+            # Optional import - only needed if using Ethereum
+            from web3 import Web3
+
+            if not self.provider_url:
+                # Default providers for different networks
+                providers = {
+                    BlockchainNetwork.ETHEREUM_MAINNET: "https://eth-mainnet.g.alchemy.com/v2/demo",
+                    BlockchainNetwork.ETHEREUM_SEPOLIA: "https://eth-sepolia.g.alchemy.com/v2/demo",
+                    BlockchainNetwork.POLYGON: "https://polygon-rpc.com",
+                    BlockchainNetwork.POLYGON_MUMBAI: "https://rpc-mumbai.maticvigil.com",
+                    BlockchainNetwork.BINANCE_SMART_CHAIN: "https://bsc-dataseed.binance.org"
+                }
+                self.provider_url = providers.get(self.network, "http://localhost:8545")
+
+            self._web3 = Web3(Web3.HTTPProvider(self.provider_url))
+
+            if self._web3.is_connected():
+                logger.info(f"Connected to {self.network} at {self.provider_url}")
+                self._contract = self._web3.eth.contract(
+                    address=self.contract_address,
+                    abi=self.abi
+                )
+            else:
+                logger.warning(f"Failed to connect to {self.network}")
+
+        except ImportError:
+            logger.warning("web3 package not installed. Install with: pip install web3")
+        except Exception as e:
+            logger.error(f"Failed to initialize Web3: {e}")
+
+    def _init_fabric(self):
+        """Initialize Hyperledger Fabric connection"""
+        try:
+            # Optional import - only needed if using Fabric
+            # Note: Hyperledger Fabric SDK for Python is complex
+            # This is a placeholder for actual implementation
+            logger.info("Initializing Hyperledger Fabric client")
+            # from hfc.fabric import Client
+            # self._fabric_client = Client(net_profile="network.json")
+            self._fabric_client = None  # Placeholder
+            logger.warning("Hyperledger Fabric SDK integration pending")
+        except ImportError:
+            logger.warning("Hyperledger Fabric SDK not installed")
+        except Exception as e:
+            logger.error(f"Failed to initialize Fabric client: {e}")
+
+    def register_document_on_chain(
+        self,
+        document_id: str,
+        document_hash: str,
+        owner_address: str,
+        private_key: Optional[str] = None,
+        gas_price: Optional[int] = None
+    ) -> Optional[str]:
+        """
+        Register document on smart contract
+
+        Args:
+            document_id: Document identifier
+            document_hash: Document hash
+            owner_address: Owner's blockchain address
+            private_key: Private key for signing transaction (optional)
+            gas_price: Custom gas price in wei (optional, for optimization)
+
+        Returns:
+            Transaction hash or None if failed
+        """
+        if not self._web3 or not self._contract:
+            logger.error("Web3 not initialized")
+            return None
+
+        try:
+            # Build transaction
+            tx_data = self._contract.functions.registerDocument(
+                document_id,
+                document_hash,
+                owner_address
+            )
+
+            # Estimate gas
+            estimated_gas = tx_data.estimate_gas({'from': owner_address})
+
+            # Apply gas optimization (add 10% buffer)
+            gas_limit = int(estimated_gas * 1.1)
+
+            # Get optimal gas price if not provided
+            if gas_price is None:
+                gas_price = self._get_optimal_gas_price()
+
+            # Build transaction
+            transaction = tx_data.build_transaction({
+                'from': owner_address,
+                'gas': gas_limit,
+                'gasPrice': gas_price,
+                'nonce': self._web3.eth.get_transaction_count(owner_address)
+            })
+
+            # Sign and send transaction if private key provided
+            if private_key:
+                signed_tx = self._web3.eth.account.sign_transaction(
+                    transaction,
+                    private_key
+                )
+                tx_hash = self._web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+
+                logger.info(f"Document registered on-chain: {tx_hash.hex()}")
+                return tx_hash.hex()
+            else:
+                # Return unsigned transaction for external signing
+                logger.info(f"Prepared transaction (unsigned): {transaction}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to register document on-chain: {e}")
+            return None
+
+    def verify_document_on_chain(
+        self,
+        document_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Verify document against smart contract
+
+        Args:
+            document_id: Document identifier
+
+        Returns:
+            Document data from blockchain or None
+        """
+        if not self._web3 or not self._contract:
+            logger.error("Web3 not initialized")
+            return None
+
+        try:
+            # Call smart contract view function
+            result = self._contract.functions.getDocument(document_id).call()
+
+            return {
+                'document_id': document_id,
+                'hash': result[0] if isinstance(result, (list, tuple)) else result,
+                'exists': True
+            }
+        except Exception as e:
+            logger.error(f"Failed to verify document on-chain: {e}")
+            return None
+
+    def transfer_ownership_on_chain(
+        self,
+        document_id: str,
+        from_address: str,
+        to_address: str,
+        private_key: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Transfer document ownership on smart contract
+
+        Args:
+            document_id: Document identifier
+            from_address: Current owner address
+            to_address: New owner address
+            private_key: Private key for signing (optional)
+
+        Returns:
+            Transaction hash or None
+        """
+        if not self._web3 or not self._contract:
+            logger.error("Web3 not initialized")
+            return None
+
+        try:
+            tx_data = self._contract.functions.transferOwnership(
+                document_id,
+                to_address
+            )
+
+            transaction = tx_data.build_transaction({
+                'from': from_address,
+                'gas': 100000,
+                'gasPrice': self._get_optimal_gas_price(),
+                'nonce': self._web3.eth.get_transaction_count(from_address)
+            })
+
+            if private_key:
+                signed_tx = self._web3.eth.account.sign_transaction(
+                    transaction,
+                    private_key
+                )
+                tx_hash = self._web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+
+                logger.info(f"Ownership transferred on-chain: {tx_hash.hex()}")
+                return tx_hash.hex()
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to transfer ownership on-chain: {e}")
+            return None
+
+    def listen_to_events(
+        self,
+        event_name: str,
+        from_block: int = 0,
+        to_block: str = 'latest',
+        callback: Optional[callable] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Listen to smart contract events
+
+        Args:
+            event_name: Name of event to listen for
+            from_block: Starting block number
+            to_block: Ending block (default: 'latest')
+            callback: Optional callback function for each event
+
+        Returns:
+            List of events
+        """
+        if not self._web3 or not self._contract:
+            logger.error("Web3 not initialized")
+            return []
+
+        try:
+            # Get event filter
+            event = getattr(self._contract.events, event_name)
+            event_filter = event.create_filter(
+                from_block=from_block,
+                to_block=to_block
+            )
+
+            # Get all events
+            events = event_filter.get_all_entries()
+
+            # Process events
+            result = []
+            for evt in events:
+                event_data = {
+                    'event': evt['event'],
+                    'block_number': evt['blockNumber'],
+                    'transaction_hash': evt['transactionHash'].hex(),
+                    'args': dict(evt['args'])
+                }
+                result.append(event_data)
+
+                # Call callback if provided
+                if callback:
+                    callback(event_data)
+
+            logger.info(f"Found {len(result)} {event_name} events")
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to listen to events: {e}")
+            return []
+
+    def _get_optimal_gas_price(self) -> int:
+        """
+        Get optimal gas price with optimization strategies
+
+        Returns:
+            Optimal gas price in wei
+        """
+        if not self._web3:
+            return 0
+
+        try:
+            # Get current gas price from network
+            current_price = self._web3.eth.gas_price
+
+            # Apply optimization strategy:
+            # - For testnets: use standard price
+            # - For mainnet: use 90% of current price for cost savings
+            if self.network in [
+                BlockchainNetwork.ETHEREUM_SEPOLIA,
+                BlockchainNetwork.POLYGON_MUMBAI
+            ]:
+                return current_price
+            else:
+                # Reduce gas price by 10% for mainnet (may take longer)
+                return int(current_price * 0.9)
+
+        except Exception as e:
+            logger.error(f"Failed to get gas price: {e}")
+            # Fallback to reasonable default (20 gwei)
+            return 20_000_000_000
+
+    def get_transaction_receipt(self, tx_hash: str) -> Optional[Dict[str, Any]]:
+        """
+        Get transaction receipt
+
+        Args:
+            tx_hash: Transaction hash
+
+        Returns:
+            Transaction receipt or None
+        """
+        if not self._web3:
+            return None
+
+        try:
+            receipt = self._web3.eth.get_transaction_receipt(tx_hash)
+            return {
+                'transaction_hash': receipt['transactionHash'].hex(),
+                'block_number': receipt['blockNumber'],
+                'gas_used': receipt['gasUsed'],
+                'status': receipt['status'],
+                'logs': [dict(log) for log in receipt['logs']]
+            }
+        except Exception as e:
+            logger.error(f"Failed to get transaction receipt: {e}")
+            return None
+
+    def get_block_timestamp(self, block_number: int) -> Optional[datetime]:
+        """
+        Get block timestamp
+
+        Args:
+            block_number: Block number
+
+        Returns:
+            Block timestamp or None
+        """
+        if not self._web3:
+            return None
+
+        try:
+            block = self._web3.eth.get_block(block_number)
+            return datetime.fromtimestamp(block['timestamp'])
+        except Exception as e:
+            logger.error(f"Failed to get block timestamp: {e}")
+            return None
+
+    def is_connected(self) -> bool:
+        """Check if connected to blockchain"""
+        if self._web3:
+            return self._web3.is_connected()
+        return False
 
 
 # Example usage

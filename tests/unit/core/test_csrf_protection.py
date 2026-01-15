@@ -98,15 +98,21 @@ class TestCSRFTokenValidation:
         """Test validation of valid token."""
         csrf.init_app(app)
 
-        with app.test_request_context():
+        # Use single request context for both generation and validation
+        with app.test_request_context(method='POST', data={}):
+            from flask import session
+            # Initialize session
+            session['_csrf_token'] = 'test_csrf_token'
+
+            # Generate token in same context
             token = csrf.generate_token()
 
-            # Simulate form submission with token
-            with app.test_request_context(
-                method='POST',
-                data={'_csrf_token': token}
-            ):
-                assert csrf.validate_token(token)
+            # Mock the form data with token
+            from flask import request
+            request.form = type('obj', (), {'get': lambda self, key, default=None: token if key == '_csrf_token' else default})()
+
+            # Validate in same context
+            assert csrf.validate_token(token)
 
     def test_validate_invalid_token(self, app, csrf):
         """Test validation fails for invalid token."""
@@ -145,43 +151,56 @@ class TestCSRFTokenValidation:
         """Test token validation from form data."""
         csrf.init_app(app)
 
-        with app.test_request_context():
+        # Use single request context with form data
+        with app.test_request_context(method='POST', data={}):
+            from flask import session
+            session['_csrf_token'] = 'test_csrf_token'
+
             token = csrf.generate_token()
 
-            with app.test_request_context(
-                method='POST',
-                data={'_csrf_token': token}
-            ):
-                # Should auto-detect token from form
-                assert csrf.validate_token()
+            # Mock form with token
+            from flask import request
+            request.form = type('obj', (), {'get': lambda self, key, default=None: token if key == '_csrf_token' else default})()
+
+            # Should auto-detect token from form
+            assert csrf.validate_token()
 
     def test_validate_token_from_header(self, app, csrf):
         """Test token validation from header."""
         csrf.init_app(app)
 
-        with app.test_request_context():
+        # Use single request context with headers
+        with app.test_request_context(method='POST', headers={'X-CSRF-Token': 'placeholder'}):
+            from flask import session
+            session['_csrf_token'] = 'test_csrf_token'
+
             token = csrf.generate_token()
 
-            with app.test_request_context(
-                method='POST',
-                headers={'X-CSRF-Token': token}
-            ):
-                # Should auto-detect token from header
-                assert csrf.validate_token()
+            # Update header with actual token
+            from flask import request
+            request.headers = type('obj', (), {'get': lambda self, key, default=None: token if key == 'X-CSRF-Token' else default})()
+
+            # Should auto-detect token from header
+            assert csrf.validate_token()
 
     def test_validate_token_from_json(self, app, csrf):
         """Test token validation from JSON body."""
         csrf.init_app(app)
 
-        with app.test_request_context():
+        # Use single request context with JSON
+        with app.test_request_context(method='POST', json={}):
+            from flask import session
+            session['_csrf_token'] = 'test_csrf_token'
+
             token = csrf.generate_token()
 
-            with app.test_request_context(
-                method='POST',
-                json={'_csrf_token': token}
-            ):
-                # Should auto-detect token from JSON
-                assert csrf.validate_token()
+            # Mock JSON with token
+            from flask import request
+            request.json = {'_csrf_token': token}
+            request.get_json = lambda force=False, silent=False, cache=True: request.json
+
+            # Should auto-detect token from JSON
+            assert csrf.validate_token()
 
 
 class TestCSRFProtectionIntegration:
@@ -233,7 +252,7 @@ class TestCSRFExempt:
         csrf.init_app(app)
 
         @csrf_exempt
-        @app.route('/test-exempt', methods=['POST'])
+        @app.route('/test-exempt', methods=['POST'], endpoint='test_view')
         def test_view():
             return 'ok'
 

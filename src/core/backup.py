@@ -263,3 +263,7 @@ def get_backup_manager() -> BackupManager:
     if _backup_manager is None:
         _backup_manager = BackupManager()
     return _backup_manager
+
+
+# Alias for backward compatibility
+BackupService = BackupManager
