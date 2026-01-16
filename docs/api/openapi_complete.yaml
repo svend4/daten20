@@ -1,0 +1,1447 @@
+openapi: 3.0.3
+info:
+  title: Document Management System API
+  description: 'Comprehensive REST API for the Document Management System with AI/ML
+    capabilities.
+
+
+    ## Features
+
+    - Document processing and analysis
+
+    - Named Entity Recognition (NER)
+
+    - Document classification
+
+    - Knowledge graph construction
+
+    - Financial calculations
+
+    - Service management
+
+    - Batch processing
+
+
+    ## Authentication
+
+    Most endpoints require API key authentication. Include your API key in the `X-API-Key`
+    header.
+
+
+    ## Rate Limiting
+
+    API calls are rate-limited based on your subscription tier:
+
+    - Free: 100 requests/hour
+
+    - Standard: 1,000 requests/hour
+
+    - Enterprise: Unlimited
+
+    '
+  version: 4.1.0
+  contact:
+    name: DMS Support
+    email: support@example.com
+    url: https://github.com/svend4/daten20
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+- url: http://localhost:5000
+  description: Local development server (Flask Web App)
+- url: http://localhost:8000
+  description: Local FastAPI server (Document Intelligence)
+- url: https://api.example.com
+  description: Production server
+tags:
+- name: System
+  description: Health checks and system status
+- name: Services
+  description: Service management operations
+- name: Documents
+  description: Document upload and processing
+- name: Extraction
+  description: Entity and relation extraction
+- name: Classification
+  description: Document classification
+- name: Knowledge Graph
+  description: Knowledge graph construction
+- name: Batch
+  description: Batch processing operations
+- name: Financial
+  description: Financial calculations
+- name: Search
+  description: Search and analytics
+- name: Analytics
+  description: Analytics and BI operations
+- name: ML
+  description: Machine learning operations
+- name: Admin
+  description: Administration operations
+security:
+- ApiKeyAuth: []
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+        code:
+          type: string
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+        service_name:
+          type: string
+        target_group:
+          type: string
+        region:
+          type: string
+        brutto_rate:
+          type: number
+          format: decimal
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ServiceCreate:
+      type: object
+      required:
+      - service_name
+      - brutto_rate
+      properties:
+        service_name:
+          type: string
+          example: Shopping Assistance
+        target_group:
+          type: string
+          example: Elderly
+        region:
+          type: string
+          example: Bavaria
+        brutto_rate:
+          type: number
+          format: decimal
+          example: 45.5
+        materials_per_month:
+          type: number
+          format: decimal
+        admin_percent:
+          type: number
+          format: decimal
+    DocumentResponse:
+      type: object
+      properties:
+        document_id:
+          type: string
+        filename:
+          type: string
+        processed_at:
+          type: string
+          format: date-time
+        statistics:
+          type: object
+          properties:
+            text_length:
+              type: integer
+            word_count:
+              type: integer
+            entity_count:
+              type: integer
+        classification:
+          $ref: '#/components/schemas/Classification'
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Entity'
+        relations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relation'
+    TextInput:
+      type: object
+      required:
+      - text
+      properties:
+        text:
+          type: string
+          example: John Doe works at Acme Corporation.
+        options:
+          type: object
+    Entity:
+      type: object
+      properties:
+        text:
+          type: string
+          example: John Doe
+        type:
+          type: string
+          enum:
+          - PERSON
+          - ORG
+          - LOC
+          - DATE
+          - MONEY
+          example: PERSON
+        start:
+          type: integer
+        end:
+          type: integer
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+    Relation:
+      type: object
+      properties:
+        source:
+          type: string
+        source_type:
+          type: string
+        relation:
+          type: string
+        target:
+          type: string
+        target_type:
+          type: string
+        confidence:
+          type: number
+          format: float
+    Classification:
+      type: object
+      properties:
+        category:
+          type: string
+        confidence:
+          type: number
+          format: float
+        probabilities:
+          type: object
+    BatchJob:
+      type: object
+      properties:
+        job_id:
+          type: string
+        status:
+          type: string
+          enum:
+          - pending
+          - processing
+          - completed
+          - failed
+        total_documents:
+          type: integer
+        processed:
+          type: integer
+        failed:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+paths:
+  /api/v1/health:
+    get:
+      tags:
+      - System
+      summary: Health check
+      description: Check API health status
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                    - healthy
+                    - degraded
+                    - unhealthy
+                  version:
+                    type: string
+                  api_version:
+                    type: string
+                  database:
+                    type: string
+                  components:
+                    type: object
+                    additionalProperties:
+                      type: string
+              example:
+                status: healthy
+                version: 4.1.0
+                api_version: v1
+                database: connected
+                components:
+                  parser: operational
+                  ner: operational
+                  classifier: operational
+  /api/v1/stats:
+    get:
+      tags:
+      - System
+      summary: Get API statistics
+      description: Get usage statistics and metrics
+      operationId: getStats
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_requests:
+                    type: integer
+                  documents_processed:
+                    type: integer
+                  entities_extracted:
+                    type: integer
+                  relations_extracted:
+                    type: integer
+              example:
+                total_requests: 12543
+                documents_processed: 1234
+                entities_extracted: 45678
+                relations_extracted: 12345
+  /api/v1/services:
+    get:
+      tags:
+      - Services
+      summary: List all services
+      description: Get a paginated list of services with optional filtering
+      operationId: listServices
+      parameters:
+      - name: region
+        in: query
+        description: Filter by region
+        schema:
+          type: string
+      - name: type
+        in: query
+        description: Filter by service type
+        schema:
+          type: string
+          enum:
+          - social
+          - medical
+          - education
+          - housing
+      - name: limit
+        in: query
+        description: Maximum number of results
+        schema:
+          type: integer
+          default: 100
+          minimum: 1
+          maximum: 1000
+      - name: offset
+        in: query
+        description: Number of results to skip
+        schema:
+          type: integer
+          default: 0
+      responses:
+        '200':
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  count:
+                    type: integer
+                  services:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Services
+      summary: Create new service
+      description: Create a new service
+      operationId: createService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreate'
+      responses:
+        '201':
+          description: Service created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/services/{service_id}:
+    get:
+      tags:
+      - Services
+      summary: Get service details
+      description: Get complete details of a specific service
+      operationId: getService
+      parameters:
+      - name: service_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Service details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '404':
+          description: Service not found
+    put:
+      tags:
+      - Services
+      summary: Update service
+      description: Update an existing service
+      operationId: updateService
+      parameters:
+      - name: service_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreate'
+      responses:
+        '200':
+          description: Service updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '404':
+          description: Service not found
+    delete:
+      tags:
+      - Services
+      summary: Delete service
+      description: Delete a service by ID
+      operationId: deleteService
+      parameters:
+      - name: service_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: Service deleted successfully
+        '404':
+          description: Service not found
+  /api/v1/documents:
+    post:
+      tags:
+      - Documents
+      summary: Upload and process document
+      description: Upload a document for AI-powered processing
+      operationId: uploadDocument
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                build_graph:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Document processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+  /api/v1/documents/{document_id}:
+    get:
+      tags:
+      - Documents
+      summary: Get document details
+      operationId: getDocument
+      parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Document details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '404':
+          description: Document not found
+  /api/v1/extract/entities:
+    post:
+      tags:
+      - Extraction
+      summary: Extract named entities
+      description: Extract named entities from text using NER
+      operationId: extractEntities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextInput'
+      parameters:
+      - name: entity_types
+        in: query
+        description: Comma-separated entity types
+        schema:
+          type: string
+          example: PERSON,ORG,LOC
+      responses:
+        '200':
+          description: Entities extracted successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Entity'
+  /api/v1/extract/relations:
+    post:
+      tags:
+      - Extraction
+      summary: Extract relations
+      description: Extract relations between entities
+      operationId: extractRelations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextInput'
+      responses:
+        '200':
+          description: Relations extracted successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Relation'
+  /api/v1/classify:
+    post:
+      tags:
+      - Classification
+      summary: Classify document
+      description: Classify document text into categories
+      operationId: classifyDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextInput'
+      responses:
+        '200':
+          description: Classification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Classification'
+  /api/v1/graph/build:
+    post:
+      tags:
+      - Knowledge Graph
+      summary: Build knowledge graph
+      description: Build a knowledge graph from text
+      operationId: buildKnowledgeGraph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextInput'
+      parameters:
+      - name: export_format
+        in: query
+        schema:
+          type: string
+          enum:
+          - json
+          - cypher
+          - graphml
+          default: json
+      responses:
+        '200':
+          description: Knowledge graph built successfully
+  /api/v1/batch/process:
+    post:
+      tags:
+      - Batch
+      summary: Submit batch job
+      description: Submit a batch processing job
+      operationId: submitBatchJob
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '202':
+          description: Batch job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchJob'
+  /api/v1/batch/{job_id}:
+    get:
+      tags:
+      - Batch
+      summary: Get batch job status
+      operationId: getBatchJobStatus
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchJob'
+        '404':
+          description: Job not found
+  /api/v1/calculate:
+    post:
+      tags:
+      - Financial
+      summary: Calculate hourly rate
+      description: Calculate hourly rate with German social contributions
+      operationId: calculateHourlyRate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - brutto_rate
+              properties:
+                brutto_rate:
+                  type: number
+                  format: decimal
+                region:
+                  type: string
+                materials:
+                  type: number
+                admin_percent:
+                  type: number
+      responses:
+        '200':
+          description: Calculation result
+  /api/v1/search:
+    get:
+      tags:
+      - Search
+      summary: Search services
+      description: Full-text search across services
+      operationId: searchServices
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: semantic
+        in: query
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Search results
+  /:
+    get:
+      operationId: get_index
+      tags:
+      - Uncategorized
+      summary: Main dashboard page
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /analytics:
+    get:
+      operationId: get_analytics_page
+      tags:
+      - Analytics
+      summary: Analytics and reports page
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/calculate:
+    post:
+      operationId: post_api_calculate
+      tags:
+      - Uncategorized
+      summary: 'API: Calculate service cost'
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/search:
+    get:
+      operationId: get_api_search
+      tags:
+      - Uncategorized
+      summary: 'API: Search services'
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/services:
+    get:
+      operationId: get_api_services_list
+      tags:
+      - Services
+      summary: 'API: List all services'
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      operationId: post_api_service_create
+      tags:
+      - Services
+      summary: 'API: Create new service'
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/services/<int:service_id>:
+    get:
+      operationId: get_api_service_get
+      tags:
+      - Services
+      summary: 'API: Get service by ID'
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    put:
+      operationId: put_api_service_update
+      tags:
+      - Services
+      summary: 'API: Update service'
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      operationId: delete_api_service_delete
+      tags:
+      - Services
+      summary: 'API: Delete service'
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/statistics:
+    get:
+      operationId: get_api_statistics
+      tags:
+      - Uncategorized
+      summary: 'API: Get statistics'
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /calculate:
+    post:
+      operationId: post_calculate_costs
+      tags:
+      - Uncategorized
+      - Calculations
+      - 'name: body'
+      - base_salary
+      - region
+      summary: Calculate service costs
+      description: 'summary: Calculate hourly rate and cost breakdown description:
+        Calculates the hourly rate based on financial parameters in: body required:
+        true schema: type: object required: properties: base_salary: type: number
+        example: 2500.00 region: type: string example: "Bavaria" use_umlagen: type:
+        boolean example: true surcharge_percentage: type: number example: 10.0 200:
+        description: Calculation successful schema: type: object properties: brutto_rate:
+        type: number example: 45.50 netto_rate: type: number example: 35.20 breakdown:
+        type: object 400: description: Invalid request data 500: description: Server
+        error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /calculator:
+    get:
+      operationId: get_calculator_page
+      tags: &id001
+      - Uncategorized
+      summary: Financial calculator page
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      operationId: post_calculator_page
+      tags: *id001
+      summary: Financial calculator page
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /dashboard:
+    get:
+      operationId: get_get_dashboard
+      tags:
+      - Uncategorized
+      - Analytics
+      - 'name: dateRange'
+      - 'name: tenant'
+      - 'name: comparisonPeriod'
+      summary: Get BI Dashboard Data
+      description: 'summary: Get executive BI dashboard data description: Returns
+        KPIs, charts data, and analytics for the dashboard in: query type: integer
+        required: false description: Number of days to include (default 30) default:
+        30 in: query type: string required: false description: Tenant ID filter (default
+        all) default: all in: query type: string required: false description: Comparison
+        period (previous, year_ago, none) default: previous 200: description: Dashboard
+        data retrieved successfully schema: type: object properties: success: type:
+        boolean example: true kpis: type: object description: Key Performance Indicators
+        charts: type: object description: Chart data for visualizations timestamp:
+        type: string format: date-time 400: description: Invalid parameters 500: description:
+        Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /docs:
+    get:
+      operationId: get_swagger_ui
+      tags:
+      - Uncategorized
+      summary: Swagger UI for API documentation
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /export:
+    post:
+      operationId: post_export_dashboard
+      tags:
+      - Uncategorized
+      - Analytics
+      - 'name: body'
+      summary: Export Dashboard
+      description: 'summary: Export dashboard to various formats description: Exports
+        dashboard data in PDF, Excel, PowerPoint, JSON, or CSV in: body required:
+        true schema: type: object properties: format: type: string description: Export
+        format enum: [pdf, excel, powerpoint, json, csv] default: pdf include: type:
+        object properties: kpis: type: boolean default: true charts: type: boolean
+        default: true rawData: type: boolean default: false filters: type: object
+        description: Filters applied to dashboard 200: description: File exported
+        successfully schema: type: file 400: description: Invalid format 500: description:
+        Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /generator:
+    get:
+      operationId: get_generator_page
+      tags: &id002
+      - Uncategorized
+      summary: Document generator page
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      operationId: post_generator_page
+      tags: *id002
+      summary: Document generator page
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /health:
+    get:
+      operationId: get_health_check
+      tags:
+      - System
+      summary: Health check endpoint
+      description: 'summary: Check API health status description: Returns the health
+        status of the API and database connectivity 200: description: API is healthy
+        schema: type: object properties: status: type: string example: healthy version:
+        type: string example: 2.1.0 api_version: type: string example: v1 database:
+        type: string example: connected'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /kpi/<kpi_name>:
+    get:
+      operationId: get_get_kpi
+      tags:
+      - Uncategorized
+      - Analytics
+      - 'name: kpi_name'
+      - 'name: dateRange'
+      summary: Get Specific KPI
+      description: 'summary: Get specific KPI value description: Returns detailed
+        information about a specific KPI in: path type: string required: true description:
+        KPI name (mrr, arr, churn, clv, nrr, cac) in: query type: integer required:
+        false description: Number of days default: 30 200: description: KPI retrieved
+        successfully 404: description: KPI not found 500: description: Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /mining/patterns:
+    post:
+      operationId: post_discover_patterns
+      tags:
+      - Uncategorized
+      - Data Mining
+      - 'name: body'
+      summary: Discover Data Patterns
+      description: 'summary: Discover patterns in data description: Uses data mining
+        algorithms to find patterns in: body required: true schema: type: object properties:
+        algorithm: type: string description: Algorithm to use (apriori, fpgrowth,
+        kmeans) default: apriori min_support: type: number description: Minimum support
+        threshold default: 0.3 200: description: Patterns discovered 500: description:
+        Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /olap/query:
+    post:
+      operationId: post_olap_query
+      tags:
+      - Uncategorized
+      - OLAP
+      - 'name: body'
+      summary: Execute OLAP Query
+      description: 'summary: Execute OLAP cube query description: Performs multidimensional
+        analysis query in: body required: true schema: type: object properties: dimensions:
+        type: array items: type: string description: Dimensions to include measures:
+        type: array items: type: string description: Measures to calculate filters:
+        type: object description: Filter criteria 200: description: Query executed
+        successfully 400: description: Invalid query 500: description: Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /openapi.json:
+    get:
+      operationId: get_openapi_spec_json
+      tags:
+      - Uncategorized
+      - Documentation
+      summary: Serve OpenAPI specification as JSON
+      description: '200: description: OpenAPI specification in JSON format'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /openapi.yaml:
+    get:
+      operationId: get_openapi_spec
+      tags:
+      - Uncategorized
+      - Documentation
+      summary: Serve OpenAPI specification file
+      description: '200: description: OpenAPI specification in YAML format'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /predict/churn:
+    post:
+      operationId: post_predict_churn
+      tags:
+      - ML
+      - Predictive Analytics
+      - 'name: body'
+      summary: Predict Customer Churn
+      description: 'summary: Predict customer churn probability description: Returns
+        churn predictions for customers in: body required: true schema: type: object
+        properties: customer_ids: type: array items: type: string description: List
+        of customer IDs to analyze 200: description: Predictions generated successfully
+        500: description: Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /predict/revenue:
+    post:
+      operationId: post_predict_revenue
+      tags:
+      - ML
+      - Predictive Analytics
+      - 'name: body'
+      summary: Predict Future Revenue
+      description: 'summary: Get revenue forecast description: Returns revenue predictions
+        for specified period in: body required: true schema: type: object properties:
+        months: type: integer description: Number of months to forecast default: 3
+        model: type: string description: Model to use (arima, prophet, lstm) default:
+        arima 200: description: Forecast generated successfully 500: description:
+        Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /query/natural:
+    post:
+      operationId: post_natural_language_query
+      tags:
+      - Uncategorized
+      - Natural Language Query
+      - 'name: body'
+      summary: Natural Language Query
+      description: 'summary: Execute query in natural language description: Converts
+        natural language to SQL and executes query in: body required: true schema:
+        type: object properties: query: type: string description: Natural language
+        query example: "Show me revenue for last month" 200: description: Query executed
+        successfully 400: description: Invalid query 500: description: Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /redoc:
+    get:
+      operationId: get_redoc_ui
+      tags:
+      - Documents
+      summary: ReDoc UI for API documentation
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /reports/schedule:
+    post:
+      operationId: post_schedule_report
+      tags:
+      - Uncategorized
+      - Reports
+      - 'name: body'
+      summary: Schedule Report
+      description: 'summary: Schedule recurring report description: Creates a scheduled
+        report with specified frequency in: body required: true schema: type: object
+        properties: name: type: string description: Report name frequency: type: string
+        enum: [daily, weekly, monthly, quarterly] default: weekly format: type: string
+        enum: [pdf, excel, powerpoint] default: pdf recipients: type: array items:
+        type: string description: Email addresses 201: description: Report scheduled
+        successfully 400: description: Invalid parameters 500: description: Server
+        error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /reports/scheduled:
+    get:
+      operationId: get_list_scheduled_reports
+      tags:
+      - Uncategorized
+      - Reports
+      summary: List Scheduled Reports
+      description: 'summary: Get list of scheduled reports description: Returns all
+        scheduled reports 200: description: Reports retrieved successfully 500: description:
+        Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /search:
+    get:
+      operationId: get_search_page
+      tags:
+      - Uncategorized
+      summary: Search services
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /services:
+    get:
+      operationId: get_services_list
+      tags:
+      - Services
+      summary: List all services
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      operationId: post_create_service
+      tags:
+      - Services
+      - 'name: body'
+      - service_name
+      - region
+      summary: Create new service
+      description: 'summary: Create a new service description: Creates a new service
+        with the provided data in: body required: true schema: type: object required:
+        properties: service_name: type: string example: "Shopping Assistance" region:
+        type: string example: "Bavaria" target_group: type: string example: "Elderly
+        people" hourly_rate: type: number example: 45.50 201: description: Service
+        created successfully schema: type: object properties: id: type: integer example:
+        1 message: type: string example: "Service created successfully" 400: description:
+        Invalid request data 500: description: Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /services/<int:service_id>:
+    get:
+      operationId: get_service_detail
+      tags:
+      - Services
+      summary: Service detail page
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    put:
+      operationId: put_update_service
+      tags:
+      - Services
+      - 'name: service_id'
+      - 'name: body'
+      summary: Update service
+      description: 'summary: Update an existing service description: Updates service
+        data in: path type: integer required: true description: Service ID in: body
+        required: true schema: type: object properties: service_name: type: string
+        region: type: string target_group: type: string 200: description: Service
+        updated successfully 404: description: Service not found 500: description:
+        Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      operationId: delete_delete_service
+      tags:
+      - Services
+      - 'name: service_id'
+      summary: Delete service
+      description: 'summary: Delete a service description: Permanently deletes a service
+        in: path type: integer required: true description: Service ID 200: description:
+        Service deleted successfully 404: description: Service not found 500: description:
+        Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /services/<int:service_id>/delete:
+    post:
+      operationId: post_service_delete
+      tags:
+      - Services
+      summary: Delete service
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /services/<int:service_id>/edit:
+    get:
+      operationId: get_service_edit
+      tags: &id003
+      - Services
+      summary: Edit existing service
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      operationId: post_service_edit
+      tags: *id003
+      summary: Edit existing service
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /services/new:
+    get:
+      operationId: get_service_new
+      tags: &id004
+      - Services
+      summary: Create new service
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      operationId: post_service_new
+      tags: *id004
+      summary: Create new service
+      description: ''
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /statistics:
+    get:
+      operationId: get_get_statistics
+      tags:
+      - Uncategorized
+      - Statistics
+      summary: Get system statistics
+      description: 'summary: Get overall system statistics description: Returns statistics
+        about services, costs, and usage 200: description: Statistics data schema:
+        type: object properties: total_services: type: integer example: 42 avg_brutto_rate:
+        type: number example: 45.50 by_region: type: object by_type: type: object
+        500: description: Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /warehouse/etl:
+    post:
+      operationId: post_trigger_etl
+      tags:
+      - Uncategorized
+      - Data Warehouse
+      - 'name: body'
+      summary: Trigger ETL Pipeline
+      description: 'summary: Trigger ETL data pipeline description: Starts the ETL
+        process to update data warehouse in: body required: false schema: type: object
+        properties: incremental: type: boolean description: Use incremental load default:
+        true 202: description: ETL job started 500: description: Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+  /warehouse/status:
+    get:
+      operationId: get_warehouse_status
+      tags:
+      - Uncategorized
+      - Data Warehouse
+      summary: Get Data Warehouse Status
+      description: 'summary: Get warehouse status description: Returns status information
+        about the data warehouse 200: description: Status retrieved successfully 500:
+        description: Server error'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object

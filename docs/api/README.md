@@ -293,7 +293,58 @@ const services = await client.services.list();
 - **Support Email**: support@daten20.example.com
 - **GitHub Issues**: https://github.com/yourusername/daten20/issues
 
+## 🛠️ Tools & Scripts
+
+### Generate OpenAPI Specification
+
+Auto-generate OpenAPI spec from Flask routes:
+
+```bash
+# Generate fresh documentation
+python scripts/generate_openapi_spec.py \
+    --output docs/api/openapi_generated.yaml \
+    --validate
+
+# Merge with existing documentation
+python scripts/generate_openapi_spec.py \
+    --merge docs/api/openapi.yaml \
+    --output docs/api/openapi_complete.yaml \
+    --validate
+```
+
+### Validate OpenAPI Specification
+
+Validate OpenAPI specs:
+
+```bash
+# Validate default spec
+python scripts/validate_openapi_spec.py
+
+# Validate specific file
+python scripts/validate_openapi_spec.py docs/api/openapi_complete.yaml
+
+# Strict mode
+python scripts/validate_openapi_spec.py --strict
+```
+
+## 📊 API Statistics
+
+**Current Coverage (2026-01-16):**
+
+- **Total Paths:** 48
+- **Total Operations:** 61
+- **Total Schemas:** 9
+- **Total Tags:** 12
+- **Validation:** ✅ All specs validated successfully
+
 ## Changelog
+
+### v4.1.0 (2026-01-16) - Phase 4 Task 41 ✅
+- ✅ Created auto-generation script for OpenAPI docs (scripts/generate_openapi_spec.py)
+- ✅ Created validation script for OpenAPI specs (scripts/validate_openapi_spec.py)
+- ✅ Generated complete OpenAPI spec (48 paths, 61 operations)
+- ✅ Added comprehensive API documentation guide (API_DOCUMENTATION_GUIDE.md)
+- ✅ All specs validated successfully
 
 ### v30.0.0 (2026-01-11)
 - Added AI/ML endpoints (v3-v30)
