@@ -24,7 +24,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm, mm
 from reportlab.pdfgen import canvas
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, TableOfContents
+from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
 try:
     from PyPDF2 import PdfReader, PdfWriter
