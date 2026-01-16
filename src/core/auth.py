@@ -109,8 +109,19 @@ class User(UserMixin):
         self.email = email
         self.password_hash = password_hash
         self.role = role
-        self.is_active = is_active
+        # UserMixin provides is_active property, store in private variable
+        self._is_active = is_active
         self.created_at = created_at or datetime.now()
+
+    @property
+    def is_active(self):
+        """User active status."""
+        return getattr(self, "_is_active", True)
+
+    @is_active.setter
+    def is_active(self, value):
+        """Set user active status."""
+        self._is_active = value
 
     def has_permission(self, permission: Permission) -> bool:
         """Check if user has a specific permission."""
