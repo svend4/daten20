@@ -3,7 +3,7 @@ Comprehensive tests for Document Classifier module
 
 Test coverage goals:
 - TextPreprocessor: Text cleaning, normalization, stopword removal
-- TfidfSvmClassifier: Training, prediction, model persistence
+- TfidfSVMClassifier: Training, prediction, model persistence
 - DocumentClassifier: Multi-model support, auto-categorization
 - ClassificationResult: Confidence scores, probabilities
 - Edge cases: Empty text, unknown categories, model serialization
@@ -22,7 +22,7 @@ from src.ml.classifier import (
     TrainingData,
     ModelMetrics,
     TextPreprocessor,
-    TfidfSvmClassifier,
+    TfidfSVMClassifier,
     DocumentClassifier,
 )
 
@@ -211,13 +211,13 @@ class TestTextPreprocessor:
         assert isinstance(result, str)
 
 
-class TestTfidfSvmClassifier:
-    """Test TfidfSvmClassifier class"""
+class TestTfidfSVMClassifier:
+    """Test TfidfSVMClassifier class"""
 
     @pytest.fixture
     def classifier(self):
-        """Create TfidfSvmClassifier instance"""
-        return TfidfSvmClassifier()
+        """Create TfidfSVMClassifier instance"""
+        return TfidfSVMClassifier()
 
     @pytest.fixture
     def training_samples(self):
@@ -277,7 +277,7 @@ class TestTfidfSvmClassifier:
             assert os.path.exists(model_path)
 
             # Load model
-            new_classifier = TfidfSvmClassifier()
+            new_classifier = TfidfSVMClassifier()
             new_classifier.load(model_path)
             assert new_classifier.is_trained
 
@@ -437,7 +437,7 @@ class TestPerformance:
     @pytest.fixture
     def classifier(self):
         """Create classifier"""
-        return TfidfSvmClassifier()
+        return TfidfSVMClassifier()
 
     @pytest.fixture
     def large_training_set(self):
@@ -482,7 +482,7 @@ class TestEdgeCases:
     @pytest.fixture
     def classifier(self):
         """Create classifier"""
-        return TfidfSvmClassifier()
+        return TfidfSVMClassifier()
 
     def test_empty_training_data(self, classifier):
         """Test training with empty data"""

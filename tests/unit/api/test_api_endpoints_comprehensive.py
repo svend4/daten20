@@ -18,7 +18,7 @@ from unittest.mock import Mock, patch, MagicMock
 from flask import Flask
 
 from src.api_v1 import api_v1
-from src.models.service import Service, BasicInfo, HourlyRate
+from src.models.service import Service, BasicInfo  # HourlyRate does not exist
 
 
 @pytest.fixture
