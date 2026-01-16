@@ -19,11 +19,17 @@ Dependencies:
 - pandas, numpy (for data processing)
 """
 
+from __future__ import annotations
+
 import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+
+if TYPE_CHECKING:
+    import numpy as np
+    import pandas as pd
 
 try:
     import numpy as np
@@ -32,6 +38,8 @@ try:
     PANDAS_AVAILABLE = True
 except ImportError:
     PANDAS_AVAILABLE = False
+    np = None  # type: ignore
+    pd = None  # type: ignore
     print("Warning: pandas not available. OLAP features limited.")
 
 
