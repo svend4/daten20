@@ -6,27 +6,33 @@ Financial Calculator - Финансовый калькулятор
 умлаг, надбавок и региональных коэффициентов.
 """
 
-import sys
 import argparse
+import sys
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Optional, List
+from typing import List, Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.models.financial import (
-    FinancialParameters, InsuranceRates, Umlages, Surcharges,
-    CostBreakdown, ServiceCost
-)
-from src.utils.formatting import (
-    header, section, success, error, warning, info,
-    table, key_value, colored, bold, divider
-)
-from src.utils.helpers import format_currency, format_percentage, round_currency, load_config
-from src.utils.constants import REGIONAL_COEFFICIENTS
-from src.core.input_validation import InputValidator, ValidationError
 from src.core.financial_validation import FinancialValidator
+from src.core.input_validation import InputValidator, ValidationError
+from src.models.financial import CostBreakdown, FinancialParameters, InsuranceRates, ServiceCost, Surcharges, Umlages
+from src.utils.constants import REGIONAL_COEFFICIENTS
+from src.utils.formatting import (
+    bold,
+    colored,
+    divider,
+    error,
+    header,
+    info,
+    key_value,
+    section,
+    success,
+    table,
+    warning,
+)
+from src.utils.helpers import format_currency, format_percentage, load_config, round_currency
 
 
 class FinancialCalculator:
@@ -56,66 +62,40 @@ class FinancialCalculator:
 
         # Step 1: Calculate social insurance contributions (employer's share)
         breakdown.kv_contribution = self._calculate_percentage(
-            params.brutto_rate,
-            params.insurance_rates.kv_er + params.insurance_rates.kv_zusatz_er
+            params.brutto_rate, params.insurance_rates.kv_er + params.insurance_rates.kv_zusatz_er
         )
         breakdown.pv_contribution = self._calculate_percentage(
-            params.brutto_rate,
-            params.insurance_rates.pv_er_sn if params.is_saxony else params.insurance_rates.pv_er
+            params.brutto_rate, params.insurance_rates.pv_er_sn if params.is_saxony else params.insurance_rates.pv_er
         )
-        breakdown.rv_contribution = self._calculate_percentage(
-            params.brutto_rate,
-            params.insurance_rates.rv_er
-        )
-        breakdown.av_contribution = self._calculate_percentage(
-            params.brutto_rate,
-            params.insurance_rates.av_er
-        )
-        breakdown.uv_contribution = self._calculate_percentage(
-            params.brutto_rate,
-            params.insurance_rates.uv_er
-        )
+        breakdown.rv_contribution = self._calculate_percentage(params.brutto_rate, params.insurance_rates.rv_er)
+        breakdown.av_contribution = self._calculate_percentage(params.brutto_rate, params.insurance_rates.av_er)
+        breakdown.uv_contribution = self._calculate_percentage(params.brutto_rate, params.insurance_rates.uv_er)
 
         breakdown.total_insurance = (
-            breakdown.kv_contribution +
-            breakdown.pv_contribution +
-            breakdown.rv_contribution +
-            breakdown.av_contribution +
-            breakdown.uv_contribution
+            breakdown.kv_contribution
+            + breakdown.pv_contribution
+            + breakdown.rv_contribution
+            + breakdown.av_contribution
+            + breakdown.uv_contribution
         )
 
         # Step 2: Calculate umlages OR vacation reserve (mutually exclusive)
         if params.use_umlages:
-            breakdown.u1_contribution = self._calculate_percentage(
-                params.brutto_rate,
-                params.umlages.u1
-            )
-            breakdown.u2_contribution = self._calculate_percentage(
-                params.brutto_rate,
-                params.umlages.u2
-            )
-            breakdown.u3_contribution = self._calculate_percentage(
-                params.brutto_rate,
-                params.umlages.u3
-            )
-            breakdown.total_umlages = (
-                breakdown.u1_contribution +
-                breakdown.u2_contribution +
-                breakdown.u3_contribution
-            )
+            breakdown.u1_contribution = self._calculate_percentage(params.brutto_rate, params.umlages.u1)
+            breakdown.u2_contribution = self._calculate_percentage(params.brutto_rate, params.umlages.u2)
+            breakdown.u3_contribution = self._calculate_percentage(params.brutto_rate, params.umlages.u3)
+            breakdown.total_umlages = breakdown.u1_contribution + breakdown.u2_contribution + breakdown.u3_contribution
             breakdown.vacation_reserve = Decimal("0")
             breakdown.calculation_mode = "with_umlages"
         else:
             # Use vacation reserve instead
             breakdown.vacation_reserve = self._calculate_percentage(
-                params.brutto_rate + breakdown.total_insurance,
-                params.vacation_reserve_percent
+                params.brutto_rate + breakdown.total_insurance, params.vacation_reserve_percent
             )
             breakdown.u1_contribution = Decimal("0")
             breakdown.u2_contribution = Decimal("0")
             breakdown.u3_contribution = self._calculate_percentage(
-                params.brutto_rate,
-                params.umlages.u3
+                params.brutto_rate, params.umlages.u3
             )  # U3 is always included
             breakdown.total_umlages = breakdown.u3_contribution
             breakdown.calculation_mode = "with_reserve"
@@ -130,12 +110,12 @@ class FinancialCalculator:
 
         # Step 4: Calculate base hourly cost (before surcharges and region coefficient)
         breakdown.base_hourly_cost = (
-            params.brutto_rate +
-            breakdown.total_insurance +
-            breakdown.total_umlages +
-            breakdown.vacation_reserve +
-            breakdown.materials_cost +
-            breakdown.admin_cost
+            params.brutto_rate
+            + breakdown.total_insurance
+            + breakdown.total_umlages
+            + breakdown.vacation_reserve
+            + breakdown.materials_cost
+            + breakdown.admin_cost
         )
 
         # Step 5: Apply region coefficient
@@ -147,11 +127,7 @@ class FinancialCalculator:
 
         return breakdown
 
-    def calculate_with_surcharge(
-        self,
-        params: FinancialParameters,
-        surcharge_types: List[str]
-    ) -> CostBreakdown:
+    def calculate_with_surcharge(self, params: FinancialParameters, surcharge_types: List[str]) -> CostBreakdown:
         """
         Calculate hourly rate with surcharges
 
@@ -184,16 +160,10 @@ class FinancialCalculator:
         if total_surcharge_percent > 0:
             if params.surcharge_base == "full_cost":
                 # Apply to full cost
-                surcharge_amount = self._calculate_percentage(
-                    breakdown.final_hourly_rate,
-                    total_surcharge_percent
-                )
+                surcharge_amount = self._calculate_percentage(breakdown.final_hourly_rate, total_surcharge_percent)
             else:  # brutto_only
                 # Apply to brutto rate only
-                surcharge_amount = self._calculate_percentage(
-                    params.brutto_rate,
-                    total_surcharge_percent
-                )
+                surcharge_amount = self._calculate_percentage(params.brutto_rate, total_surcharge_percent)
 
             breakdown.total_surcharge = surcharge_amount
             breakdown.final_hourly_rate += surcharge_amount
@@ -202,10 +172,7 @@ class FinancialCalculator:
         return breakdown
 
     def calculate_total_cost(
-        self,
-        params: FinancialParameters,
-        hours: Decimal,
-        surcharge_types: Optional[List[str]] = None
+        self, params: FinancialParameters, hours: Decimal, surcharge_types: Optional[List[str]] = None
     ) -> ServiceCost:
         """
         Calculate total cost for service
@@ -233,10 +200,7 @@ class FinancialCalculator:
         total_cost = round_currency(float(total_cost))
 
         return ServiceCost(
-            hourly_rate=breakdown.final_hourly_rate,
-            hours=hours,
-            total_cost=total_cost,
-            breakdown=breakdown
+            hourly_rate=breakdown.final_hourly_rate, hours=hours, total_cost=total_cost, breakdown=breakdown
         )
 
     def _calculate_percentage(self, base: Decimal, percentage: Decimal) -> Decimal:
@@ -313,7 +277,7 @@ class FinancialCalculator:
                 "night": "Ночная работа",
                 "weekend": "Выходные дни",
                 "holiday": "Праздничные дни",
-                "urgent": "Срочность"
+                "urgent": "Срочность",
             }
             for surcharge_type, percent in breakdown.surcharges_applied.items():
                 name = surcharge_names.get(surcharge_type, surcharge_type)
@@ -349,14 +313,42 @@ class FinancialCalculator:
 
         # Comparison table
         rows = [
-            ["Ставка брутто", format_currency(float(breakdown1.brutto_rate)), format_currency(float(breakdown2.brutto_rate))],
-            ["Социальные отчисления", format_currency(float(breakdown1.total_insurance)), format_currency(float(breakdown2.total_insurance))],
-            ["Умлаги (U1+U2+U3)", format_currency(float(breakdown1.total_umlages)), format_currency(float(breakdown2.total_umlages))],
-            ["Резерв отпуск/больничные", format_currency(float(breakdown1.vacation_reserve)), format_currency(float(breakdown2.vacation_reserve))],
-            ["Материалы", format_currency(float(breakdown1.materials_cost)), format_currency(float(breakdown2.materials_cost))],
-            ["Администрирование", format_currency(float(breakdown1.admin_cost)), format_currency(float(breakdown2.admin_cost))],
+            [
+                "Ставка брутто",
+                format_currency(float(breakdown1.brutto_rate)),
+                format_currency(float(breakdown2.brutto_rate)),
+            ],
+            [
+                "Социальные отчисления",
+                format_currency(float(breakdown1.total_insurance)),
+                format_currency(float(breakdown2.total_insurance)),
+            ],
+            [
+                "Умлаги (U1+U2+U3)",
+                format_currency(float(breakdown1.total_umlages)),
+                format_currency(float(breakdown2.total_umlages)),
+            ],
+            [
+                "Резерв отпуск/больничные",
+                format_currency(float(breakdown1.vacation_reserve)),
+                format_currency(float(breakdown2.vacation_reserve)),
+            ],
+            [
+                "Материалы",
+                format_currency(float(breakdown1.materials_cost)),
+                format_currency(float(breakdown2.materials_cost)),
+            ],
+            [
+                "Администрирование",
+                format_currency(float(breakdown1.admin_cost)),
+                format_currency(float(breakdown2.admin_cost)),
+            ],
             ["", "", ""],
-            [bold("ИТОГО"), bold(format_currency(float(breakdown1.final_hourly_rate))), bold(format_currency(float(breakdown2.final_hourly_rate)))]
+            [
+                bold("ИТОГО"),
+                bold(format_currency(float(breakdown1.final_hourly_rate))),
+                bold(format_currency(float(breakdown2.final_hourly_rate))),
+            ],
         ]
 
         headers = ["Компонент", "С умлагами", "С резервом"]
@@ -377,74 +369,40 @@ class FinancialCalculator:
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
-        description="Финансовый калькулятор стоимости услуг",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Финансовый калькулятор стоимости услуг", formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    parser.add_argument(
-        "--brutto",
-        type=float,
-        default=25.0,
-        help="Ставка брутто €/ч (по умолчанию: 25.0)"
-    )
+    parser.add_argument("--brutto", type=float, default=25.0, help="Ставка брутто €/ч (по умолчанию: 25.0)")
 
     parser.add_argument(
-        "--region",
-        choices=list(REGIONAL_COEFFICIENTS.keys()),
-        help="Регион (автоматический коэффициент)"
+        "--region", choices=list(REGIONAL_COEFFICIENTS.keys()), help="Регион (автоматический коэффициент)"
     )
 
-    parser.add_argument(
-        "--coefficient",
-        type=float,
-        default=1.0,
-        help="Региональный коэффициент (по умолчанию: 1.0)"
-    )
+    parser.add_argument("--coefficient", type=float, default=1.0, help="Региональный коэффициент (по умолчанию: 1.0)")
 
-    parser.add_argument(
-        "--materials",
-        type=float,
-        default=0.0,
-        help="Материалы €/ч (по умолчанию: 0.0)"
-    )
+    parser.add_argument("--materials", type=float, default=0.0, help="Материалы €/ч (по умолчанию: 0.0)")
 
-    parser.add_argument(
-        "--admin",
-        type=float,
-        default=5.0,
-        help="Административные расходы %% (по умолчанию: 5.0)"
-    )
+    parser.add_argument("--admin", type=float, default=5.0, help="Административные расходы %% (по умолчанию: 5.0)")
 
-    parser.add_argument(
-        "--hours",
-        type=float,
-        help="Количество часов для расчета итоговой стоимости"
-    )
+    parser.add_argument("--hours", type=float, help="Количество часов для расчета итоговой стоимости")
 
     parser.add_argument(
         "--surcharge",
         action="append",
         choices=["night", "weekend", "holiday", "urgent"],
-        help="Добавить надбавку (можно указать несколько раз)"
+        help="Добавить надбавку (можно указать несколько раз)",
     )
 
     parser.add_argument(
         "--mode",
         choices=["umlages", "reserve", "compare"],
         default="umlages",
-        help="Режим расчета (по умолчанию: umlages)"
+        help="Режим расчета (по умолчанию: umlages)",
     )
 
-    parser.add_argument(
-        "--config",
-        help="Загрузить параметры из YAML/JSON файла"
-    )
+    parser.add_argument("--config", help="Загрузить параметры из YAML/JSON файла")
 
-    parser.add_argument(
-        "--detailed",
-        action="store_true",
-        help="Показать детальный расчет"
-    )
+    parser.add_argument("--detailed", action="store_true", help="Показать детальный расчет")
 
     args = parser.parse_args()
 
@@ -463,6 +421,7 @@ def main():
         try:
             config = load_config(args.config)
             from src.models.service import Service
+
             service = Service.from_dict(config)
             params = service.financial
         except Exception as e:
@@ -490,11 +449,7 @@ def main():
     else:
         if args.hours:
             # Calculate total cost
-            cost = calc.calculate_total_cost(
-                params,
-                Decimal(str(args.hours)),
-                args.surcharge
-            )
+            cost = calc.calculate_total_cost(params, Decimal(str(args.hours)), args.surcharge)
             calc.print_breakdown(cost.breakdown, args.detailed)
 
             print(section("ИТОГОВАЯ СТОИМОСТЬ"))

@@ -5,23 +5,16 @@ Unit Tests for OCR Module
 Tests text extraction from images using multiple OCR engines.
 """
 
-import unittest
-from unittest.mock import Mock, patch, MagicMock
-import sys
 import os
+import sys
 import tempfile
+import unittest
+from unittest.mock import MagicMock, Mock, patch
 
 # Add parent directory to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
-from src.ml.ocr import (
-    OCRManager,
-    OCREngine,
-    OCRResult,
-    TesseractOCR,
-    ImagePreprocessor,
-    extract_text_from_image
-)
+from src.ml.ocr import ImagePreprocessor, OCREngine, OCRManager, OCRResult, TesseractOCR, extract_text_from_image
 
 
 def create_test_image(text: str = "Test") -> str:
@@ -29,7 +22,7 @@ def create_test_image(text: str = "Test") -> str:
     try:
         from PIL import Image, ImageDraw, ImageFont
 
-        img = Image.new('RGB', (200, 50), color='white')
+        img = Image.new("RGB", (200, 50), color="white")
         draw = ImageDraw.Draw(img)
 
         try:
@@ -37,9 +30,9 @@ def create_test_image(text: str = "Test") -> str:
         except:
             font = ImageFont.load_default()
 
-        draw.text((10, 15), text, fill='black', font=font)
+        draw.text((10, 15), text, fill="black", font=font)
 
-        temp_fd, temp_path = tempfile.mkstemp(suffix='.png')
+        temp_fd, temp_path = tempfile.mkstemp(suffix=".png")
         os.close(temp_fd)
         img.save(temp_path)
 
@@ -53,12 +46,7 @@ class TestOCRResult(unittest.TestCase):
 
     def test_ocr_result_creation(self):
         """Test creating OCR result"""
-        result = OCRResult(
-            text="Hello World",
-            confidence=95.5,
-            language="eng",
-            engine="tesseract"
-        )
+        result = OCRResult(text="Hello World", confidence=95.5, language="eng", engine="tesseract")
 
         self.assertEqual(result.text, "Hello World")
         self.assertEqual(result.confidence, 95.5)
@@ -73,16 +61,16 @@ class TestOCRResult(unittest.TestCase):
             language="eng",
             engine="tesseract",
             bbox=[(0, 0, 10, 10)],
-            word_confidences=[90.0]
+            word_confidences=[90.0],
         )
 
         result_dict = result.to_dict()
 
         self.assertIsInstance(result_dict, dict)
-        self.assertEqual(result_dict['text'], "Test")
-        self.assertEqual(result_dict['confidence'], 90.0)
-        self.assertIn('bbox', result_dict)
-        self.assertIn('word_confidences', result_dict)
+        self.assertEqual(result_dict["text"], "Test")
+        self.assertEqual(result_dict["confidence"], 90.0)
+        self.assertIn("bbox", result_dict)
+        self.assertIn("word_confidences", result_dict)
 
 
 class TestImagePreprocessor(unittest.TestCase):
@@ -126,11 +114,7 @@ class TestImagePreprocessor(unittest.TestCase):
 
             # Test with all options disabled
             result = preprocessor.preprocess(
-                image_path,
-                denoise=False,
-                deskew=False,
-                binarize=False,
-                enhance_contrast=False
+                image_path, denoise=False, deskew=False, binarize=False, enhance_contrast=False
             )
 
             self.assertIsNotNone(result)
@@ -149,6 +133,7 @@ class TestTesseractOCR(unittest.TestCase):
         """Check if Tesseract is available"""
         try:
             import pytesseract
+
             pytesseract.get_tesseract_version()
             self.tesseract_available = True
         except:
@@ -213,6 +198,7 @@ class TestOCRManager(unittest.TestCase):
 
         try:
             import pytesseract
+
             pytesseract.get_tesseract_version()
             self.engines_available = True
         except:
@@ -220,6 +206,7 @@ class TestOCRManager(unittest.TestCase):
 
         try:
             import easyocr
+
             self.engines_available = True
         except:
             pass
@@ -325,6 +312,7 @@ class TestConvenienceFunctions(unittest.TestCase):
 
         try:
             import pytesseract
+
             pytesseract.get_tesseract_version()
             self.engines_available = True
         except:
@@ -361,6 +349,7 @@ class TestOCRIntegration(unittest.TestCase):
 
         try:
             import pytesseract
+
             pytesseract.get_tesseract_version()
             self.engines_available = True
         except:
@@ -393,8 +382,8 @@ class TestOCRIntegration(unittest.TestCase):
             # 5. Convert to dict
             result_dict = result.to_dict()
             self.assertIsInstance(result_dict, dict)
-            self.assertIn('text', result_dict)
-            self.assertIn('confidence', result_dict)
+            self.assertIn("text", result_dict)
+            self.assertIn("confidence", result_dict)
 
         finally:
             try:
@@ -454,6 +443,6 @@ def run_tests():
     return result.wasSuccessful()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     success = run_tests()
     sys.exit(0 if success else 1)

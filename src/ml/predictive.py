@@ -8,15 +8,16 @@ Provides predictive models:
 - Classification models
 """
 
-from typing import Optional, List, Dict, Any, Tuple
+import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import math
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass
 class Forecast:
     """Forecast result"""
+
     timestamp: datetime
     value: float
     confidence_lower: float
@@ -56,12 +57,14 @@ class TimeSeriesForecaster:
 
             forecast_timestamp = last_timestamp + timedelta(days=i)
 
-            forecasts.append(Forecast(
-                timestamp=forecast_timestamp,
-                value=predicted_value,
-                confidence_lower=predicted_value - confidence_range,
-                confidence_upper=predicted_value + confidence_range
-            ))
+            forecasts.append(
+                Forecast(
+                    timestamp=forecast_timestamp,
+                    value=predicted_value,
+                    confidence_lower=predicted_value - confidence_range,
+                    confidence_upper=predicted_value + confidence_range,
+                )
+            )
 
         return forecasts
 
@@ -90,13 +93,13 @@ class TrendAnalyzer:
     def analyze_trend(self, data: List[Tuple[datetime, float]]) -> Dict[str, Any]:
         """Analyze trend in data"""
         if len(data) < 2:
-            return {'trend': 'insufficient_data'}
+            return {"trend": "insufficient_data"}
 
         values = [v for _, v in data]
 
         # Calculate trend
-        first_half = values[:len(values)//2]
-        second_half = values[len(values)//2:]
+        first_half = values[: len(values) // 2]
+        second_half = values[len(values) // 2 :]
 
         first_avg = sum(first_half) / len(first_half)
         second_avg = sum(second_half) / len(second_half)
@@ -104,17 +107,17 @@ class TrendAnalyzer:
         change_pct = ((second_avg - first_avg) / first_avg * 100) if first_avg != 0 else 0
 
         if change_pct > 10:
-            trend = 'increasing'
+            trend = "increasing"
         elif change_pct < -10:
-            trend = 'decreasing'
+            trend = "decreasing"
         else:
-            trend = 'stable'
+            trend = "stable"
 
         return {
-            'trend': trend,
-            'change_percentage': change_pct,
-            'first_half_avg': first_avg,
-            'second_half_avg': second_avg
+            "trend": trend,
+            "change_percentage": change_pct,
+            "first_half_avg": first_avg,
+            "second_half_avg": second_avg,
         }
 
 

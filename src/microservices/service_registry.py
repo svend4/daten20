@@ -18,23 +18,24 @@ Dependencies:
 - requests (for HTTP communication)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Set
-from enum import Enum
-from datetime import datetime, timedelta
-import threading
-import time
-import logging
 import hashlib
 import json
-from collections import defaultdict
+import logging
 import socket
+import threading
+import time
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
 class ServiceStatus(str, Enum):
     """Service health status"""
+
     UP = "up"
     DOWN = "down"
     STARTING = "starting"
@@ -44,6 +45,7 @@ class ServiceStatus(str, Enum):
 
 class DiscoveryType(str, Enum):
     """Service discovery types"""
+
     CLIENT_SIDE = "client_side"
     SERVER_SIDE = "server_side"
     DNS_BASED = "dns_based"
@@ -52,6 +54,7 @@ class DiscoveryType(str, Enum):
 @dataclass
 class ServiceMetadata:
     """Service metadata"""
+
     version: str = "1.0.0"
     environment: str = "production"
     region: str = "default"
@@ -63,6 +66,7 @@ class ServiceMetadata:
 @dataclass
 class HealthCheck:
     """Health check configuration"""
+
     check_type: str = "http"  # http, tcp, script
     endpoint: str = "/health"
     interval_seconds: int = 10
@@ -74,6 +78,7 @@ class HealthCheck:
 @dataclass
 class LoadMetrics:
     """Service load metrics"""
+
     cpu_usage: float = 0.0
     memory_usage: float = 0.0
     request_count: int = 0
@@ -86,6 +91,7 @@ class LoadMetrics:
 @dataclass
 class ServiceInstance:
     """Registered service instance"""
+
     service_id: str
     service_name: str
     host: str
@@ -128,10 +134,7 @@ class ServiceRegistry:
             return
 
         self._running = True
-        self._cleanup_thread = threading.Thread(
-            target=self._cleanup_loop,
-            daemon=True
-        )
+        self._cleanup_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
         self._cleanup_thread.start()
         logger.info("Service registry started")
 
@@ -149,7 +152,7 @@ class ServiceRegistry:
         port: int,
         service_id: Optional[str] = None,
         metadata: Optional[ServiceMetadata] = None,
-        health_check: Optional[HealthCheck] = None
+        health_check: Optional[HealthCheck] = None,
     ) -> str:
         """
         Register a service instance
@@ -177,7 +180,7 @@ class ServiceRegistry:
                 host=host,
                 port=port,
                 metadata=metadata or ServiceMetadata(),
-                health_check=health_check
+                health_check=health_check,
             )
 
             # Register service
@@ -275,7 +278,7 @@ class ServiceRegistry:
         service_name: str,
         healthy_only: bool = True,
         region: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
     ) -> List[ServiceInstance]:
         """
         Discover service instances
@@ -427,9 +430,11 @@ class ServiceRegistry:
                                 logger.warning(f"Service {service_id} is now unhealthy")
 
                         # Deregister if too many failures
-                        if (instance.health_check and
-                            instance.consecutive_failures * instance.health_check.interval_seconds >=
-                            instance.health_check.deregister_after):
+                        if (
+                            instance.health_check
+                            and instance.consecutive_failures * instance.health_check.interval_seconds
+                            >= instance.health_check.deregister_after
+                        ):
                             logger.error(f"Deregistering service {service_id} due to health check failures")
                             self.deregister(service_id)
                             break
@@ -476,6 +481,7 @@ class ServiceRegistry:
         """Perform HTTP health check"""
         try:
             import requests
+
             url = f"http://{instance.host}:{instance.port}{instance.health_check.endpoint}"
             response = requests.get(url, timeout=timeout)
             return response.status_code == 200
@@ -512,11 +518,12 @@ class ConsulServiceRegistry(ServiceRegistry):
             consul_url: Consul API URL
         """
         super().__init__(**kwargs)
-        self.consul_url = consul_url.rstrip('/')
+        self.consul_url = consul_url.rstrip("/")
 
         # Check if requests is available
         try:
             import requests
+
             self.requests = requests
         except ImportError:
             logger.warning(
@@ -532,7 +539,7 @@ class ConsulServiceRegistry(ServiceRegistry):
         port: int,
         service_id: Optional[str] = None,
         metadata: Optional[ServiceMetadata] = None,
-        health_check: Optional[HealthCheck] = None
+        health_check: Optional[HealthCheck] = None,
     ) -> str:
         """
         Register service with Consul
@@ -549,9 +556,7 @@ class ConsulServiceRegistry(ServiceRegistry):
             Service ID
         """
         # First register locally
-        service_id = super().register(
-            service_name, host, port, service_id, metadata, health_check
-        )
+        service_id = super().register(service_name, host, port, service_id, metadata, health_check)
 
         # Then register with Consul
         if not self.requests:
@@ -566,7 +571,7 @@ class ConsulServiceRegistry(ServiceRegistry):
                 "Address": host,
                 "Port": port,
                 "Tags": metadata.tags if metadata else [],
-                "Meta": metadata.metadata if metadata else {}
+                "Meta": metadata.metadata if metadata else {},
             }
 
             # Add health check if provided
@@ -574,23 +579,18 @@ class ConsulServiceRegistry(ServiceRegistry):
                 consul_service["Check"] = {
                     "HTTP": health_check.url,
                     "Interval": f"{health_check.interval}s",
-                    "Timeout": f"{health_check.timeout}s"
+                    "Timeout": f"{health_check.timeout}s",
                 }
 
             # Register with Consul
             response = self.requests.put(
-                f"{self.consul_url}/v1/agent/service/register",
-                json=consul_service,
-                timeout=10
+                f"{self.consul_url}/v1/agent/service/register", json=consul_service, timeout=10
             )
 
             if response.status_code == 200:
                 logger.info(f"Service {service_id} registered with Consul")
             else:
-                logger.error(
-                    f"Failed to register with Consul: {response.status_code} - "
-                    f"{response.text[:200]}"
-                )
+                logger.error(f"Failed to register with Consul: {response.status_code} - " f"{response.text[:200]}")
 
         except Exception as e:
             logger.error(f"Error registering with Consul: {e}")
@@ -615,17 +615,12 @@ class ConsulServiceRegistry(ServiceRegistry):
             return result
 
         try:
-            response = self.requests.put(
-                f"{self.consul_url}/v1/agent/service/deregister/{service_id}",
-                timeout=10
-            )
+            response = self.requests.put(f"{self.consul_url}/v1/agent/service/deregister/{service_id}", timeout=10)
 
             if response.status_code == 200:
                 logger.info(f"Service {service_id} deregistered from Consul")
             else:
-                logger.error(
-                    f"Failed to deregister from Consul: {response.status_code}"
-                )
+                logger.error(f"Failed to deregister from Consul: {response.status_code}")
 
         except Exception as e:
             logger.error(f"Error deregistering from Consul: {e}")
@@ -647,10 +642,7 @@ class ConsulServiceRegistry(ServiceRegistry):
 
         try:
             # Get all services from Consul
-            response = self.requests.get(
-                f"{self.consul_url}/v1/catalog/services",
-                timeout=10
-            )
+            response = self.requests.get(f"{self.consul_url}/v1/catalog/services", timeout=10)
 
             if response.status_code != 200:
                 logger.error(f"Failed to fetch Consul services: {response.status_code}")
@@ -662,10 +654,7 @@ class ConsulServiceRegistry(ServiceRegistry):
             # Sync each service
             for service_name in services.keys():
                 # Get service details
-                detail_response = self.requests.get(
-                    f"{self.consul_url}/v1/catalog/service/{service_name}",
-                    timeout=10
-                )
+                detail_response = self.requests.get(f"{self.consul_url}/v1/catalog/service/{service_name}", timeout=10)
 
                 if detail_response.status_code == 200:
                     service_instances = detail_response.json()
@@ -675,13 +664,12 @@ class ConsulServiceRegistry(ServiceRegistry):
                         try:
                             super().register(
                                 service_name=service_name,
-                                host=instance.get('ServiceAddress', instance.get('Address')),
-                                port=instance.get('ServicePort'),
-                                service_id=instance.get('ServiceID'),
+                                host=instance.get("ServiceAddress", instance.get("Address")),
+                                port=instance.get("ServicePort"),
+                                service_id=instance.get("ServiceID"),
                                 metadata=ServiceMetadata(
-                                    tags=instance.get('ServiceTags', []),
-                                    metadata=instance.get('ServiceMeta', {})
-                                )
+                                    tags=instance.get("ServiceTags", []), metadata=instance.get("ServiceMeta", {})
+                                ),
                             )
                             synced_count += 1
                         except Exception as e:
@@ -711,13 +699,14 @@ class EurekaServiceRegistry(ServiceRegistry):
             eureka_url: Eureka server URL
         """
         super().__init__(**kwargs)
-        self.eureka_url = eureka_url.rstrip('/')
+        self.eureka_url = eureka_url.rstrip("/")
         self._heartbeat_threads: Dict[str, threading.Thread] = {}
         self._heartbeat_interval = 30  # seconds
 
         # Check if requests is available
         try:
             import requests
+
             self.requests = requests
         except ImportError:
             logger.warning(
@@ -733,7 +722,7 @@ class EurekaServiceRegistry(ServiceRegistry):
         port: int,
         service_id: Optional[str] = None,
         metadata: Optional[ServiceMetadata] = None,
-        health_check: Optional[HealthCheck] = None
+        health_check: Optional[HealthCheck] = None,
     ) -> str:
         """
         Register service with Eureka
@@ -750,9 +739,7 @@ class EurekaServiceRegistry(ServiceRegistry):
             Service ID
         """
         # First register locally
-        service_id = super().register(
-            service_name, host, port, service_id, metadata, health_check
-        )
+        service_id = super().register(service_name, host, port, service_id, metadata, health_check)
 
         # Then register with Eureka
         if not self.requests:
@@ -768,15 +755,12 @@ class EurekaServiceRegistry(ServiceRegistry):
                     "app": service_name.upper(),
                     "ipAddr": host,
                     "status": "UP",
-                    "port": {
-                        "$": port,
-                        "@enabled": "true"
-                    },
+                    "port": {"$": port, "@enabled": "true"},
                     "dataCenterInfo": {
                         "@class": "com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo",
-                        "name": "MyOwn"
+                        "name": "MyOwn",
                     },
-                    "metadata": metadata.metadata if metadata else {}
+                    "metadata": metadata.metadata if metadata else {},
                 }
             }
 
@@ -785,7 +769,7 @@ class EurekaServiceRegistry(ServiceRegistry):
                 f"{self.eureka_url}/apps/{service_name.upper()}",
                 json=eureka_instance,
                 headers={"Content-Type": "application/json"},
-                timeout=10
+                timeout=10,
             )
 
             if response.status_code in (200, 204):
@@ -794,10 +778,7 @@ class EurekaServiceRegistry(ServiceRegistry):
                 # Start heartbeat thread
                 self._start_heartbeat(service_id, service_name)
             else:
-                logger.error(
-                    f"Failed to register with Eureka: {response.status_code} - "
-                    f"{response.text[:200]}"
-                )
+                logger.error(f"Failed to register with Eureka: {response.status_code} - " f"{response.text[:200]}")
 
         except Exception as e:
             logger.error(f"Error registering with Eureka: {e}")
@@ -829,17 +810,12 @@ class EurekaServiceRegistry(ServiceRegistry):
 
         try:
             app_name = instance.service_name.upper()
-            response = self.requests.delete(
-                f"{self.eureka_url}/apps/{app_name}/{service_id}",
-                timeout=10
-            )
+            response = self.requests.delete(f"{self.eureka_url}/apps/{app_name}/{service_id}", timeout=10)
 
             if response.status_code in (200, 204):
                 logger.info(f"Service {service_id} deregistered from Eureka")
             else:
-                logger.error(
-                    f"Failed to deregister from Eureka: {response.status_code}"
-                )
+                logger.error(f"Failed to deregister from Eureka: {response.status_code}")
 
         except Exception as e:
             logger.error(f"Error deregistering from Eureka: {e}")
@@ -854,6 +830,7 @@ class EurekaServiceRegistry(ServiceRegistry):
             service_id: Service ID
             service_name: Service name
         """
+
         def heartbeat_loop():
             while self._running and service_id in self._heartbeat_threads:
                 try:
@@ -862,11 +839,7 @@ class EurekaServiceRegistry(ServiceRegistry):
                 except Exception as e:
                     logger.error(f"Heartbeat error for {service_id}: {e}")
 
-        thread = threading.Thread(
-            target=heartbeat_loop,
-            daemon=True,
-            name=f"eureka-heartbeat-{service_id}"
-        )
+        thread = threading.Thread(target=heartbeat_loop, daemon=True, name=f"eureka-heartbeat-{service_id}")
         self._heartbeat_threads[service_id] = thread
         thread.start()
         logger.info(f"Started heartbeat for service {service_id}")
@@ -897,18 +870,13 @@ class EurekaServiceRegistry(ServiceRegistry):
             return False
 
         try:
-            response = self.requests.put(
-                f"{self.eureka_url}/apps/{service_name.upper()}/{service_id}",
-                timeout=10
-            )
+            response = self.requests.put(f"{self.eureka_url}/apps/{service_name.upper()}/{service_id}", timeout=10)
 
             if response.status_code == 200:
                 logger.debug(f"Heartbeat sent for service {service_id}")
                 return True
             else:
-                logger.warning(
-                    f"Heartbeat failed for {service_id}: {response.status_code}"
-                )
+                logger.warning(f"Heartbeat failed for {service_id}: {response.status_code}")
                 return False
 
         except Exception as e:
@@ -930,11 +898,7 @@ class EurekaServiceRegistry(ServiceRegistry):
 
         try:
             # Get all applications from Eureka
-            response = self.requests.get(
-                f"{self.eureka_url}/apps",
-                headers={"Accept": "application/json"},
-                timeout=10
-            )
+            response = self.requests.get(f"{self.eureka_url}/apps", headers={"Accept": "application/json"}, timeout=10)
 
             if response.status_code != 200:
                 logger.error(f"Failed to fetch Eureka apps: {response.status_code}")
@@ -944,15 +908,15 @@ class EurekaServiceRegistry(ServiceRegistry):
             fetched_count = 0
 
             # Parse Eureka response
-            applications = apps_data.get('applications', {}).get('application', [])
+            applications = apps_data.get("applications", {}).get("application", [])
 
             # Handle single application case
             if isinstance(applications, dict):
                 applications = [applications]
 
             for app in applications:
-                app_name = app.get('name', '').lower()
-                instances = app.get('instance', [])
+                app_name = app.get("name", "").lower()
+                instances = app.get("instance", [])
 
                 # Handle single instance case
                 if isinstance(instances, dict):
@@ -963,12 +927,10 @@ class EurekaServiceRegistry(ServiceRegistry):
                         # Register in local registry
                         super().register(
                             service_name=app_name,
-                            host=instance.get('ipAddr', instance.get('hostName')),
-                            port=instance.get('port', {}).get('$', 0),
-                            service_id=instance.get('instanceId'),
-                            metadata=ServiceMetadata(
-                                metadata=instance.get('metadata', {})
-                            )
+                            host=instance.get("ipAddr", instance.get("hostName")),
+                            port=instance.get("port", {}).get("$", 0),
+                            service_id=instance.get("instanceId"),
+                            metadata=ServiceMetadata(metadata=instance.get("metadata", {})),
                         )
                         fetched_count += 1
                     except Exception as e:
@@ -1005,12 +967,7 @@ def get_registry() -> ServiceRegistry:
     return _default_registry
 
 
-def register_service(
-    service_name: str,
-    host: str,
-    port: int,
-    **kwargs
-) -> str:
+def register_service(service_name: str, host: str, port: int, **kwargs) -> str:
     """
     Register service with default registry
 
@@ -1066,24 +1023,15 @@ if __name__ == "__main__":
         service_name="user-service",
         host="localhost",
         port=8001,
-        metadata=ServiceMetadata(
-            version="1.0.0",
-            tags=["api", "users"]
-        ),
-        health_check=HealthCheck(
-            check_type="tcp",
-            interval_seconds=5
-        )
+        metadata=ServiceMetadata(version="1.0.0", tags=["api", "users"]),
+        health_check=HealthCheck(check_type="tcp", interval_seconds=5),
     )
 
     service_id2 = registry.register(
         service_name="user-service",
         host="localhost",
         port=8002,
-        metadata=ServiceMetadata(
-            version="1.0.0",
-            tags=["api", "users"]
-        )
+        metadata=ServiceMetadata(version="1.0.0", tags=["api", "users"]),
     )
 
     # Discover services
@@ -1096,12 +1044,7 @@ if __name__ == "__main__":
     registry.heartbeat(service_id1)
 
     # Update load metrics
-    metrics = LoadMetrics(
-        cpu_usage=45.5,
-        memory_usage=62.3,
-        request_count=1000,
-        avg_response_time_ms=23.5
-    )
+    metrics = LoadMetrics(cpu_usage=45.5, memory_usage=62.3, request_count=1000, avg_response_time_ms=23.5)
     registry.update_load_metrics(service_id1, metrics)
 
     # Get service info
@@ -1109,8 +1052,7 @@ if __name__ == "__main__":
     if service:
         print(f"\nService {service_id1}:")
         print(f"  Status: {service.status}")
-        print(f"  Load: CPU={service.load_metrics.cpu_usage}%, "
-              f"MEM={service.load_metrics.memory_usage}%")
+        print(f"  Load: CPU={service.load_metrics.cpu_usage}%, " f"MEM={service.load_metrics.memory_usage}%")
 
     # Cleanup
     time.sleep(2)

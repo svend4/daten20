@@ -16,18 +16,21 @@ Core Systems:
 """
 
 import asyncio
-import numpy as np
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple, Callable, Any
-from enum import Enum
-from datetime import datetime
 import threading
 import time
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import numpy as np
 
 # Enums
 
+
 class DeviceTier(Enum):
     """Edge device capability tiers"""
+
     TIER_1_MCU = "tier_1_mcu"  # Microcontrollers (<1 MB RAM)
     TIER_2_SBC = "tier_2_sbc"  # Single-board computers (1-4 GB RAM)
     TIER_3_EDGE_SERVER = "tier_3_edge_server"  # Edge servers (8-32 GB RAM)
@@ -36,6 +39,7 @@ class DeviceTier(Enum):
 
 class TrainingMode(Enum):
     """Distributed training modes"""
+
     SPLIT_LEARNING = "split_learning"
     FEDERATED_LEARNING = "federated_learning"
     GOSSIP_LEARNING = "gossip_learning"
@@ -44,6 +48,7 @@ class TrainingMode(Enum):
 
 class CompressionType(Enum):
     """Model compression techniques"""
+
     QUANTIZATION_INT8 = "quantization_int8"
     QUANTIZATION_INT4 = "quantization_int4"
     PRUNING_MAGNITUDE = "pruning_magnitude"
@@ -54,6 +59,7 @@ class CompressionType(Enum):
 
 class OptimizationTarget(Enum):
     """Target platforms for optimization"""
+
     TENSORRT = "tensorrt"  # NVIDIA Jetson
     TFLITE = "tflite"  # ARM, mobile
     ONNX = "onnx"  # General ONNX runtime
@@ -63,6 +69,7 @@ class OptimizationTarget(Enum):
 
 class PlacementStrategy(Enum):
     """Workload placement strategies"""
+
     LATENCY_OPTIMAL = "latency_optimal"
     LOAD_BALANCED = "load_balanced"
     COST_OPTIMAL = "cost_optimal"
@@ -71,6 +78,7 @@ class PlacementStrategy(Enum):
 
 class SyncStrategy(Enum):
     """Synchronization strategies"""
+
     DELTA_SYNC = "delta_sync"
     FULL_SYNC = "full_sync"
     LAZY_SYNC = "lazy_sync"
@@ -79,9 +87,11 @@ class SyncStrategy(Enum):
 
 # Data Classes
 
+
 @dataclass
 class EdgeDevice:
     """Edge device profile"""
+
     device_id: str
     device_tier: DeviceTier
     cpu_cores: int
@@ -103,6 +113,7 @@ class EdgeDevice:
 @dataclass
 class DeviceMetrics:
     """Real-time device metrics"""
+
     device_id: str
     cpu_utilization: float  # 0-100%
     memory_utilization: float  # 0-100%
@@ -121,6 +132,7 @@ class DeviceMetrics:
 @dataclass
 class TrainingJob:
     """Distributed training job"""
+
     job_id: str
     training_mode: TrainingMode
     participating_devices: List[str]
@@ -128,8 +140,8 @@ class TrainingJob:
     dataset_id: str
     current_round: int = 0
     total_rounds: int = 100
-    current_loss: float = float('inf')
-    best_loss: float = float('inf')
+    current_loss: float = float("inf")
+    best_loss: float = float("inf")
     convergence_threshold: float = 1e-4
     status: str = "initialized"  # initialized, running, converged, failed
     created_at: datetime = field(default_factory=datetime.now)
@@ -138,6 +150,7 @@ class TrainingJob:
 @dataclass
 class CompressedModel:
     """Compressed model metadata"""
+
     model_id: str
     original_size_mb: float
     compressed_size_mb: float
@@ -153,6 +166,7 @@ class CompressedModel:
 @dataclass
 class WorkloadPlacement:
     """Workload to device assignment"""
+
     workload_id: str
     device_id: str
     model_id: str
@@ -167,6 +181,7 @@ class WorkloadPlacement:
 @dataclass
 class SyncOperation:
     """Synchronization operation"""
+
     operation_id: str
     entity_id: str
     operation_type: str  # CREATE, UPDATE, DELETE
@@ -178,6 +193,7 @@ class SyncOperation:
 
 
 # Service Classes
+
 
 class EdgeDeviceManager:
     """
@@ -200,43 +216,35 @@ class EdgeDeviceManager:
         self.alerts: Dict[str, List[Dict[str, Any]]] = {}
         self._lock = threading.Lock()
 
-    async def register_device(
-        self,
-        device_id: str,
-        device_info: Dict[str, Any]
-    ) -> EdgeDevice:
+    async def register_device(self, device_id: str, device_info: Dict[str, Any]) -> EdgeDevice:
         """Register new edge device"""
         with self._lock:
             # Create device profile
             device = EdgeDevice(
                 device_id=device_id,
-                device_tier=DeviceTier(device_info['tier']),
-                cpu_cores=device_info['cpu_cores'],
-                ram_mb=device_info['ram_mb'],
-                storage_gb=device_info['storage_gb'],
-                has_gpu=device_info.get('has_gpu', False),
-                gpu_memory_mb=device_info.get('gpu_memory_mb', 0),
-                network_bandwidth_mbps=device_info.get('bandwidth_mbps', 100.0),
-                battery_powered=device_info.get('battery_powered', False),
-                location=device_info.get('location'),
-                capabilities=device_info.get('capabilities', [])
+                device_tier=DeviceTier(device_info["tier"]),
+                cpu_cores=device_info["cpu_cores"],
+                ram_mb=device_info["ram_mb"],
+                storage_gb=device_info["storage_gb"],
+                has_gpu=device_info.get("has_gpu", False),
+                gpu_memory_mb=device_info.get("gpu_memory_mb", 0),
+                network_bandwidth_mbps=device_info.get("bandwidth_mbps", 100.0),
+                battery_powered=device_info.get("battery_powered", False),
+                location=device_info.get("location"),
+                capabilities=device_info.get("capabilities", []),
             )
 
             # Benchmark device
             benchmark_results = await self._benchmark_device(device_id, device)
-            device.inference_throughput_qps = benchmark_results['throughput_qps']
-            device.power_consumption_w = benchmark_results['power_w']
+            device.inference_throughput_qps = benchmark_results["throughput_qps"]
+            device.power_consumption_w = benchmark_results["power_w"]
 
             self.devices[device_id] = device
             self.metrics_history[device_id] = []
 
             return device
 
-    async def _benchmark_device(
-        self,
-        device_id: str,
-        device: EdgeDevice
-    ) -> Dict[str, float]:
+    async def _benchmark_device(self, device_id: str, device: EdgeDevice) -> Dict[str, float]:
         """Benchmark device performance"""
         # Simplified benchmarking
         # Real implementation would run actual inference tests
@@ -246,7 +254,7 @@ class EdgeDeviceManager:
             DeviceTier.TIER_1_MCU: 1.0,
             DeviceTier.TIER_2_SBC: 10.0,
             DeviceTier.TIER_3_EDGE_SERVER: 100.0,
-            DeviceTier.TIER_4_EDGE_CLUSTER: 1000.0
+            DeviceTier.TIER_4_EDGE_CLUSTER: 1000.0,
         }
 
         throughput_qps = tier_throughput[device.device_tier]
@@ -257,16 +265,9 @@ class EdgeDeviceManager:
         if device.has_gpu:
             power_w += 50.0  # GPU power consumption
 
-        return {
-            'throughput_qps': throughput_qps,
-            'power_w': power_w
-        }
+        return {"throughput_qps": throughput_qps, "power_w": power_w}
 
-    async def update_metrics(
-        self,
-        device_id: str,
-        metrics: DeviceMetrics
-    ):
+    async def update_metrics(self, device_id: str, metrics: DeviceMetrics):
         """Update device metrics"""
         if device_id not in self.devices:
             raise ValueError(f"Device {device_id} not registered")
@@ -284,49 +285,53 @@ class EdgeDeviceManager:
         # Check for anomalies
         await self._check_anomalies(device_id, metrics)
 
-    async def _check_anomalies(
-        self,
-        device_id: str,
-        metrics: DeviceMetrics
-    ):
+    async def _check_anomalies(self, device_id: str, metrics: DeviceMetrics):
         """Check for anomalous metrics"""
         alerts = []
 
         # CPU overutilization
         if metrics.cpu_utilization > 90:
-            alerts.append({
-                'type': 'cpu_high',
-                'severity': 'warning',
-                'value': metrics.cpu_utilization,
-                'message': f"CPU utilization {metrics.cpu_utilization:.1f}% > 90%"
-            })
+            alerts.append(
+                {
+                    "type": "cpu_high",
+                    "severity": "warning",
+                    "value": metrics.cpu_utilization,
+                    "message": f"CPU utilization {metrics.cpu_utilization:.1f}% > 90%",
+                }
+            )
 
         # Memory pressure
         if metrics.memory_utilization > 85:
-            alerts.append({
-                'type': 'memory_high',
-                'severity': 'warning',
-                'value': metrics.memory_utilization,
-                'message': f"Memory utilization {metrics.memory_utilization:.1f}% > 85%"
-            })
+            alerts.append(
+                {
+                    "type": "memory_high",
+                    "severity": "warning",
+                    "value": metrics.memory_utilization,
+                    "message": f"Memory utilization {metrics.memory_utilization:.1f}% > 85%",
+                }
+            )
 
         # Temperature
         if metrics.temperature_celsius > 80:
-            alerts.append({
-                'type': 'temperature_high',
-                'severity': 'critical',
-                'value': metrics.temperature_celsius,
-                'message': f"Temperature {metrics.temperature_celsius:.1f}°C > 80°C"
-            })
+            alerts.append(
+                {
+                    "type": "temperature_high",
+                    "severity": "critical",
+                    "value": metrics.temperature_celsius,
+                    "message": f"Temperature {metrics.temperature_celsius:.1f}°C > 80°C",
+                }
+            )
 
         # Battery low
         if metrics.battery_percentage is not None and metrics.battery_percentage < 20:
-            alerts.append({
-                'type': 'battery_low',
-                'severity': 'warning',
-                'value': metrics.battery_percentage,
-                'message': f"Battery {metrics.battery_percentage:.1f}% < 20%"
-            })
+            alerts.append(
+                {
+                    "type": "battery_low",
+                    "severity": "warning",
+                    "value": metrics.battery_percentage,
+                    "message": f"Battery {metrics.battery_percentage:.1f}% < 20%",
+                }
+            )
 
         if alerts:
             if device_id not in self.alerts:
@@ -342,20 +347,20 @@ class EdgeDeviceManager:
         recent_metrics = self.metrics_history.get(device_id, [])[-10:]
 
         return {
-            'device_id': device_id,
-            'tier': device.device_tier.value,
-            'status': device.status,
-            'cpu_cores': device.cpu_cores,
-            'ram_mb': device.ram_mb,
-            'has_gpu': device.has_gpu,
-            'capabilities': device.capabilities,
-            'throughput_qps': device.inference_throughput_qps,
-            'power_w': device.power_consumption_w,
-            'last_heartbeat': device.last_heartbeat.isoformat(),
-            'uptime_sec': (datetime.now() - device.registered_at).total_seconds(),
-            'recent_cpu_avg': np.mean([m.cpu_utilization for m in recent_metrics]) if recent_metrics else 0,
-            'recent_memory_avg': np.mean([m.memory_utilization for m in recent_metrics]) if recent_metrics else 0,
-            'alerts': self.alerts.get(device_id, [])[-5:]  # Last 5 alerts
+            "device_id": device_id,
+            "tier": device.device_tier.value,
+            "status": device.status,
+            "cpu_cores": device.cpu_cores,
+            "ram_mb": device.ram_mb,
+            "has_gpu": device.has_gpu,
+            "capabilities": device.capabilities,
+            "throughput_qps": device.inference_throughput_qps,
+            "power_w": device.power_consumption_w,
+            "last_heartbeat": device.last_heartbeat.isoformat(),
+            "uptime_sec": (datetime.now() - device.registered_at).total_seconds(),
+            "recent_cpu_avg": np.mean([m.cpu_utilization for m in recent_metrics]) if recent_metrics else 0,
+            "recent_memory_avg": np.mean([m.memory_utilization for m in recent_metrics]) if recent_metrics else 0,
+            "alerts": self.alerts.get(device_id, [])[-5:],  # Last 5 alerts
         }
 
 
@@ -386,7 +391,7 @@ class DistributedEdgeTraining:
         participating_devices: List[str],
         model_architecture: str,
         dataset_id: str,
-        total_rounds: int = 100
+        total_rounds: int = 100,
     ) -> TrainingJob:
         """Start federated learning job"""
         with self._lock:
@@ -397,7 +402,7 @@ class DistributedEdgeTraining:
                 model_architecture=model_architecture,
                 dataset_id=dataset_id,
                 total_rounds=total_rounds,
-                status="running"
+                status="running",
             )
 
             self.training_jobs[job_id] = job
@@ -405,10 +410,7 @@ class DistributedEdgeTraining:
 
             return job
 
-    async def federated_training_round(
-        self,
-        job_id: str
-    ) -> Dict[str, Any]:
+    async def federated_training_round(self, job_id: str) -> Dict[str, Any]:
         """Execute one round of federated learning"""
         job = self.training_jobs.get(job_id)
         if not job:
@@ -427,7 +429,7 @@ class DistributedEdgeTraining:
 
         # Update global model
         job.current_round += 1
-        job.current_loss = aggregated_update['loss']
+        job.current_loss = aggregated_update["loss"]
 
         if job.current_loss < job.best_loss:
             job.best_loss = job.current_loss
@@ -437,18 +439,14 @@ class DistributedEdgeTraining:
             job.status = "converged"
 
         return {
-            'job_id': job_id,
-            'round': job.current_round,
-            'loss': job.current_loss,
-            'best_loss': job.best_loss,
-            'status': job.status
+            "job_id": job_id,
+            "round": job.current_round,
+            "loss": job.current_loss,
+            "best_loss": job.best_loss,
+            "status": job.status,
         }
 
-    async def _simulate_local_training(
-        self,
-        device_id: str,
-        job: TrainingJob
-    ) -> Dict[str, Any]:
+    async def _simulate_local_training(self, device_id: str, job: TrainingJob) -> Dict[str, Any]:
         """Simulate local training on device"""
         # Simplified simulation
         # Real implementation would execute training on device
@@ -460,42 +458,29 @@ class DistributedEdgeTraining:
         data_size = np.random.randint(100, 1000)
         local_loss = np.random.rand() * 2.0
 
-        return {
-            'device_id': device_id,
-            'weight_updates': weight_updates,
-            'data_size': data_size,
-            'loss': local_loss
-        }
+        return {"device_id": device_id, "weight_updates": weight_updates, "data_size": data_size, "loss": local_loss}
 
-    async def _aggregate_updates(
-        self,
-        local_updates: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    async def _aggregate_updates(self, local_updates: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Aggregate local updates using FedAvg"""
         # Weighted average by data size
-        total_data = sum(update['data_size'] for update in local_updates)
+        total_data = sum(update["data_size"] for update in local_updates)
 
         # Aggregate weight updates
-        aggregated_weights = np.zeros_like(local_updates[0]['weight_updates'])
+        aggregated_weights = np.zeros_like(local_updates[0]["weight_updates"])
         aggregated_loss = 0.0
 
         for update in local_updates:
-            weight = update['data_size'] / total_data
-            aggregated_weights += weight * update['weight_updates']
-            aggregated_loss += weight * update['loss']
+            weight = update["data_size"] / total_data
+            aggregated_weights += weight * update["weight_updates"]
+            aggregated_loss += weight * update["loss"]
 
         return {
-            'aggregated_weights': aggregated_weights,
-            'loss': aggregated_loss,
-            'num_participants': len(local_updates)
+            "aggregated_weights": aggregated_weights,
+            "loss": aggregated_loss,
+            "num_participants": len(local_updates),
         }
 
-    async def split_learning_forward(
-        self,
-        job_id: str,
-        device_id: str,
-        input_data: np.ndarray
-    ) -> np.ndarray:
+    async def split_learning_forward(self, job_id: str, device_id: str, input_data: np.ndarray) -> np.ndarray:
         """Forward pass in split learning (device layers)"""
         # Simulate device-side forward pass
         # Device computes first few layers
@@ -506,12 +491,7 @@ class DistributedEdgeTraining:
 
         return smashed_data
 
-    async def split_learning_backward(
-        self,
-        job_id: str,
-        device_id: str,
-        gradients: np.ndarray
-    ):
+    async def split_learning_backward(self, job_id: str, device_id: str, gradients: np.ndarray):
         """Backward pass in split learning (device layers)"""
         # Simulate device-side backward pass
         # Device updates its layers using gradients from server
@@ -526,15 +506,15 @@ class DistributedEdgeTraining:
             return {}
 
         return {
-            'job_id': job_id,
-            'training_mode': job.training_mode.value,
-            'current_round': job.current_round,
-            'total_rounds': job.total_rounds,
-            'current_loss': job.current_loss,
-            'best_loss': job.best_loss,
-            'status': job.status,
-            'num_devices': len(job.participating_devices),
-            'elapsed_time': (datetime.now() - job.created_at).total_seconds()
+            "job_id": job_id,
+            "training_mode": job.training_mode.value,
+            "current_round": job.current_round,
+            "total_rounds": job.total_rounds,
+            "current_loss": job.current_loss,
+            "best_loss": job.best_loss,
+            "status": job.status,
+            "num_devices": len(job.participating_devices),
+            "elapsed_time": (datetime.now() - job.created_at).total_seconds(),
         }
 
 
@@ -558,11 +538,7 @@ class EdgeInferenceOptimizer:
         self._lock = threading.Lock()
 
     async def optimize_for_edge(
-        self,
-        model_id: str,
-        target_platform: OptimizationTarget,
-        precision: str = "fp16",
-        max_batch_size: int = 1
+        self, model_id: str, target_platform: OptimizationTarget, precision: str = "fp16", max_batch_size: int = 1
     ) -> Dict[str, Any]:
         """Optimize model for edge deployment"""
         with self._lock:
@@ -579,31 +555,26 @@ class EdgeInferenceOptimizer:
             elif target_platform == OptimizationTarget.ONNX:
                 optimized = await self._optimize_onnx(model_id)
             else:
-                optimized = {'format': 'unknown'}
+                optimized = {"format": "unknown"}
 
             optimization_time = time.time() - optimization_start
 
             optimized_model = {
-                'model_id': model_id,
-                'target_platform': target_platform.value,
-                'precision': precision,
-                'max_batch_size': max_batch_size,
-                'optimization_time_sec': optimization_time,
-                'estimated_speedup': optimized.get('speedup', 2.0),
-                'estimated_latency_ms': optimized.get('latency_ms', 10.0),
-                'optimized_at': datetime.now()
+                "model_id": model_id,
+                "target_platform": target_platform.value,
+                "precision": precision,
+                "max_batch_size": max_batch_size,
+                "optimization_time_sec": optimization_time,
+                "estimated_speedup": optimized.get("speedup", 2.0),
+                "estimated_latency_ms": optimized.get("latency_ms", 10.0),
+                "optimized_at": datetime.now(),
             }
 
             self.optimized_models[f"{model_id}_{target_platform.value}"] = optimized_model
 
             return optimized_model
 
-    async def _optimize_tensorrt(
-        self,
-        model_id: str,
-        precision: str,
-        max_batch_size: int
-    ) -> Dict[str, Any]:
+    async def _optimize_tensorrt(self, model_id: str, precision: str, max_batch_size: int) -> Dict[str, Any]:
         """Optimize using TensorRT (NVIDIA Jetson)"""
         # Simplified simulation
         # Real: Convert ONNX → TensorRT engine
@@ -611,17 +582,9 @@ class EdgeInferenceOptimizer:
         speedup = 3.0 if precision == "fp16" else 5.0  # INT8 faster
         latency_ms = 15.0 / speedup
 
-        return {
-            'format': 'tensorrt',
-            'speedup': speedup,
-            'latency_ms': latency_ms
-        }
+        return {"format": "tensorrt", "speedup": speedup, "latency_ms": latency_ms}
 
-    async def _optimize_tflite(
-        self,
-        model_id: str,
-        precision: str
-    ) -> Dict[str, Any]:
+    async def _optimize_tflite(self, model_id: str, precision: str) -> Dict[str, Any]:
         """Optimize using TensorFlow Lite (ARM, mobile)"""
         # Simplified simulation
         # Real: Convert TF/ONNX → TFLite + quantization
@@ -629,40 +592,27 @@ class EdgeInferenceOptimizer:
         speedup = 2.5 if precision == "int8" else 1.5
         latency_ms = 20.0 / speedup
 
-        return {
-            'format': 'tflite',
-            'speedup': speedup,
-            'latency_ms': latency_ms
-        }
+        return {"format": "tflite", "speedup": speedup, "latency_ms": latency_ms}
 
     async def _optimize_onnx(self, model_id: str) -> Dict[str, Any]:
         """Optimize ONNX graph"""
         # Simplified simulation
         # Real: ONNX graph optimizations (fusion, constant folding)
 
-        return {
-            'format': 'onnx',
-            'speedup': 1.5,
-            'latency_ms': 25.0
-        }
+        return {"format": "onnx", "speedup": 1.5, "latency_ms": 25.0}
 
-    async def benchmark_model(
-        self,
-        model_id: str,
-        device_id: str,
-        num_iterations: int = 100
-    ) -> Dict[str, float]:
+    async def benchmark_model(self, model_id: str, device_id: str, num_iterations: int = 100) -> Dict[str, float]:
         """Benchmark model on specific device"""
         # Simulate benchmarking
         latencies = np.random.normal(10.0, 2.0, num_iterations)
         latencies = np.maximum(latencies, 1.0)  # Min 1ms
 
         return {
-            'mean_latency_ms': float(np.mean(latencies)),
-            'p50_latency_ms': float(np.percentile(latencies, 50)),
-            'p95_latency_ms': float(np.percentile(latencies, 95)),
-            'p99_latency_ms': float(np.percentile(latencies, 99)),
-            'throughput_qps': 1000.0 / np.mean(latencies)
+            "mean_latency_ms": float(np.mean(latencies)),
+            "p50_latency_ms": float(np.percentile(latencies, 50)),
+            "p95_latency_ms": float(np.percentile(latencies, 95)),
+            "p99_latency_ms": float(np.percentile(latencies, 99)),
+            "throughput_qps": 1000.0 / np.mean(latencies),
         }
 
 
@@ -686,10 +636,7 @@ class ModelCompressionEngine:
         self._lock = threading.Lock()
 
     async def quantize_model(
-        self,
-        model_id: str,
-        quantization_type: CompressionType,
-        calibration_data_size: int = 100
+        self, model_id: str, quantization_type: CompressionType, calibration_data_size: int = 100
     ) -> CompressedModel:
         """Quantize model to INT8 or INT4"""
         compression_start = time.time()
@@ -721,7 +668,7 @@ class ModelCompressionEngine:
             original_accuracy=original_accuracy,
             compressed_accuracy=compressed_accuracy,
             accuracy_loss=accuracy_loss,
-            compression_time_sec=compression_time
+            compression_time_sec=compression_time,
         )
 
         self.compressed_models[compressed.model_id] = compressed
@@ -729,10 +676,7 @@ class ModelCompressionEngine:
         return compressed
 
     async def prune_model(
-        self,
-        model_id: str,
-        sparsity: float = 0.5,
-        pruning_type: CompressionType = CompressionType.PRUNING_MAGNITUDE
+        self, model_id: str, sparsity: float = 0.5, pruning_type: CompressionType = CompressionType.PRUNING_MAGNITUDE
     ) -> CompressedModel:
         """Prune model weights"""
         compression_start = time.time()
@@ -759,7 +703,7 @@ class ModelCompressionEngine:
             original_accuracy=original_accuracy,
             compressed_accuracy=compressed_accuracy,
             accuracy_loss=accuracy_loss,
-            compression_time_sec=compression_time
+            compression_time_sec=compression_time,
         )
 
         self.compressed_models[compressed.model_id] = compressed
@@ -767,11 +711,7 @@ class ModelCompressionEngine:
         return compressed
 
     async def distill_model(
-        self,
-        teacher_model_id: str,
-        student_model_id: str,
-        temperature: float = 3.0,
-        alpha: float = 0.7
+        self, teacher_model_id: str, student_model_id: str, temperature: float = 3.0, alpha: float = 0.7
     ) -> CompressedModel:
         """Knowledge distillation from teacher to student"""
         compression_start = time.time()
@@ -796,7 +736,7 @@ class ModelCompressionEngine:
             original_accuracy=teacher_accuracy,
             compressed_accuracy=student_accuracy,
             accuracy_loss=accuracy_loss,
-            compression_time_sec=compression_time
+            compression_time_sec=compression_time,
         )
 
         self.compressed_models[compressed.model_id] = compressed
@@ -810,16 +750,16 @@ class ModelCompressionEngine:
             return {}
 
         return {
-            'model_id': compressed.model_id,
-            'original_size_mb': compressed.original_size_mb,
-            'compressed_size_mb': compressed.compressed_size_mb,
-            'compression_ratio': f"{compressed.compression_ratio:.1f}x",
-            'size_reduction_pct': (1 - 1/compressed.compression_ratio) * 100,
-            'original_accuracy': compressed.original_accuracy,
-            'compressed_accuracy': compressed.compressed_accuracy,
-            'accuracy_loss_pct': compressed.accuracy_loss * 100,
-            'compression_type': compressed.compression_type.value,
-            'compression_time_sec': compressed.compression_time_sec
+            "model_id": compressed.model_id,
+            "original_size_mb": compressed.original_size_mb,
+            "compressed_size_mb": compressed.compressed_size_mb,
+            "compression_ratio": f"{compressed.compression_ratio:.1f}x",
+            "size_reduction_pct": (1 - 1 / compressed.compression_ratio) * 100,
+            "original_accuracy": compressed.original_accuracy,
+            "compressed_accuracy": compressed.compressed_accuracy,
+            "accuracy_loss_pct": compressed.accuracy_loss * 100,
+            "compression_type": compressed.compression_type.value,
+            "compression_time_sec": compressed.compression_time_sec,
         }
 
 
@@ -849,12 +789,12 @@ class EdgeOrchestrationSystem:
         model_id: str,
         available_devices: List[EdgeDevice],
         requirements: Dict[str, Any],
-        strategy: PlacementStrategy = PlacementStrategy.LATENCY_OPTIMAL
+        strategy: PlacementStrategy = PlacementStrategy.LATENCY_OPTIMAL,
     ) -> WorkloadPlacement:
         """Place workload on optimal device"""
         with self._lock:
             best_device = None
-            best_score = -float('inf')
+            best_score = -float("inf")
 
             for device in available_devices:
                 # Check if device meets requirements
@@ -862,9 +802,7 @@ class EdgeOrchestrationSystem:
                     continue
 
                 # Compute placement score
-                score = await self._compute_placement_score(
-                    device, requirements, strategy
-                )
+                score = await self._compute_placement_score(device, requirements, strategy)
 
                 if score > best_score:
                     best_score = score
@@ -878,34 +816,30 @@ class EdgeOrchestrationSystem:
                 workload_id=workload_id,
                 device_id=best_device.device_id,
                 model_id=model_id,
-                priority=requirements.get('priority', 5),
-                required_qps=requirements.get('required_qps', 10.0),
-                max_latency_ms=requirements.get('max_latency_ms', 100.0),
+                priority=requirements.get("priority", 5),
+                required_qps=requirements.get("required_qps", 10.0),
+                max_latency_ms=requirements.get("max_latency_ms", 100.0),
                 resource_requirements=requirements,
-                placement_score=best_score
+                placement_score=best_score,
             )
 
             self.placements[workload_id] = placement
 
             # Update device load
-            self.device_load[best_device.device_id] = \
-                self.device_load.get(best_device.device_id, 0.0) + \
-                requirements.get('cpu_utilization', 10.0)
+            self.device_load[best_device.device_id] = self.device_load.get(
+                best_device.device_id, 0.0
+            ) + requirements.get("cpu_utilization", 10.0)
 
             return placement
 
-    def _meets_requirements(
-        self,
-        device: EdgeDevice,
-        requirements: Dict[str, Any]
-    ) -> bool:
+    def _meets_requirements(self, device: EdgeDevice, requirements: Dict[str, Any]) -> bool:
         """Check if device meets workload requirements"""
         # Check resource requirements
-        if requirements.get('requires_gpu', False) and not device.has_gpu:
+        if requirements.get("requires_gpu", False) and not device.has_gpu:
             return False
 
         # Check throughput
-        if device.inference_throughput_qps < requirements.get('required_qps', 0):
+        if device.inference_throughput_qps < requirements.get("required_qps", 0):
             return False
 
         # Check current load
@@ -916,10 +850,7 @@ class EdgeOrchestrationSystem:
         return True
 
     async def _compute_placement_score(
-        self,
-        device: EdgeDevice,
-        requirements: Dict[str, Any],
-        strategy: PlacementStrategy
+        self, device: EdgeDevice, requirements: Dict[str, Any], strategy: PlacementStrategy
     ) -> float:
         """Compute placement score for device"""
         # Multi-objective score based on strategy
@@ -957,14 +888,8 @@ class EdgeOrchestrationSystem:
         avg_load = np.mean(list(self.device_load.values())) if self.device_load else 0
 
         # Find overloaded and underloaded devices
-        overloaded = [
-            d for d in devices
-            if self.device_load.get(d.device_id, 0) > avg_load + 20
-        ]
-        underloaded = [
-            d for d in devices
-            if self.device_load.get(d.device_id, 0) < avg_load - 20
-        ]
+        overloaded = [d for d in devices if self.device_load.get(d.device_id, 0) > avg_load + 20]
+        underloaded = [d for d in devices if self.device_load.get(d.device_id, 0) < avg_load - 20]
 
         # Migrate workloads (simplified)
         migrations = []
@@ -976,17 +901,12 @@ class EdgeOrchestrationSystem:
 
             # Select workload to migrate
             # In reality, choose based on workload characteristics
-            migration = {
-                'from': source_device.device_id,
-                'to': target_device.device_id,
-                'load_delta': 10.0
-            }
+            migration = {"from": source_device.device_id, "to": target_device.device_id, "load_delta": 10.0}
             migrations.append(migration)
 
             # Update loads
             self.device_load[source_device.device_id] -= 10.0
-            self.device_load[target_device.device_id] = \
-                self.device_load.get(target_device.device_id, 0) + 10.0
+            self.device_load[target_device.device_id] = self.device_load.get(target_device.device_id, 0) + 10.0
 
         return migrations
 
@@ -1012,13 +932,7 @@ class EdgeCloudSynchronization:
         self.offline_queues: Dict[str, List[SyncOperation]] = {}
         self._lock = threading.Lock()
 
-    async def track_change(
-        self,
-        device_id: str,
-        entity_id: str,
-        operation_type: str,
-        data: Any
-    ) -> SyncOperation:
+    async def track_change(self, device_id: str, entity_id: str, operation_type: str, data: Any) -> SyncOperation:
         """Track change for synchronization"""
         with self._lock:
             # Increment version vector
@@ -1036,7 +950,7 @@ class EdgeCloudSynchronization:
                 data=data,
                 version=version,
                 device_id=device_id,
-                timestamp=datetime.now()
+                timestamp=datetime.now(),
             )
 
             # Add to sync queue
@@ -1047,11 +961,7 @@ class EdgeCloudSynchronization:
 
             return operation
 
-    async def sync_to_cloud(
-        self,
-        device_id: str,
-        is_online: bool = True
-    ) -> Dict[str, Any]:
+    async def sync_to_cloud(self, device_id: str, is_online: bool = True) -> Dict[str, Any]:
         """Synchronize device changes to cloud"""
         operations = self.sync_operations.get(device_id, [])
 
@@ -1062,10 +972,7 @@ class EdgeCloudSynchronization:
 
             self.offline_queues[device_id].extend(operations)
 
-            return {
-                'status': 'offline',
-                'queued_operations': len(self.offline_queues[device_id])
-            }
+            return {"status": "offline", "queued_operations": len(self.offline_queues[device_id])}
 
         # Sync to cloud (simulated)
         synced_count = 0
@@ -1075,21 +982,15 @@ class EdgeCloudSynchronization:
             synced_count += 1
 
         # Clear synced operations
-        self.sync_operations[device_id] = [
-            op for op in operations if not op.synced
-        ]
+        self.sync_operations[device_id] = [op for op in operations if not op.synced]
 
         return {
-            'status': 'online',
-            'synced_operations': synced_count,
-            'pending_operations': len(self.sync_operations.get(device_id, []))
+            "status": "online",
+            "synced_operations": synced_count,
+            "pending_operations": len(self.sync_operations.get(device_id, [])),
         }
 
-    async def sync_from_cloud(
-        self,
-        device_id: str,
-        cloud_operations: List[SyncOperation]
-    ) -> Dict[str, Any]:
+    async def sync_from_cloud(self, device_id: str, cloud_operations: List[SyncOperation]) -> Dict[str, Any]:
         """Synchronize cloud changes to device"""
         applied_count = 0
         conflict_count = 0
@@ -1100,9 +1001,11 @@ class EdgeCloudSynchronization:
             conflicting_op = None
 
             for local_op in local_ops:
-                if (local_op.entity_id == cloud_op.entity_id and
-                    local_op.operation_type == cloud_op.operation_type and
-                    not local_op.synced):
+                if (
+                    local_op.entity_id == cloud_op.entity_id
+                    and local_op.operation_type == cloud_op.operation_type
+                    and not local_op.synced
+                ):
                     conflicting_op = local_op
                     break
 
@@ -1116,16 +1019,9 @@ class EdgeCloudSynchronization:
                 # No conflict, apply cloud operation
                 applied_count += 1
 
-        return {
-            'applied_operations': applied_count,
-            'conflicts_resolved': conflict_count
-        }
+        return {"applied_operations": applied_count, "conflicts_resolved": conflict_count}
 
-    async def _resolve_conflict(
-        self,
-        local_op: SyncOperation,
-        cloud_op: SyncOperation
-    ) -> SyncOperation:
+    async def _resolve_conflict(self, local_op: SyncOperation, cloud_op: SyncOperation) -> SyncOperation:
         """Resolve synchronization conflict"""
         # Last-Write-Wins (LWW) strategy
         if local_op.timestamp > cloud_op.timestamp:
@@ -1151,13 +1047,9 @@ class EdgeCloudSynchronization:
             # Trigger sync
             result = await self.sync_to_cloud(device_id, is_online=True)
 
-            return {
-                'status': 'restored',
-                'replayed_operations': len(offline_ops),
-                'sync_result': result
-            }
+            return {"status": "restored", "replayed_operations": len(offline_ops), "sync_result": result}
 
-        return {'status': 'restored', 'replayed_operations': 0}
+        return {"status": "restored", "replayed_operations": 0}
 
 
 class EdgeAnalyticsPipeline:
@@ -1181,30 +1073,21 @@ class EdgeAnalyticsPipeline:
         self.anomaly_detectors: Dict[str, Any] = {}
         self._lock = threading.Lock()
 
-    async def create_pipeline(
-        self,
-        pipeline_id: str,
-        stream_source: str,
-        processing_functions: List[Callable]
-    ):
+    async def create_pipeline(self, pipeline_id: str, stream_source: str, processing_functions: List[Callable]):
         """Create analytics pipeline"""
         with self._lock:
             self.pipelines[pipeline_id] = {
-                'pipeline_id': pipeline_id,
-                'stream_source': stream_source,
-                'processing_functions': processing_functions,
-                'events_processed': 0,
-                'anomalies_detected': 0,
-                'created_at': datetime.now()
+                "pipeline_id": pipeline_id,
+                "stream_source": stream_source,
+                "processing_functions": processing_functions,
+                "events_processed": 0,
+                "anomalies_detected": 0,
+                "created_at": datetime.now(),
             }
 
             self.event_buffers[pipeline_id] = []
 
-    async def process_event(
-        self,
-        pipeline_id: str,
-        event: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def process_event(self, pipeline_id: str, event: Dict[str, Any]) -> Dict[str, Any]:
         """Process single event through pipeline"""
         pipeline = self.pipelines.get(pipeline_id)
         if not pipeline:
@@ -1219,19 +1102,16 @@ class EdgeAnalyticsPipeline:
 
         # Process through functions
         processed_event = event
-        for func in pipeline['processing_functions']:
+        for func in pipeline["processing_functions"]:
             processed_event = await func(processed_event)
 
         # Update stats
-        pipeline['events_processed'] += 1
+        pipeline["events_processed"] += 1
 
         return processed_event
 
     async def tumbling_window_aggregate(
-        self,
-        pipeline_id: str,
-        window_duration_sec: int,
-        aggregation_func: Callable
+        self, pipeline_id: str, window_duration_sec: int, aggregation_func: Callable
     ) -> Dict[str, Any]:
         """Aggregate events in tumbling window"""
         events = self.event_buffers.get(pipeline_id, [])
@@ -1240,49 +1120,38 @@ class EdgeAnalyticsPipeline:
         now = datetime.now()
         window_start = now.timestamp() - window_duration_sec
 
-        window_events = [
-            e for e in events
-            if e.get('timestamp', 0) >= window_start
-        ]
+        window_events = [e for e in events if e.get("timestamp", 0) >= window_start]
 
         # Aggregate
         result = aggregation_func(window_events)
 
         return {
-            'window_start': datetime.fromtimestamp(window_start).isoformat(),
-            'window_end': now.isoformat(),
-            'num_events': len(window_events),
-            'aggregated_value': result
+            "window_start": datetime.fromtimestamp(window_start).isoformat(),
+            "window_end": now.isoformat(),
+            "num_events": len(window_events),
+            "aggregated_value": result,
         }
 
-    async def detect_anomaly(
-        self,
-        pipeline_id: str,
-        value: float,
-        threshold_std: float = 3.0
-    ) -> bool:
+    async def detect_anomaly(self, pipeline_id: str, value: float, threshold_std: float = 3.0) -> bool:
         """Detect statistical anomaly"""
         # Get detector for pipeline
         if pipeline_id not in self.anomaly_detectors:
-            self.anomaly_detectors[pipeline_id] = {
-                'values': [],
-                'threshold_std': threshold_std
-            }
+            self.anomaly_detectors[pipeline_id] = {"values": [], "threshold_std": threshold_std}
 
         detector = self.anomaly_detectors[pipeline_id]
-        detector['values'].append(value)
+        detector["values"].append(value)
 
         # Keep last 1000 values
-        if len(detector['values']) > 1000:
-            detector['values'] = detector['values'][-1000:]
+        if len(detector["values"]) > 1000:
+            detector["values"] = detector["values"][-1000:]
 
         # Need at least 30 values for statistics
-        if len(detector['values']) < 30:
+        if len(detector["values"]) < 30:
             return False
 
         # Compute z-score
-        mean = np.mean(detector['values'])
-        std = np.std(detector['values'])
+        mean = np.mean(detector["values"])
+        std = np.std(detector["values"])
 
         if std == 0:
             return False
@@ -1295,7 +1164,7 @@ class EdgeAnalyticsPipeline:
         if is_anomaly:
             pipeline = self.pipelines.get(pipeline_id)
             if pipeline:
-                pipeline['anomalies_detected'] += 1
+                pipeline["anomalies_detected"] += 1
 
         return is_anomaly
 
@@ -1306,14 +1175,14 @@ class EdgeAnalyticsPipeline:
             return {}
 
         return {
-            'pipeline_id': pipeline_id,
-            'stream_source': pipeline['stream_source'],
-            'events_processed': pipeline['events_processed'],
-            'anomalies_detected': pipeline['anomalies_detected'],
-            'events_in_buffer': len(self.event_buffers.get(pipeline_id, [])),
-            'uptime_sec': (datetime.now() - pipeline['created_at']).total_seconds(),
-            'throughput_eps': pipeline['events_processed'] /
-                max((datetime.now() - pipeline['created_at']).total_seconds(), 1)
+            "pipeline_id": pipeline_id,
+            "stream_source": pipeline["stream_source"],
+            "events_processed": pipeline["events_processed"],
+            "anomalies_detected": pipeline["anomalies_detected"],
+            "events_in_buffer": len(self.event_buffers.get(pipeline_id, [])),
+            "uptime_sec": (datetime.now() - pipeline["created_at"]).total_seconds(),
+            "throughput_eps": pipeline["events_processed"]
+            / max((datetime.now() - pipeline["created_at"]).total_seconds(), 1),
         }
 
 

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class RecommendationMethod(Enum):
     """Recommendation methods."""
+
     CONTENT_BASED = "content_based"
     COLLABORATIVE = "collaborative"
     HYBRID = "hybrid"
@@ -32,6 +33,7 @@ class RecommendationMethod(Enum):
 @dataclass
 class UserInteraction:
     """User interaction with document."""
+
     user_id: str
     document_id: str
     interaction_type: str  # view, download, share, favorite
@@ -43,6 +45,7 @@ class UserInteraction:
 @dataclass
 class Document:
     """Document representation for recommendations."""
+
     doc_id: str
     title: str
     content: Optional[str] = None
@@ -57,6 +60,7 @@ class Document:
 @dataclass
 class Recommendation:
     """Recommendation result."""
+
     document_id: str
     score: float
     reason: str
@@ -67,6 +71,7 @@ class Recommendation:
 @dataclass
 class UserProfile:
     """User profile for personalization."""
+
     user_id: str
     preferred_tags: List[str] = field(default_factory=list)
     interaction_history: List[UserInteraction] = field(default_factory=list)
@@ -126,7 +131,7 @@ class TFIDFCalculator:
         words = text.lower().split()
 
         # Remove stopwords
-        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with'}
+        stopwords = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with"}
         words = [w for w in words if w not in stopwords and len(w) > 2]
 
         return words
@@ -176,10 +181,7 @@ class ContentBasedRecommender:
             self.document_vectors[doc.doc_id] = self.tfidf.calculate_tfidf(doc)
 
     def recommend(
-        self,
-        target_doc_id: str,
-        n: int = 10,
-        exclude_ids: Optional[Set[str]] = None
+        self, target_doc_id: str, n: int = 10, exclude_ids: Optional[Set[str]] = None
     ) -> List[Recommendation]:
         """Recommend similar documents."""
         if target_doc_id not in self.document_vectors:
@@ -209,7 +211,7 @@ class ContentBasedRecommender:
                 score=score,
                 reason="Similar content",
                 method=RecommendationMethod.CONTENT_BASED,
-                metadata={"similarity": score}
+                metadata={"similarity": score},
             )
             for doc_id, score in similarities[:n]
         ]
@@ -227,12 +229,7 @@ class CollaborativeFilteringRecommender:
     def fit(self, interactions: List[UserInteraction]):
         """Train on user interactions."""
         # Build user-item matrix
-        interaction_weights = {
-            'view': 1.0,
-            'download': 2.0,
-            'share': 3.0,
-            'favorite': 5.0
-        }
+        interaction_weights = {"view": 1.0, "download": 2.0, "share": 3.0, "favorite": 5.0}
 
         for interaction in interactions:
             weight = interaction_weights.get(interaction.interaction_type, 1.0)
@@ -244,12 +241,7 @@ class CollaborativeFilteringRecommender:
             self.user_item_matrix[interaction.user_id][interaction.document_id] = weight
             self.item_user_matrix[interaction.document_id][interaction.user_id] = weight
 
-    def recommend(
-        self,
-        user_id: str,
-        n: int = 10,
-        exclude_ids: Optional[Set[str]] = None
-    ) -> List[Recommendation]:
+    def recommend(self, user_id: str, n: int = 10, exclude_ids: Optional[Set[str]] = None) -> List[Recommendation]:
         """Recommend documents using collaborative filtering."""
         if user_id not in self.user_item_matrix:
             return []
@@ -279,7 +271,7 @@ class CollaborativeFilteringRecommender:
                 score=score,
                 reason="Users like you also liked this",
                 method=RecommendationMethod.COLLABORATIVE,
-                metadata={"collaborative_score": score}
+                metadata={"collaborative_score": score},
             )
             for doc_id, score in sorted_docs[:n]
         ]
@@ -311,7 +303,7 @@ class HybridRecommender:
         content_based: ContentBasedRecommender,
         collaborative: CollaborativeFilteringRecommender,
         content_weight: float = 0.5,
-        collaborative_weight: float = 0.5
+        collaborative_weight: float = 0.5,
     ):
         self.content_based = content_based
         self.collaborative = collaborative
@@ -323,7 +315,7 @@ class HybridRecommender:
         user_id: str,
         user_profile: Optional[UserProfile] = None,
         n: int = 10,
-        exclude_ids: Optional[Set[str]] = None
+        exclude_ids: Optional[Set[str]] = None,
     ) -> List[Recommendation]:
         """Hybrid recommendations."""
         exclude_ids = exclude_ids or set()
@@ -359,7 +351,7 @@ class HybridRecommender:
                 score=score,
                 reason="Personalized recommendation",
                 method=RecommendationMethod.HYBRID,
-                metadata={"hybrid_score": score}
+                metadata={"hybrid_score": score},
             )
             for doc_id, score in sorted_docs[:n]
         ]
@@ -378,17 +370,14 @@ class TrendingRecommender:
         interactions: List[UserInteraction],
         documents: List[Document],
         n: int = 10,
-        exclude_ids: Optional[Set[str]] = None
+        exclude_ids: Optional[Set[str]] = None,
     ) -> List[Recommendation]:
         """Recommend trending documents."""
         exclude_ids = exclude_ids or set()
 
         # Filter recent interactions
         cutoff_date = datetime.now() - timedelta(days=self.time_window_days)
-        recent_interactions = [
-            i for i in interactions
-            if i.timestamp >= cutoff_date
-        ]
+        recent_interactions = [i for i in interactions if i.timestamp >= cutoff_date]
 
         # Count interactions per document
         doc_popularity: Dict[str, int] = defaultdict(int)
@@ -422,7 +411,7 @@ class TrendingRecommender:
                 score=score,
                 reason="Trending now",
                 method=RecommendationMethod.TRENDING,
-                metadata={"trending_score": score}
+                metadata={"trending_score": score},
             )
             for doc_id, score in trending_scores[:n]
         ]
@@ -433,18 +422,10 @@ class TrendingRecommender:
 class ColdStartHandler:
     """Handle cold start problem for new users/documents."""
 
-    def recommend_for_new_user(
-        self,
-        documents: List[Document],
-        n: int = 10
-    ) -> List[Recommendation]:
+    def recommend_for_new_user(self, documents: List[Document], n: int = 10) -> List[Recommendation]:
         """Recommend for users with no history."""
         # Recommend most popular documents
-        sorted_docs = sorted(
-            documents,
-            key=lambda d: (d.view_count + d.download_count, d.avg_rating),
-            reverse=True
-        )
+        sorted_docs = sorted(documents, key=lambda d: (d.view_count + d.download_count, d.avg_rating), reverse=True)
 
         recommendations = [
             Recommendation(
@@ -452,7 +433,7 @@ class ColdStartHandler:
                 score=float(doc.view_count + doc.download_count) / 100,
                 reason="Popular with other users",
                 method=RecommendationMethod.PERSONALIZED,
-                metadata={"views": doc.view_count, "downloads": doc.download_count}
+                metadata={"views": doc.view_count, "downloads": doc.download_count},
             )
             for doc in sorted_docs[:n]
         ]
@@ -460,10 +441,7 @@ class ColdStartHandler:
         return recommendations
 
     def recommend_for_new_document(
-        self,
-        new_document: Document,
-        content_recommender: ContentBasedRecommender,
-        n: int = 10
+        self, new_document: Document, content_recommender: ContentBasedRecommender, n: int = 10
     ) -> List[Recommendation]:
         """Find similar documents for new document."""
         # Use content-based similarity
@@ -520,10 +498,7 @@ class RecommendationEngine:
         self.user_profiles: Dict[str, UserProfile] = {}
         self.interactions: List[UserInteraction] = []
 
-        self.ab_test = ABTestManager({
-            'control': 0.5,
-            'experimental': 0.5
-        })
+        self.ab_test = ABTestManager({"control": 0.5, "experimental": 0.5})
 
     def fit(self, documents: List[Document], interactions: List[UserInteraction]):
         """Train recommendation models."""
@@ -545,7 +520,7 @@ class RecommendationEngine:
         user_id: str,
         n: int = 10,
         method: RecommendationMethod = RecommendationMethod.HYBRID,
-        exclude_ids: Optional[Set[str]] = None
+        exclude_ids: Optional[Set[str]] = None,
     ) -> List[Recommendation]:
         """Get recommendations for user."""
         user_profile = self.user_profiles.get(user_id)
@@ -559,40 +534,20 @@ class RecommendationEngine:
         # Handle cold start
         if user_profile is None or not user_profile.interaction_history:
             logger.info(f"Cold start for user {user_id}")
-            return self.cold_start.recommend_for_new_user(
-                list(self.documents.values()),
-                n=n
-            )
+            return self.cold_start.recommend_for_new_user(list(self.documents.values()), n=n)
 
         # Get recommendations based on method
         if method == RecommendationMethod.HYBRID:
-            recommendations = self.hybrid.recommend(
-                user_id,
-                user_profile=user_profile,
-                n=n,
-                exclude_ids=exclude_ids
-            )
+            recommendations = self.hybrid.recommend(user_id, user_profile=user_profile, n=n, exclude_ids=exclude_ids)
         elif method == RecommendationMethod.COLLABORATIVE:
-            recommendations = self.collaborative.recommend(
-                user_id,
-                n=n,
-                exclude_ids=exclude_ids
-            )
+            recommendations = self.collaborative.recommend(user_id, n=n, exclude_ids=exclude_ids)
         elif method == RecommendationMethod.TRENDING:
             recommendations = self.trending.recommend(
-                self.interactions,
-                list(self.documents.values()),
-                n=n,
-                exclude_ids=exclude_ids
+                self.interactions, list(self.documents.values()), n=n, exclude_ids=exclude_ids
             )
         else:
             # Default to hybrid
-            recommendations = self.hybrid.recommend(
-                user_id,
-                user_profile=user_profile,
-                n=n,
-                exclude_ids=exclude_ids
-            )
+            recommendations = self.hybrid.recommend(user_id, user_profile=user_profile, n=n, exclude_ids=exclude_ids)
 
         return recommendations
 
@@ -602,22 +557,16 @@ class RecommendationEngine:
 
         # Update user profile
         if interaction.user_id not in self.user_profiles:
-            self.user_profiles[interaction.user_id] = UserProfile(
-                user_id=interaction.user_id
-            )
+            self.user_profiles[interaction.user_id] = UserProfile(user_id=interaction.user_id)
 
         profile = self.user_profiles[interaction.user_id]
         profile.interaction_history.append(interaction)
 
         # Update favorites
-        if interaction.interaction_type == 'favorite':
+        if interaction.interaction_type == "favorite":
             profile.favorite_documents.add(interaction.document_id)
 
-    def get_similar_documents(
-        self,
-        document_id: str,
-        n: int = 10
-    ) -> List[Recommendation]:
+    def get_similar_documents(self, document_id: str, n: int = 10) -> List[Recommendation]:
         """Find similar documents."""
         return self.content_based.recommend(document_id, n=n)
 

@@ -18,23 +18,24 @@ References:
 """
 
 import asyncio
-import threading
-import time
+import json
 import math
 import random
-from typing import Dict, List, Any, Optional, Tuple, Set, Callable
+import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-import json
-
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 # ============================================================================
 # ENUMS
 # ============================================================================
 
+
 class AgentStatus(Enum):
     """Agent status states"""
+
     ACTIVE = "active"
     IDLE = "idle"
     BUSY = "busy"
@@ -44,6 +45,7 @@ class AgentStatus(Enum):
 
 class TaskPriority(Enum):
     """Task priority levels"""
+
     CRITICAL = 1.0
     HIGH = 0.8
     MEDIUM = 0.5
@@ -53,6 +55,7 @@ class TaskPriority(Enum):
 
 class ReasoningMode(Enum):
     """Reasoning approaches"""
+
     SYMBOLIC = "symbolic"
     PROBABILISTIC = "probabilistic"
     CAUSAL = "causal"
@@ -62,6 +65,7 @@ class ReasoningMode(Enum):
 
 class MemoryType(Enum):
     """Memory system types"""
+
     WORKING = "working"
     EPISODIC = "episodic"
     SEMANTIC = "semantic"
@@ -70,6 +74,7 @@ class MemoryType(Enum):
 
 class LearningAlgorithm(Enum):
     """Learning algorithm types"""
+
     Q_LEARNING = "q_learning"
     PPO = "ppo"
     MAML = "maml"
@@ -79,6 +84,7 @@ class LearningAlgorithm(Enum):
 
 class MessageType(Enum):
     """Agent communication message types"""
+
     INFORM = "inform"
     REQUEST = "request"
     PROPOSE = "propose"
@@ -90,6 +96,7 @@ class MessageType(Enum):
 
 class GoalType(Enum):
     """Goal types"""
+
     ACHIEVEMENT = "achievement"
     MAINTENANCE = "maintenance"
     OPTIMIZATION = "optimization"
@@ -97,6 +104,7 @@ class GoalType(Enum):
 
 class GoalStatus(Enum):
     """Goal execution status"""
+
     PENDING = "pending"
     ACTIVE = "active"
     COMPLETED = "completed"
@@ -108,9 +116,11 @@ class GoalStatus(Enum):
 # DATA CLASSES
 # ============================================================================
 
+
 @dataclass
 class AgentProfile:
     """Agent profile with capabilities and status"""
+
     agent_id: str
     capabilities: List[str]
     skills: Dict[str, float]  # skill_name -> proficiency (0-1)
@@ -126,6 +136,7 @@ class AgentProfile:
 @dataclass
 class Task:
     """Task representation"""
+
     task_id: str
     description: str
     priority: TaskPriority
@@ -142,6 +153,7 @@ class Task:
 @dataclass
 class InferenceResult:
     """Reasoning inference result"""
+
     conclusion: Any
     confidence: float
     reasoning_mode: ReasoningMode
@@ -153,6 +165,7 @@ class InferenceResult:
 @dataclass
 class Action:
     """Executable action"""
+
     action_id: str
     action_type: str  # tool, api, code, database, file
     parameters: Dict[str, Any]
@@ -165,6 +178,7 @@ class Action:
 @dataclass
 class ActionResult:
     """Action execution result"""
+
     action_id: str
     success: bool
     result: Any
@@ -176,6 +190,7 @@ class ActionResult:
 @dataclass
 class Memory:
     """Generic memory representation"""
+
     memory_id: str
     memory_type: MemoryType
     content: Any
@@ -190,6 +205,7 @@ class Memory:
 @dataclass
 class Episode:
     """Episodic memory episode"""
+
     episode_id: str
     events: List[Dict[str, Any]]
     start_time: datetime
@@ -202,6 +218,7 @@ class Episode:
 @dataclass
 class Experience:
     """Learning experience (SARS')"""
+
     state: Any
     action: Any
     reward: float
@@ -214,6 +231,7 @@ class Experience:
 @dataclass
 class Policy:
     """Agent policy representation"""
+
     policy_id: str
     state_space: Dict[str, Any]
     action_space: Dict[str, Any]
@@ -225,6 +243,7 @@ class Policy:
 @dataclass
 class Message:
     """Inter-agent message"""
+
     message_id: str
     sender: str
     receiver: str
@@ -238,6 +257,7 @@ class Message:
 @dataclass
 class Goal:
     """Hierarchical goal representation"""
+
     goal_id: str
     goal_type: GoalType
     description: str
@@ -255,6 +275,7 @@ class Goal:
 @dataclass
 class Plan:
     """Action plan"""
+
     plan_id: str
     goal_id: str
     actions: List[Action]
@@ -268,6 +289,7 @@ class Plan:
 # ============================================================================
 # 1. AGENT ORCHESTRATOR
 # ============================================================================
+
 
 class AgentOrchestrator:
     """
@@ -298,11 +320,7 @@ class AgentOrchestrator:
         self._task_counter = 0
 
     async def register_agent(
-        self,
-        agent_id: str,
-        capabilities: List[str],
-        skills: Dict[str, float],
-        specializations: List[str]
+        self, agent_id: str, capabilities: List[str], skills: Dict[str, float], specializations: List[str]
     ) -> AgentProfile:
         """Register new agent with the orchestrator."""
         with self._lock:
@@ -313,19 +331,15 @@ class AgentOrchestrator:
                 specializations=specializations,
                 status=AgentStatus.IDLE,
                 created_at=datetime.now(),
-                performance_metrics={
-                    'tasks_completed': 0,
-                    'success_rate': 0.0,
-                    'avg_completion_time': 0.0
-                }
+                performance_metrics={"tasks_completed": 0, "success_rate": 0.0, "avg_completion_time": 0.0},
             )
             self.agents[agent_id] = profile
 
             # Initialize resource allocation
             self.resource_allocations[agent_id] = {
-                'cpu_quota': 1.0,
-                'memory_quota': 1024.0,  # MB
-                'api_calls_per_minute': 60
+                "cpu_quota": 1.0,
+                "memory_quota": 1024.0,  # MB
+                "api_calls_per_minute": 60,
             }
 
             return profile
@@ -337,7 +351,7 @@ class AgentOrchestrator:
         priority: TaskPriority = TaskPriority.MEDIUM,
         estimated_duration: float = 60.0,
         deadline: Optional[datetime] = None,
-        dependencies: List[str] = None
+        dependencies: List[str] = None,
     ) -> str:
         """Submit new task to the orchestrator."""
         with self._lock:
@@ -351,7 +365,7 @@ class AgentOrchestrator:
                 required_capabilities=required_capabilities,
                 estimated_duration=estimated_duration,
                 deadline=deadline,
-                dependencies=dependencies or []
+                dependencies=dependencies or [],
             )
 
             self.tasks[task_id] = task
@@ -379,10 +393,7 @@ class AgentOrchestrator:
         for agent_id, profile in self.agents.items():
             if profile.status in [AgentStatus.IDLE, AgentStatus.ACTIVE]:
                 # Check capabilities
-                has_capabilities = all(
-                    cap in profile.capabilities
-                    for cap in task.required_capabilities
-                )
+                has_capabilities = all(cap in profile.capabilities for cap in task.required_capabilities)
                 if has_capabilities and profile.workload < 0.8:
                     candidates.append(agent_id)
 
@@ -396,9 +407,9 @@ class AgentOrchestrator:
 
             # Calculate bid score (lower is better)
             bid_score = (
-                profile.workload * 0.4 +  # Prefer less loaded agents
-                (1.0 - profile.reputation_score) * 0.3 +  # Prefer high reputation
-                (1.0 - self._skill_match(profile, task)) * 0.3  # Prefer skilled agents
+                profile.workload * 0.4  # Prefer less loaded agents
+                + (1.0 - profile.reputation_score) * 0.3  # Prefer high reputation
+                + (1.0 - self._skill_match(profile, task)) * 0.3  # Prefer skilled agents
             )
 
             bids.append((agent_id, bid_score))
@@ -420,19 +431,10 @@ class AgentOrchestrator:
 
     def _skill_match(self, profile: AgentProfile, task: Task) -> float:
         """Calculate skill match score between agent and task."""
-        matching_skills = [
-            profile.skills.get(cap, 0.0)
-            for cap in task.required_capabilities
-            if cap in profile.skills
-        ]
+        matching_skills = [profile.skills.get(cap, 0.0) for cap in task.required_capabilities if cap in profile.skills]
         return sum(matching_skills) / max(len(task.required_capabilities), 1)
 
-    async def update_agent_status(
-        self,
-        agent_id: str,
-        status: AgentStatus,
-        workload: Optional[float] = None
-    ):
+    async def update_agent_status(self, agent_id: str, status: AgentStatus, workload: Optional[float] = None):
         """Update agent status and workload."""
         with self._lock:
             if agent_id in self.agents:
@@ -440,12 +442,7 @@ class AgentOrchestrator:
                 if workload is not None:
                     self.agents[agent_id].workload = workload
 
-    async def complete_task(
-        self,
-        task_id: str,
-        success: bool,
-        result: Any = None
-    ):
+    async def complete_task(self, task_id: str, success: bool, result: Any = None):
         """Mark task as completed and update metrics."""
         with self._lock:
             task = self.tasks.get(task_id)
@@ -464,14 +461,13 @@ class AgentOrchestrator:
 
                 # Update performance metrics
                 metrics = agent.performance_metrics
-                metrics['tasks_completed'] += 1
+                metrics["tasks_completed"] += 1
 
-                total_tasks = metrics['tasks_completed']
-                old_success_rate = metrics.get('success_rate', 0.0)
-                metrics['success_rate'] = (
-                    (old_success_rate * (total_tasks - 1) + (1.0 if success else 0.0))
-                    / total_tasks
-                )
+                total_tasks = metrics["tasks_completed"]
+                old_success_rate = metrics.get("success_rate", 0.0)
+                metrics["success_rate"] = (
+                    old_success_rate * (total_tasks - 1) + (1.0 if success else 0.0)
+                ) / total_tasks
 
                 # Update reputation
                 if success:
@@ -483,19 +479,20 @@ class AgentOrchestrator:
         """Get orchestrator statistics."""
         with self._lock:
             return {
-                'total_agents': len(self.agents),
-                'active_agents': sum(1 for a in self.agents.values() if a.status == AgentStatus.ACTIVE),
-                'idle_agents': sum(1 for a in self.agents.values() if a.status == AgentStatus.IDLE),
-                'total_tasks': len(self.tasks),
-                'pending_tasks': len(self.task_queue),
-                'avg_workload': sum(a.workload for a in self.agents.values()) / max(len(self.agents), 1),
-                'avg_reputation': sum(a.reputation_score for a in self.agents.values()) / max(len(self.agents), 1)
+                "total_agents": len(self.agents),
+                "active_agents": sum(1 for a in self.agents.values() if a.status == AgentStatus.ACTIVE),
+                "idle_agents": sum(1 for a in self.agents.values() if a.status == AgentStatus.IDLE),
+                "total_tasks": len(self.tasks),
+                "pending_tasks": len(self.task_queue),
+                "avg_workload": sum(a.workload for a in self.agents.values()) / max(len(self.agents), 1),
+                "avg_reputation": sum(a.reputation_score for a in self.agents.values()) / max(len(self.agents), 1),
             }
 
 
 # ============================================================================
 # 2. REASONING ENGINE
 # ============================================================================
+
 
 class ReasoningEngine:
     """
@@ -516,12 +513,7 @@ class ReasoningEngine:
     """
 
     def __init__(self):
-        self.knowledge_base: Dict[str, Any] = {
-            'facts': set(),
-            'rules': [],
-            'ontology': {},
-            'probabilities': {}
-        }
+        self.knowledge_base: Dict[str, Any] = {"facts": set(), "rules": [], "ontology": {}, "probabilities": {}}
         self.working_memory: Set[str] = set()
         self.inference_cache: Dict[str, InferenceResult] = {}
         self._lock = threading.Lock()
@@ -529,24 +521,15 @@ class ReasoningEngine:
     async def add_fact(self, fact: str):
         """Add fact to knowledge base."""
         with self._lock:
-            self.knowledge_base['facts'].add(fact)
+            self.knowledge_base["facts"].add(fact)
             self.working_memory.add(fact)
 
-    async def add_rule(
-        self,
-        rule_id: str,
-        conditions: List[str],
-        conclusion: str,
-        confidence: float = 1.0
-    ):
+    async def add_rule(self, rule_id: str, conditions: List[str], conclusion: str, confidence: float = 1.0):
         """Add inference rule to knowledge base."""
         with self._lock:
-            self.knowledge_base['rules'].append({
-                'id': rule_id,
-                'conditions': conditions,
-                'conclusion': conclusion,
-                'confidence': confidence
-            })
+            self.knowledge_base["rules"].append(
+                {"id": rule_id, "conditions": conditions, "conclusion": conclusion, "confidence": confidence}
+            )
 
     async def forward_chain(self, goal: str, max_iterations: int = 100) -> InferenceResult:
         """
@@ -573,20 +556,18 @@ class ReasoningEngine:
                         reasoning_mode=ReasoningMode.SYMBOLIC,
                         proof_trace=proof_trace,
                         execution_time=time.time() - start_time,
-                        premises_used=list(working_memory)
+                        premises_used=list(working_memory),
                     )
 
                 # Try to fire rules
                 rules_fired = False
-                for rule in self.knowledge_base['rules']:
+                for rule in self.knowledge_base["rules"]:
                     # Check if all conditions are in working memory
-                    if all(cond in working_memory for cond in rule['conditions']):
-                        conclusion = rule['conclusion']
+                    if all(cond in working_memory for cond in rule["conditions"]):
+                        conclusion = rule["conclusion"]
                         if conclusion not in working_memory:
                             working_memory.add(conclusion)
-                            proof_trace.append(
-                                f"Applied rule {rule['id']}: {rule['conditions']} → {conclusion}"
-                            )
+                            proof_trace.append(f"Applied rule {rule['id']}: {rule['conditions']} → {conclusion}")
                             rules_fired = True
 
                 # If no rules fired, cannot prove goal
@@ -599,15 +580,10 @@ class ReasoningEngine:
                 reasoning_mode=ReasoningMode.SYMBOLIC,
                 proof_trace=proof_trace,
                 execution_time=time.time() - start_time,
-                premises_used=[]
+                premises_used=[],
             )
 
-    async def backward_chain(
-        self,
-        goal: str,
-        depth: int = 0,
-        max_depth: int = 10
-    ) -> InferenceResult:
+    async def backward_chain(self, goal: str, depth: int = 0, max_depth: int = 10) -> InferenceResult:
         """
         Backward chaining inference (goal-driven).
 
@@ -621,14 +597,14 @@ class ReasoningEngine:
         proof_trace = []
 
         # Check if goal is a known fact
-        if goal in self.knowledge_base['facts']:
+        if goal in self.knowledge_base["facts"]:
             return InferenceResult(
                 conclusion=goal,
                 confidence=1.0,
                 reasoning_mode=ReasoningMode.SYMBOLIC,
                 proof_trace=[f"Goal {goal} is a known fact"],
                 execution_time=time.time() - start_time,
-                premises_used=[goal]
+                premises_used=[goal],
             )
 
         # Check depth limit
@@ -639,19 +615,19 @@ class ReasoningEngine:
                 reasoning_mode=ReasoningMode.SYMBOLIC,
                 proof_trace=["Max depth reached"],
                 execution_time=time.time() - start_time,
-                premises_used=[]
+                premises_used=[],
             )
 
         # Find rules that conclude the goal
-        for rule in self.knowledge_base['rules']:
-            if rule['conclusion'] == goal:
+        for rule in self.knowledge_base["rules"]:
+            if rule["conclusion"] == goal:
                 proof_trace.append(f"Trying rule {rule['id']} for goal {goal}")
 
                 # Try to prove all conditions
                 all_proven = True
                 subproofs = []
 
-                for condition in rule['conditions']:
+                for condition in rule["conditions"]:
                     subproof = await self.backward_chain(condition, depth + 1, max_depth)
                     if subproof.conclusion is None:
                         all_proven = False
@@ -667,11 +643,11 @@ class ReasoningEngine:
 
                     return InferenceResult(
                         conclusion=goal,
-                        confidence=rule['confidence'],
+                        confidence=rule["confidence"],
                         reasoning_mode=ReasoningMode.SYMBOLIC,
                         proof_trace=proof_trace,
                         execution_time=time.time() - start_time,
-                        premises_used=rule['conditions']
+                        premises_used=rule["conditions"],
                     )
 
         # Could not prove goal
@@ -681,14 +657,10 @@ class ReasoningEngine:
             reasoning_mode=ReasoningMode.SYMBOLIC,
             proof_trace=proof_trace + [f"Could not prove goal {goal}"],
             execution_time=time.time() - start_time,
-            premises_used=[]
+            premises_used=[],
         )
 
-    async def bayesian_inference(
-        self,
-        query_variable: str,
-        evidence: Dict[str, Any]
-    ) -> Dict[str, float]:
+    async def bayesian_inference(self, query_variable: str, evidence: Dict[str, Any]) -> Dict[str, float]:
         """
         Simplified Bayesian inference.
 
@@ -698,22 +670,18 @@ class ReasoningEngine:
         # Simplified implementation - would use proper Bayesian network library
         # For demonstration, return uniform or prior distribution
 
-        probabilities = self.knowledge_base['probabilities'].get(query_variable, {})
+        probabilities = self.knowledge_base["probabilities"].get(query_variable, {})
 
         if not probabilities:
             # Return uniform distribution
-            return {'true': 0.5, 'false': 0.5}
+            return {"true": 0.5, "false": 0.5}
 
         # Apply evidence (simplified - would use proper inference)
         # This is a placeholder
         return probabilities
 
     async def strips_plan(
-        self,
-        initial_state: Set[str],
-        goal_state: Set[str],
-        actions: List[Dict[str, Any]],
-        max_steps: int = 20
+        self, initial_state: Set[str], goal_state: Set[str], actions: List[Dict[str, Any]], max_steps: int = 20
     ) -> Optional[List[str]]:
         """
         STRIPS planning algorithm.
@@ -747,20 +715,20 @@ class ReasoningEngine:
 
             # Try all applicable actions
             for action in actions:
-                preconditions = set(action.get('preconditions', []))
+                preconditions = set(action.get("preconditions", []))
 
                 # Check if action is applicable
                 if preconditions.issubset(current_state):
                     # Apply action effects
-                    add_effects = set(action.get('add_effects', []))
-                    del_effects = set(action.get('del_effects', []))
+                    add_effects = set(action.get("add_effects", []))
+                    del_effects = set(action.get("del_effects", []))
 
                     next_state = (current_state - del_effects) | add_effects
                     next_state_frozen = frozenset(next_state)
 
                     if next_state_frozen not in visited:
                         visited.add(next_state_frozen)
-                        queue.append((next_state, plan + [action['name']]))
+                        queue.append((next_state, plan + [action["name"]]))
 
         return None  # No plan found
 
@@ -768,6 +736,7 @@ class ReasoningEngine:
 # ============================================================================
 # 3. ACTION EXECUTOR
 # ============================================================================
+
 
 class ActionExecutor:
     """
@@ -800,24 +769,24 @@ class ActionExecutor:
         description: str,
         parameters: Dict[str, str],
         function: Callable,
-        safety_level: str = "sandboxed"
+        safety_level: str = "sandboxed",
     ):
         """Register a tool for agent use."""
         with self._lock:
             self.tool_registry[tool_name] = {
-                'name': tool_name,
-                'description': description,
-                'parameters': parameters,
-                'function': function,
-                'safety_level': safety_level,
-                'usage_count': 0
+                "name": tool_name,
+                "description": description,
+                "parameters": parameters,
+                "function": function,
+                "safety_level": safety_level,
+                "usage_count": 0,
             }
 
     async def execute_action(self, action: Action) -> ActionResult:
         """Execute an action with validation and error handling."""
         start_time = time.time()
         retries = 0
-        max_retries = action.retry_policy.get('max_retries', 3)
+        max_retries = action.retry_policy.get("max_retries", 3)
 
         # Validate preconditions
         if not await self._validate_preconditions(action):
@@ -826,7 +795,7 @@ class ActionExecutor:
                 success=False,
                 result=None,
                 execution_time=time.time() - start_time,
-                error="Preconditions not satisfied"
+                error="Preconditions not satisfied",
             )
 
         # Execute with retries
@@ -851,7 +820,7 @@ class ActionExecutor:
                     success=True,
                     result=result,
                     execution_time=time.time() - start_time,
-                    retries=retries
+                    retries=retries,
                 )
 
                 self.action_history.append(action_result)
@@ -867,13 +836,13 @@ class ActionExecutor:
                         result=None,
                         execution_time=time.time() - start_time,
                         error=str(e),
-                        retries=retries
+                        retries=retries,
                     )
                     self.action_history.append(action_result)
                     return action_result
 
                 # Exponential backoff
-                await asyncio.sleep(2 ** retries)
+                await asyncio.sleep(2**retries)
 
     async def _validate_preconditions(self, action: Action) -> bool:
         """Validate action preconditions."""
@@ -882,52 +851,48 @@ class ActionExecutor:
 
     async def _execute_tool(self, action: Action) -> Any:
         """Execute registered tool."""
-        tool_name = action.parameters.get('tool_name')
-        tool_args = action.parameters.get('arguments', {})
+        tool_name = action.parameters.get("tool_name")
+        tool_args = action.parameters.get("arguments", {})
 
         with self._lock:
             if tool_name not in self.tool_registry:
                 raise ValueError(f"Tool {tool_name} not registered")
 
             tool = self.tool_registry[tool_name]
-            tool['usage_count'] += 1
+            tool["usage_count"] += 1
 
         # Execute tool function
-        result = await tool['function'](**tool_args)
+        result = await tool["function"](**tool_args)
         return result
 
     async def _execute_api_call(self, action: Action) -> Any:
         """Execute HTTP API call."""
-        method = action.parameters.get('method', 'GET')
-        url = action.parameters.get('url')
-        headers = action.parameters.get('headers', {})
-        body = action.parameters.get('body')
+        method = action.parameters.get("method", "GET")
+        url = action.parameters.get("url")
+        headers = action.parameters.get("headers", {})
+        body = action.parameters.get("body")
 
         # Simulated API call - would use aiohttp or similar
         await asyncio.sleep(0.1)  # Simulate network delay
 
-        return {
-            'status': 200,
-            'data': {'message': 'API call successful'},
-            'headers': headers
-        }
+        return {"status": 200, "data": {"message": "API call successful"}, "headers": headers}
 
     async def _execute_code(self, action: Action) -> Any:
         """Execute code in sandboxed environment."""
-        code = action.parameters.get('code')
-        language = action.parameters.get('language', 'python')
-        timeout = action.parameters.get('timeout', 10.0)
+        code = action.parameters.get("code")
+        language = action.parameters.get("language", "python")
+        timeout = action.parameters.get("timeout", 10.0)
 
         # Simulated sandboxed execution
         # In production, would use Docker, gVisor, or similar
 
-        if language == 'python':
+        if language == "python":
             # Very simplified - would use proper sandbox
             try:
                 # Limited execution environment
                 local_vars = {}
-                exec(code, {'__builtins__': {}}, local_vars)
-                return local_vars.get('result')
+                exec(code, {"__builtins__": {}}, local_vars)
+                return local_vars.get("result")
             except Exception as e:
                 raise RuntimeError(f"Code execution failed: {e}")
         else:
@@ -935,27 +900,24 @@ class ActionExecutor:
 
     async def _execute_database(self, action: Action) -> Any:
         """Execute database operation."""
-        operation = action.parameters.get('operation')
-        query = action.parameters.get('query')
+        operation = action.parameters.get("operation")
+        query = action.parameters.get("query")
 
         # Simulated database execution
         await asyncio.sleep(0.05)
 
-        return {
-            'rows_affected': 1,
-            'data': [{'id': 1, 'value': 'test'}]
-        }
+        return {"rows_affected": 1, "data": [{"id": 1, "value": "test"}]}
 
     async def _execute_file_operation(self, action: Action) -> Any:
         """Execute file operation."""
-        operation = action.parameters.get('operation')
-        file_path = action.parameters.get('file_path')
+        operation = action.parameters.get("operation")
+        file_path = action.parameters.get("file_path")
 
         # Simulated file operation
-        if operation == 'read':
-            return {'content': 'file contents', 'size': 1024}
-        elif operation == 'write':
-            return {'bytes_written': 1024}
+        if operation == "read":
+            return {"content": "file contents", "size": 1024}
+        elif operation == "write":
+            return {"bytes_written": 1024}
         else:
             raise ValueError(f"Unknown file operation: {operation}")
 
@@ -963,6 +925,7 @@ class ActionExecutor:
 # ============================================================================
 # 4. MEMORY SYSTEM
 # ============================================================================
+
 
 class MemorySystem:
     """
@@ -988,11 +951,7 @@ class MemorySystem:
         self.working_memory_capacity = 7  # Miller's law
 
         self.episodic_memory: Dict[str, Episode] = {}
-        self.semantic_memory: Dict[str, Any] = {
-            'entities': {},
-            'relations': [],
-            'ontology': {}
-        }
+        self.semantic_memory: Dict[str, Any] = {"entities": {}, "relations": [], "ontology": {}}
         self.procedural_memory: Dict[str, Any] = {}
 
         self.memory_index: Dict[str, Memory] = {}
@@ -1009,10 +968,7 @@ class MemorySystem:
                 self.working_memory.pop(0)
 
     async def store_episodic_memory(
-        self,
-        events: List[Dict[str, Any]],
-        context: Dict[str, Any],
-        importance: float = 0.5
+        self, events: List[Dict[str, Any]], context: Dict[str, Any], importance: float = 0.5
     ) -> str:
         """Store episodic memory (event sequence with temporal context)."""
         with self._lock:
@@ -1025,7 +981,7 @@ class MemorySystem:
                 start_time=datetime.now(),
                 end_time=datetime.now(),
                 context=context,
-                importance=importance
+                importance=importance,
             )
 
             self.episodic_memory[episode_id] = episode
@@ -1036,48 +992,34 @@ class MemorySystem:
                 memory_type=MemoryType.EPISODIC,
                 content=episode,
                 timestamp=datetime.now(),
-                importance=importance
+                importance=importance,
             )
             self.memory_index[episode_id] = memory
 
             return episode_id
 
-    async def store_semantic_memory(
-        self,
-        entity: str,
-        relation: str,
-        target: str
-    ):
+    async def store_semantic_memory(self, entity: str, relation: str, target: str):
         """Store semantic memory as knowledge graph triple."""
         with self._lock:
             # Add entities
-            if entity not in self.semantic_memory['entities']:
-                self.semantic_memory['entities'][entity] = {
-                    'properties': {},
-                    'relations': []
-                }
+            if entity not in self.semantic_memory["entities"]:
+                self.semantic_memory["entities"][entity] = {"properties": {}, "relations": []}
 
-            if target not in self.semantic_memory['entities']:
-                self.semantic_memory['entities'][target] = {
-                    'properties': {},
-                    'relations': []
-                }
+            if target not in self.semantic_memory["entities"]:
+                self.semantic_memory["entities"][target] = {"properties": {}, "relations": []}
 
             # Add relation
             triple = (entity, relation, target)
-            self.semantic_memory['relations'].append(triple)
+            self.semantic_memory["relations"].append(triple)
 
             # Update entity relations
-            self.semantic_memory['entities'][entity]['relations'].append({
-                'relation': relation,
-                'target': target
-            })
+            self.semantic_memory["entities"][entity]["relations"].append({"relation": relation, "target": target})
 
     async def retrieve_episodic_memory(
         self,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
-        context_filter: Optional[Dict[str, Any]] = None
+        context_filter: Optional[Dict[str, Any]] = None,
     ) -> List[Episode]:
         """Retrieve episodic memories by temporal or context queries."""
         with self._lock:
@@ -1092,10 +1034,7 @@ class MemorySystem:
 
                 # Context filter
                 if context_filter:
-                    match = all(
-                        episode.context.get(key) == value
-                        for key, value in context_filter.items()
-                    )
+                    match = all(episode.context.get(key) == value for key, value in context_filter.items())
                     if not match:
                         continue
 
@@ -1105,11 +1044,7 @@ class MemorySystem:
             results.sort(key=lambda e: e.start_time, reverse=True)
             return results
 
-    async def retrieve_semantic_memory(
-        self,
-        entity: str,
-        max_hops: int = 3
-    ) -> List[Tuple[str, str, str]]:
+    async def retrieve_semantic_memory(self, entity: str, max_hops: int = 3) -> List[Tuple[str, str, str]]:
         """Retrieve related knowledge by graph traversal."""
         with self._lock:
             visited = set()
@@ -1125,33 +1060,29 @@ class MemorySystem:
                 visited.add(current_entity)
 
                 # Get all relations from this entity
-                if current_entity in self.semantic_memory['entities']:
-                    relations = self.semantic_memory['entities'][current_entity]['relations']
+                if current_entity in self.semantic_memory["entities"]:
+                    relations = self.semantic_memory["entities"][current_entity]["relations"]
 
                     for rel in relations:
-                        triple = (current_entity, rel['relation'], rel['target'])
+                        triple = (current_entity, rel["relation"], rel["target"])
                         results.append(triple)
 
                         # Add target to queue for further exploration
-                        queue.append((rel['target'], depth + 1))
+                        queue.append((rel["target"], depth + 1))
 
             return results
 
     async def store_procedural_memory(
-        self,
-        skill_name: str,
-        preconditions: List[str],
-        actions: List[str],
-        postconditions: List[str]
+        self, skill_name: str, preconditions: List[str], actions: List[str], postconditions: List[str]
     ):
         """Store procedural memory (skill/action sequence)."""
         with self._lock:
             self.procedural_memory[skill_name] = {
-                'preconditions': preconditions,
-                'actions': actions,
-                'postconditions': postconditions,
-                'usage_count': 0,
-                'success_rate': 0.0
+                "preconditions": preconditions,
+                "actions": actions,
+                "postconditions": postconditions,
+                "usage_count": 0,
+                "success_rate": 0.0,
             }
 
     async def consolidate_memories(self, threshold: float = 0.7):
@@ -1165,10 +1096,7 @@ class MemorySystem:
         """
         with self._lock:
             # Find important memories
-            important_memories = [
-                mem for mem in self.memory_index.values()
-                if mem.importance > threshold
-            ]
+            important_memories = [mem for mem in self.memory_index.values() if mem.importance > threshold]
 
             # Strengthen (increase importance slightly)
             for memory in important_memories:
@@ -1177,7 +1105,8 @@ class MemorySystem:
             # Prune unimportant, old memories
             cutoff_time = datetime.now() - timedelta(days=30)
             to_remove = [
-                mem_id for mem_id, mem in self.memory_index.items()
+                mem_id
+                for mem_id, mem in self.memory_index.items()
                 if mem.importance < 0.2 and mem.timestamp < cutoff_time
             ]
 
@@ -1190,6 +1119,7 @@ class MemorySystem:
 # ============================================================================
 # 5. LEARNING MODULE
 # ============================================================================
+
 
 class LearningModule:
     """
@@ -1216,31 +1146,14 @@ class LearningModule:
         self.policies: Dict[str, Policy] = {}
         self.skills: Dict[str, Any] = {}
 
-        self.learning_stats: Dict[str, Any] = {
-            'episodes': 0,
-            'total_reward': 0.0,
-            'avg_reward': 0.0
-        }
+        self.learning_stats: Dict[str, Any] = {"episodes": 0, "total_reward": 0.0, "avg_reward": 0.0}
 
         self._lock = threading.Lock()
 
-    async def store_experience(
-        self,
-        state: Any,
-        action: Any,
-        reward: float,
-        next_state: Any,
-        done: bool
-    ):
+    async def store_experience(self, state: Any, action: Any, reward: float, next_state: Any, done: bool):
         """Store experience in replay buffer."""
         with self._lock:
-            experience = Experience(
-                state=state,
-                action=action,
-                reward=reward,
-                next_state=next_state,
-                done=done
-            )
+            experience = Experience(state=state, action=action, reward=reward, next_state=next_state, done=done)
 
             self.experience_buffer.append(experience)
 
@@ -1256,7 +1169,7 @@ class LearningModule:
         next_state: Tuple,
         learning_rate: float = 0.1,
         discount: float = 0.99,
-        policy_id: str = "default"
+        policy_id: str = "default",
     ):
         """
         Q-learning update.
@@ -1286,11 +1199,7 @@ class LearningModule:
             q_table[(state, action)] = current_q + learning_rate * (td_target - current_q)
 
     async def select_action_epsilon_greedy(
-        self,
-        state: Tuple,
-        available_actions: List[Tuple],
-        epsilon: float = 0.1,
-        policy_id: str = "default"
+        self, state: Tuple, available_actions: List[Tuple], epsilon: float = 0.1, policy_id: str = "default"
     ) -> Tuple:
         """Select action using epsilon-greedy policy."""
         with self._lock:
@@ -1309,12 +1218,7 @@ class LearningModule:
                 # No learned policy, random action
                 return random.choice(available_actions)
 
-    async def learn_skill(
-        self,
-        skill_name: str,
-        task_generator: Callable,
-        num_episodes: int = 100
-    ) -> Dict[str, float]:
+    async def learn_skill(self, skill_name: str, task_generator: Callable, num_episodes: int = 100) -> Dict[str, float]:
         """
         Learn a new skill using reinforcement learning.
 
@@ -1325,31 +1229,25 @@ class LearningModule:
         for episode in range(num_episodes):
             # Generate task instance
             task = await task_generator()
-            state = task['initial_state']
+            state = task["initial_state"]
             done = False
             episode_reward = 0.0
 
             while not done:
                 # Select action
-                available_actions = task['available_actions'](state)
+                available_actions = task["available_actions"](state)
                 action = await self.select_action_epsilon_greedy(
-                    state,
-                    available_actions,
-                    epsilon=0.1,
-                    policy_id=skill_name
+                    state, available_actions, epsilon=0.1, policy_id=skill_name
                 )
 
                 # Take action
-                next_state, reward, done = task['step'](state, action)
+                next_state, reward, done = task["step"](state, action)
 
                 # Store experience
                 await self.store_experience(state, action, reward, next_state, done)
 
                 # Q-learning update
-                await self.q_learning_update(
-                    state, action, reward, next_state,
-                    policy_id=skill_name
-                )
+                await self.q_learning_update(state, action, reward, next_state, policy_id=skill_name)
 
                 episode_reward += reward
                 state = next_state
@@ -1359,24 +1257,19 @@ class LearningModule:
         # Store skill
         with self._lock:
             self.skills[skill_name] = {
-                'policy_id': skill_name,
-                'episodes_trained': num_episodes,
-                'avg_reward': sum(episode_rewards) / len(episode_rewards),
-                'trained_at': datetime.now()
+                "policy_id": skill_name,
+                "episodes_trained": num_episodes,
+                "avg_reward": sum(episode_rewards) / len(episode_rewards),
+                "trained_at": datetime.now(),
             }
 
         return {
-            'avg_reward': sum(episode_rewards) / len(episode_rewards),
-            'final_reward': episode_rewards[-1],
-            'episodes': num_episodes
+            "avg_reward": sum(episode_rewards) / len(episode_rewards),
+            "final_reward": episode_rewards[-1],
+            "episodes": num_episodes,
         }
 
-    async def meta_learn(
-        self,
-        task_distribution: List[Callable],
-        num_iterations: int = 100,
-        adaptation_steps: int = 5
-    ):
+    async def meta_learn(self, task_distribution: List[Callable], num_iterations: int = 100, adaptation_steps: int = 5):
         """
         Meta-learning using MAML-inspired approach.
 
@@ -1395,9 +1288,9 @@ class LearningModule:
 
                 for step in range(adaptation_steps):
                     # Collect experience and update
-                    state = task.get('state')
-                    action = random.choice(task.get('actions', []))
-                    reward = task.get('reward_fn', lambda s, a: 0.0)(state, action)
+                    state = task.get("state")
+                    action = random.choice(task.get("actions", []))
+                    reward = task.get("reward_fn", lambda s, a: 0.0)(state, action)
 
                     # Store and learn
                     await self.store_experience(state, action, reward, state, False)
@@ -1405,12 +1298,13 @@ class LearningModule:
             # Outer loop: meta-update (simplified)
             # Would aggregate gradients across tasks
 
-        return {'iterations': num_iterations, 'tasks': len(task_distribution)}
+        return {"iterations": num_iterations, "tasks": len(task_distribution)}
 
 
 # ============================================================================
 # 6. COMMUNICATION FRAMEWORK
 # ============================================================================
+
 
 class CommunicationFramework:
     """
@@ -1443,7 +1337,7 @@ class CommunicationFramework:
         message_type: MessageType,
         content: Any,
         conversation_id: Optional[str] = None,
-        in_reply_to: Optional[str] = None
+        in_reply_to: Optional[str] = None,
     ) -> str:
         """Send message from one agent to another."""
         with self._lock:
@@ -1457,7 +1351,7 @@ class CommunicationFramework:
                 message_type=message_type,
                 content=content,
                 conversation_id=conversation_id,
-                in_reply_to=in_reply_to
+                in_reply_to=in_reply_to,
             )
 
             # Add to receiver's queue
@@ -1480,22 +1374,13 @@ class CommunicationFramework:
             self.message_queues[agent_id] = []
             return messages
 
-    async def broadcast(
-        self,
-        sender: str,
-        message_type: MessageType,
-        content: Any,
-        recipients: List[str]
-    ) -> List[str]:
+    async def broadcast(self, sender: str, message_type: MessageType, content: Any, recipients: List[str]) -> List[str]:
         """Broadcast message to multiple recipients."""
         message_ids = []
 
         for receiver in recipients:
             message_id = await self.send_message(
-                sender=sender,
-                receiver=receiver,
-                message_type=message_type,
-                content=content
+                sender=sender, receiver=receiver, message_type=message_type, content=content
             )
             message_ids.append(message_id)
 
@@ -1509,33 +1394,18 @@ class CommunicationFramework:
             if agent_id not in self.subscriptions[topic]:
                 self.subscriptions[topic].append(agent_id)
 
-    async def publish(
-        self,
-        sender: str,
-        topic: str,
-        message_type: MessageType,
-        content: Any
-    ) -> int:
+    async def publish(self, sender: str, topic: str, message_type: MessageType, content: Any) -> int:
         """Publish message to all subscribers of a topic."""
         with self._lock:
             subscribers = self.subscriptions.get(topic, [])
 
         for subscriber in subscribers:
-            await self.send_message(
-                sender=sender,
-                receiver=subscriber,
-                message_type=message_type,
-                content=content
-            )
+            await self.send_message(sender=sender, receiver=subscriber, message_type=message_type, content=content)
 
         return len(subscribers)
 
     async def negotiate_auction(
-        self,
-        auctioneer: str,
-        item: str,
-        bidders: List[str],
-        auction_type: str = "english"
+        self, auctioneer: str, item: str, bidders: List[str], auction_type: str = "english"
     ) -> Tuple[Optional[str], float]:
         """
         Conduct auction negotiation.
@@ -1572,16 +1442,13 @@ class CommunicationFramework:
             sender=auctioneer,
             receiver=winner,
             message_type=MessageType.ACCEPT,
-            content={'item': item, 'price': winning_bid}
+            content={"item": item, "price": winning_bid},
         )
 
         for bidder, _ in bids:
             if bidder != winner:
                 await self.send_message(
-                    sender=auctioneer,
-                    receiver=bidder,
-                    message_type=MessageType.REJECT,
-                    content={'item': item}
+                    sender=auctioneer, receiver=bidder, message_type=MessageType.REJECT, content={"item": item}
                 )
 
         return winner, winning_bid
@@ -1590,6 +1457,7 @@ class CommunicationFramework:
 # ============================================================================
 # 7. GOAL MANAGEMENT SYSTEM
 # ============================================================================
+
 
 class GoalManagementSystem:
     """
@@ -1624,7 +1492,7 @@ class GoalManagementSystem:
         success_condition: str,
         priority: float = 0.5,
         deadline: Optional[datetime] = None,
-        parent_goal: Optional[str] = None
+        parent_goal: Optional[str] = None,
     ) -> str:
         """Create a new goal."""
         with self._lock:
@@ -1638,7 +1506,7 @@ class GoalManagementSystem:
                 success_condition=success_condition,
                 priority=priority,
                 deadline=deadline,
-                parent_goal=parent_goal
+                parent_goal=parent_goal,
             )
 
             self.goals[goal_id] = goal
@@ -1655,11 +1523,7 @@ class GoalManagementSystem:
 
             return goal_id
 
-    async def decompose_goal(
-        self,
-        goal_id: str,
-        decomposition_method: str = "automatic"
-    ) -> List[str]:
+    async def decompose_goal(self, goal_id: str, decomposition_method: str = "automatic") -> List[str]:
         """
         Decompose goal into subgoals.
 
@@ -1679,21 +1543,21 @@ class GoalManagementSystem:
                 goal_type=GoalType.ACHIEVEMENT,
                 success_condition="relevant_sources_found",
                 priority=goal.priority,
-                parent_goal=goal_id
+                parent_goal=goal_id,
             )
             sg2 = await self.create_goal(
                 description=f"Analyze information: {goal.description}",
                 goal_type=GoalType.ACHIEVEMENT,
                 success_condition="analysis_complete",
                 priority=goal.priority,
-                parent_goal=goal_id
+                parent_goal=goal_id,
             )
             sg3 = await self.create_goal(
                 description=f"Synthesize findings: {goal.description}",
                 goal_type=GoalType.ACHIEVEMENT,
                 success_condition="report_generated",
                 priority=goal.priority,
-                parent_goal=goal_id
+                parent_goal=goal_id,
             )
             subgoals = [sg1, sg2, sg3]
 
@@ -1704,32 +1568,27 @@ class GoalManagementSystem:
                 goal_type=GoalType.ACHIEVEMENT,
                 success_condition="design_approved",
                 priority=goal.priority,
-                parent_goal=goal_id
+                parent_goal=goal_id,
             )
             sg2 = await self.create_goal(
                 description=f"Code implementation: {goal.description}",
                 goal_type=GoalType.ACHIEVEMENT,
                 success_condition="code_complete",
                 priority=goal.priority,
-                parent_goal=goal_id
+                parent_goal=goal_id,
             )
             sg3 = await self.create_goal(
                 description=f"Test implementation: {goal.description}",
                 goal_type=GoalType.ACHIEVEMENT,
                 success_condition="tests_passing",
                 priority=goal.priority,
-                parent_goal=goal_id
+                parent_goal=goal_id,
             )
             subgoals = [sg1, sg2, sg3]
 
         return subgoals
 
-    async def create_plan(
-        self,
-        goal_id: str,
-        actions: List[Action],
-        estimated_duration: float
-    ) -> str:
+    async def create_plan(self, goal_id: str, actions: List[Action], estimated_duration: float) -> str:
         """Create execution plan for a goal."""
         with self._lock:
             plan_id = f"plan_{self._plan_counter}"
@@ -1740,7 +1599,7 @@ class GoalManagementSystem:
                 goal_id=goal_id,
                 actions=actions,
                 estimated_duration=estimated_duration,
-                success_probability=0.8
+                success_probability=0.8,
             )
 
             self.plans[plan_id] = plan
@@ -1751,11 +1610,7 @@ class GoalManagementSystem:
 
             return plan_id
 
-    async def execute_plan(
-        self,
-        plan_id: str,
-        action_executor: ActionExecutor
-    ) -> bool:
+    async def execute_plan(self, plan_id: str, action_executor: ActionExecutor) -> bool:
         """Execute a plan step by step."""
         plan = self.plans.get(plan_id)
         if not plan:
@@ -1791,11 +1646,7 @@ class GoalManagementSystem:
 
         return True
 
-    async def replan(
-        self,
-        plan_id: str,
-        failure_point: int
-    ) -> bool:
+    async def replan(self, plan_id: str, failure_point: int) -> bool:
         """Replan after failure."""
         plan = self.plans.get(plan_id)
         if not plan:
@@ -1819,21 +1670,19 @@ class GoalManagementSystem:
         # Calculate progress based on subgoals
         if goal.subgoals:
             completed_subgoals = sum(
-                1 for sg_id in goal.subgoals
-                if self.goals.get(sg_id, Goal).status == GoalStatus.COMPLETED
+                1 for sg_id in goal.subgoals if self.goals.get(sg_id, Goal).status == GoalStatus.COMPLETED
             )
             progress = completed_subgoals / len(goal.subgoals)
             goal.progress = progress
 
         return {
-            'goal_id': goal_id,
-            'status': goal.status.value,
-            'progress': goal.progress,
-            'subgoals_completed': sum(
-                1 for sg_id in goal.subgoals
-                if self.goals.get(sg_id, Goal).status == GoalStatus.COMPLETED
+            "goal_id": goal_id,
+            "status": goal.status.value,
+            "progress": goal.progress,
+            "subgoals_completed": sum(
+                1 for sg_id in goal.subgoals if self.goals.get(sg_id, Goal).status == GoalStatus.COMPLETED
             ),
-            'total_subgoals': len(goal.subgoals)
+            "total_subgoals": len(goal.subgoals),
         }
 
 

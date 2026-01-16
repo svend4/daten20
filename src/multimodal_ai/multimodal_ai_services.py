@@ -15,20 +15,22 @@ Components:
 """
 
 import asyncio
-import numpy as np
-from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple, Set
-from enum import Enum
-from datetime import datetime
 import hashlib
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+import numpy as np
 
 # ============================================================================
 # Enums and Data Classes
 # ============================================================================
 
+
 class ModalityType(Enum):
     """Types of modalities"""
+
     VISION = "vision"
     LANGUAGE = "language"
     AUDIO = "audio"
@@ -37,6 +39,7 @@ class ModalityType(Enum):
 
 class EncoderType(Enum):
     """Types of encoders"""
+
     RESNET50 = "resnet50"
     VIT_BASE = "vit_base"
     CLIP_VISION = "clip_vision"
@@ -51,6 +54,7 @@ class EncoderType(Enum):
 
 class FusionStrategy(Enum):
     """Fusion strategies"""
+
     EARLY_FUSION = "early_fusion"
     LATE_FUSION = "late_fusion"
     HIERARCHICAL_FUSION = "hierarchical_fusion"
@@ -60,6 +64,7 @@ class FusionStrategy(Enum):
 
 class GenerationType(Enum):
     """Types of generation tasks"""
+
     TEXT_TO_IMAGE = "text_to_image"
     IMAGE_TO_TEXT = "image_to_text"
     AUDIO_TO_TEXT = "audio_to_text"
@@ -70,6 +75,7 @@ class GenerationType(Enum):
 @dataclass
 class ModalityEncoding:
     """Encoded representation of a modality"""
+
     encoding_id: str
     modality: ModalityType
     encoder_type: EncoderType
@@ -86,6 +92,7 @@ class ModalityEncoding:
 @dataclass
 class CrossModalAttention:
     """Cross-modal attention result"""
+
     attention_id: str
     source_modality: ModalityType
     target_modality: ModalityType
@@ -99,6 +106,7 @@ class CrossModalAttention:
 @dataclass
 class ImageCaption:
     """Generated image caption"""
+
     caption_id: str
     image_id: str
     caption_text: str
@@ -116,6 +124,7 @@ class ImageCaption:
 @dataclass
 class VQAResult:
     """Visual question answering result"""
+
     vqa_id: str
     image_id: str
     question: str
@@ -132,6 +141,7 @@ class VQAResult:
 @dataclass
 class GeneratedContent:
     """Generated multimodal content"""
+
     content_id: str
     generation_type: GenerationType
     input_prompt: str
@@ -148,6 +158,7 @@ class GeneratedContent:
 @dataclass
 class GroundingResult:
     """Grounding result (temporal or spatial)"""
+
     grounding_id: str
     query: str
     grounding_type: str  # "temporal", "spatial", "object"
@@ -168,6 +179,7 @@ class GroundingResult:
 @dataclass
 class RetrievalResult:
     """Multimodal retrieval result"""
+
     retrieval_id: str
     query_modality: ModalityType
     target_modality: ModalityType
@@ -187,6 +199,7 @@ class RetrievalResult:
 # ============================================================================
 # System 1: Multimodal Encoder System
 # ============================================================================
+
 
 class MultimodalEncoderSystem:
     """
@@ -211,76 +224,74 @@ class MultimodalEncoderSystem:
         """Initialize encoder configurations"""
         # Vision encoders
         self.encoder_configs[EncoderType.RESNET50] = {
-            'input_size': (224, 224),
-            'output_dim': 2048,
-            'parameters': 25_000_000,
-            'inference_ms': 50
+            "input_size": (224, 224),
+            "output_dim": 2048,
+            "parameters": 25_000_000,
+            "inference_ms": 50,
         }
         self.encoder_configs[EncoderType.VIT_BASE] = {
-            'patch_size': 16,
-            'output_dim': 768,
-            'parameters': 86_000_000,
-            'inference_ms': 80
+            "patch_size": 16,
+            "output_dim": 768,
+            "parameters": 86_000_000,
+            "inference_ms": 80,
         }
         self.encoder_configs[EncoderType.CLIP_VISION] = {
-            'input_size': (224, 224),
-            'output_dim': 512,
-            'parameters': 150_000_000,
-            'inference_ms': 100
+            "input_size": (224, 224),
+            "output_dim": 512,
+            "parameters": 150_000_000,
+            "inference_ms": 100,
         }
 
         # Language encoders
         self.encoder_configs[EncoderType.BERT_BASE] = {
-            'max_length': 128,
-            'output_dim': 768,
-            'parameters': 110_000_000,
-            'inference_ms': 20
+            "max_length": 128,
+            "output_dim": 768,
+            "parameters": 110_000_000,
+            "inference_ms": 20,
         }
         self.encoder_configs[EncoderType.ROBERTA_BASE] = {
-            'max_length': 128,
-            'output_dim': 768,
-            'parameters': 125_000_000,
-            'inference_ms': 25
+            "max_length": 128,
+            "output_dim": 768,
+            "parameters": 125_000_000,
+            "inference_ms": 25,
         }
         self.encoder_configs[EncoderType.CLIP_TEXT] = {
-            'max_length': 77,
-            'output_dim': 512,
-            'parameters': 63_000_000,
-            'inference_ms': 15
+            "max_length": 77,
+            "output_dim": 512,
+            "parameters": 63_000_000,
+            "inference_ms": 15,
         }
 
         # Audio encoders
         self.encoder_configs[EncoderType.WAV2VEC2] = {
-            'sample_rate': 16000,
-            'output_dim': 768,
-            'parameters': 95_000_000,
-            'inference_ms': 30
+            "sample_rate": 16000,
+            "output_dim": 768,
+            "parameters": 95_000_000,
+            "inference_ms": 30,
         }
         self.encoder_configs[EncoderType.WHISPER] = {
-            'sample_rate': 16000,
-            'output_dim': 512,
-            'parameters': 244_000_000,
-            'inference_ms': 100
+            "sample_rate": 16000,
+            "output_dim": 512,
+            "parameters": 244_000_000,
+            "inference_ms": 100,
         }
 
         # Video encoders
         self.encoder_configs[EncoderType.I3D] = {
-            'num_frames': 8,
-            'output_dim': 1024,
-            'parameters': 25_000_000,
-            'inference_ms': 200
+            "num_frames": 8,
+            "output_dim": 1024,
+            "parameters": 25_000_000,
+            "inference_ms": 200,
         }
         self.encoder_configs[EncoderType.SLOWFAST] = {
-            'num_frames': 16,
-            'output_dim': 2048,
-            'parameters': 34_000_000,
-            'inference_ms': 250
+            "num_frames": 16,
+            "output_dim": 2048,
+            "parameters": 34_000_000,
+            "inference_ms": 250,
         }
 
     async def encode_vision(
-        self,
-        image_data: np.ndarray,
-        encoder_type: EncoderType = EncoderType.RESNET50
+        self, image_data: np.ndarray, encoder_type: EncoderType = EncoderType.RESNET50
     ) -> ModalityEncoding:
         """
         Encode image into embedding vector.
@@ -296,23 +307,18 @@ class MultimodalEncoderSystem:
         config = self.encoder_configs[encoder_type]
 
         # Simulate image preprocessing and encoding
-        await asyncio.sleep(config['inference_ms'] / 1000.0)
+        await asyncio.sleep(config["inference_ms"] / 1000.0)
 
         # Generate embedding (simulated)
-        embedding = np.random.randn(config['output_dim']).astype(np.float32)
+        embedding = np.random.randn(config["output_dim"]).astype(np.float32)
         embedding = embedding / np.linalg.norm(embedding)  # L2 normalize
 
         # Project to shared embedding space
-        shared_embedding = await self._project_to_shared_space(
-            embedding,
-            ModalityType.VISION
-        )
+        shared_embedding = await self._project_to_shared_space(embedding, ModalityType.VISION)
 
         encoding_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        encoding_id = hashlib.md5(
-            f"vision_{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:16]
+        encoding_id = hashlib.md5(f"vision_{datetime.now().isoformat()}".encode()).hexdigest()[:16]
 
         encoding = ModalityEncoding(
             encoding_id=encoding_id,
@@ -320,22 +326,15 @@ class MultimodalEncoderSystem:
             encoder_type=encoder_type,
             embedding=shared_embedding,
             embedding_dim=self.shared_embedding_dim,
-            metadata={
-                'image_shape': image_data.shape,
-                'encoder_params': config['parameters']
-            },
+            metadata={"image_shape": image_data.shape, "encoder_params": config["parameters"]},
             encoding_time_ms=encoding_time,
-            confidence_score=0.95
+            confidence_score=0.95,
         )
 
         self.encodings[encoding_id] = encoding
         return encoding
 
-    async def encode_language(
-        self,
-        text: str,
-        encoder_type: EncoderType = EncoderType.BERT_BASE
-    ) -> ModalityEncoding:
+    async def encode_language(self, text: str, encoder_type: EncoderType = EncoderType.BERT_BASE) -> ModalityEncoding:
         """
         Encode text into embedding vector.
 
@@ -350,26 +349,21 @@ class MultimodalEncoderSystem:
         config = self.encoder_configs[encoder_type]
 
         # Simulate tokenization and encoding
-        await asyncio.sleep(config['inference_ms'] / 1000.0)
+        await asyncio.sleep(config["inference_ms"] / 1000.0)
 
         # Generate embedding (simulated)
-        embedding = np.random.randn(config['output_dim']).astype(np.float32)
+        embedding = np.random.randn(config["output_dim"]).astype(np.float32)
         embedding = embedding / np.linalg.norm(embedding)
 
         # Project to shared embedding space
-        shared_embedding = await self._project_to_shared_space(
-            embedding,
-            ModalityType.LANGUAGE
-        )
+        shared_embedding = await self._project_to_shared_space(embedding, ModalityType.LANGUAGE)
 
         encoding_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        encoding_id = hashlib.md5(
-            f"language_{text}_{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:16]
+        encoding_id = hashlib.md5(f"language_{text}_{datetime.now().isoformat()}".encode()).hexdigest()[:16]
 
         # Tokenize (simplified)
-        tokens = text.lower().split()[:config['max_length']]
+        tokens = text.lower().split()[: config["max_length"]]
 
         encoding = ModalityEncoding(
             encoding_id=encoding_id,
@@ -377,23 +371,16 @@ class MultimodalEncoderSystem:
             encoder_type=encoder_type,
             embedding=shared_embedding,
             embedding_dim=self.shared_embedding_dim,
-            metadata={
-                'text': text,
-                'num_tokens': len(tokens),
-                'tokens': tokens
-            },
+            metadata={"text": text, "num_tokens": len(tokens), "tokens": tokens},
             encoding_time_ms=encoding_time,
-            confidence_score=0.98
+            confidence_score=0.98,
         )
 
         self.encodings[encoding_id] = encoding
         return encoding
 
     async def encode_audio(
-        self,
-        audio_data: np.ndarray,
-        sample_rate: int = 16000,
-        encoder_type: EncoderType = EncoderType.WAV2VEC2
+        self, audio_data: np.ndarray, sample_rate: int = 16000, encoder_type: EncoderType = EncoderType.WAV2VEC2
     ) -> ModalityEncoding:
         """
         Encode audio into embedding vector.
@@ -410,23 +397,18 @@ class MultimodalEncoderSystem:
         config = self.encoder_configs[encoder_type]
 
         # Simulate audio feature extraction and encoding
-        await asyncio.sleep(config['inference_ms'] / 1000.0)
+        await asyncio.sleep(config["inference_ms"] / 1000.0)
 
         # Generate embedding (simulated)
-        embedding = np.random.randn(config['output_dim']).astype(np.float32)
+        embedding = np.random.randn(config["output_dim"]).astype(np.float32)
         embedding = embedding / np.linalg.norm(embedding)
 
         # Project to shared embedding space
-        shared_embedding = await self._project_to_shared_space(
-            embedding,
-            ModalityType.AUDIO
-        )
+        shared_embedding = await self._project_to_shared_space(embedding, ModalityType.AUDIO)
 
         encoding_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        encoding_id = hashlib.md5(
-            f"audio_{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:16]
+        encoding_id = hashlib.md5(f"audio_{datetime.now().isoformat()}".encode()).hexdigest()[:16]
 
         audio_duration = len(audio_data) / sample_rate
 
@@ -436,22 +418,16 @@ class MultimodalEncoderSystem:
             encoder_type=encoder_type,
             embedding=shared_embedding,
             embedding_dim=self.shared_embedding_dim,
-            metadata={
-                'duration_s': audio_duration,
-                'sample_rate': sample_rate,
-                'num_samples': len(audio_data)
-            },
+            metadata={"duration_s": audio_duration, "sample_rate": sample_rate, "num_samples": len(audio_data)},
             encoding_time_ms=encoding_time,
-            confidence_score=0.93
+            confidence_score=0.93,
         )
 
         self.encodings[encoding_id] = encoding
         return encoding
 
     async def encode_video(
-        self,
-        video_frames: np.ndarray,
-        encoder_type: EncoderType = EncoderType.I3D
+        self, video_frames: np.ndarray, encoder_type: EncoderType = EncoderType.I3D
     ) -> ModalityEncoding:
         """
         Encode video into embedding vector.
@@ -467,23 +443,18 @@ class MultimodalEncoderSystem:
         config = self.encoder_configs[encoder_type]
 
         # Simulate spatiotemporal encoding
-        await asyncio.sleep(config['inference_ms'] / 1000.0)
+        await asyncio.sleep(config["inference_ms"] / 1000.0)
 
         # Generate embedding (simulated)
-        embedding = np.random.randn(config['output_dim']).astype(np.float32)
+        embedding = np.random.randn(config["output_dim"]).astype(np.float32)
         embedding = embedding / np.linalg.norm(embedding)
 
         # Project to shared embedding space
-        shared_embedding = await self._project_to_shared_space(
-            embedding,
-            ModalityType.VIDEO
-        )
+        shared_embedding = await self._project_to_shared_space(embedding, ModalityType.VIDEO)
 
         encoding_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        encoding_id = hashlib.md5(
-            f"video_{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:16]
+        encoding_id = hashlib.md5(f"video_{datetime.now().isoformat()}".encode()).hexdigest()[:16]
 
         encoding = ModalityEncoding(
             encoding_id=encoding_id,
@@ -491,23 +462,15 @@ class MultimodalEncoderSystem:
             encoder_type=encoder_type,
             embedding=shared_embedding,
             embedding_dim=self.shared_embedding_dim,
-            metadata={
-                'num_frames': video_frames.shape[0],
-                'frame_shape': video_frames.shape[1:],
-                'fps': 30
-            },
+            metadata={"num_frames": video_frames.shape[0], "frame_shape": video_frames.shape[1:], "fps": 30},
             encoding_time_ms=encoding_time,
-            confidence_score=0.90
+            confidence_score=0.90,
         )
 
         self.encodings[encoding_id] = encoding
         return encoding
 
-    async def _project_to_shared_space(
-        self,
-        embedding: np.ndarray,
-        modality: ModalityType
-    ) -> np.ndarray:
+    async def _project_to_shared_space(self, embedding: np.ndarray, modality: ModalityType) -> np.ndarray:
         """
         Project modality-specific embedding to shared space.
 
@@ -521,10 +484,7 @@ class MultimodalEncoderSystem:
         # Simulate learned projection (linear layer + activation)
         if len(embedding) != self.shared_embedding_dim:
             # Project to shared dimension
-            projection_matrix = np.random.randn(
-                len(embedding),
-                self.shared_embedding_dim
-            ).astype(np.float32) * 0.01
+            projection_matrix = np.random.randn(len(embedding), self.shared_embedding_dim).astype(np.float32) * 0.01
             projected = embedding @ projection_matrix
         else:
             projected = embedding.copy()
@@ -534,10 +494,7 @@ class MultimodalEncoderSystem:
         return projected
 
     async def compute_contrastive_loss(
-        self,
-        encoding_1: ModalityEncoding,
-        encoding_2: ModalityEncoding,
-        temperature: float = 0.07
+        self, encoding_1: ModalityEncoding, encoding_2: ModalityEncoding, temperature: float = 0.07
     ) -> float:
         """
         Compute contrastive loss (InfoNCE) between two modality encodings.
@@ -572,6 +529,7 @@ class MultimodalEncoderSystem:
 # System 2: Cross-Modal Attention & Fusion
 # ============================================================================
 
+
 class CrossModalAttentionFusion:
     """
     Enable information flow between modalities through attention mechanisms
@@ -590,10 +548,7 @@ class CrossModalAttentionFusion:
         self.attention_dim = 512
 
     async def cross_modal_attention(
-        self,
-        source_encoding: ModalityEncoding,
-        target_encoding: ModalityEncoding,
-        num_heads: int = 8
+        self, source_encoding: ModalityEncoding, target_encoding: ModalityEncoding, num_heads: int = 8
     ) -> CrossModalAttention:
         """
         Compute cross-modal attention between two modalities.
@@ -626,10 +581,7 @@ class CrossModalAttentionFusion:
         fused = fused / (np.linalg.norm(fused) + 1e-8)
 
         # Compute alignment score
-        alignment_score = float(np.dot(
-            source_encoding.embedding,
-            target_encoding.embedding
-        ))
+        alignment_score = float(np.dot(source_encoding.embedding, target_encoding.embedding))
         alignment_score = (alignment_score + 1) / 2  # Normalize to [0, 1]
 
         computation_time = (datetime.now() - start_time).total_seconds() * 1000
@@ -646,16 +598,14 @@ class CrossModalAttentionFusion:
             num_heads=num_heads,
             fused_embedding=fused,
             alignment_score=alignment_score,
-            computation_time_ms=computation_time
+            computation_time_ms=computation_time,
         )
 
         self.attention_results[attention_id] = attention_result
         return attention_result
 
     async def fuse_modalities(
-        self,
-        encodings: List[ModalityEncoding],
-        strategy: FusionStrategy = FusionStrategy.ATTENTION_FUSION
+        self, encodings: List[ModalityEncoding], strategy: FusionStrategy = FusionStrategy.ATTENTION_FUSION
     ) -> np.ndarray:
         """
         Fuse multiple modality encodings using specified strategy.
@@ -752,6 +702,7 @@ class CrossModalAttentionFusion:
 # System 3: Vision-Language Models
 # ============================================================================
 
+
 class VisionLanguageModels:
     """
     Integrate vision and language for image captioning, VQA, visual reasoning.
@@ -770,10 +721,7 @@ class VisionLanguageModels:
         self.max_caption_length = 20
 
     async def generate_caption(
-        self,
-        image_encoding: ModalityEncoding,
-        beam_size: int = 5,
-        max_length: int = 20
+        self, image_encoding: ModalityEncoding, beam_size: int = 5, max_length: int = 20
     ) -> ImageCaption:
         """
         Generate image caption using beam search.
@@ -790,10 +738,32 @@ class VisionLanguageModels:
 
         # Simulate caption generation
         sample_words = [
-            "a", "the", "is", "on", "in", "with", "of", "and",
-            "person", "dog", "cat", "car", "house", "tree", "sky",
-            "walking", "sitting", "standing", "playing", "eating",
-            "red", "blue", "green", "big", "small", "beautiful"
+            "a",
+            "the",
+            "is",
+            "on",
+            "in",
+            "with",
+            "of",
+            "and",
+            "person",
+            "dog",
+            "cat",
+            "car",
+            "house",
+            "tree",
+            "sky",
+            "walking",
+            "sitting",
+            "standing",
+            "playing",
+            "eating",
+            "red",
+            "blue",
+            "green",
+            "big",
+            "small",
+            "beautiful",
         ]
 
         # Generate caption (random sampling for simulation)
@@ -806,12 +776,11 @@ class VisionLanguageModels:
         overall_confidence = np.mean(confidence_scores)
 
         # Simulate beam search time (beam_size * sequence_length * vocab_size operations)
-        generation_time = (datetime.now() - start_time).total_seconds() * 1000 + \
-                         beam_size * max_length * 0.5  # Additional time for beam search
+        generation_time = (
+            datetime.now() - start_time
+        ).total_seconds() * 1000 + beam_size * max_length * 0.5  # Additional time for beam search
 
-        caption_id = hashlib.md5(
-            f"caption_{image_encoding.encoding_id}".encode()
-        ).hexdigest()[:16]
+        caption_id = hashlib.md5(f"caption_{image_encoding.encoding_id}".encode()).hexdigest()[:16]
 
         caption = ImageCaption(
             caption_id=caption_id,
@@ -823,17 +792,14 @@ class VisionLanguageModels:
             overall_confidence=overall_confidence,
             bleu_score=0.25,  # Typical BLEU-4 score
             cider_score=0.30,  # Typical CIDEr score
-            generation_time_ms=generation_time
+            generation_time_ms=generation_time,
         )
 
         self.captions[caption_id] = caption
         return caption
 
     async def answer_visual_question(
-        self,
-        image_encoding: ModalityEncoding,
-        question_encoding: ModalityEncoding,
-        question_text: str
+        self, image_encoding: ModalityEncoding, question_encoding: ModalityEncoding, question_text: str
     ) -> VQAResult:
         """
         Answer question about an image.
@@ -868,7 +834,7 @@ class VisionLanguageModels:
                 np.random.randint(0, 200),
                 np.random.randint(0, 200),
                 np.random.randint(10, 100),
-                np.random.randint(10, 100)
+                np.random.randint(10, 100),
             )
             for _ in range(num_regions)
         ]
@@ -878,16 +844,14 @@ class VisionLanguageModels:
             "Identified main objects in the image",
             f"Focused on {num_regions} key regions",
             f"Processed question type: {answer_type}",
-            f"Generated answer: {answer}"
+            f"Generated answer: {answer}",
         ]
 
         answer_confidence = float(np.random.rand() * 0.3 + 0.7)  # 0.7-1.0
 
         inference_time = (datetime.now() - start_time).total_seconds() * 1000 + 150
 
-        vqa_id = hashlib.md5(
-            f"vqa_{image_encoding.encoding_id}_{question_text}".encode()
-        ).hexdigest()[:16]
+        vqa_id = hashlib.md5(f"vqa_{image_encoding.encoding_id}_{question_text}".encode()).hexdigest()[:16]
 
         vqa_result = VQAResult(
             vqa_id=vqa_id,
@@ -898,17 +862,14 @@ class VisionLanguageModels:
             answer_type=answer_type,
             attention_regions=attention_regions,
             reasoning_steps=reasoning_steps,
-            inference_time_ms=inference_time
+            inference_time_ms=inference_time,
         )
 
         self.vqa_results[vqa_id] = vqa_result
         return vqa_result
 
     async def visual_grounding(
-        self,
-        image_encoding: ModalityEncoding,
-        phrase_encoding: ModalityEncoding,
-        phrase_text: str
+        self, image_encoding: ModalityEncoding, phrase_encoding: ModalityEncoding, phrase_text: str
     ) -> GroundingResult:
         """
         Localize objects/regions described by text phrase.
@@ -930,7 +891,7 @@ class VisionLanguageModels:
                 np.random.randint(0, 200),
                 np.random.randint(0, 200),
                 np.random.randint(20, 100),
-                np.random.randint(20, 100)
+                np.random.randint(20, 100),
             )
             for _ in range(num_proposals)
         ]
@@ -950,9 +911,7 @@ class VisionLanguageModels:
         iou_score = float(np.random.rand() * 0.4 + 0.6)  # 0.6-1.0
         precision = confidence_scores[0]  # Use top score as precision
 
-        grounding_id = hashlib.md5(
-            f"grounding_{image_encoding.encoding_id}_{phrase_text}".encode()
-        ).hexdigest()[:16]
+        grounding_id = hashlib.md5(f"grounding_{image_encoding.encoding_id}_{phrase_text}".encode()).hexdigest()[:16]
 
         grounding_result = GroundingResult(
             grounding_id=grounding_id,
@@ -961,7 +920,7 @@ class VisionLanguageModels:
             bounding_boxes=bounding_boxes,
             confidence_scores=confidence_scores,
             iou_score=iou_score,
-            precision=precision
+            precision=precision,
         )
 
         return grounding_result
@@ -970,6 +929,7 @@ class VisionLanguageModels:
 # ============================================================================
 # System 4: Audio-Visual Processing
 # ============================================================================
+
 
 class AudioVisualProcessing:
     """
@@ -987,9 +947,7 @@ class AudioVisualProcessing:
         self.localization_results: Dict[str, Dict[str, Any]] = {}
 
     async def audiovisual_speech_recognition(
-        self,
-        audio_encoding: ModalityEncoding,
-        video_encoding: ModalityEncoding
+        self, audio_encoding: ModalityEncoding, video_encoding: ModalityEncoding
     ) -> Dict[str, Any]:
         """
         Transcribe speech using both audio and video (lip reading).
@@ -1015,20 +973,18 @@ class AudioVisualProcessing:
         wer_audiovisual = 0.08  # 8% error rate with visual help
 
         result = {
-            'transcription': transcription,
-            'wer_audio_only': wer_audio_only,
-            'wer_audiovisual': wer_audiovisual,
-            'improvement': (wer_audio_only - wer_audiovisual) / wer_audio_only,
-            'confidence': 0.92,
-            'processing_time_ms': 500
+            "transcription": transcription,
+            "wer_audio_only": wer_audio_only,
+            "wer_audiovisual": wer_audiovisual,
+            "improvement": (wer_audio_only - wer_audiovisual) / wer_audio_only,
+            "confidence": 0.92,
+            "processing_time_ms": 500,
         }
 
         return result
 
     async def sound_source_localization(
-        self,
-        audio_encoding: ModalityEncoding,
-        video_encoding: ModalityEncoding
+        self, audio_encoding: ModalityEncoding, video_encoding: ModalityEncoding
     ) -> Dict[str, Any]:
         """
         Locate sound sources in visual scenes.
@@ -1062,21 +1018,19 @@ class AudioVisualProcessing:
         ).hexdigest()[:16]
 
         result = {
-            'localization_id': localization_id,
-            'heatmap': heatmap,
-            'num_sources': num_sources,
-            'ciou': ciou,
-            'auc': auc,
-            'inference_time_ms': 200
+            "localization_id": localization_id,
+            "heatmap": heatmap,
+            "num_sources": num_sources,
+            "ciou": ciou,
+            "auc": auc,
+            "inference_time_ms": 200,
         }
 
         self.localization_results[localization_id] = result
         return result
 
     async def detect_av_synchronization(
-        self,
-        audio_encoding: ModalityEncoding,
-        video_encoding: ModalityEncoding
+        self, audio_encoding: ModalityEncoding, video_encoding: ModalityEncoding
     ) -> Dict[str, Any]:
         """
         Determine if audio and video are synchronized.
@@ -1102,17 +1056,17 @@ class AudioVisualProcessing:
         else:
             temporal_offset_ms = float(np.random.rand() * 100 - 50)  # -50ms to +50ms
 
-        sync_id = hashlib.md5(
-            f"sync_{audio_encoding.encoding_id}_{video_encoding.encoding_id}".encode()
-        ).hexdigest()[:16]
+        sync_id = hashlib.md5(f"sync_{audio_encoding.encoding_id}_{video_encoding.encoding_id}".encode()).hexdigest()[
+            :16
+        ]
 
         result = {
-            'sync_id': sync_id,
-            'is_synchronized': is_synchronized,
-            'sync_score': sync_score,
-            'temporal_offset_ms': temporal_offset_ms,
-            'confidence': 0.90,
-            'inference_time_ms': 100
+            "sync_id": sync_id,
+            "is_synchronized": is_synchronized,
+            "sync_score": sync_score,
+            "temporal_offset_ms": temporal_offset_ms,
+            "confidence": 0.90,
+            "inference_time_ms": 100,
         }
 
         self.sync_results[sync_id] = result
@@ -1122,6 +1076,7 @@ class AudioVisualProcessing:
 # ============================================================================
 # System 5: Multimodal Generation
 # ============================================================================
+
 
 class MultimodalGeneration:
     """
@@ -1143,7 +1098,7 @@ class MultimodalGeneration:
         text_prompt: str,
         text_encoding: ModalityEncoding,
         resolution: Tuple[int, int] = (512, 512),
-        num_inference_steps: int = 50
+        num_inference_steps: int = 50,
     ) -> GeneratedContent:
         """
         Generate image from text prompt using diffusion model.
@@ -1171,9 +1126,7 @@ class MultimodalGeneration:
 
         generation_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        content_id = hashlib.md5(
-            f"text2img_{text_prompt}".encode()
-        ).hexdigest()[:16]
+        content_id = hashlib.md5(f"text2img_{text_prompt}".encode()).hexdigest()[:16]
 
         generated = GeneratedContent(
             content_id=content_id,
@@ -1184,17 +1137,14 @@ class MultimodalGeneration:
             quality_score=fid_score,
             alignment_score=clip_score,
             generation_time_ms=generation_time,
-            num_iterations=num_inference_steps
+            num_iterations=num_inference_steps,
         )
 
         self.generated_content[content_id] = generated
         return generated
 
     async def text_to_speech(
-        self,
-        text: str,
-        text_encoding: ModalityEncoding,
-        sample_rate: int = 22050
+        self, text: str, text_encoding: ModalityEncoding, sample_rate: int = 22050
     ) -> GeneratedContent:
         """
         Generate speech audio from text.
@@ -1225,9 +1175,7 @@ class MultimodalGeneration:
 
         generation_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        content_id = hashlib.md5(
-            f"text2speech_{text}".encode()
-        ).hexdigest()[:16]
+        content_id = hashlib.md5(f"text2speech_{text}".encode()).hexdigest()[:16]
 
         generated = GeneratedContent(
             content_id=content_id,
@@ -1238,16 +1186,13 @@ class MultimodalGeneration:
             quality_score=mos,
             alignment_score=0.95,  # Text-speech alignment
             generation_time_ms=generation_time,
-            num_iterations=1
+            num_iterations=1,
         )
 
         self.generated_content[content_id] = generated
         return generated
 
-    async def audio_to_text(
-        self,
-        audio_encoding: ModalityEncoding
-    ) -> str:
+    async def audio_to_text(self, audio_encoding: ModalityEncoding) -> str:
         """
         Transcribe audio to text.
 
@@ -1262,7 +1207,7 @@ class MultimodalGeneration:
             "This is a test of the audio transcription system.",
             "The quick brown fox jumps over the lazy dog.",
             "Hello world, how are you doing today?",
-            "Machine learning is transforming the world."
+            "Machine learning is transforming the world.",
         ]
 
         transcription = np.random.choice(sample_sentences)
@@ -1272,6 +1217,7 @@ class MultimodalGeneration:
 # ============================================================================
 # System 6: Multimodal Alignment & Grounding
 # ============================================================================
+
 
 class MultimodalAlignmentGrounding:
     """
@@ -1290,9 +1236,7 @@ class MultimodalAlignmentGrounding:
         self.grounding_results: Dict[str, GroundingResult] = {}
 
     async def vision_language_alignment(
-        self,
-        vision_encoding: ModalityEncoding,
-        language_encoding: ModalityEncoding
+        self, vision_encoding: ModalityEncoding, language_encoding: ModalityEncoding
     ) -> Dict[str, Any]:
         """
         Learn joint embedding space for images and text (CLIP-style).
@@ -1305,10 +1249,7 @@ class MultimodalAlignmentGrounding:
             Alignment result with similarity score
         """
         # Compute cosine similarity
-        similarity = float(np.dot(
-            vision_encoding.embedding,
-            language_encoding.embedding
-        ))
+        similarity = float(np.dot(vision_encoding.embedding, language_encoding.embedding))
 
         # Normalize to [0, 1]
         similarity_normalized = (similarity + 1) / 2
@@ -1332,12 +1273,12 @@ class MultimodalAlignmentGrounding:
         ).hexdigest()[:16]
 
         result = {
-            'alignment_id': alignment_id,
-            'similarity': similarity,
-            'similarity_normalized': similarity_normalized,
-            'contrastive_loss': float(contrastive_loss),
-            'temperature': temperature,
-            'is_matched': similarity_normalized > 0.7
+            "alignment_id": alignment_id,
+            "similarity": similarity,
+            "similarity_normalized": similarity_normalized,
+            "contrastive_loss": float(contrastive_loss),
+            "temperature": temperature,
+            "is_matched": similarity_normalized > 0.7,
         }
 
         self.alignment_results[alignment_id] = result
@@ -1348,7 +1289,7 @@ class MultimodalAlignmentGrounding:
         video_encoding: ModalityEncoding,
         query_encoding: ModalityEncoding,
         query_text: str,
-        video_duration_s: float = 60.0
+        video_duration_s: float = 60.0,
     ) -> GroundingResult:
         """
         Localize temporal segments in video based on text query.
@@ -1383,9 +1324,7 @@ class MultimodalAlignmentGrounding:
         # Simulate IoU with ground truth
         iou_score = float(np.random.rand() * 0.4 + 0.5)  # 0.5-0.9
 
-        grounding_id = hashlib.md5(
-            f"temporal_{video_encoding.encoding_id}_{query_text}".encode()
-        ).hexdigest()[:16]
+        grounding_id = hashlib.md5(f"temporal_{video_encoding.encoding_id}_{query_text}".encode()).hexdigest()[:16]
 
         grounding_result = GroundingResult(
             grounding_id=grounding_id,
@@ -1395,7 +1334,7 @@ class MultimodalAlignmentGrounding:
             end_time=end_time,
             confidence_scores=[confidence],
             iou_score=iou_score,
-            precision=confidence
+            precision=confidence,
         )
 
         self.grounding_results[grounding_id] = grounding_result
@@ -1405,6 +1344,7 @@ class MultimodalAlignmentGrounding:
 # ============================================================================
 # System 7: Multimodal Retrieval & Search
 # ============================================================================
+
 
 class MultimodalRetrievalSearch:
     """
@@ -1423,11 +1363,7 @@ class MultimodalRetrievalSearch:
         self.retrieval_results: Dict[str, RetrievalResult] = {}
         self.index_size = 0
 
-    async def index_item(
-        self,
-        item_id: str,
-        encoding: ModalityEncoding
-    ):
+    async def index_item(self, item_id: str, encoding: ModalityEncoding):
         """
         Add item to searchable index.
 
@@ -1439,10 +1375,7 @@ class MultimodalRetrievalSearch:
         self.index_size += 1
 
     async def cross_modal_retrieval(
-        self,
-        query_encoding: ModalityEncoding,
-        target_modality: ModalityType,
-        top_k: int = 10
+        self, query_encoding: ModalityEncoding, target_modality: ModalityType, top_k: int = 10
     ) -> RetrievalResult:
         """
         Retrieve items of target modality using query from different modality.
@@ -1458,17 +1391,11 @@ class MultimodalRetrievalSearch:
         start_time = datetime.now()
 
         # Filter database by target modality
-        target_items = {
-            item_id: enc
-            for item_id, enc in self.database.items()
-            if enc.modality == target_modality
-        }
+        target_items = {item_id: enc for item_id, enc in self.database.items() if enc.modality == target_modality}
 
         if not target_items:
             # No items of target modality, return empty result
-            retrieval_id = hashlib.md5(
-                f"retrieval_{query_encoding.encoding_id}".encode()
-            ).hexdigest()[:16]
+            retrieval_id = hashlib.md5(f"retrieval_{query_encoding.encoding_id}".encode()).hexdigest()[:16]
 
             return RetrievalResult(
                 retrieval_id=retrieval_id,
@@ -1479,7 +1406,7 @@ class MultimodalRetrievalSearch:
                 similarity_scores=[],
                 distances=[],
                 top_k=top_k,
-                search_time_ms=0.0
+                search_time_ms=0.0,
             )
 
         # Compute similarities
@@ -1490,10 +1417,7 @@ class MultimodalRetrievalSearch:
         similarities = embeddings @ query_encoding.embedding
 
         # Euclidean distance
-        distances = np.linalg.norm(
-            embeddings - query_encoding.embedding,
-            axis=1
-        )
+        distances = np.linalg.norm(embeddings - query_encoding.embedding, axis=1)
 
         # Sort by similarity (descending)
         sorted_indices = np.argsort(similarities)[::-1][:top_k]
@@ -1521,17 +1445,14 @@ class MultimodalRetrievalSearch:
             distances=distance_list,
             top_k=top_k,
             recall_at_k=recall_at_k,
-            search_time_ms=search_time
+            search_time_ms=search_time,
         )
 
         self.retrieval_results[retrieval_id] = retrieval_result
         return retrieval_result
 
     async def multimodal_recommendation(
-        self,
-        user_history: List[ModalityEncoding],
-        candidate_items: List[ModalityEncoding],
-        top_k: int = 10
+        self, user_history: List[ModalityEncoding], candidate_items: List[ModalityEncoding], top_k: int = 10
     ) -> List[Tuple[str, float]]:
         """
         Recommend items based on multimodal user preferences.
@@ -1559,10 +1480,7 @@ class MultimodalRetrievalSearch:
         # Rank items
         ranked_indices = np.argsort(scores)[::-1][:top_k]
 
-        recommendations = [
-            (candidate_items[i].encoding_id, float(scores[i]))
-            for i in ranked_indices
-        ]
+        recommendations = [(candidate_items[i].encoding_id, float(scores[i])) for i in ranked_indices]
 
         return recommendations
 
@@ -1574,29 +1492,17 @@ class MultimodalRetrievalSearch:
             Dictionary of metrics
         """
         if not self.retrieval_results:
-            return {
-                'num_queries': 0,
-                'avg_search_time_ms': 0.0,
-                'avg_recall_at_k': 0.0,
-                'index_size': self.index_size
-            }
+            return {"num_queries": 0, "avg_search_time_ms": 0.0, "avg_recall_at_k": 0.0, "index_size": self.index_size}
 
-        search_times = [
-            r.search_time_ms
-            for r in self.retrieval_results.values()
-        ]
-        recall_scores = [
-            r.recall_at_k
-            for r in self.retrieval_results.values()
-            if r.recall_at_k is not None
-        ]
+        search_times = [r.search_time_ms for r in self.retrieval_results.values()]
+        recall_scores = [r.recall_at_k for r in self.retrieval_results.values() if r.recall_at_k is not None]
 
         return {
-            'num_queries': len(self.retrieval_results),
-            'avg_search_time_ms': np.mean(search_times),
-            'avg_recall_at_k': np.mean(recall_scores) if recall_scores else 0.0,
-            'index_size': self.index_size,
-            'modality_distribution': self._get_modality_distribution()
+            "num_queries": len(self.retrieval_results),
+            "avg_search_time_ms": np.mean(search_times),
+            "avg_recall_at_k": np.mean(recall_scores) if recall_scores else 0.0,
+            "index_size": self.index_size,
+            "modality_distribution": self._get_modality_distribution(),
         }
 
     def _get_modality_distribution(self) -> Dict[str, int]:

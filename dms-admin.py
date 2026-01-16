@@ -5,17 +5,18 @@ Document Management System - Administration CLI
 Comprehensive command-line utility for system administration.
 """
 
-import click
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import click
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 
 @click.group()
-@click.version_option(version='2.2.0', prog_name='DMS Admin CLI')
+@click.version_option(version="2.2.0", prog_name="DMS Admin CLI")
 def cli():
     """Document Management System - Administration CLI"""
     pass
@@ -25,20 +26,23 @@ def cli():
 # USER MANAGEMENT
 # ==========================================
 
+
 @cli.group()
 def users():
     """User management commands"""
     pass
 
 
-@users.command('create')
-@click.option('--username', prompt=True, help='Username')
-@click.option('--email', prompt=True, help='Email address')
-@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True, help='Password')
-@click.option('--role', type=click.Choice(['admin', 'manager', 'editor', 'viewer', 'guest']), default='viewer', help='User role')
+@users.command("create")
+@click.option("--username", prompt=True, help="Username")
+@click.option("--email", prompt=True, help="Email address")
+@click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True, help="Password")
+@click.option(
+    "--role", type=click.Choice(["admin", "manager", "editor", "viewer", "guest"]), default="viewer", help="User role"
+)
 def create_user(username, email, password, role):
     """Create a new user"""
-    from src.core.auth import get_auth_manager, Role
+    from src.core.auth import Role, get_auth_manager
 
     auth = get_auth_manager()
     user = auth.create_user(username, email, password, Role(role))
@@ -50,17 +54,18 @@ def create_user(username, email, password, role):
         sys.exit(1)
 
 
-@users.command('list')
+@users.command("list")
 def list_users():
     """List all users"""
-    from src.core.auth import get_auth_manager
     import sqlite3
 
-    conn = sqlite3.connect('data/db/users.db')
+    from src.core.auth import get_auth_manager
+
+    conn = sqlite3.connect("data/db/users.db")
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    cursor.execute('SELECT id, username, email, role, is_active FROM users ORDER BY id')
+    cursor.execute("SELECT id, username, email, role, is_active FROM users ORDER BY id")
     users = cursor.fetchall()
     conn.close()
 
@@ -72,18 +77,18 @@ def list_users():
     click.echo("-" * 75)
 
     for user in users:
-        active = "Yes" if user['is_active'] else "No"
+        active = "Yes" if user["is_active"] else "No"
         click.echo(f"{user['id']:<5} {user['username']:<20} {user['email']:<30} {user['role']:<10} {active:<6}")
 
     click.echo(f"\nTotal users: {len(users)}\n")
 
 
-@users.command('enable-2fa')
-@click.argument('user_id', type=int)
+@users.command("enable-2fa")
+@click.argument("user_id", type=int)
 def enable_2fa(user_id):
     """Enable 2FA for a user and show QR code"""
-    from src.core.two_factor import get_two_factor_auth
     from src.core.auth import get_auth_manager
+    from src.core.two_factor import get_two_factor_auth
 
     auth = get_auth_manager()
     user = auth.load_user(user_id)
@@ -109,14 +114,15 @@ def enable_2fa(user_id):
 # BACKUP MANAGEMENT
 # ==========================================
 
+
 @cli.group()
 def backup():
     """Backup management commands"""
     pass
 
 
-@backup.command('create')
-@click.option('--include-files', is_flag=True, default=True, help='Include uploaded files')
+@backup.command("create")
+@click.option("--include-files", is_flag=True, default=True, help="Include uploaded files")
 def create_backup(include_files):
     """Create a new backup"""
     from src.core.backup import get_backup_manager
@@ -129,8 +135,8 @@ def create_backup(include_files):
     click.echo(f"✓ Backup created: {backup_path}")
 
 
-@backup.command('list')
-@click.option('--limit', default=10, help='Number of backups to show')
+@backup.command("list")
+@click.option("--limit", default=10, help="Number of backups to show")
 def list_backups(limit):
     """List available backups"""
     from src.core.backup import get_backup_manager
@@ -151,9 +157,9 @@ def list_backups(limit):
     click.echo(f"\nShowing {len(backups)} of {len(mgr.list_backups())} backups\n")
 
 
-@backup.command('restore')
-@click.argument('backup_path')
-@click.confirmation_option(prompt='Are you sure you want to restore? This will overwrite current data!')
+@backup.command("restore")
+@click.argument("backup_path")
+@click.confirmation_option(prompt="Are you sure you want to restore? This will overwrite current data!")
 def restore_backup(backup_path):
     """Restore from a backup"""
     from src.core.backup import get_backup_manager
@@ -173,26 +179,23 @@ def restore_backup(backup_path):
 # AUDIT LOG
 # ==========================================
 
+
 @cli.group()
 def audit():
     """Audit log commands"""
     pass
 
 
-@audit.command('view')
-@click.option('--user-id', type=int, help='Filter by user ID')
-@click.option('--action', help='Filter by action')
-@click.option('--limit', default=50, help='Number of entries to show')
+@audit.command("view")
+@click.option("--user-id", type=int, help="Filter by user ID")
+@click.option("--action", help="Filter by action")
+@click.option("--limit", default=50, help="Number of entries to show")
 def view_audit(user_id, action, limit):
     """View audit log entries"""
     from src.core.audit import get_audit_logger
 
     auditor = get_audit_logger()
-    entries = auditor.get_entries(
-        user_id=user_id,
-        action=action,
-        limit=limit
-    )
+    entries = auditor.get_entries(user_id=user_id, action=action, limit=limit)
 
     if not entries:
         click.echo("No audit entries found")
@@ -202,15 +205,15 @@ def view_audit(user_id, action, limit):
     click.echo("-" * 80)
 
     for entry in entries:
-        timestamp = entry.timestamp.strftime('%Y-%m-%d %H:%M:%S')
-        user = entry.username or 'system'
+        timestamp = entry.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        user = entry.username or "system"
         click.echo(f"{timestamp:<20} {user:<15} {entry.action:<30} {entry.status:<10}")
 
     click.echo(f"\nShowing {len(entries)} entries\n")
 
 
-@audit.command('stats')
-@click.option('--days', default=7, help='Number of days to analyze')
+@audit.command("stats")
+@click.option("--days", default=7, help="Number of days to analyze")
 def audit_stats(days):
     """View audit statistics"""
     from src.core.audit import get_audit_logger
@@ -224,11 +227,11 @@ def audit_stats(days):
     click.echo(f"Failed operations: {stats['failed_operations']}")
 
     click.echo(f"\nBy severity level:")
-    for level, count in stats['by_level'].items():
+    for level, count in stats["by_level"].items():
         click.echo(f"  {level}: {count}")
 
     click.echo(f"\nTop 10 actions:")
-    for action, count in list(stats['top_actions'].items())[:10]:
+    for action, count in list(stats["top_actions"].items())[:10]:
         click.echo(f"  {action}: {count}")
 
     click.echo()
@@ -238,16 +241,18 @@ def audit_stats(days):
 # SYSTEM STATUS
 # ==========================================
 
+
 @cli.group()
 def system():
     """System management commands"""
     pass
 
 
-@system.command('status')
+@system.command("status")
 def system_status():
     """Show system status"""
     import psutil
+
     from src.core.database import Database
 
     click.echo("\nSystem Status")
@@ -256,7 +261,7 @@ def system_status():
     # System metrics
     cpu = psutil.cpu_percent(interval=1)
     memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
+    disk = psutil.disk_usage("/")
 
     click.echo(f"\nSystem Resources:")
     click.echo(f"  CPU Usage: {cpu}%")
@@ -275,7 +280,7 @@ def system_status():
     click.echo()
 
 
-@system.command('check')
+@system.command("check")
 def system_check():
     """Run system health checks"""
     checks = []
@@ -283,6 +288,7 @@ def system_check():
     # Check database
     try:
         from src.core.database import Database
+
         db = Database()
         db.list_services()
         checks.append(("Database connection", True, "OK"))
@@ -290,13 +296,13 @@ def system_check():
         checks.append(("Database connection", False, str(e)))
 
     # Check directories
-    required_dirs = ['data', 'data/db', 'data/exports', 'logs']
+    required_dirs = ["data", "data/db", "data/exports", "logs"]
     for dir_path in required_dirs:
         exists = Path(dir_path).exists()
         checks.append((f"Directory: {dir_path}", exists, "Exists" if exists else "Missing"))
 
     # Check config
-    env_exists = Path('.env').exists()
+    env_exists = Path(".env").exists()
     checks.append(("Configuration file (.env)", env_exists, "Present" if env_exists else "Missing"))
 
     # Display results
@@ -324,13 +330,14 @@ def system_check():
 # DATABASE MANAGEMENT
 # ==========================================
 
+
 @cli.group()
 def database():
     """Database management commands"""
     pass
 
 
-@database.command('stats')
+@database.command("stats")
 def db_stats():
     """Show database statistics"""
     from src.core.database import Database
@@ -364,5 +371,5 @@ def db_stats():
     click.echo()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

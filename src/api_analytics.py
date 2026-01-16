@@ -5,29 +5,30 @@ Provides endpoints for Business Intelligence Dashboard,
 KPI calculations, data export, and analytics queries.
 """
 
-from flask import Blueprint, request, jsonify, send_file
-from flasgger import swag_from
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-from decimal import Decimal
-import logging
 import io
 import json
+import logging
+from datetime import datetime, timedelta
+from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from flasgger import swag_from
+from flask import Blueprint, jsonify, request, send_file
 
 # Import analytics modules
-from src.analytics.bi_dashboard import BIDashboard, KPI, ReportFormat, ReportFrequency
-from src.analytics.predictive_analytics import PredictiveAnalytics
-from src.analytics.data_warehouse import DataWarehouse
-from src.analytics.olap_cube import OLAPCube
+from src.analytics.bi_dashboard import KPI, BIDashboard, ReportFormat, ReportFrequency
 from src.analytics.data_mining import DataMining
-from src.analytics.streaming_analytics import StreamingAnalytics
+from src.analytics.data_warehouse import DataWarehouse
 from src.analytics.nl_query import NaturalLanguageQuery
+from src.analytics.olap_cube import OLAPCube
+from src.analytics.predictive_analytics import PredictiveAnalytics
+from src.analytics.streaming_analytics import StreamingAnalytics
 
 # Setup logger
-logger = logging.getLogger('dms.api.analytics')
+logger = logging.getLogger("dms.api.analytics")
 
 # Create Analytics API blueprint
-api_analytics = Blueprint('api_analytics', __name__, url_prefix='/api/v1/analytics')
+api_analytics = Blueprint("api_analytics", __name__, url_prefix="/api/v1/analytics")
 
 # Initialize analytics components
 bi_dashboard = BIDashboard()
@@ -43,7 +44,8 @@ nl_query = NaturalLanguageQuery()
 # DASHBOARD ENDPOINTS
 # ==========================================
 
-@api_analytics.route('/dashboard', methods=['GET'])
+
+@api_analytics.route("/dashboard", methods=["GET"])
 def get_dashboard():
     """
     Get BI Dashboard Data
@@ -96,36 +98,35 @@ def get_dashboard():
     """
     try:
         # Parse parameters
-        date_range = request.args.get('dateRange', 30, type=int)
-        tenant_id = request.args.get('tenant', 'all')
-        comparison_period = request.args.get('comparisonPeriod', 'previous')
+        date_range = request.args.get("dateRange", 30, type=int)
+        tenant_id = request.args.get("tenant", "all")
+        comparison_period = request.args.get("comparisonPeriod", "previous")
 
         # Calculate date ranges
         end_date = datetime.now()
         start_date = end_date - timedelta(days=date_range)
 
         # Get dashboard data
-        dashboard_data = bi_dashboard.create_executive_dashboard(
-            tenant_id=tenant_id,
-            date_range=(start_date, end_date)
-        )
+        dashboard_data = bi_dashboard.create_executive_dashboard(tenant_id=tenant_id, date_range=(start_date, end_date))
 
-        return jsonify({
-            'success': True,
-            'kpis': dashboard_data.get('kpis', {}),
-            'charts': dashboard_data.get('charts', {}),
-            'timestamp': datetime.now().isoformat()
-        }), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "kpis": dashboard_data.get("kpis", {}),
+                    "charts": dashboard_data.get("charts", {}),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Dashboard API error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
-@api_analytics.route('/kpi/<kpi_name>', methods=['GET'])
+@api_analytics.route("/kpi/<kpi_name>", methods=["GET"])
 def get_kpi(kpi_name: str):
     """
     Get Specific KPI
@@ -155,57 +156,53 @@ def get_kpi(kpi_name: str):
         description: Server error
     """
     try:
-        date_range = request.args.get('dateRange', 30, type=int)
+        date_range = request.args.get("dateRange", 30, type=int)
 
         # Calculate KPI based on name
         kpi_calculators = {
-            'mrr': bi_dashboard.kpi_calculator.calculate_mrr,
-            'arr': lambda data: bi_dashboard.kpi_calculator.calculate_arr(
+            "mrr": bi_dashboard.kpi_calculator.calculate_mrr,
+            "arr": lambda data: bi_dashboard.kpi_calculator.calculate_arr(
                 bi_dashboard.kpi_calculator.calculate_mrr(data)
             ),
-            'churn': bi_dashboard.kpi_calculator.calculate_churn_rate,
-            'clv': bi_dashboard.kpi_calculator.calculate_clv,
-            'nrr': bi_dashboard.kpi_calculator.calculate_nrr,
-            'cac': bi_dashboard.kpi_calculator.calculate_cac
+            "churn": bi_dashboard.kpi_calculator.calculate_churn_rate,
+            "clv": bi_dashboard.kpi_calculator.calculate_clv,
+            "nrr": bi_dashboard.kpi_calculator.calculate_nrr,
+            "cac": bi_dashboard.kpi_calculator.calculate_cac,
         }
 
         if kpi_name not in kpi_calculators:
-            return jsonify({
-                'success': False,
-                'error': f'KPI "{kpi_name}" not found'
-            }), 404
+            return jsonify({"success": False, "error": f'KPI "{kpi_name}" not found'}), 404
 
         # Mock data for demo
         # TODO: Replace with actual data fetching
-        mock_data = {
-            'subscriptions': [],
-            'churned_customers': 0,
-            'total_customers_start': 0
-        }
+        mock_data = {"subscriptions": [], "churned_customers": 0, "total_customers_start": 0}
 
         # value = kpi_calculators[kpi_name](mock_data)
 
-        return jsonify({
-            'success': True,
-            'kpi': kpi_name,
-            'value': 0,  # value,
-            'unit': 'EUR' if kpi_name in ['mrr', 'arr', 'clv', 'cac'] else '%',
-            'timestamp': datetime.now().isoformat()
-        }), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "kpi": kpi_name,
+                    "value": 0,  # value,
+                    "unit": "EUR" if kpi_name in ["mrr", "arr", "clv", "cac"] else "%",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"KPI API error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==========================================
 # PREDICTIVE ANALYTICS ENDPOINTS
 # ==========================================
 
-@api_analytics.route('/predict/revenue', methods=['POST'])
+
+@api_analytics.route("/predict/revenue", methods=["POST"])
 def predict_revenue():
     """
     Predict Future Revenue
@@ -237,31 +234,23 @@ def predict_revenue():
     """
     try:
         data = request.get_json() or {}
-        months = data.get('months', 3)
-        model = data.get('model', 'arima')
+        months = data.get("months", 3)
+        model = data.get("model", "arima")
 
         # Generate forecast
-        forecast = predictive_analytics.forecast_revenue(
-            months_ahead=months,
-            model_type=model
-        )
+        forecast = predictive_analytics.forecast_revenue(months_ahead=months, model_type=model)
 
-        return jsonify({
-            'success': True,
-            'forecast': forecast,
-            'model': model,
-            'timestamp': datetime.now().isoformat()
-        }), 200
+        return (
+            jsonify({"success": True, "forecast": forecast, "model": model, "timestamp": datetime.now().isoformat()}),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Revenue prediction error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
-@api_analytics.route('/predict/churn', methods=['POST'])
+@api_analytics.route("/predict/churn", methods=["POST"])
 def predict_churn():
     """
     Predict Customer Churn
@@ -290,30 +279,24 @@ def predict_churn():
     """
     try:
         data = request.get_json() or {}
-        customer_ids = data.get('customer_ids', [])
+        customer_ids = data.get("customer_ids", [])
 
         # Generate churn predictions
         predictions = predictive_analytics.predict_churn(customer_ids)
 
-        return jsonify({
-            'success': True,
-            'predictions': predictions,
-            'timestamp': datetime.now().isoformat()
-        }), 200
+        return jsonify({"success": True, "predictions": predictions, "timestamp": datetime.now().isoformat()}), 200
 
     except Exception as e:
         logger.error(f"Churn prediction error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==========================================
 # DATA WAREHOUSE ENDPOINTS
 # ==========================================
 
-@api_analytics.route('/warehouse/etl', methods=['POST'])
+
+@api_analytics.route("/warehouse/etl", methods=["POST"])
 def trigger_etl():
     """
     Trigger ETL Pipeline
@@ -341,27 +324,22 @@ def trigger_etl():
     """
     try:
         data = request.get_json() or {}
-        incremental = data.get('incremental', True)
+        incremental = data.get("incremental", True)
 
         # Trigger ETL
         job_id = data_warehouse.run_etl_pipeline(incremental=incremental)
 
-        return jsonify({
-            'success': True,
-            'job_id': job_id,
-            'status': 'started',
-            'timestamp': datetime.now().isoformat()
-        }), 202
+        return (
+            jsonify({"success": True, "job_id": job_id, "status": "started", "timestamp": datetime.now().isoformat()}),
+            202,
+        )
 
     except Exception as e:
         logger.error(f"ETL trigger error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
-@api_analytics.route('/warehouse/status', methods=['GET'])
+@api_analytics.route("/warehouse/status", methods=["GET"])
 def warehouse_status():
     """
     Get Data Warehouse Status
@@ -379,25 +357,19 @@ def warehouse_status():
     try:
         status = data_warehouse.get_status()
 
-        return jsonify({
-            'success': True,
-            'status': status,
-            'timestamp': datetime.now().isoformat()
-        }), 200
+        return jsonify({"success": True, "status": status, "timestamp": datetime.now().isoformat()}), 200
 
     except Exception as e:
         logger.error(f"Warehouse status error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==========================================
 # OLAP CUBE ENDPOINTS
 # ==========================================
 
-@api_analytics.route('/olap/query', methods=['POST'])
+
+@api_analytics.route("/olap/query", methods=["POST"])
 def olap_query():
     """
     Execute OLAP Query
@@ -436,36 +408,26 @@ def olap_query():
     """
     try:
         data = request.get_json() or {}
-        dimensions = data.get('dimensions', [])
-        measures = data.get('measures', [])
-        filters = data.get('filters', {})
+        dimensions = data.get("dimensions", [])
+        measures = data.get("measures", [])
+        filters = data.get("filters", {})
 
         # Execute OLAP query
-        result = olap_cube.query(
-            dimensions=dimensions,
-            measures=measures,
-            filters=filters
-        )
+        result = olap_cube.query(dimensions=dimensions, measures=measures, filters=filters)
 
-        return jsonify({
-            'success': True,
-            'result': result,
-            'timestamp': datetime.now().isoformat()
-        }), 200
+        return jsonify({"success": True, "result": result, "timestamp": datetime.now().isoformat()}), 200
 
     except Exception as e:
         logger.error(f"OLAP query error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==========================================
 # DATA MINING ENDPOINTS
 # ==========================================
 
-@api_analytics.route('/mining/patterns', methods=['POST'])
+
+@api_analytics.route("/mining/patterns", methods=["POST"])
 def discover_patterns():
     """
     Discover Data Patterns
@@ -497,35 +459,30 @@ def discover_patterns():
     """
     try:
         data = request.get_json() or {}
-        algorithm = data.get('algorithm', 'apriori')
-        min_support = data.get('min_support', 0.3)
+        algorithm = data.get("algorithm", "apriori")
+        min_support = data.get("min_support", 0.3)
 
         # Discover patterns
-        patterns = data_mining.discover_patterns(
-            algorithm=algorithm,
-            min_support=min_support
-        )
+        patterns = data_mining.discover_patterns(algorithm=algorithm, min_support=min_support)
 
-        return jsonify({
-            'success': True,
-            'patterns': patterns,
-            'algorithm': algorithm,
-            'timestamp': datetime.now().isoformat()
-        }), 200
+        return (
+            jsonify(
+                {"success": True, "patterns": patterns, "algorithm": algorithm, "timestamp": datetime.now().isoformat()}
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Pattern discovery error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==========================================
 # NATURAL LANGUAGE QUERY ENDPOINTS
 # ==========================================
 
-@api_analytics.route('/query/natural', methods=['POST'])
+
+@api_analytics.route("/query/natural", methods=["POST"])
 def natural_language_query():
     """
     Natural Language Query
@@ -555,38 +512,38 @@ def natural_language_query():
     """
     try:
         data = request.get_json() or {}
-        query = data.get('query', '')
+        query = data.get("query", "")
 
         if not query:
-            return jsonify({
-                'success': False,
-                'error': 'Query is required'
-            }), 400
+            return jsonify({"success": False, "error": "Query is required"}), 400
 
         # Execute NL query
         result = nl_query.execute_query(query)
 
-        return jsonify({
-            'success': True,
-            'query': query,
-            'sql': result.get('sql', ''),
-            'result': result.get('data', []),
-            'timestamp': datetime.now().isoformat()
-        }), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "query": query,
+                    "sql": result.get("sql", ""),
+                    "result": result.get("data", []),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"NL query error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==========================================
 # EXPORT ENDPOINTS
 # ==========================================
 
-@api_analytics.route('/export', methods=['POST'])
+
+@api_analytics.route("/export", methods=["POST"])
 def export_dashboard():
     """
     Export Dashboard
@@ -634,56 +591,54 @@ def export_dashboard():
     """
     try:
         data = request.get_json() or {}
-        export_format = data.get('format', 'pdf')
-        include = data.get('include', {})
-        filters = data.get('filters', {})
+        export_format = data.get("format", "pdf")
+        include = data.get("include", {})
+        filters = data.get("filters", {})
 
         # Validate format
-        valid_formats = ['pdf', 'excel', 'powerpoint', 'json', 'csv']
+        valid_formats = ["pdf", "excel", "powerpoint", "json", "csv"]
         if export_format not in valid_formats:
-            return jsonify({
-                'success': False,
-                'error': f'Invalid format. Must be one of: {", ".join(valid_formats)}'
-            }), 400
+            return (
+                jsonify({"success": False, "error": f'Invalid format. Must be one of: {", ".join(valid_formats)}'}),
+                400,
+            )
 
         # Generate export
         export_file = bi_dashboard.report_generator.generate_report(
             format=ReportFormat(export_format),
-            include_kpis=include.get('kpis', True),
-            include_charts=include.get('charts', True),
-            include_raw_data=include.get('rawData', False),
-            filters=filters
+            include_kpis=include.get("kpis", True),
+            include_charts=include.get("charts", True),
+            include_raw_data=include.get("rawData", False),
+            filters=filters,
         )
 
         # Determine MIME type
         mime_types = {
-            'pdf': 'application/pdf',
-            'excel': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'powerpoint': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'json': 'application/json',
-            'csv': 'text/csv'
+            "pdf": "application/pdf",
+            "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "powerpoint": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "json": "application/json",
+            "csv": "text/csv",
         }
 
         return send_file(
             io.BytesIO(export_file),
             mimetype=mime_types[export_format],
             as_attachment=True,
-            download_name=f'bi-dashboard-{datetime.now().strftime("%Y%m%d")}.{export_format}'
+            download_name=f'bi-dashboard-{datetime.now().strftime("%Y%m%d")}.{export_format}',
         )
 
     except Exception as e:
         logger.error(f"Export error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ==========================================
 # SCHEDULED REPORTS ENDPOINTS
 # ==========================================
 
-@api_analytics.route('/reports/schedule', methods=['POST'])
+
+@api_analytics.route("/reports/schedule", methods=["POST"])
 def schedule_report():
     """
     Schedule Report
@@ -727,28 +682,30 @@ def schedule_report():
         data = request.get_json() or {}
 
         report_id = bi_dashboard.report_scheduler.schedule_report(
-            name=data.get('name', 'Scheduled Report'),
-            frequency=ReportFrequency(data.get('frequency', 'weekly')),
-            format=ReportFormat(data.get('format', 'pdf')),
-            recipients=data.get('recipients', [])
+            name=data.get("name", "Scheduled Report"),
+            frequency=ReportFrequency(data.get("frequency", "weekly")),
+            format=ReportFormat(data.get("format", "pdf")),
+            recipients=data.get("recipients", []),
         )
 
-        return jsonify({
-            'success': True,
-            'report_id': report_id,
-            'message': 'Report scheduled successfully',
-            'timestamp': datetime.now().isoformat()
-        }), 201
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "report_id": report_id,
+                    "message": "Report scheduled successfully",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ),
+            201,
+        )
 
     except Exception as e:
         logger.error(f"Report scheduling error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
-@api_analytics.route('/reports/scheduled', methods=['GET'])
+@api_analytics.route("/reports/scheduled", methods=["GET"])
 def list_scheduled_reports():
     """
     List Scheduled Reports
@@ -766,37 +723,28 @@ def list_scheduled_reports():
     try:
         reports = bi_dashboard.report_scheduler.list_scheduled_reports()
 
-        return jsonify({
-            'success': True,
-            'reports': reports,
-            'count': len(reports),
-            'timestamp': datetime.now().isoformat()
-        }), 200
+        return (
+            jsonify(
+                {"success": True, "reports": reports, "count": len(reports), "timestamp": datetime.now().isoformat()}
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"List scheduled reports error: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # Error handlers
 @api_analytics.errorhandler(404)
 def not_found(error):
-    return jsonify({
-        'success': False,
-        'error': 'Endpoint not found'
-    }), 404
+    return jsonify({"success": False, "error": "Endpoint not found"}), 404
 
 
 @api_analytics.errorhandler(500)
 def internal_error(error):
     logger.error(f"Internal server error: {error}", exc_info=True)
-    return jsonify({
-        'success': False,
-        'error': 'Internal server error'
-    }), 500
+    return jsonify({"success": False, "error": "Internal server error"}), 500
 
 
 # Helper function to initialize the blueprint in the main app

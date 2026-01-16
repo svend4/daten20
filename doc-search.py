@@ -50,32 +50,34 @@ Version: 1.0.0
 
 import argparse
 import json
-import sys
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, date
-from collections import defaultdict
 import logging
 import re
+import sys
+from collections import defaultdict
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
+    import numpy as np
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
-    import numpy as np
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
     print("WARNING: scikit-learn not installed. Some features may be limited.")
 
+from src.core.advanced_search import AdvancedSearchEngine
+
 # Import core modules
 from src.core.database import DocumentDatabase
-from src.core.advanced_search import AdvancedSearchEngine
 from src.core.logging_config import setup_logging
+from src.ml.knowledge_graph import KnowledgeGraph, KnowledgeGraphBuilder
 
 # Import ML modules
-from src.ml.ner import NEREngine, EntityType
+from src.ml.ner import EntityType, NEREngine
 from src.ml.relation_extractor import RelationExtractor, RelationType
-from src.ml.knowledge_graph import KnowledgeGraph, KnowledgeGraphBuilder
 
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
@@ -107,10 +109,7 @@ class DocumentIndex:
             doc_id: Document ID
             document: Document data with text, entities, relations
         """
-        self.documents.append({
-            "id": doc_id,
-            "data": document
-        })
+        self.documents.append({"id": doc_id, "data": document})
 
         # Index entities
         for entity in document.get("entities", []):
@@ -121,7 +120,7 @@ class DocumentIndex:
         for relation in document.get("relations", []):
             rel_key = f"{relation['source']}:{relation['relation']}:{relation['target']}"
             self.relation_index[rel_key].append(doc_id)
-            self.relation_index[relation['relation']].append(doc_id)
+            self.relation_index[relation["relation"]].append(doc_id)
 
     def build_tfidf_index(self):
         """Build TF-IDF index for text search."""
@@ -131,11 +130,7 @@ class DocumentIndex:
 
         texts = [doc["data"].get("text", "") for doc in self.documents]
 
-        self.tfidf_vectorizer = TfidfVectorizer(
-            max_features=5000,
-            ngram_range=(1, 2),
-            stop_words='english'
-        )
+        self.tfidf_vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2), stop_words="english")
 
         self.tfidf_matrix = self.tfidf_vectorizer.fit_transform(texts)
         logger.info(f"TF-IDF index built: {len(texts)} documents")
@@ -165,9 +160,7 @@ class DocumentIndex:
         top_indices = np.argsort(similarities)[::-1][:top_k]
 
         results = [
-            (self.documents[idx]["id"], float(similarities[idx]))
-            for idx in top_indices
-            if similarities[idx] > 0
+            (self.documents[idx]["id"], float(similarities[idx])) for idx in top_indices if similarities[idx] > 0
         ]
 
         return results
@@ -187,11 +180,7 @@ class DocumentIndex:
         results.sort(key=lambda x: x[1], reverse=True)
         return results[:top_k]
 
-    def entity_search(
-        self,
-        entity_text: Optional[str] = None,
-        entity_type: Optional[str] = None
-    ) -> List[int]:
+    def entity_search(self, entity_text: Optional[str] = None, entity_type: Optional[str] = None) -> List[int]:
         """
         Search documents by entity.
 
@@ -211,10 +200,7 @@ class DocumentIndex:
             return []
 
     def relation_search(
-        self,
-        relation_type: Optional[str] = None,
-        source: Optional[str] = None,
-        target: Optional[str] = None
+        self, relation_type: Optional[str] = None, source: Optional[str] = None, target: Optional[str] = None
     ) -> List[int]:
         """
         Search documents by relation.
@@ -271,11 +257,7 @@ class DocumentSearchEngine:
         logger.info("Document indexing complete")
 
     def search(
-        self,
-        query: str,
-        search_type: str = "text",
-        top_k: int = 10,
-        filters: Optional[Dict[str, Any]] = None
+        self, query: str, search_type: str = "text", top_k: int = 10, filters: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """
         Search documents.
@@ -305,12 +287,7 @@ class DocumentSearchEngine:
         logger.info(f"Found {len(results)} results")
         return results
 
-    def _text_search(
-        self,
-        query: str,
-        top_k: int,
-        filters: Optional[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def _text_search(self, query: str, top_k: int, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Execute text search."""
         doc_scores = self.index.text_search(query, top_k * 2)  # Get more for filtering
 
@@ -322,26 +299,24 @@ class DocumentSearchEngine:
             if filters and not self._apply_filters(doc, filters):
                 continue
 
-            results.append({
-                "document_id": doc_id,
-                "score": score,
-                "filename": doc.get("filename", "unknown"),
-                "text_preview": doc.get("text", "")[:200] + "...",
-                "category": doc.get("classification", {}).get("category", "UNKNOWN"),
-                "entities_count": len(doc.get("entities", [])),
-                "relations_count": len(doc.get("relations", []))
-            })
+            results.append(
+                {
+                    "document_id": doc_id,
+                    "score": score,
+                    "filename": doc.get("filename", "unknown"),
+                    "text_preview": doc.get("text", "")[:200] + "...",
+                    "category": doc.get("classification", {}).get("category", "UNKNOWN"),
+                    "entities_count": len(doc.get("entities", [])),
+                    "relations_count": len(doc.get("relations", [])),
+                }
+            )
 
             if len(results) >= top_k:
                 break
 
         return results
 
-    def _entity_search(
-        self,
-        entity_text: str,
-        filters: Optional[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def _entity_search(self, entity_text: str, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Search by entity."""
         entity_type = filters.get("entity_type") if filters else None
         doc_ids = self.index.entity_search(entity_text, entity_type)
@@ -356,17 +331,20 @@ class DocumentSearchEngine:
 
             # Find matching entities
             matching_entities = [
-                e for e in doc.get("entities", [])
+                e
+                for e in doc.get("entities", [])
                 if e["text"] == entity_text and (not entity_type or e["type"] == entity_type)
             ]
 
-            results.append({
-                "document_id": doc_id,
-                "filename": doc.get("filename", "unknown"),
-                "matching_entities": matching_entities,
-                "text_preview": doc.get("text", "")[:200] + "...",
-                "category": doc.get("classification", {}).get("category", "UNKNOWN")
-            })
+            results.append(
+                {
+                    "document_id": doc_id,
+                    "filename": doc.get("filename", "unknown"),
+                    "matching_entities": matching_entities,
+                    "text_preview": doc.get("text", "")[:200] + "...",
+                    "category": doc.get("classification", {}).get("category", "UNKNOWN"),
+                }
+            )
 
         return results
 
@@ -396,22 +374,19 @@ class DocumentSearchEngine:
                     continue
                 matching_relations.append(r)
 
-            results.append({
-                "document_id": doc_id,
-                "filename": doc.get("filename", "unknown"),
-                "matching_relations": matching_relations,
-                "text_preview": doc.get("text", "")[:200] + "...",
-                "category": doc.get("classification", {}).get("category", "UNKNOWN")
-            })
+            results.append(
+                {
+                    "document_id": doc_id,
+                    "filename": doc.get("filename", "unknown"),
+                    "matching_relations": matching_relations,
+                    "text_preview": doc.get("text", "")[:200] + "...",
+                    "category": doc.get("classification", {}).get("category", "UNKNOWN"),
+                }
+            )
 
         return results
 
-    def _semantic_search(
-        self,
-        query: str,
-        top_k: int,
-        filters: Optional[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def _semantic_search(self, query: str, top_k: int, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Semantic search (placeholder - would use embeddings in production)."""
         # For now, fall back to text search
         logger.warning("Semantic search not fully implemented, falling back to text search")
@@ -458,18 +433,20 @@ class DocumentSearchEngine:
         similarities = cosine_similarity(doc_vec, self.index.tfidf_matrix).flatten()
 
         # Get top-k (excluding the document itself)
-        top_indices = np.argsort(similarities)[::-1][1:top_k + 1]
+        top_indices = np.argsort(similarities)[::-1][1 : top_k + 1]
 
         results = []
         for idx in top_indices:
             doc = self.index.documents[idx]["data"]
-            results.append({
-                "document_id": idx,
-                "similarity": float(similarities[idx]),
-                "filename": doc.get("filename", "unknown"),
-                "category": doc.get("classification", {}).get("category", "UNKNOWN"),
-                "text_preview": doc.get("text", "")[:200] + "..."
-            })
+            results.append(
+                {
+                    "document_id": idx,
+                    "similarity": float(similarities[idx]),
+                    "filename": doc.get("filename", "unknown"),
+                    "category": doc.get("classification", {}).get("category", "UNKNOWN"),
+                    "text_preview": doc.get("text", "")[:200] + "...",
+                }
+            )
 
         return results
 
@@ -478,7 +455,7 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="Document Search & Discovery - Advanced search engine",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -532,30 +509,19 @@ def main():
             if args.category:
                 filters["category"] = args.category
 
-            results = search_engine.search(
-                query=args.query,
-                search_type="text",
-                top_k=args.top_k,
-                filters=filters
-            )
+            results = search_engine.search(query=args.query, search_type="text", top_k=args.top_k, filters=filters)
 
             print(json.dumps(results, indent=2, ensure_ascii=False))
 
         elif args.command == "entity":
             entity_text = args.person or args.org or args.location
             entity_type = (
-                "PERSON" if args.person else
-                "ORGANIZATION" if args.org else
-                "LOCATION" if args.location else None
+                "PERSON" if args.person else "ORGANIZATION" if args.org else "LOCATION" if args.location else None
             )
 
             filters = {"entity_type": entity_type} if entity_type else {}
 
-            results = search_engine.search(
-                query=entity_text,
-                search_type="entity",
-                filters=filters
-            )
+            results = search_engine.search(query=entity_text, search_type="entity", filters=filters)
 
             print(json.dumps(results, indent=2, ensure_ascii=False))
 
@@ -568,20 +534,12 @@ def main():
             if args.target:
                 filters["target"] = args.target
 
-            results = search_engine.search(
-                query="",
-                search_type="relation",
-                filters=filters
-            )
+            results = search_engine.search(query="", search_type="relation", filters=filters)
 
             print(json.dumps(results, indent=2, ensure_ascii=False))
 
         elif args.command == "semantic":
-            results = search_engine.search(
-                query=args.query,
-                search_type="semantic",
-                top_k=args.top_k
-            )
+            results = search_engine.search(query=args.query, search_type="semantic", top_k=args.top_k)
 
             print(json.dumps(results, indent=2, ensure_ascii=False))
 

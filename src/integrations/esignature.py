@@ -20,12 +20,14 @@ logger = logging.getLogger(__name__)
 
 class SignatureProvider(Enum):
     """E-signature providers."""
+
     DOCUSIGN = "docusign"
     ADOBE_SIGN = "adobe_sign"
 
 
 class SignatureStatus(Enum):
     """Signature request status."""
+
     SENT = "sent"
     VIEWED = "viewed"
     SIGNED = "signed"
@@ -36,6 +38,7 @@ class SignatureStatus(Enum):
 @dataclass
 class Signer:
     """Document signer."""
+
     email: str
     name: str
     order: int = 1
@@ -46,6 +49,7 @@ class Signer:
 @dataclass
 class SignatureRequest:
     """Signature request."""
+
     request_id: str
     envelope_id: str
     document_path: str
@@ -65,11 +69,7 @@ class BaseESignatureProvider(ABC):
 
     @abstractmethod
     async def send_signature_request(
-        self,
-        document_path: str,
-        signers: List[Signer],
-        subject: str,
-        message: str
+        self, document_path: str, signers: List[Signer], subject: str, message: str
     ) -> SignatureRequest:
         """Send document for signature."""
         pass
@@ -84,11 +84,7 @@ class DocuSignClient(BaseESignatureProvider):
     """DocuSign integration."""
 
     async def send_signature_request(
-        self,
-        document_path: str,
-        signers: List[Signer],
-        subject: str,
-        message: str
+        self, document_path: str, signers: List[Signer], subject: str, message: str
     ) -> SignatureRequest:
         """Send via DocuSign."""
         await asyncio.sleep(0.2)
@@ -100,7 +96,7 @@ class DocuSignClient(BaseESignatureProvider):
             subject=subject,
             signers=signers,
             status=SignatureStatus.SENT,
-            provider=SignatureProvider.DOCUSIGN
+            provider=SignatureProvider.DOCUSIGN,
         )
 
         logger.info(f"Sent DocuSign request: {subject}")
@@ -124,22 +120,18 @@ class ESignatureManager:
             self.providers[provider] = DocuSignClient(credentials)
 
     async def send_signature_request(
-        self,
-        provider: str,
-        document_path: str,
-        signers: List[Dict[str, Any]],
-        subject: str,
-        message: str
+        self, provider: str, document_path: str, signers: List[Dict[str, Any]], subject: str, message: str
     ) -> SignatureRequest:
         """Send signature request."""
         provider_enum = SignatureProvider(provider)
         client = self.providers[provider_enum]
 
-        signer_objects = [Signer(email=s['email'], name=s['name'], order=s.get('order', 1)) for s in signers]
+        signer_objects = [Signer(email=s["email"], name=s["name"], order=s.get("order", 1)) for s in signers]
         return await client.send_signature_request(document_path, signer_objects, subject, message)
 
 
 _esignature_manager: Optional[ESignatureManager] = None
+
 
 def get_esignature_client(provider: str = "docusign") -> ESignatureManager:
     """Get e-signature manager."""

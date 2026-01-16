@@ -1,11 +1,13 @@
 """Formatting utilities for CLI and output"""
 
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 from .constants import COLORS, ICONS
 
 
 class Colors:
     """ANSI color codes for terminal output"""
+
     RESET = COLORS["reset"]
     BOLD = COLORS["bold"]
     RED = COLORS["red"]
@@ -169,7 +171,7 @@ def box(text: str, width: int = None, padding: int = 1) -> str:
     Returns:
         Boxed text
     """
-    lines = text.split('\n')
+    lines = text.split("\n")
     if width is None:
         width = max(len(line) for line in lines) + (padding * 2)
 
@@ -197,7 +199,7 @@ def list_items(items: List[str], bullet: str = None) -> str:
         Formatted list
     """
     if bullet is None:
-        bullet = ICONS['bullet']
+        bullet = ICONS["bullet"]
 
     return "\n".join([f"  {bullet} {item}" for item in items])
 
@@ -259,7 +261,9 @@ def title_box(text: str) -> str:
     bottom = "╚" + "═" * width + "╝"
     return "\n".join([top, middle, bottom])
 
+
 # ========== Additional formatting functions ==========
+
 
 def format_currency(amount: float, currency: str = "€", decimals: int = 2) -> str:
     """
@@ -322,7 +326,7 @@ def format_date(date_obj, format_str: str = "%d.%m.%Y") -> str:
         >>> format_date(datetime(2026, 1, 11))
         '11.01.2026'
     """
-    from datetime import datetime, date
+    from datetime import date, datetime
 
     # If already a string, return as-is
     if isinstance(date_obj, str):
@@ -355,4 +359,4 @@ def truncate_text(text: str, max_length: int = 80, suffix: str = "...") -> str:
     if len(text) <= max_length:
         return text
 
-    return text[:max_length - len(suffix)] + suffix
+    return text[: max_length - len(suffix)] + suffix

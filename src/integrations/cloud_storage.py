@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class StorageProvider(Enum):
     """Cloud storage providers."""
+
     GOOGLE_DRIVE = "google_drive"
     DROPBOX = "dropbox"
     ONEDRIVE = "onedrive"
@@ -32,6 +33,7 @@ class StorageProvider(Enum):
 
 class FilePermission(Enum):
     """File permission levels."""
+
     VIEW = "view"
     EDIT = "edit"
     COMMENT = "comment"
@@ -41,6 +43,7 @@ class FilePermission(Enum):
 @dataclass
 class StorageConfig:
     """Storage provider configuration."""
+
     provider: StorageProvider
     credentials: Dict[str, str]
     region: Optional[str] = None
@@ -52,6 +55,7 @@ class StorageConfig:
 @dataclass
 class CloudFile:
     """Cloud file representation."""
+
     file_id: str
     name: str
     path: str
@@ -70,6 +74,7 @@ class CloudFile:
 @dataclass
 class SharePermission:
     """File sharing permission."""
+
     email: str
     permission: FilePermission
     notify: bool = True
@@ -94,21 +99,12 @@ class BaseStorageProvider(ABC):
         pass
 
     @abstractmethod
-    async def upload(
-        self,
-        file_path: str,
-        remote_path: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> CloudFile:
+    async def upload(self, file_path: str, remote_path: str, metadata: Optional[Dict[str, Any]] = None) -> CloudFile:
         """Upload file to cloud storage."""
         pass
 
     @abstractmethod
-    async def download(
-        self,
-        file_id: str,
-        local_path: str
-    ) -> bool:
+    async def download(self, file_id: str, local_path: str) -> bool:
         """Download file from cloud storage."""
         pass
 
@@ -118,29 +114,17 @@ class BaseStorageProvider(ABC):
         pass
 
     @abstractmethod
-    async def list_files(
-        self,
-        folder_id: Optional[str] = None,
-        recursive: bool = False
-    ) -> List[CloudFile]:
+    async def list_files(self, folder_id: Optional[str] = None, recursive: bool = False) -> List[CloudFile]:
         """List files in folder."""
         pass
 
     @abstractmethod
-    async def create_folder(
-        self,
-        name: str,
-        parent_id: Optional[str] = None
-    ) -> CloudFile:
+    async def create_folder(self, name: str, parent_id: Optional[str] = None) -> CloudFile:
         """Create folder."""
         pass
 
     @abstractmethod
-    async def share(
-        self,
-        file_id: str,
-        permissions: List[SharePermission]
-    ) -> str:
+    async def share(self, file_id: str, permissions: List[SharePermission]) -> str:
         """Share file with users."""
         pass
 
@@ -174,18 +158,13 @@ class GoogleDriveClient(BaseStorageProvider):
         self.connected = False
         logger.info("Disconnected from Google Drive")
 
-    async def upload(
-        self,
-        file_path: str,
-        remote_path: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> CloudFile:
+    async def upload(self, file_path: str, remote_path: str, metadata: Optional[Dict[str, Any]] = None) -> CloudFile:
         """Upload file to Google Drive."""
         if not self.connected:
             raise RuntimeError("Not connected to Google Drive")
 
         file_id = str(uuid4())
-        file_name = file_path.split('/')[-1]
+        file_name = file_path.split("/")[-1]
 
         # Mock upload
         await asyncio.sleep(0.2)
@@ -199,7 +178,7 @@ class GoogleDriveClient(BaseStorageProvider):
             provider=StorageProvider.GOOGLE_DRIVE,
             created_at=datetime.now(),
             modified_at=datetime.now(),
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         logger.info(f"Uploaded {file_name} to Google Drive: {file_id}")
@@ -227,11 +206,7 @@ class GoogleDriveClient(BaseStorageProvider):
         logger.info(f"Deleted file {file_id} from Google Drive")
         return True
 
-    async def list_files(
-        self,
-        folder_id: Optional[str] = None,
-        recursive: bool = False
-    ) -> List[CloudFile]:
+    async def list_files(self, folder_id: Optional[str] = None, recursive: bool = False) -> List[CloudFile]:
         """List files in Google Drive folder."""
         if not self.connected:
             return []
@@ -246,17 +221,13 @@ class GoogleDriveClient(BaseStorageProvider):
                 mime_type="application/pdf",
                 provider=StorageProvider.GOOGLE_DRIVE,
                 created_at=datetime.now(),
-                modified_at=datetime.now()
+                modified_at=datetime.now(),
             )
         ]
 
         return files
 
-    async def create_folder(
-        self,
-        name: str,
-        parent_id: Optional[str] = None
-    ) -> CloudFile:
+    async def create_folder(self, name: str, parent_id: Optional[str] = None) -> CloudFile:
         """Create folder in Google Drive."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -273,17 +244,13 @@ class GoogleDriveClient(BaseStorageProvider):
             created_at=datetime.now(),
             modified_at=datetime.now(),
             is_folder=True,
-            parent_id=parent_id
+            parent_id=parent_id,
         )
 
         logger.info(f"Created folder {name} in Google Drive")
         return folder
 
-    async def share(
-        self,
-        file_id: str,
-        permissions: List[SharePermission]
-    ) -> str:
+    async def share(self, file_id: str, permissions: List[SharePermission]) -> str:
         """Share file with users."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -310,7 +277,7 @@ class GoogleDriveClient(BaseStorageProvider):
             mime_type="application/pdf",
             provider=StorageProvider.GOOGLE_DRIVE,
             created_at=datetime.now(),
-            modified_at=datetime.now()
+            modified_at=datetime.now(),
         )
 
     async def search(self, query: str) -> List[CloudFile]:
@@ -338,18 +305,13 @@ class DropboxClient(BaseStorageProvider):
         """Disconnect from Dropbox."""
         self.connected = False
 
-    async def upload(
-        self,
-        file_path: str,
-        remote_path: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> CloudFile:
+    async def upload(self, file_path: str, remote_path: str, metadata: Optional[Dict[str, Any]] = None) -> CloudFile:
         """Upload file to Dropbox."""
         if not self.connected:
             raise RuntimeError("Not connected to Dropbox")
 
         file_id = str(uuid4())
-        file_name = file_path.split('/')[-1]
+        file_name = file_path.split("/")[-1]
 
         await asyncio.sleep(0.2)
 
@@ -361,7 +323,7 @@ class DropboxClient(BaseStorageProvider):
             mime_type="application/octet-stream",
             provider=StorageProvider.DROPBOX,
             created_at=datetime.now(),
-            modified_at=datetime.now()
+            modified_at=datetime.now(),
         )
 
         logger.info(f"Uploaded {file_name} to Dropbox")
@@ -385,22 +347,14 @@ class DropboxClient(BaseStorageProvider):
         logger.info(f"Deleted file from Dropbox")
         return True
 
-    async def list_files(
-        self,
-        folder_id: Optional[str] = None,
-        recursive: bool = False
-    ) -> List[CloudFile]:
+    async def list_files(self, folder_id: Optional[str] = None, recursive: bool = False) -> List[CloudFile]:
         """List files in Dropbox."""
         if not self.connected:
             return []
 
         return []
 
-    async def create_folder(
-        self,
-        name: str,
-        parent_id: Optional[str] = None
-    ) -> CloudFile:
+    async def create_folder(self, name: str, parent_id: Optional[str] = None) -> CloudFile:
         """Create folder in Dropbox."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -414,17 +368,13 @@ class DropboxClient(BaseStorageProvider):
             provider=StorageProvider.DROPBOX,
             created_at=datetime.now(),
             modified_at=datetime.now(),
-            is_folder=True
+            is_folder=True,
         )
 
         logger.info(f"Created folder {name} in Dropbox")
         return folder
 
-    async def share(
-        self,
-        file_id: str,
-        permissions: List[SharePermission]
-    ) -> str:
+    async def share(self, file_id: str, permissions: List[SharePermission]) -> str:
         """Share file in Dropbox."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -465,18 +415,13 @@ class OneDriveClient(BaseStorageProvider):
         """Disconnect from OneDrive."""
         self.connected = False
 
-    async def upload(
-        self,
-        file_path: str,
-        remote_path: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> CloudFile:
+    async def upload(self, file_path: str, remote_path: str, metadata: Optional[Dict[str, Any]] = None) -> CloudFile:
         """Upload file to OneDrive."""
         if not self.connected:
             raise RuntimeError("Not connected to OneDrive")
 
         file_id = str(uuid4())
-        file_name = file_path.split('/')[-1]
+        file_name = file_path.split("/")[-1]
 
         await asyncio.sleep(0.2)
 
@@ -488,7 +433,7 @@ class OneDriveClient(BaseStorageProvider):
             mime_type="application/octet-stream",
             provider=StorageProvider.ONEDRIVE,
             created_at=datetime.now(),
-            modified_at=datetime.now()
+            modified_at=datetime.now(),
         )
 
         logger.info(f"Uploaded {file_name} to OneDrive")
@@ -510,22 +455,14 @@ class OneDriveClient(BaseStorageProvider):
         await asyncio.sleep(0.1)
         return True
 
-    async def list_files(
-        self,
-        folder_id: Optional[str] = None,
-        recursive: bool = False
-    ) -> List[CloudFile]:
+    async def list_files(self, folder_id: Optional[str] = None, recursive: bool = False) -> List[CloudFile]:
         """List files in OneDrive."""
         if not self.connected:
             return []
 
         return []
 
-    async def create_folder(
-        self,
-        name: str,
-        parent_id: Optional[str] = None
-    ) -> CloudFile:
+    async def create_folder(self, name: str, parent_id: Optional[str] = None) -> CloudFile:
         """Create folder in OneDrive."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -539,17 +476,13 @@ class OneDriveClient(BaseStorageProvider):
             provider=StorageProvider.ONEDRIVE,
             created_at=datetime.now(),
             modified_at=datetime.now(),
-            is_folder=True
+            is_folder=True,
         )
 
         logger.info(f"Created folder {name} in OneDrive")
         return folder
 
-    async def share(
-        self,
-        file_id: str,
-        permissions: List[SharePermission]
-    ) -> str:
+    async def share(self, file_id: str, permissions: List[SharePermission]) -> str:
         """Share file in OneDrive."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -607,12 +540,7 @@ class StorageManager:
         return await self.providers[provider_enum].connect()
 
     async def upload(
-        self,
-        provider: str,
-        file_path: str,
-        remote_path: str,
-        share_with: Optional[List[str]] = None,
-        **kwargs
+        self, provider: str, file_path: str, remote_path: str, share_with: Optional[List[str]] = None, **kwargs
     ) -> CloudFile:
         """Upload file to cloud storage."""
         provider_enum = StorageProvider(provider)
@@ -626,25 +554,17 @@ class StorageManager:
             await storage.connect()
 
         # Upload file
-        cloud_file = await storage.upload(file_path, remote_path, kwargs.get('metadata'))
+        cloud_file = await storage.upload(file_path, remote_path, kwargs.get("metadata"))
 
         # Share if requested
         if share_with:
-            permissions = [
-                SharePermission(email=email, permission=FilePermission.VIEW)
-                for email in share_with
-            ]
+            permissions = [SharePermission(email=email, permission=FilePermission.VIEW) for email in share_with]
             cloud_file.shared_link = await storage.share(cloud_file.file_id, permissions)
             cloud_file.shared = True
 
         return cloud_file
 
-    async def download(
-        self,
-        provider: str,
-        file_id: str,
-        local_path: str
-    ) -> bool:
+    async def download(self, provider: str, file_id: str, local_path: str) -> bool:
         """Download file from cloud storage."""
         provider_enum = StorageProvider(provider)
 
@@ -658,12 +578,7 @@ class StorageManager:
 
         return await storage.download(file_id, local_path)
 
-    async def create_folder(
-        self,
-        provider: str,
-        path: str,
-        shared: bool = False
-    ) -> CloudFile:
+    async def create_folder(self, provider: str, path: str, shared: bool = False) -> CloudFile:
         """Create folder."""
         provider_enum = StorageProvider(provider)
 
@@ -677,11 +592,7 @@ class StorageManager:
 
         return await storage.create_folder(path)
 
-    async def list_files(
-        self,
-        provider: str,
-        folder_id: Optional[str] = None
-    ) -> List[CloudFile]:
+    async def list_files(self, provider: str, folder_id: Optional[str] = None) -> List[CloudFile]:
         """List files."""
         provider_enum = StorageProvider(provider)
 
@@ -695,11 +606,7 @@ class StorageManager:
 
         return await storage.list_files(folder_id)
 
-    async def search(
-        self,
-        provider: str,
-        query: str
-    ) -> List[CloudFile]:
+    async def search(self, provider: str, query: str) -> List[CloudFile]:
         """Search files."""
         provider_enum = StorageProvider(provider)
 
@@ -717,9 +624,9 @@ class StorageManager:
         """Get storage quota information."""
         # Mock quota info
         return {
-            'total': 15 * 1024 * 1024 * 1024,  # 15GB
-            'used': 5 * 1024 * 1024 * 1024,    # 5GB
-            'available': 10 * 1024 * 1024 * 1024  # 10GB
+            "total": 15 * 1024 * 1024 * 1024,  # 15GB
+            "used": 5 * 1024 * 1024 * 1024,  # 5GB
+            "available": 10 * 1024 * 1024 * 1024,  # 10GB
         }
 
 

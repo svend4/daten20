@@ -7,15 +7,16 @@ Provides recommendations using:
 - Hybrid approach
 """
 
-from typing import Optional, List, Dict, Any, Tuple
-from dataclasses import dataclass
-from collections import defaultdict
 import math
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 @dataclass
 class Recommendation:
     """Recommendation result"""
+
     item_id: str
     score: float
     reason: str
@@ -55,11 +56,7 @@ class CollaborativeFilter:
 
         recommendations = []
         for item_id, score in sorted_items[:top_k]:
-            recommendations.append(Recommendation(
-                item_id=item_id,
-                score=score,
-                reason="Users like you also used this"
-            ))
+            recommendations.append(Recommendation(item_id=item_id, score=score, reason="Users like you also used this"))
 
         return recommendations
 
@@ -93,11 +90,7 @@ class ContentBasedFilter:
         """Add item with features"""
         self.item_features[item_id] = features
 
-    def recommend(
-        self,
-        reference_items: List[str],
-        top_k: int = 10
-    ) -> List[Recommendation]:
+    def recommend(self, reference_items: List[str], top_k: int = 10) -> List[Recommendation]:
         """Recommend similar items"""
         if not reference_items:
             return []
@@ -126,19 +119,11 @@ class ContentBasedFilter:
 
         recommendations = []
         for item_id, score in similarities[:top_k]:
-            recommendations.append(Recommendation(
-                item_id=item_id,
-                score=score,
-                reason="Similar to items you've used"
-            ))
+            recommendations.append(Recommendation(item_id=item_id, score=score, reason="Similar to items you've used"))
 
         return recommendations
 
-    def _cosine_similarity(
-        self,
-        features1: Dict[str, float],
-        features2: Dict[str, float]
-    ) -> float:
+    def _cosine_similarity(self, features1: Dict[str, float], features2: Dict[str, float]) -> float:
         """Calculate cosine similarity"""
         dot_product = sum(features1.get(k, 0) * features2.get(k, 0) for k in set(features1) | set(features2))
 
@@ -158,12 +143,7 @@ class RecommendationEngine:
         self.collaborative_filter = CollaborativeFilter()
         self.content_filter = ContentBasedFilter()
 
-    def recommend(
-        self,
-        user_id: int,
-        user_items: Optional[List[str]] = None,
-        top_k: int = 10
-    ) -> List[Recommendation]:
+    def recommend(self, user_id: int, user_items: Optional[List[str]] = None, top_k: int = 10) -> List[Recommendation]:
         """Generate hybrid recommendations"""
         collaborative_recs = self.collaborative_filter.recommend(user_id, top_k)
         content_recs = self.content_filter.recommend(user_items or [], top_k) if user_items else []
@@ -181,11 +161,7 @@ class RecommendationEngine:
 
         recommendations = []
         for item_id, score in sorted_items[:top_k]:
-            recommendations.append(Recommendation(
-                item_id=item_id,
-                score=score,
-                reason="Recommended for you"
-            ))
+            recommendations.append(Recommendation(item_id=item_id, score=score, reason="Recommended for you"))
 
         return recommendations
 

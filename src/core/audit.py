@@ -5,21 +5,23 @@ Track all system activities, user actions, and data changes for compliance and s
 Provides detailed audit trails with search, filtering, and reporting capabilities.
 """
 
-import sqlite3
 import json
-from datetime import datetime
-from typing import Optional, Dict, Any, List
-from enum import Enum
-from dataclasses import dataclass, asdict
-from functools import wraps
-from flask import request, g
 import logging
+import sqlite3
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from enum import Enum
+from functools import wraps
+from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger('dms.audit')
+from flask import g, request
+
+logger = logging.getLogger("dms.audit")
 
 
 class AuditAction(str, Enum):
     """Audit action types."""
+
     # Authentication
     LOGIN = "auth.login"
     LOGOUT = "auth.logout"
@@ -60,6 +62,7 @@ class AuditAction(str, Enum):
 
 class AuditLevel(str, Enum):
     """Audit severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -69,6 +72,7 @@ class AuditLevel(str, Enum):
 @dataclass
 class AuditEntry:
     """Single audit log entry."""
+
     id: Optional[int] = None
     timestamp: datetime = None
     user_id: Optional[int] = None
@@ -92,26 +96,26 @@ class AuditEntry:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
-            'id': self.id,
-            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
-            'user_id': self.user_id,
-            'username': self.username,
-            'action': self.action,
-            'level': self.level.value,
-            'resource_type': self.resource_type,
-            'resource_id': self.resource_id,
-            'details': self.details,
-            'ip_address': self.ip_address,
-            'user_agent': self.user_agent,
-            'status': self.status,
-            'error_message': self.error_message
+            "id": self.id,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "user_id": self.user_id,
+            "username": self.username,
+            "action": self.action,
+            "level": self.level.value,
+            "resource_type": self.resource_type,
+            "resource_id": self.resource_id,
+            "details": self.details,
+            "ip_address": self.ip_address,
+            "user_agent": self.user_agent,
+            "status": self.status,
+            "error_message": self.error_message,
         }
 
 
 class AuditLogger:
     """Manage audit logging."""
 
-    def __init__(self, db_path: str = 'data/db/audit.db'):
+    def __init__(self, db_path: str = "data/db/audit.db"):
         """
         Initialize audit logger.
 
@@ -126,7 +130,8 @@ class AuditLogger:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS audit_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -146,7 +151,8 @@ class AuditLogger:
                 INDEX idx_action (action),
                 INDEX idx_resource (resource_type, resource_id)
             )
-        ''')
+        """
+        )
 
         conn.commit()
         conn.close()
@@ -162,7 +168,7 @@ class AuditLogger:
         resource_id: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
         status: str = "success",
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ) -> int:
         """
         Log an audit entry.
@@ -188,7 +194,7 @@ class AuditLogger:
         try:
             if request:
                 ip_address = request.remote_addr
-                user_agent = request.headers.get('User-Agent', '')[:500]
+                user_agent = request.headers.get("User-Agent", "")[:500]
         except:
             pass
 
@@ -203,7 +209,7 @@ class AuditLogger:
             ip_address=ip_address,
             user_agent=user_agent,
             status=status,
-            error_message=error_message
+            error_message=error_message,
         )
 
         return self._save_entry(entry)
@@ -213,26 +219,29 @@ class AuditLogger:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO audit_log (
                 timestamp, user_id, username, action, level,
                 resource_type, resource_id, details,
                 ip_address, user_agent, status, error_message
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            entry.timestamp.isoformat(),
-            entry.user_id,
-            entry.username,
-            entry.action,
-            entry.level.value,
-            entry.resource_type,
-            entry.resource_id,
-            json.dumps(entry.details),
-            entry.ip_address,
-            entry.user_agent,
-            entry.status,
-            entry.error_message
-        ))
+        """,
+            (
+                entry.timestamp.isoformat(),
+                entry.user_id,
+                entry.username,
+                entry.action,
+                entry.level.value,
+                entry.resource_type,
+                entry.resource_id,
+                json.dumps(entry.details),
+                entry.ip_address,
+                entry.user_agent,
+                entry.status,
+                entry.error_message,
+            ),
+        )
 
         entry_id = cursor.lastrowid
         conn.commit()
@@ -259,7 +268,7 @@ class AuditLogger:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[AuditEntry]:
         """
         Retrieve audit entries with filters.
@@ -313,19 +322,19 @@ class AuditLogger:
         entries = []
         for row in rows:
             entry = AuditEntry(
-                id=row['id'],
-                timestamp=datetime.fromisoformat(row['timestamp']),
-                user_id=row['user_id'],
-                username=row['username'],
-                action=row['action'],
-                level=AuditLevel(row['level']),
-                resource_type=row['resource_type'],
-                resource_id=row['resource_id'],
-                details=json.loads(row['details']) if row['details'] else {},
-                ip_address=row['ip_address'],
-                user_agent=row['user_agent'],
-                status=row['status'],
-                error_message=row['error_message']
+                id=row["id"],
+                timestamp=datetime.fromisoformat(row["timestamp"]),
+                user_id=row["user_id"],
+                username=row["username"],
+                action=row["action"],
+                level=AuditLevel(row["level"]),
+                resource_type=row["resource_type"],
+                resource_id=row["resource_id"],
+                details=json.loads(row["details"]) if row["details"] else {},
+                ip_address=row["ip_address"],
+                user_agent=row["user_agent"],
+                status=row["status"],
+                error_message=row["error_message"],
             )
             entries.append(entry)
 
@@ -336,19 +345,22 @@ class AuditLogger:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT action, COUNT(*) as count
             FROM audit_log
             WHERE user_id = ?
             AND timestamp >= datetime('now', '-' || ? || ' days')
             GROUP BY action
             ORDER BY count DESC
-        ''', (user_id, days))
+        """,
+            (user_id, days),
+        )
 
         results = cursor.fetchall()
         conn.close()
 
-        return [{'action': row[0], 'count': row[1]} for row in results]
+        return [{"action": row[0], "count": row[1]} for row in results]
 
     def get_statistics(self, days: int = 7) -> Dict[str, Any]:
         """Get audit statistics."""
@@ -356,46 +368,58 @@ class AuditLogger:
         cursor = conn.cursor()
 
         # Total entries
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT COUNT(*) FROM audit_log
             WHERE timestamp >= datetime('now', '-' || ? || ' days')
-        ''', (days,))
+        """,
+            (days,),
+        )
         total = cursor.fetchone()[0]
 
         # By level
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT level, COUNT(*) FROM audit_log
             WHERE timestamp >= datetime('now', '-' || ? || ' days')
             GROUP BY level
-        ''', (days,))
+        """,
+            (days,),
+        )
         by_level = dict(cursor.fetchall())
 
         # By action
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT action, COUNT(*) FROM audit_log
             WHERE timestamp >= datetime('now', '-' || ? || ' days')
             GROUP BY action
             ORDER BY COUNT(*) DESC
             LIMIT 10
-        ''', (days,))
+        """,
+            (days,),
+        )
         top_actions = dict(cursor.fetchall())
 
         # Failed operations
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT COUNT(*) FROM audit_log
             WHERE timestamp >= datetime('now', '-' || ? || ' days')
             AND status = 'failed'
-        ''', (days,))
+        """,
+            (days,),
+        )
         failed = cursor.fetchone()[0]
 
         conn.close()
 
         return {
-            'total_entries': total,
-            'by_level': by_level,
-            'top_actions': top_actions,
-            'failed_operations': failed,
-            'period_days': days
+            "total_entries": total,
+            "by_level": by_level,
+            "top_actions": top_actions,
+            "failed_operations": failed,
+            "period_days": days,
         }
 
 
@@ -413,21 +437,22 @@ def audit_log(action: AuditAction, resource_type: Optional[str] = None):
         def create_service(data):
             ...
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             auditor = get_audit_logger()
 
             # Get user info from context
-            user_id = getattr(g, 'user_id', None)
-            username = getattr(g, 'username', None)
+            user_id = getattr(g, "user_id", None)
+            username = getattr(g, "username", None)
 
             try:
                 result = func(*args, **kwargs)
 
                 # Log successful execution
                 resource_id = None
-                if hasattr(result, 'id'):
+                if hasattr(result, "id"):
                     resource_id = str(result.id)
 
                 auditor.log(
@@ -436,7 +461,7 @@ def audit_log(action: AuditAction, resource_type: Optional[str] = None):
                     username=username,
                     resource_type=resource_type,
                     resource_id=resource_id,
-                    status='success'
+                    status="success",
                 )
 
                 return result
@@ -449,12 +474,13 @@ def audit_log(action: AuditAction, resource_type: Optional[str] = None):
                     username=username,
                     level=AuditLevel.ERROR,
                     resource_type=resource_type,
-                    status='failed',
-                    error_message=str(e)
+                    status="failed",
+                    error_message=str(e),
                 )
                 raise
 
         return wrapper
+
     return decorator
 
 

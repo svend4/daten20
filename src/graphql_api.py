@@ -4,18 +4,21 @@ GraphQL API
 Provides GraphQL endpoint for flexible data querying.
 """
 
-import graphene
-from graphene import relay
-from flask_graphql import GraphQLView
 import logging
 
-logger = logging.getLogger('dms.graphql')
+import graphene
+from flask_graphql import GraphQLView
+from graphene import relay
+
+logger = logging.getLogger("dms.graphql")
 
 
 # GraphQL Types
 
+
 class ServiceType(graphene.ObjectType):
     """Service GraphQL type."""
+
     class Meta:
         interfaces = (relay.Node,)
 
@@ -31,6 +34,7 @@ class ServiceType(graphene.ObjectType):
 
 class UserType(graphene.ObjectType):
     """User GraphQL type."""
+
     class Meta:
         interfaces = (relay.Node,)
 
@@ -44,6 +48,7 @@ class UserType(graphene.ObjectType):
 
 class StatisticsType(graphene.ObjectType):
     """Statistics GraphQL type."""
+
     total_services = graphene.Int()
     avg_brutto_rate = graphene.Float()
     total_users = graphene.Int()
@@ -51,6 +56,7 @@ class StatisticsType(graphene.ObjectType):
 
 
 # Queries
+
 
 class Query(graphene.ObjectType):
     """GraphQL queries."""
@@ -64,7 +70,7 @@ class Query(graphene.ObjectType):
         ServiceType,
         region=graphene.String(),
         limit=graphene.Int(default_value=100),
-        offset=graphene.Int(default_value=0)
+        offset=graphene.Int(default_value=0),
     )
 
     # User queries
@@ -90,9 +96,9 @@ class Query(graphene.ObjectType):
             region=service.basic_info.region,
             target_group=service.basic_info.target_group,
             brutto_rate=service.financial.brutto_rate,
-            netto_rate=getattr(service.financial, 'netto_rate', 0),
+            netto_rate=getattr(service.financial, "netto_rate", 0),
             created_at=service.created_at,
-            updated_at=service.updated_at
+            updated_at=service.updated_at,
         )
 
     def resolve_services(self, info, region=None, limit=100, offset=0):
@@ -107,7 +113,7 @@ class Query(graphene.ObjectType):
             services = [s for s in services if s.basic_info.region == region]
 
         # Pagination
-        services = services[offset:offset + limit]
+        services = services[offset : offset + limit]
 
         return [
             ServiceType(
@@ -116,9 +122,9 @@ class Query(graphene.ObjectType):
                 region=s.basic_info.region,
                 target_group=s.basic_info.target_group,
                 brutto_rate=s.financial.brutto_rate,
-                netto_rate=getattr(s.financial, 'netto_rate', 0),
+                netto_rate=getattr(s.financial, "netto_rate", 0),
                 created_at=s.created_at,
-                updated_at=s.updated_at
+                updated_at=s.updated_at,
             )
             for s in services
         ]
@@ -143,11 +149,12 @@ class Query(graphene.ObjectType):
             total_services=total,
             avg_brutto_rate=round(avg_rate, 2),
             total_users=0,  # Placeholder
-            services_by_region=by_region
+            services_by_region=by_region,
         )
 
 
 # Mutations
+
 
 class CreateService(graphene.Mutation):
     """Create new service mutation."""
@@ -171,7 +178,7 @@ class CreateService(graphene.Mutation):
             service = Service()
             service.basic_info.service_name = service_name
             service.basic_info.region = region
-            service.basic_info.target_group = target_group or ''
+            service.basic_info.target_group = target_group or ""
             service.financial.brutto_rate = brutto_rate
 
             db = Database()
@@ -186,19 +193,15 @@ class CreateService(graphene.Mutation):
                     service_name=service_name,
                     region=region,
                     target_group=target_group,
-                    brutto_rate=brutto_rate
+                    brutto_rate=brutto_rate,
                 ),
                 success=True,
-                message="Service created successfully"
+                message="Service created successfully",
             )
 
         except Exception as e:
             logger.error(f"Error creating service: {e}")
-            return CreateService(
-                service=None,
-                success=False,
-                message=str(e)
-            )
+            return CreateService(service=None, success=False, message=str(e))
 
 
 class UpdateService(graphene.Mutation):
@@ -224,21 +227,17 @@ class UpdateService(graphene.Mutation):
             service = db.get_service(int(id))
 
             if not service:
-                return UpdateService(
-                    service=None,
-                    success=False,
-                    message="Service not found"
-                )
+                return UpdateService(service=None, success=False, message="Service not found")
 
             # Update fields
-            if 'service_name' in kwargs:
-                service.basic_info.service_name = kwargs['service_name']
-            if 'region' in kwargs:
-                service.basic_info.region = kwargs['region']
-            if 'target_group' in kwargs:
-                service.basic_info.target_group = kwargs['target_group']
-            if 'brutto_rate' in kwargs:
-                service.financial.brutto_rate = kwargs['brutto_rate']
+            if "service_name" in kwargs:
+                service.basic_info.service_name = kwargs["service_name"]
+            if "region" in kwargs:
+                service.basic_info.region = kwargs["region"]
+            if "target_group" in kwargs:
+                service.basic_info.target_group = kwargs["target_group"]
+            if "brutto_rate" in kwargs:
+                service.financial.brutto_rate = kwargs["brutto_rate"]
 
             db.save_service(service)
 
@@ -250,23 +249,20 @@ class UpdateService(graphene.Mutation):
                     service_name=service.basic_info.service_name,
                     region=service.basic_info.region,
                     target_group=service.basic_info.target_group,
-                    brutto_rate=service.financial.brutto_rate
+                    brutto_rate=service.financial.brutto_rate,
                 ),
                 success=True,
-                message="Service updated successfully"
+                message="Service updated successfully",
             )
 
         except Exception as e:
             logger.error(f"Error updating service: {e}")
-            return UpdateService(
-                service=None,
-                success=False,
-                message=str(e)
-            )
+            return UpdateService(service=None, success=False, message=str(e))
 
 
 class Mutation(graphene.ObjectType):
     """GraphQL mutations."""
+
     create_service = CreateService.Field()
     update_service = UpdateService.Field()
 
@@ -278,8 +274,4 @@ schema = graphene.Schema(query=Query, mutation=Mutation)
 # Flask view
 def create_graphql_view():
     """Create GraphQL view for Flask."""
-    return GraphQLView.as_view(
-        'graphql',
-        schema=schema,
-        graphiql=True  # Enable GraphiQL interface
-    )
+    return GraphQLView.as_view("graphql", schema=schema, graphiql=True)  # Enable GraphiQL interface

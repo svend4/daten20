@@ -15,16 +15,17 @@ Dependencies:
 - pandas, numpy, scikit-learn
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Any, Tuple
-from collections import defaultdict, Counter
 import threading
+from collections import Counter, defaultdict
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
-    import pandas as pd
     import numpy as np
-    from sklearn.cluster import KMeans, DBSCAN
+    import pandas as pd
+    from sklearn.cluster import DBSCAN, KMeans
     from sklearn.preprocessing import StandardScaler
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -34,6 +35,7 @@ except ImportError:
 @dataclass
 class AssociationRule:
     """Association rule (A -> B)"""
+
     antecedent: List[str]
     consequent: List[str]
     support: float
@@ -44,6 +46,7 @@ class AssociationRule:
 @dataclass
 class Cluster:
     """Cluster result"""
+
     cluster_id: int
     members: List[int]
     centroid: Optional[List[float]] = None
@@ -80,21 +83,20 @@ class ClusteringEngine:
         for i in range(n_clusters):
             members = np.where(labels == i)[0].tolist()
             cluster = Cluster(
-                cluster_id=i,
-                members=members,
-                centroid=self.model.cluster_centers_[i].tolist(),
-                size=len(members)
+                cluster_id=i, members=members, centroid=self.model.cluster_centers_[i].tolist(), size=len(members)
             )
             clusters.append(cluster)
 
         return {
-            'clusters': clusters,
-            'labels': labels.tolist(),
-            'inertia': float(self.model.inertia_),
-            'n_clusters': n_clusters
+            "clusters": clusters,
+            "labels": labels.tolist(),
+            "inertia": float(self.model.inertia_),
+            "n_clusters": n_clusters,
         }
 
-    def dbscan(self, data: pd.DataFrame, eps: float = 0.5, min_samples: int = 5, features: Optional[List[str]] = None) -> Dict[str, Any]:
+    def dbscan(
+        self, data: pd.DataFrame, eps: float = 0.5, min_samples: int = 5, features: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """DBSCAN clustering (density-based)"""
         if not SKLEARN_AVAILABLE:
             raise ImportError("scikit-learn required")
@@ -119,10 +121,10 @@ class ClusteringEngine:
             clusters.append(cluster)
 
         return {
-            'clusters': clusters,
-            'labels': labels.tolist(),
-            'n_clusters': len(clusters),
-            'noise_points': int((labels == -1).sum())
+            "clusters": clusters,
+            "labels": labels.tolist(),
+            "n_clusters": len(clusters),
+            "noise_points": int((labels == -1).sum()),
         }
 
 
@@ -161,13 +163,15 @@ class AprioriMiner:
                         consequent=consequents,
                         support=support,
                         confidence=confidence,
-                        lift=lift
+                        lift=lift,
                     )
                     rules.append(rule)
 
         return sorted(rules, key=lambda r: r.lift, reverse=True)
 
-    def _find_frequent_itemsets(self, transactions: List[List[str]], n_transactions: int) -> Dict[Tuple[str, ...], float]:
+    def _find_frequent_itemsets(
+        self, transactions: List[List[str]], n_transactions: int
+    ) -> Dict[Tuple[str, ...], float]:
         """Find frequent itemsets using Apriori"""
         itemsets = {}
 
@@ -226,7 +230,9 @@ class AprioriMiner:
 
         return candidates
 
-    def _calculate_confidence(self, antecedent: List[str], consequent: List[str], transactions: List[List[str]]) -> float:
+    def _calculate_confidence(
+        self, antecedent: List[str], consequent: List[str], transactions: List[List[str]]
+    ) -> float:
         """Calculate rule confidence"""
         antecedent_count = sum(1 for t in transactions if all(item in t for item in antecedent))
         if antecedent_count == 0:
@@ -235,7 +241,9 @@ class AprioriMiner:
         both_count = sum(1 for t in transactions if all(item in t for item in antecedent + consequent))
         return both_count / antecedent_count
 
-    def _calculate_lift(self, antecedent: List[str], consequent: List[str], transactions: List[List[str]], n_transactions: int) -> float:
+    def _calculate_lift(
+        self, antecedent: List[str], consequent: List[str], transactions: List[List[str]], n_transactions: int
+    ) -> float:
         """Calculate rule lift"""
         consequent_support = sum(1 for t in transactions if all(item in t for item in consequent)) / n_transactions
         if consequent_support == 0:
@@ -252,7 +260,9 @@ class DataMiningEngine:
         self.clustering = ClusteringEngine()
         self.apriori = AprioriMiner()
 
-    def segment_customers(self, customer_data: pd.DataFrame, method: str = "kmeans", n_segments: int = 3) -> Dict[str, Any]:
+    def segment_customers(
+        self, customer_data: pd.DataFrame, method: str = "kmeans", n_segments: int = 3
+    ) -> Dict[str, Any]:
         """Segment customers using clustering"""
         if method == "kmeans":
             return self.clustering.kmeans(customer_data, n_clusters=n_segments)
@@ -261,7 +271,9 @@ class DataMiningEngine:
         else:
             raise ValueError(f"Unknown method: {method}")
 
-    def find_patterns(self, transactions: List[List[str]], min_support: float = 0.01, min_confidence: float = 0.1) -> List[AssociationRule]:
+    def find_patterns(
+        self, transactions: List[List[str]], min_support: float = 0.01, min_confidence: float = 0.1
+    ) -> List[AssociationRule]:
         """Find association patterns"""
         self.apriori.min_support = min_support
         self.apriori.min_confidence = min_confidence
@@ -271,6 +283,7 @@ class DataMiningEngine:
 # Singleton
 _mining_engine = None
 _lock = threading.Lock()
+
 
 def get_data_mining_engine() -> DataMiningEngine:
     """Get singleton instance"""
@@ -288,11 +301,11 @@ if __name__ == "__main__":
 
     # Example: Market basket analysis
     transactions = [
-        ['milk', 'bread', 'butter'],
-        ['milk', 'bread'],
-        ['milk', 'butter'],
-        ['bread', 'butter', 'jam'],
-        ['milk', 'bread', 'butter', 'jam']
+        ["milk", "bread", "butter"],
+        ["milk", "bread"],
+        ["milk", "butter"],
+        ["bread", "butter", "jam"],
+        ["milk", "bread", "butter", "jam"],
     ]
 
     rules = engine.find_patterns(transactions, min_support=0.4, min_confidence=0.5)

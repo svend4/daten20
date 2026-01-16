@@ -5,8 +5,8 @@ Service Manager - Менеджер услуг
 Управление базой данных услуг: создание, редактирование, поиск, статистика.
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -16,8 +16,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.core.database import Database
 from src.models.service import Service
 from src.utils.formatting import (
-    header, section, success, error, warning, info,
-    table, key_value, colored, bold, divider
+    bold,
+    colored,
+    divider,
+    error,
+    header,
+    info,
+    key_value,
+    section,
+    success,
+    table,
+    warning,
 )
 from src.utils.helpers import load_config, truncate_text
 
@@ -59,12 +68,7 @@ class ServiceManager:
             print(error(f"Ошибка при создании услуги: {e}"))
             return None
 
-    def list_services(
-        self,
-        region: Optional[str] = None,
-        service_type: Optional[str] = None,
-        limit: int = 50
-    ) -> None:
+    def list_services(self, region: Optional[str] = None, service_type: Optional[str] = None, limit: int = 50) -> None:
         """
         List all services
 
@@ -214,7 +218,7 @@ class ServiceManager:
             print(warning(f"Удаление услуги: {service.basic_info.service_name}"))
             response = input("Вы уверены? (yes/no): ").strip().lower()
 
-            if response not in ['yes', 'y', 'да', 'д']:
+            if response not in ["yes", "y", "да", "д"]:
                 print(info("Отменено"))
                 return False
 
@@ -231,29 +235,29 @@ class ServiceManager:
 
         stats = self.db.get_statistics()
 
-        print(key_value("Всего услуг", str(stats['total_services'])))
+        print(key_value("Всего услуг", str(stats["total_services"])))
         print(key_value("Средняя ставка брутто", f"{stats['avg_brutto_rate']:.2f} €/ч"))
         print()
 
         # By region
-        if stats['by_region']:
+        if stats["by_region"]:
             print(bold("Услуг по регионам:"))
-            for region, count in sorted(stats['by_region'].items()):
+            for region, count in sorted(stats["by_region"].items()):
                 region_name = region if region else "Не указан"
                 print(key_value(f"  {region_name}", str(count)))
             print()
 
         # By type
-        if stats['by_type']:
+        if stats["by_type"]:
             print(bold("Услуг по типам:"))
             type_names = {
                 "domestic": "Домашние услуги",
                 "social": "Социальные услуги",
                 "medical": "Медицинские услуги",
                 "professional": "Профессиональные услуги",
-                "educational": "Образовательные услуги"
+                "educational": "Образовательные услуги",
             }
-            for stype, count in sorted(stats['by_type'].items()):
+            for stype, count in sorted(stats["by_type"].items()):
                 type_name = type_names.get(stype, stype)
                 print(key_value(f"  {type_name}", str(count)))
             print()
@@ -277,6 +281,7 @@ class ServiceManager:
 
         try:
             from src.utils.helpers import save_config
+
             save_config(service.to_dict(), output_path)
             print(success(f"✓ Конфигурация экспортирована: {output_path}"))
             return True
@@ -288,15 +293,10 @@ class ServiceManager:
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
-        description="Менеджер услуг - управление базой данных",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Менеджер услуг - управление базой данных", formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    parser.add_argument(
-        "--db",
-        default="data/services.db",
-        help="Путь к файлу базы данных"
-    )
+    parser.add_argument("--db", default="data/services.db", help="Путь к файлу базы данных")
 
     subparsers = parser.add_subparsers(dest="command", help="Команда")
 

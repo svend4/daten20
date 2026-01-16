@@ -5,31 +5,34 @@ Comprehensive user authentication with role-based access control (RBAC).
 Supports password hashing, session management, JWT tokens, and permissions.
 """
 
-from flask import session, request, g
-from flask_login import UserMixin, LoginManager, login_user, logout_user, current_user
-from flask_bcrypt import Bcrypt
-import jwt
-from datetime import datetime, timedelta
-from functools import wraps
-from typing import Optional, List, Dict, Any
-from enum import Enum
-import sqlite3
 import logging
+import sqlite3
+from datetime import datetime, timedelta
+from enum import Enum
+from functools import wraps
+from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger('dms.auth')
+import jwt
+from flask import g, request, session
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, UserMixin, current_user, login_user, logout_user
+
+logger = logging.getLogger("dms.auth")
 
 
 class Role(str, Enum):
     """User roles with hierarchical privileges."""
-    ADMIN = "admin"         # Full system access
-    MANAGER = "manager"     # Manage services and users
-    EDITOR = "editor"       # Create and edit services
-    VIEWER = "viewer"       # Read-only access
-    GUEST = "guest"         # Limited access
+
+    ADMIN = "admin"  # Full system access
+    MANAGER = "manager"  # Manage services and users
+    EDITOR = "editor"  # Create and edit services
+    VIEWER = "viewer"  # Read-only access
+    GUEST = "guest"  # Limited access
 
 
 class Permission(str, Enum):
     """Granular permissions."""
+
     # Service permissions
     SERVICE_CREATE = "service:create"
     SERVICE_READ = "service:read"
@@ -59,7 +62,6 @@ class Permission(str, Enum):
 # Role permissions mapping
 ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
     Role.ADMIN: [p for p in Permission],  # All permissions
-
     Role.MANAGER: [
         Permission.SERVICE_CREATE,
         Permission.SERVICE_READ,
@@ -72,7 +74,6 @@ ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
         Permission.ANALYTICS_VIEW,
         Permission.ANALYTICS_EXPORT,
     ],
-
     Role.EDITOR: [
         Permission.SERVICE_CREATE,
         Permission.SERVICE_READ,
@@ -80,15 +81,13 @@ ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
         Permission.EXPORT_DATA,
         Permission.ANALYTICS_VIEW,
     ],
-
     Role.VIEWER: [
         Permission.SERVICE_READ,
         Permission.ANALYTICS_VIEW,
     ],
-
     Role.GUEST: [
         Permission.SERVICE_READ,
-    ]
+    ],
 }
 
 
@@ -103,7 +102,7 @@ class User(UserMixin):
         password_hash: str,
         role: Role = Role.VIEWER,
         is_active: bool = True,
-        created_at: Optional[datetime] = None
+        created_at: Optional[datetime] = None,
     ):
         self.id = id
         self.username = username
@@ -128,19 +127,19 @@ class User(UserMixin):
     def to_dict(self) -> Dict[str, Any]:
         """Convert user to dictionary."""
         return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email,
-            'role': self.role.value,
-            'is_active': self.is_active,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "role": self.role.value,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
 
 class AuthManager:
     """Manage user authentication and authorization."""
 
-    def __init__(self, app=None, db_path: str = 'data/db/users.db'):
+    def __init__(self, app=None, db_path: str = "data/db/users.db"):
         """
         Initialize authentication manager.
 
@@ -163,7 +162,7 @@ class AuthManager:
         self.app = app
         self.bcrypt.init_app(app)
         self.login_manager.init_app(app)
-        self.login_manager.login_view = 'auth.login'
+        self.login_manager.login_view = "auth.login"
         self.login_manager.user_loader(self.load_user)
 
     def _init_database(self):
@@ -171,7 +170,8 @@ class AuthManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
@@ -183,10 +183,12 @@ class AuthManager:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        ''')
+        """
+        )
 
         # Create refresh tokens table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS refresh_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -196,10 +198,12 @@ class AuthManager:
                 revoked INTEGER DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
-        ''')
+        """
+        )
 
         # Create token blacklist table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS token_blacklist (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 token TEXT UNIQUE NOT NULL,
@@ -207,36 +211,38 @@ class AuthManager:
                 expires_at TIMESTAMP NOT NULL,
                 reason TEXT
             )
-        ''')
+        """
+        )
 
         # Create index for faster lookups
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)
-        ''')
-        cursor.execute('''
+        """
+        )
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_token_blacklist_token ON token_blacklist(token)
-        ''')
+        """
+        )
 
         # Create default admin user if none exists
-        cursor.execute('SELECT COUNT(*) FROM users WHERE role = ?', (Role.ADMIN.value,))
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = ?", (Role.ADMIN.value,))
         if cursor.fetchone()[0] == 0:
-            admin_password_hash = self.bcrypt.generate_password_hash('admin').decode('utf-8')
-            cursor.execute('''
+            admin_password_hash = self.bcrypt.generate_password_hash("admin").decode("utf-8")
+            cursor.execute(
+                """
                 INSERT INTO users (username, email, password_hash, role)
                 VALUES (?, ?, ?, ?)
-            ''', ('admin', 'admin@dms.local', admin_password_hash, Role.ADMIN.value))
+            """,
+                ("admin", "admin@dms.local", admin_password_hash, Role.ADMIN.value),
+            )
             logger.info("Created default admin user (username: admin, password: admin)")
 
         conn.commit()
         conn.close()
 
-    def create_user(
-        self,
-        username: str,
-        email: str,
-        password: str,
-        role: Role = Role.VIEWER
-    ) -> Optional[User]:
+    def create_user(self, username: str, email: str, password: str, role: Role = Role.VIEWER) -> Optional[User]:
         """
         Create a new user.
 
@@ -250,15 +256,18 @@ class AuthManager:
             Created user or None if failed
         """
         try:
-            password_hash = self.bcrypt.generate_password_hash(password).decode('utf-8')
+            password_hash = self.bcrypt.generate_password_hash(password).decode("utf-8")
 
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO users (username, email, password_hash, role)
                 VALUES (?, ?, ?, ?)
-            ''', (username, email, password_hash, role.value))
+            """,
+                (username, email, password_hash, role.value),
+            )
 
             user_id = cursor.lastrowid
             conn.commit()
@@ -266,13 +275,7 @@ class AuthManager:
 
             logger.info(f"Created user: {username} ({role.value})")
 
-            return User(
-                id=user_id,
-                username=username,
-                email=email,
-                password_hash=password_hash,
-                role=role
-            )
+            return User(id=user_id, username=username, email=email, password_hash=password_hash, role=role)
 
         except sqlite3.IntegrityError as e:
             logger.error(f"Failed to create user {username}: {e}")
@@ -294,10 +297,13 @@ class AuthManager:
         cursor = conn.cursor()
 
         # Find user by username or email
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT * FROM users
             WHERE (username = ? OR email = ?) AND is_active = 1
-        ''', (username, username))
+        """,
+            (username, username),
+        )
 
         row = cursor.fetchone()
         conn.close()
@@ -307,21 +313,21 @@ class AuthManager:
             return None
 
         # Verify password
-        if not self.bcrypt.check_password_hash(row['password_hash'], password):
+        if not self.bcrypt.check_password_hash(row["password_hash"], password):
             logger.warning(f"Authentication failed: invalid password for {username}")
             return None
 
         # Update last login
-        self._update_last_login(row['id'])
+        self._update_last_login(row["id"])
 
         user = User(
-            id=row['id'],
-            username=row['username'],
-            email=row['email'],
-            password_hash=row['password_hash'],
-            role=Role(row['role']),
-            is_active=bool(row['is_active']),
-            created_at=datetime.fromisoformat(row['created_at']) if row['created_at'] else None
+            id=row["id"],
+            username=row["username"],
+            email=row["email"],
+            password_hash=row["password_hash"],
+            role=Role(row["role"]),
+            is_active=bool(row["is_active"]),
+            created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None,
         )
 
         logger.info(f"User authenticated: {username}")
@@ -333,7 +339,7 @@ class AuthManager:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute('SELECT * FROM users WHERE id = ? AND is_active = 1', (user_id,))
+        cursor.execute("SELECT * FROM users WHERE id = ? AND is_active = 1", (user_id,))
         row = cursor.fetchone()
         conn.close()
 
@@ -341,13 +347,13 @@ class AuthManager:
             return None
 
         return User(
-            id=row['id'],
-            username=row['username'],
-            email=row['email'],
-            password_hash=row['password_hash'],
-            role=Role(row['role']),
-            is_active=bool(row['is_active']),
-            created_at=datetime.fromisoformat(row['created_at']) if row['created_at'] else None
+            id=row["id"],
+            username=row["username"],
+            email=row["email"],
+            password_hash=row["password_hash"],
+            role=Role(row["role"]),
+            is_active=bool(row["is_active"]),
+            created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None,
         )
 
     def _update_last_login(self, user_id: int):
@@ -355,9 +361,12 @@ class AuthManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         conn.commit()
         conn.close()
@@ -375,14 +384,14 @@ class AuthManager:
             JWT token string
         """
         payload = {
-            'user_id': user.id,
-            'username': user.username,
-            'role': user.role.value,
-            'exp': datetime.utcnow() + timedelta(seconds=expires_in),
-            'iat': datetime.utcnow()
+            "user_id": user.id,
+            "username": user.username,
+            "role": user.role.value,
+            "exp": datetime.utcnow() + timedelta(seconds=expires_in),
+            "iat": datetime.utcnow(),
         }
 
-        token = jwt.encode(payload, secret_key, algorithm='HS256')
+        token = jwt.encode(payload, secret_key, algorithm="HS256")
         return token
 
     def verify_token(self, token: str, secret_key: str) -> Optional[Dict[str, Any]]:
@@ -402,7 +411,7 @@ class AuthManager:
                 logger.warning("Token is blacklisted")
                 return None
 
-            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+            payload = jwt.decode(token, secret_key, algorithms=["HS256"])
             return payload
         except jwt.ExpiredSignatureError:
             logger.warning("Token expired")
@@ -430,23 +439,26 @@ class AuthManager:
         expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
 
         payload = {
-            'user_id': user.id,
-            'token_id': token_id,
-            'type': 'refresh',
-            'exp': expires_at,
-            'iat': datetime.utcnow()
+            "user_id": user.id,
+            "token_id": token_id,
+            "type": "refresh",
+            "exp": expires_at,
+            "iat": datetime.utcnow(),
         }
 
-        token = jwt.encode(payload, secret_key, algorithm='HS256')
+        token = jwt.encode(payload, secret_key, algorithm="HS256")
 
         # Store refresh token in database
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO refresh_tokens (user_id, token, expires_at)
             VALUES (?, ?, ?)
-        ''', (user.id, token, expires_at.isoformat()))
+        """,
+            (user.id, token, expires_at.isoformat()),
+        )
 
         conn.commit()
         conn.close()
@@ -467,9 +479,9 @@ class AuthManager:
         """
         try:
             # Decode token
-            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+            payload = jwt.decode(token, secret_key, algorithms=["HS256"])
 
-            if payload.get('type') != 'refresh':
+            if payload.get("type") != "refresh":
                 logger.warning("Token is not a refresh token")
                 return None
 
@@ -477,10 +489,13 @@ class AuthManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT user_id, revoked, expires_at FROM refresh_tokens
                 WHERE token = ?
-            ''', (token,))
+            """,
+                (token,),
+            )
 
             row = cursor.fetchone()
             conn.close()
@@ -523,11 +538,14 @@ class AuthManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE refresh_tokens
                 SET revoked = 1
                 WHERE token = ?
-            ''', (token,))
+            """,
+                (token,),
+            )
 
             rows_affected = cursor.rowcount
             conn.commit()
@@ -557,11 +575,14 @@ class AuthManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE refresh_tokens
                 SET revoked = 1
                 WHERE user_id = ? AND revoked = 0
-            ''', (user_id,))
+            """,
+                (user_id,),
+            )
 
             rows_affected = cursor.rowcount
             conn.commit()
@@ -592,10 +613,13 @@ class AuthManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT OR IGNORE INTO token_blacklist (token, expires_at, reason)
                 VALUES (?, ?, ?)
-            ''', (token, expires_at.isoformat(), reason))
+            """,
+                (token, expires_at.isoformat(), reason),
+            )
 
             conn.commit()
             conn.close()
@@ -621,10 +645,13 @@ class AuthManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT expires_at FROM token_blacklist
                 WHERE token = ?
-            ''', (token,))
+            """,
+                (token,),
+            )
 
             row = cursor.fetchone()
             conn.close()
@@ -651,10 +678,13 @@ class AuthManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 DELETE FROM token_blacklist
                 WHERE expires_at < ?
-            ''', (datetime.utcnow().isoformat(),))
+            """,
+                (datetime.utcnow().isoformat(),),
+            )
 
             rows_deleted = cursor.rowcount
             conn.commit()
@@ -693,49 +723,58 @@ class AuthManager:
 
 # Decorators for access control
 
+
 def login_required(f):
     """Decorator to require authentication."""
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             logger.warning(f"Unauthorized access attempt to {f.__name__}")
-            return {'error': 'Authentication required'}, 401
+            return {"error": "Authentication required"}, 401
         return f(*args, **kwargs)
+
     return decorated_function
 
 
 def permission_required(*permissions: Permission):
     """Decorator to require specific permissions."""
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not current_user.is_authenticated:
                 logger.warning(f"Unauthorized access attempt to {f.__name__}")
-                return {'error': 'Authentication required'}, 401
+                return {"error": "Authentication required"}, 401
 
             if not current_user.has_any_permission(list(permissions)):
                 logger.warning(f"Permission denied for {current_user.username} on {f.__name__}")
-                return {'error': 'Permission denied'}, 403
+                return {"error": "Permission denied"}, 403
 
             return f(*args, **kwargs)
+
         return decorated_function
+
     return decorator
 
 
 def role_required(*roles: Role):
     """Decorator to require specific roles."""
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not current_user.is_authenticated:
-                return {'error': 'Authentication required'}, 401
+                return {"error": "Authentication required"}, 401
 
             if current_user.role not in roles:
                 logger.warning(f"Role check failed for {current_user.username} on {f.__name__}")
-                return {'error': 'Insufficient privileges'}, 403
+                return {"error": "Insufficient privileges"}, 403
 
             return f(*args, **kwargs)
+
         return decorated_function
+
     return decorator
 
 

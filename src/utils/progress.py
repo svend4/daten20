@@ -3,9 +3,10 @@ Professional progress bar utilities using tqdm
 Provides consistent progress bars across all CLI applications
 """
 
-from typing import Optional, Callable, Iterable, Any
-from tqdm import tqdm
 import sys
+from typing import Any, Callable, Iterable, Optional
+
+from tqdm import tqdm
 
 
 class ProgressBar:
@@ -28,7 +29,7 @@ class ProgressBar:
         disable: bool = False,
         leave: bool = True,
         position: int = 0,
-        colour: Optional[str] = None
+        colour: Optional[str] = None,
     ):
         """
         Initialize progress bar
@@ -62,7 +63,7 @@ class ProgressBar:
             position=self.position,
             colour=self.colour,
             file=sys.stdout,
-            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
         )
         return self.pbar
 
@@ -79,7 +80,7 @@ def progress_iterator(
     unit: str = "item",
     total: Optional[int] = None,
     disable: bool = False,
-    colour: str = "green"
+    colour: str = "green",
 ) -> Iterable:
     """
     Wrap an iterable with a progress bar
@@ -99,15 +100,7 @@ def progress_iterator(
         >>> for item in progress_iterator(files, desc="Processing files", unit="file"):
         ...     process(item)
     """
-    return tqdm(
-        iterable,
-        desc=desc,
-        unit=unit,
-        total=total,
-        disable=disable,
-        colour=colour,
-        file=sys.stdout
-    )
+    return tqdm(iterable, desc=desc, unit=unit, total=total, disable=disable, colour=colour, file=sys.stdout)
 
 
 def progress_map(
@@ -117,7 +110,7 @@ def progress_map(
     unit: str = "item",
     total: Optional[int] = None,
     disable: bool = False,
-    colour: str = "green"
+    colour: str = "green",
 ) -> list:
     """
     Apply function to iterable with progress bar
@@ -167,7 +160,7 @@ class MultiProgress:
         desc: str = "Processing",
         unit: str = "item",
         position: int = 0,
-        colour: str = "green"
+        colour: str = "green",
     ) -> ProgressBar:
         """
         Add a new progress bar
@@ -182,14 +175,7 @@ class MultiProgress:
         Returns:
             ProgressBar instance
         """
-        bar = ProgressBar(
-            total=total,
-            desc=desc,
-            unit=unit,
-            position=position,
-            colour=colour,
-            leave=False
-        )
+        bar = ProgressBar(total=total, desc=desc, unit=unit, position=position, colour=colour, leave=False)
         self.bars.append(bar)
         return bar
 
@@ -206,13 +192,7 @@ class FileProgressBar:
     Shows file count and total size processed
     """
 
-    def __init__(
-        self,
-        total_files: int,
-        total_size: int = 0,
-        desc: str = "Processing files",
-        disable: bool = False
-    ):
+    def __init__(self, total_files: int, total_size: int = 0, desc: str = "Processing files", disable: bool = False):
         """
         Initialize file progress bar
 
@@ -243,7 +223,7 @@ class FileProgressBar:
             disable=self.disable,
             colour="blue",
             file=sys.stdout,
-            postfix=postfix
+            postfix=postfix,
         )
         return self
 
@@ -278,7 +258,7 @@ class FileProgressBar:
     @staticmethod
     def _format_bytes(bytes_count: int) -> str:
         """Format bytes as human-readable string"""
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
             if bytes_count < 1024.0:
                 return f"{bytes_count:.1f}{unit}"
             bytes_count /= 1024.0
@@ -291,12 +271,7 @@ class StepProgress:
     Shows current step and overall progress
     """
 
-    def __init__(
-        self,
-        steps: list,
-        desc: str = "Processing",
-        disable: bool = False
-    ):
+    def __init__(self, steps: list, desc: str = "Processing", disable: bool = False):
         """
         Initialize step progress
 
@@ -314,12 +289,7 @@ class StepProgress:
     def __enter__(self):
         """Context manager entry"""
         self.pbar = tqdm(
-            total=len(self.steps),
-            desc=self.desc,
-            unit="step",
-            disable=self.disable,
-            colour="cyan",
-            file=sys.stdout
+            total=len(self.steps), desc=self.desc, unit="step", disable=self.disable, colour="cyan", file=sys.stdout
         )
         return self
 
@@ -345,6 +315,7 @@ class StepProgress:
 
 
 # Convenience functions for common use cases
+
 
 def create_progress(total: int, desc: str = "Processing", **kwargs) -> tqdm:
     """

@@ -37,15 +37,16 @@ Version: 1.0.0
 
 import argparse
 import json
-import os
-from pathlib import Path
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import logging
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 try:
-    from flask import Flask, request, jsonify, render_template_string, send_file
+    from flask import Flask, jsonify, render_template_string, request, send_file
     from flask_cors import CORS
+
     FLASK_AVAILABLE = True
 except ImportError:
     FLASK_AVAILABLE = False
@@ -53,14 +54,15 @@ except ImportError:
 
 from werkzeug.utils import secure_filename
 
-# Import our modules
-from src.core.parser import DocumentParser
 from src.core.database import DocumentDatabase
 from src.core.logging_config import setup_logging
-from src.ml.ner import NEREngine
+
+# Import our modules
+from src.core.parser import DocumentParser
 from src.ml.classifier import TfidfSVMClassifier
+from src.ml.knowledge_graph import GraphFormat, KnowledgeGraphBuilder
+from src.ml.ner import NEREngine
 from src.ml.relation_extractor import RelationExtractor
-from src.ml.knowledge_graph import KnowledgeGraphBuilder, GraphFormat
 
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
@@ -69,8 +71,8 @@ logger = setup_logging(__name__, log_level="INFO")
 app = Flask(__name__) if FLASK_AVAILABLE else None
 if app:
     CORS(app)
-    app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
-    app.config['UPLOAD_FOLDER'] = 'data/uploads'
+    app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB max file size
+    app.config["UPLOAD_FOLDER"] = "data/uploads"
 
 
 # HTML Template for Dashboard
@@ -502,7 +504,7 @@ class DocumentDashboard:
         self.graph_builder = KnowledgeGraphBuilder(use_spacy=True)
 
         # Create upload directory
-        os.makedirs('data/uploads', exist_ok=True)
+        os.makedirs("data/uploads", exist_ok=True)
 
         logger.info("DocumentDashboard initialized")
 
@@ -518,7 +520,7 @@ class DocumentDashboard:
         """
         # Save uploaded file
         filename = secure_filename(file.filename)
-        filepath = os.path.join('data/uploads', filename)
+        filepath = os.path.join("data/uploads", filename)
         file.save(filepath)
 
         logger.info(f"Processing uploaded file: {filename}")
@@ -547,31 +549,24 @@ class DocumentDashboard:
                 "text_length": len(text),
                 "word_count": len(text.split()),
                 "entity_count": len(entities),
-                "relation_count": len(relations)
+                "relation_count": len(relations),
             },
             "classification": {
-                "category": classification.category.value if hasattr(classification, 'category') else "UNKNOWN",
-                "confidence": getattr(classification, 'confidence', 0.0)
+                "category": classification.category.value if hasattr(classification, "category") else "UNKNOWN",
+                "confidence": getattr(classification, "confidence", 0.0),
             },
-            "entities": [
-                {
-                    "text": e.text,
-                    "type": e.type.value,
-                    "confidence": e.confidence
-                }
-                for e in entities
-            ],
+            "entities": [{"text": e.text, "type": e.type.value, "confidence": e.confidence} for e in entities],
             "topics": [],  # Placeholder for topic modeling
             "relations": [
                 {
                     "source": r.source_entity,
                     "relation": r.relation_type.value,
                     "target": r.target_entity,
-                    "confidence": r.confidence
+                    "confidence": r.confidence,
                 }
                 for r in relations
             ],
-            "knowledge_graph": json.loads(graph.export(GraphFormat.JSON))
+            "knowledge_graph": json.loads(graph.export(GraphFormat.JSON)),
         }
 
         return results
@@ -581,19 +576,19 @@ class DocumentDashboard:
 if FLASK_AVAILABLE:
     dashboard = DocumentDashboard()
 
-    @app.route('/')
+    @app.route("/")
     def index():
         """Render dashboard homepage."""
         return render_template_string(DASHBOARD_HTML)
 
-    @app.route('/api/process', methods=['POST'])
+    @app.route("/api/process", methods=["POST"])
     def process_document():
         """Process uploaded document."""
-        if 'file' not in request.files:
+        if "file" not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
 
-        file = request.files['file']
-        if file.filename == '':
+        file = request.files["file"]
+        if file.filename == "":
             return jsonify({"error": "Empty filename"}), 400
 
         try:
@@ -603,15 +598,11 @@ if FLASK_AVAILABLE:
             logger.error(f"Processing error: {e}", exc_info=True)
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/stats')
+    @app.route("/api/stats")
     def get_stats():
         """Get dashboard statistics."""
         # Placeholder - implement database queries
-        return jsonify({
-            "total_documents": 0,
-            "total_entities": 0,
-            "total_relations": 0
-        })
+        return jsonify({"total_documents": 0, "total_entities": 0, "total_relations": 0})
 
 
 def main():
@@ -629,7 +620,8 @@ def main():
         print("Install with: pip install flask flask-cors")
         return
 
-    print(f"""
+    print(
+        f"""
 ╔════════════════════════════════════════════════════════════════╗
 ║        Document Analysis Dashboard v1.0.0                      ║
 ╠════════════════════════════════════════════════════════════════╣
@@ -641,14 +633,11 @@ def main():
 ║  Server: http://{args.host}:{args.port}
 ║  Mode: {'Production' if args.production else 'Development'}
 ╚════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     # Run Flask server
-    app.run(
-        host=args.host,
-        port=args.port,
-        debug=args.debug and not args.production
-    )
+    app.run(host=args.host, port=args.port, debug=args.debug and not args.production)
 
 
 if __name__ == "__main__":

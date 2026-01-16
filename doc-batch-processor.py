@@ -48,30 +48,32 @@ Version: 1.0.0
 """
 
 import argparse
-import json
-import os
-import sys
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-import logging
-import time
 import hashlib
+import json
+import logging
+import os
 import pickle
+import sys
+import time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
 from tqdm import tqdm
 
-# Import core modules
-from src.core.parser import DocumentParser
 from src.core.database import DocumentDatabase
 from src.core.excel_export import ExcelExporter
 from src.core.logging_config import setup_logging
 
+# Import core modules
+from src.core.parser import DocumentParser
+from src.ml.classifier import TfidfSVMClassifier
+from src.ml.knowledge_graph import GraphFormat, KnowledgeGraphBuilder
+
 # Import ML modules
 from src.ml.ner import NEREngine
-from src.ml.classifier import TfidfSVMClassifier
 from src.ml.relation_extractor import RelationExtractor
-from src.ml.knowledge_graph import KnowledgeGraphBuilder, GraphFormat
 
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
@@ -108,18 +110,18 @@ class BatchJob:
     def save_checkpoint(self):
         """Save job checkpoint for resume capability."""
         checkpoint_path = Path(self.output_dir) / f"{self.job_id}_checkpoint.pkl"
-        with open(checkpoint_path, 'wb') as f:
+        with open(checkpoint_path, "wb") as f:
             pickle.dump(self, f)
         logger.info(f"Checkpoint saved: {checkpoint_path}")
 
     @classmethod
-    def load_checkpoint(cls, job_id: str, output_dir: str) -> Optional['BatchJob']:
+    def load_checkpoint(cls, job_id: str, output_dir: str) -> Optional["BatchJob"]:
         """Load job from checkpoint."""
         checkpoint_path = Path(output_dir) / f"{job_id}_checkpoint.pkl"
         if not checkpoint_path.exists():
             return None
 
-        with open(checkpoint_path, 'rb') as f:
+        with open(checkpoint_path, "rb") as f:
             job = pickle.load(f)
         logger.info(f"Checkpoint loaded: {checkpoint_path}")
         return job
@@ -144,13 +146,13 @@ class BatchJob:
                 "skipped": self.skipped,
                 "success_rate": f"{(self.processed / self.total_files * 100):.1f}%" if self.total_files > 0 else "0%",
                 "total_entities": self.total_entities,
-                "total_relations": self.total_relations
+                "total_relations": self.total_relations,
             },
             "timing": {
                 "elapsed_seconds": round(elapsed, 2),
                 "elapsed_formatted": self._format_duration(elapsed),
-                "avg_per_document": round(elapsed / self.processed, 2) if self.processed > 0 else 0
-            }
+                "avg_per_document": round(elapsed / self.processed, 2) if self.processed > 0 else 0,
+            },
         }
 
     @staticmethod
@@ -193,7 +195,7 @@ class BatchProcessor:
         output_dir: str,
         pipeline: List[str] = None,
         file_pattern: str = "*.*",
-        resume_job_id: Optional[str] = None
+        resume_job_id: Optional[str] = None,
     ) -> BatchJob:
         """
         Process all documents in directory.
@@ -228,7 +230,7 @@ class BatchProcessor:
 
         # Filter out already processed files if resuming
         if resume_job_id:
-            processed_files = {r['file_path'] for r in job.results}
+            processed_files = {r["file_path"] for r in job.results}
             files_to_process = [f for f in all_files if str(f) not in processed_files]
         else:
             files_to_process = all_files
@@ -246,17 +248,19 @@ class BatchProcessor:
         with ExecutorClass(max_workers=self.workers) as executor:
             futures = {
                 executor.submit(
-                    self._process_single_file,
-                    str(file_path),
-                    output_dir,
-                    pipeline or ['ner', 'classify', 'relations']
+                    self._process_single_file, str(file_path), output_dir, pipeline or ["ner", "classify", "relations"]
                 ): file_path
                 for file_path in files_to_process
             }
 
             # Collect results with progress bar
-            with tqdm(total=len(files_to_process), desc="Processing documents",
-                     unit="doc", ncols=100, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
+            with tqdm(
+                total=len(files_to_process),
+                desc="Processing documents",
+                unit="doc",
+                ncols=100,
+                bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]",
+            ) as pbar:
                 for future in as_completed(futures):
                     file_path = futures[future]
 
@@ -266,17 +270,19 @@ class BatchProcessor:
                         job.processed += 1
 
                         # Update statistics
-                        job.total_entities += result.get('entity_count', 0)
-                        job.total_relations += result.get('relation_count', 0)
+                        job.total_entities += result.get("entity_count", 0)
+                        job.total_relations += result.get("relation_count", 0)
 
                         # Update progress bar
                         pbar.update(1)
-                        pbar.set_postfix({
-                            'Processed': job.processed,
-                            'Failed': job.failed,
-                            'Entities': job.total_entities,
-                            'Relations': job.total_relations
-                        })
+                        pbar.set_postfix(
+                            {
+                                "Processed": job.processed,
+                                "Failed": job.failed,
+                                "Entities": job.total_entities,
+                                "Relations": job.total_relations,
+                            }
+                        )
 
                         # Log progress (less frequently with tqdm)
                         if job.processed % 10 == 0:
@@ -285,21 +291,21 @@ class BatchProcessor:
 
                     except Exception as e:
                         logger.error(f"Failed to process {file_path}: {e}")
-                        job.errors.append({
-                            "file_path": str(file_path),
-                            "error": str(e),
-                            "timestamp": datetime.now().isoformat()
-                        })
+                        job.errors.append(
+                            {"file_path": str(file_path), "error": str(e), "timestamp": datetime.now().isoformat()}
+                        )
                         job.failed += 1
 
                         # Update progress bar for failed files
                         pbar.update(1)
-                        pbar.set_postfix({
-                            'Processed': job.processed,
-                            'Failed': job.failed,
-                            'Entities': job.total_entities,
-                            'Relations': job.total_relations
-                        })
+                        pbar.set_postfix(
+                            {
+                                "Processed": job.processed,
+                                "Failed": job.failed,
+                                "Entities": job.total_entities,
+                                "Relations": job.total_relations,
+                            }
+                        )
 
                         # Save checkpoint every 10 files
                         if (job.processed + job.failed) % 10 == 0:
@@ -319,12 +325,7 @@ class BatchProcessor:
 
         return job
 
-    def _process_single_file(
-        self,
-        file_path: str,
-        output_dir: str,
-        pipeline: List[str]
-    ) -> Dict[str, Any]:
+    def _process_single_file(self, file_path: str, output_dir: str, pipeline: List[str]) -> Dict[str, Any]:
         """
         Process single document file.
 
@@ -348,50 +349,43 @@ class BatchProcessor:
             "processed_at": datetime.now().isoformat(),
             "pipeline": pipeline,
             "text_length": len(text),
-            "word_count": len(text.split())
+            "word_count": len(text.split()),
         }
 
         # Execute pipeline steps
-        if 'ner' in pipeline:
+        if "ner" in pipeline:
             entities = self.ner_engine.extract_entities(text)
-            result["entities"] = [
-                {
-                    "text": e.text,
-                    "type": e.type.value,
-                    "confidence": e.confidence
-                }
-                for e in entities
-            ]
+            result["entities"] = [{"text": e.text, "type": e.type.value, "confidence": e.confidence} for e in entities]
             result["entity_count"] = len(entities)
 
-        if 'classify' in pipeline:
+        if "classify" in pipeline:
             classification = self.classifier.predict(text)
             result["classification"] = {
-                "category": classification.category.value if hasattr(classification, 'category') else "UNKNOWN",
-                "confidence": getattr(classification, 'confidence', 0.0)
+                "category": classification.category.value if hasattr(classification, "category") else "UNKNOWN",
+                "confidence": getattr(classification, "confidence", 0.0),
             }
 
-        if 'relations' in pipeline:
+        if "relations" in pipeline:
             relations = self.relation_extractor.extract_relations(text)
             result["relations"] = [
                 {
                     "source": r.source_entity,
                     "relation": r.relation_type.value,
                     "target": r.target_entity,
-                    "confidence": r.confidence
+                    "confidence": r.confidence,
                 }
                 for r in relations
             ]
             result["relation_count"] = len(relations)
 
-        if 'graph' in pipeline:
+        if "graph" in pipeline:
             graph = self.graph_builder.build_from_text(text)
             result["knowledge_graph"] = json.loads(graph.export(GraphFormat.JSON))
             result["graph_stats"] = graph.stats()
 
         # Save individual result
         output_file = Path(output_dir) / f"{Path(file_path).stem}_result.json"
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
 
         return result
@@ -408,26 +402,19 @@ class BatchProcessor:
 
         # JSON summary
         json_path = Path(job.output_dir) / f"{job.job_id}_summary.json"
-        with open(json_path, 'w', encoding='utf-8') as f:
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
         # Detailed results
         results_path = Path(job.output_dir) / f"{job.job_id}_results.json"
-        with open(results_path, 'w', encoding='utf-8') as f:
-            json.dump({
-                "summary": summary,
-                "results": job.results,
-                "errors": job.errors
-            }, f, indent=2, ensure_ascii=False)
+        with open(results_path, "w", encoding="utf-8") as f:
+            json.dump(
+                {"summary": summary, "results": job.results, "errors": job.errors}, f, indent=2, ensure_ascii=False
+            )
 
         logger.info(f"Job summary saved: {json_path}")
 
-    def generate_report(
-        self,
-        job: BatchJob,
-        format: str = "excel",
-        output_path: Optional[str] = None
-    ):
+    def generate_report(self, job: BatchJob, format: str = "excel", output_path: Optional[str] = None):
         """
         Generate processing report.
 
@@ -446,12 +433,13 @@ class BatchProcessor:
             logger.info(f"Excel report generated: {output_path}")
 
         elif format == "json":
-            with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump({
-                    "summary": job.get_summary(),
-                    "results": job.results,
-                    "errors": job.errors
-                }, f, indent=2, ensure_ascii=False)
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(
+                    {"summary": job.get_summary(), "results": job.results, "errors": job.errors},
+                    f,
+                    indent=2,
+                    ensure_ascii=False,
+                )
             logger.info(f"JSON report generated: {output_path}")
 
 
@@ -459,7 +447,7 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="Batch Document Processor - High-performance parallel processing",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -468,7 +456,9 @@ def main():
     process_parser = subparsers.add_parser("process", help="Process documents in directory")
     process_parser.add_argument("input_dir", help="Input directory path")
     process_parser.add_argument("-o", "--output-dir", default="data/batch_results", help="Output directory")
-    process_parser.add_argument("-p", "--pipeline", help="Pipeline steps (comma-separated: ner,classify,relations,graph)")
+    process_parser.add_argument(
+        "-p", "--pipeline", help="Pipeline steps (comma-separated: ner,classify,relations,graph)"
+    )
     process_parser.add_argument("-w", "--workers", type=int, default=4, help="Number of parallel workers")
     process_parser.add_argument("--multiprocess", action="store_true", help="Use multiprocessing instead of threading")
     process_parser.add_argument("--pattern", default="*.*", help="File pattern to match")
@@ -498,18 +488,12 @@ def main():
     # Execute command
     try:
         if args.command == "process":
-            pipeline = args.pipeline.split(",") if args.pipeline else ['ner', 'classify', 'relations']
+            pipeline = args.pipeline.split(",") if args.pipeline else ["ner", "classify", "relations"]
 
-            processor = BatchProcessor(
-                workers=args.workers,
-                use_multiprocessing=args.multiprocess
-            )
+            processor = BatchProcessor(workers=args.workers, use_multiprocessing=args.multiprocess)
 
             job = processor.process_directory(
-                input_dir=args.input_dir,
-                output_dir=args.output_dir,
-                pipeline=pipeline,
-                file_pattern=args.pattern
+                input_dir=args.input_dir, output_dir=args.output_dir, pipeline=pipeline, file_pattern=args.pattern
             )
 
             print(json.dumps(job.get_summary(), indent=2))
@@ -517,9 +501,7 @@ def main():
         elif args.command == "resume":
             processor = BatchProcessor(workers=4)
             job = processor.process_directory(
-                input_dir="",  # Will be loaded from checkpoint
-                output_dir=args.output_dir,
-                resume_job_id=args.job_id
+                input_dir="", output_dir=args.output_dir, resume_job_id=args.job_id  # Will be loaded from checkpoint
             )
             print(json.dumps(job.get_summary(), indent=2))
 

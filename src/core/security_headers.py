@@ -14,9 +14,10 @@ Features:
 - Permissions policy
 """
 
-from flask import Flask, Response, request
-from typing import Dict, Optional, Callable
 import logging
+from typing import Callable, Dict, Optional
+
+from flask import Flask, Response, request
 
 logger = logging.getLogger(__name__)
 
@@ -49,22 +50,17 @@ class SecurityHeaders:
         """Get default security headers configuration."""
         return {
             # XSS Protection
-            'X-XSS-Protection': '1; mode=block',
-
+            "X-XSS-Protection": "1; mode=block",
             # Prevent MIME type sniffing
-            'X-Content-Type-Options': 'nosniff',
-
+            "X-Content-Type-Options": "nosniff",
             # Clickjacking protection
-            'X-Frame-Options': 'SAMEORIGIN',
-
+            "X-Frame-Options": "SAMEORIGIN",
             # HTTPS enforcement (1 year)
-            'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-
+            "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
             # Referrer policy
-            'Referrer-Policy': 'strict-origin-when-cross-origin',
-
+            "Referrer-Policy": "strict-origin-when-cross-origin",
             # Content Security Policy
-            'Content-Security-Policy': (
+            "Content-Security-Policy": (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; "
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
@@ -75,9 +71,8 @@ class SecurityHeaders:
                 "base-uri 'self'; "
                 "form-action 'self'"
             ),
-
             # Permissions Policy (Feature Policy)
-            'Permissions-Policy': (
+            "Permissions-Policy": (
                 "geolocation=(), "
                 "microphone=(), "
                 "camera=(), "
@@ -87,15 +82,13 @@ class SecurityHeaders:
                 "gyroscope=(), "
                 "accelerometer=()"
             ),
-
             # Cross-Origin policies
-            'Cross-Origin-Opener-Policy': 'same-origin',
-            'Cross-Origin-Embedder-Policy': 'require-corp',
-            'Cross-Origin-Resource-Policy': 'same-origin',
-
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Cross-Origin-Embedder-Policy": "require-corp",
+            "Cross-Origin-Resource-Policy": "same-origin",
             # Additional security headers
-            'X-Permitted-Cross-Domain-Policies': 'none',
-            'X-Download-Options': 'noopen',
+            "X-Permitted-Cross-Domain-Policies": "none",
+            "X-Download-Options": "noopen",
         }
 
     def init_app(self, app: Flask):
@@ -105,11 +98,12 @@ class SecurityHeaders:
         Args:
             app: Flask application instance
         """
+
         @app.after_request
         def add_security_headers(response: Response) -> Response:
             """Add security headers to every response."""
             # Skip if disabled for this route
-            if hasattr(response, '_skip_security_headers') and response._skip_security_headers:
+            if hasattr(response, "_skip_security_headers") and response._skip_security_headers:
                 return response
 
             # Add all configured headers
@@ -119,10 +113,10 @@ class SecurityHeaders:
                     response.headers[header] = value
 
             # Remove server header (security by obscurity)
-            response.headers.pop('Server', None)
+            response.headers.pop("Server", None)
 
             # Add custom X-Powered-By header
-            response.headers['X-Powered-By'] = 'Document Management System'
+            response.headers["X-Powered-By"] = "Document Management System"
 
             return response
 
@@ -194,10 +188,10 @@ class SecurityHeaders:
 
     def enable_cors(
         self,
-        origins: str = '*',
-        methods: str = 'GET, POST, PUT, DELETE, OPTIONS',
-        headers: str = 'Content-Type, Authorization',
-        max_age: int = 3600
+        origins: str = "*",
+        methods: str = "GET, POST, PUT, DELETE, OPTIONS",
+        headers: str = "Content-Type, Authorization",
+        max_age: int = 3600,
     ):
         """
         Enable CORS headers.
@@ -208,21 +202,19 @@ class SecurityHeaders:
             headers: Allowed headers
             max_age: Preflight cache duration
         """
-        self.config.update({
-            'Access-Control-Allow-Origin': origins,
-            'Access-Control-Allow-Methods': methods,
-            'Access-Control-Allow-Headers': headers,
-            'Access-Control-Max-Age': str(max_age),
-        })
+        self.config.update(
+            {
+                "Access-Control-Allow-Origin": origins,
+                "Access-Control-Allow-Methods": methods,
+                "Access-Control-Allow-Headers": headers,
+                "Access-Control-Max-Age": str(max_age),
+            }
+        )
         logger.info(f"CORS enabled for origins: {origins}")
 
 
 def create_security_headers(
-    app: Flask,
-    enable_hsts: bool = True,
-    csp_mode: str = 'default',
-    enable_cors: bool = False,
-    cors_origins: str = '*'
+    app: Flask, enable_hsts: bool = True, csp_mode: str = "default", enable_cors: bool = False, cors_origins: str = "*"
 ) -> SecurityHeaders:
     """
     Create and configure security headers for Flask app.
@@ -241,14 +233,14 @@ def create_security_headers(
 
     # Disable HSTS if requested (e.g., for local development)
     if not enable_hsts:
-        security.remove_header('Strict-Transport-Security')
+        security.remove_header("Strict-Transport-Security")
         logger.warning("HSTS disabled - not recommended for production!")
 
     # Set CSP based on mode
-    if csp_mode == 'strict':
-        security.set_header('Content-Security-Policy', security.get_csp_strict())
-    elif csp_mode == 'relaxed':
-        security.set_header('Content-Security-Policy', security.get_csp_relaxed())
+    if csp_mode == "strict":
+        security.set_header("Content-Security-Policy", security.get_csp_strict())
+    elif csp_mode == "relaxed":
+        security.set_header("Content-Security-Policy", security.get_csp_relaxed())
 
     # Enable CORS if requested
     if enable_cors:
@@ -267,14 +259,17 @@ def skip_security_headers():
         def public_api():
             return {'data': 'public'}
     """
+
     def decorator(f: Callable) -> Callable:
         def wrapper(*args, **kwargs):
             response = f(*args, **kwargs)
             if isinstance(response, Response):
                 response._skip_security_headers = True
             return response
+
         wrapper.__name__ = f.__name__
         return wrapper
+
     return decorator
 
 
@@ -288,11 +283,7 @@ def get_security_headers() -> Optional[SecurityHeaders]:
 
 
 def init_security_headers(
-    app: Flask,
-    enable_hsts: bool = True,
-    csp_mode: str = 'default',
-    enable_cors: bool = False,
-    cors_origins: str = '*'
+    app: Flask, enable_hsts: bool = True, csp_mode: str = "default", enable_cors: bool = False, cors_origins: str = "*"
 ) -> SecurityHeaders:
     """
     Initialize security headers for Flask application.
@@ -310,11 +301,7 @@ def init_security_headers(
     global _security_headers_instance
 
     _security_headers_instance = create_security_headers(
-        app=app,
-        enable_hsts=enable_hsts,
-        csp_mode=csp_mode,
-        enable_cors=enable_cors,
-        cors_origins=cors_origins
+        app=app, enable_hsts=enable_hsts, csp_mode=csp_mode, enable_cors=enable_cors, cors_origins=cors_origins
     )
 
     logger.info("Security headers initialized for application")
@@ -322,11 +309,7 @@ def init_security_headers(
 
 
 # Convenience function for quick setup
-def secure_flask_app(
-    app: Flask,
-    production: bool = False,
-    enable_cors: bool = False
-) -> SecurityHeaders:
+def secure_flask_app(app: Flask, production: bool = False, enable_cors: bool = False) -> SecurityHeaders:
     """
     Quick setup for securing Flask application.
 
@@ -341,7 +324,7 @@ def secure_flask_app(
     return init_security_headers(
         app=app,
         enable_hsts=production,
-        csp_mode='strict' if production else 'default',
+        csp_mode="strict" if production else "default",
         enable_cors=enable_cors,
-        cors_origins='*' if not production else 'self'
+        cors_origins="*" if not production else "self",
     )

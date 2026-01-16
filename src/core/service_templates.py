@@ -5,17 +5,18 @@ Pre-configured templates for common service types.
 Allows quick service creation with standard configurations.
 """
 
-from typing import Dict, List, Optional
-from dataclasses import dataclass, asdict
 import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Dict, List, Optional
 
-from src.models import ServiceConfig, BasicInfo, FinancialData
+from src.models import BasicInfo, FinancialData, ServiceConfig
 
 
 @dataclass
 class ServiceTemplate:
     """Service template definition"""
+
     id: str
     name: str
     category: str
@@ -32,7 +33,7 @@ class ServiceTemplate:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'ServiceTemplate':
+    def from_dict(cls, data: Dict) -> "ServiceTemplate":
         """Create from dictionary"""
         return cls(**data)
 
@@ -63,7 +64,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=160,
                 use_umlages=True,
                 tags=["shopping", "errands", "daily_living"],
-                notes="Standard rate for shopping assistance services"
+                notes="Standard rate for shopping assistance services",
             ),
             ServiceTemplate(
                 id="daily_cleaning",
@@ -75,7 +76,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=120,
                 use_umlages=True,
                 tags=["cleaning", "household", "daily_living"],
-                notes="Includes basic cleaning tasks"
+                notes="Includes basic cleaning tasks",
             ),
             ServiceTemplate(
                 id="daily_cooking",
@@ -87,7 +88,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=100,
                 use_umlages=True,
                 tags=["cooking", "meals", "daily_living"],
-                notes="Includes meal planning and preparation"
+                notes="Includes meal planning and preparation",
             ),
             ServiceTemplate(
                 id="daily_laundry",
@@ -99,9 +100,8 @@ class ServiceTemplateManager:
                 default_hours_per_month=80,
                 use_umlages=True,
                 tags=["laundry", "household", "daily_living"],
-                notes="Basic laundry services"
+                notes="Basic laundry services",
             ),
-
             # Personal Care
             ServiceTemplate(
                 id="care_personal_hygiene",
@@ -113,7 +113,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=140,
                 use_umlages=True,
                 tags=["personal_care", "hygiene", "caregiving"],
-                notes="Requires trained caregiver"
+                notes="Requires trained caregiver",
             ),
             ServiceTemplate(
                 id="care_medication",
@@ -125,7 +125,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=80,
                 use_umlages=True,
                 tags=["medication", "health", "caregiving"],
-                notes="Medical training recommended"
+                notes="Medical training recommended",
             ),
             ServiceTemplate(
                 id="care_mobility",
@@ -137,9 +137,8 @@ class ServiceTemplateManager:
                 default_hours_per_month=160,
                 use_umlages=True,
                 tags=["mobility", "physical_assistance", "caregiving"],
-                notes="May require special equipment"
+                notes="May require special equipment",
             ),
-
             # Transportation
             ServiceTemplate(
                 id="transport_medical",
@@ -151,7 +150,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=60,
                 use_umlages=True,
                 tags=["transportation", "medical", "appointments"],
-                notes="Includes waiting time"
+                notes="Includes waiting time",
             ),
             ServiceTemplate(
                 id="transport_social",
@@ -163,9 +162,8 @@ class ServiceTemplateManager:
                 default_hours_per_month=80,
                 use_umlages=True,
                 tags=["transportation", "social", "recreation"],
-                notes="Flexible scheduling"
+                notes="Flexible scheduling",
             ),
-
             # Social Participation
             ServiceTemplate(
                 id="social_companion",
@@ -177,7 +175,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=120,
                 use_umlages=True,
                 tags=["social", "companionship", "activities"],
-                notes="Promotes social engagement"
+                notes="Promotes social engagement",
             ),
             ServiceTemplate(
                 id="social_activities",
@@ -189,9 +187,8 @@ class ServiceTemplateManager:
                 default_hours_per_month=100,
                 use_umlages=True,
                 tags=["recreation", "hobbies", "social"],
-                notes="Tailored to individual interests"
+                notes="Tailored to individual interests",
             ),
-
             # Professional Services
             ServiceTemplate(
                 id="prof_nursing",
@@ -203,7 +200,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=160,
                 use_umlages=True,
                 tags=["nursing", "medical", "professional"],
-                notes="Requires qualified nurse"
+                notes="Requires qualified nurse",
             ),
             ServiceTemplate(
                 id="prof_therapy",
@@ -215,7 +212,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=80,
                 use_umlages=True,
                 tags=["therapy", "rehabilitation", "professional"],
-                notes="Certified therapist required"
+                notes="Certified therapist required",
             ),
             ServiceTemplate(
                 id="prof_counseling",
@@ -227,9 +224,8 @@ class ServiceTemplateManager:
                 default_hours_per_month=60,
                 use_umlages=True,
                 tags=["counseling", "social_work", "professional"],
-                notes="Licensed social worker required"
+                notes="Licensed social worker required",
             ),
-
             # Specialized Care
             ServiceTemplate(
                 id="spec_dementia",
@@ -241,7 +237,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=160,
                 use_umlages=True,
                 tags=["dementia", "specialized", "caregiving"],
-                notes="Dementia training required"
+                notes="Dementia training required",
             ),
             ServiceTemplate(
                 id="spec_disability",
@@ -253,7 +249,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=160,
                 use_umlages=True,
                 tags=["disability", "specialized", "support"],
-                notes="Disability awareness training recommended"
+                notes="Disability awareness training recommended",
             ),
             ServiceTemplate(
                 id="spec_palliative",
@@ -265,9 +261,8 @@ class ServiceTemplateManager:
                 default_hours_per_month=120,
                 use_umlages=True,
                 tags=["palliative", "end_of_life", "specialized"],
-                notes="Palliative care certification required"
+                notes="Palliative care certification required",
             ),
-
             # Emergency/Crisis
             ServiceTemplate(
                 id="emergency_respite",
@@ -279,7 +274,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=100,
                 use_umlages=True,
                 tags=["emergency", "respite", "temporary"],
-                notes="Available on short notice"
+                notes="Available on short notice",
             ),
             ServiceTemplate(
                 id="emergency_crisis",
@@ -291,9 +286,8 @@ class ServiceTemplateManager:
                 default_hours_per_month=60,
                 use_umlages=True,
                 tags=["emergency", "crisis", "immediate"],
-                notes="24/7 availability required"
+                notes="24/7 availability required",
             ),
-
             # Administrative Support
             ServiceTemplate(
                 id="admin_paperwork",
@@ -305,7 +299,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=40,
                 use_umlages=True,
                 tags=["administrative", "paperwork", "support"],
-                notes="Includes correspondence and organization"
+                notes="Includes correspondence and organization",
             ),
             ServiceTemplate(
                 id="admin_finance",
@@ -317,7 +311,7 @@ class ServiceTemplateManager:
                 default_hours_per_month=30,
                 use_umlages=True,
                 tags=["financial", "administrative", "support"],
-                notes="Financial literacy required"
+                notes="Financial literacy required",
             ),
         ]
 
@@ -328,7 +322,7 @@ class ServiceTemplateManager:
         if not self.templates_file.exists():
             return []
 
-        with open(self.templates_file, 'r', encoding='utf-8') as f:
+        with open(self.templates_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         return [ServiceTemplate.from_dict(t) for t in data]
@@ -358,9 +352,11 @@ class ServiceTemplateManager:
 
         results = []
         for template in templates:
-            if (query_lower in template.name.lower() or
-                query_lower in template.description.lower() or
-                any(query_lower in tag.lower() for tag in template.tags)):
+            if (
+                query_lower in template.name.lower()
+                or query_lower in template.description.lower()
+                or any(query_lower in tag.lower() for tag in template.tags)
+            ):
                 results.append(template)
 
         return results
@@ -369,7 +365,7 @@ class ServiceTemplateManager:
         """Save templates to file"""
         data = [t.to_dict() for t in templates]
 
-        with open(self.templates_file, 'w', encoding='utf-8') as f:
+        with open(self.templates_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
     def add_template(self, template: ServiceTemplate) -> bool:
@@ -412,11 +408,7 @@ class ServiceTemplateManager:
         return False
 
     def create_service_from_template(
-        self,
-        template_id: str,
-        service_name: Optional[str] = None,
-        region: Optional[str] = None,
-        **overrides
+        self, template_id: str, service_name: Optional[str] = None, region: Optional[str] = None, **overrides
     ) -> Optional[ServiceConfig]:
         """Create a service configuration from a template"""
         template = self.get_template_by_id(template_id)
@@ -427,19 +419,13 @@ class ServiceTemplateManager:
         # Use template values or overrides
         final_name = service_name or template.name
         final_region = region or template.default_region
-        final_brutto_rate = overrides.get('brutto_rate', template.default_brutto_rate)
-        final_hours = overrides.get('hours_per_month', template.default_hours_per_month)
+        final_brutto_rate = overrides.get("brutto_rate", template.default_brutto_rate)
+        final_hours = overrides.get("hours_per_month", template.default_hours_per_month)
 
         # Create service configuration
         service = ServiceConfig(
-            basic_info=BasicInfo(
-                service_name=final_name,
-                region=final_region
-            ),
-            financial=FinancialData(
-                brutto_rate=final_brutto_rate,
-                hours_per_month=final_hours
-            )
+            basic_info=BasicInfo(service_name=final_name, region=final_region),
+            financial=FinancialData(brutto_rate=final_brutto_rate, hours_per_month=final_hours),
         )
 
         return service
@@ -450,7 +436,7 @@ class ServiceTemplateManager:
             templates = self.get_all_templates()
             data = [t.to_dict() for t in templates]
 
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
             return True
@@ -460,7 +446,7 @@ class ServiceTemplateManager:
     def import_templates(self, input_path: str, merge: bool = False) -> bool:
         """Import templates from a file"""
         try:
-            with open(input_path, 'r', encoding='utf-8') as f:
+            with open(input_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             new_templates = [ServiceTemplate.from_dict(t) for t in data]

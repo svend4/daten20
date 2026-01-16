@@ -16,79 +16,68 @@ Example usage:
     memory = await memory_system.encode_memory(experience, MemoryType.EPISODIC)
 """
 
-__version__ = '21.0.0'
-__author__ = 'Document Management System Team'
+__version__ = "21.0.0"
+__author__ = "Document Management System Team"
 
-from .continual_learning_services import (
-    # Core Systems
-    ContinualLearningAlgorithms,
-    LifelongMemorySystems,
-    KnowledgeAccumulationTransfer,
-    MetaLearning,
-    CurriculumLearning,
-    ExperienceReplayConsolidation,
-    SelfAssessmentCapabilityTracking,
-
-    # Enums
-    ContinualLearningMethod,
-    MemoryType,
-    TransferType,
-    CurriculumStrategy,
-    ReplayPriority,
-
-    # Data Classes
-    Task,
-    Experience,
-    Memory,
-    Skill,
-    MetaLearningState,
-    Curriculum,
+from .continual_learning_services import (  # Core Systems; Enums; Data Classes; Singleton Getters
     CapabilityAssessment,
-
-    # Singleton Getters
+    ContinualLearningAlgorithms,
+    ContinualLearningMethod,
+    Curriculum,
+    CurriculumLearning,
+    CurriculumStrategy,
+    Experience,
+    ExperienceReplayConsolidation,
+    KnowledgeAccumulationTransfer,
+    LifelongMemorySystems,
+    Memory,
+    MemoryType,
+    MetaLearning,
+    MetaLearningState,
+    ReplayPriority,
+    SelfAssessmentCapabilityTracking,
+    Skill,
+    Task,
+    TransferType,
     get_continual_learning,
-    get_lifelong_memory,
-    get_knowledge_transfer,
-    get_meta_learning,
     get_curriculum_learning,
+    get_knowledge_transfer,
+    get_lifelong_memory,
+    get_meta_learning,
     get_replay_consolidation,
     get_self_assessment,
 )
 
 __all__ = [
-    '__version__',
-
+    "__version__",
     # Core Systems
-    'ContinualLearningAlgorithms',
-    'LifelongMemorySystems',
-    'KnowledgeAccumulationTransfer',
-    'MetaLearning',
-    'CurriculumLearning',
-    'ExperienceReplayConsolidation',
-    'SelfAssessmentCapabilityTracking',
-
+    "ContinualLearningAlgorithms",
+    "LifelongMemorySystems",
+    "KnowledgeAccumulationTransfer",
+    "MetaLearning",
+    "CurriculumLearning",
+    "ExperienceReplayConsolidation",
+    "SelfAssessmentCapabilityTracking",
     # Enums
-    'ContinualLearningMethod',
-    'MemoryType',
-    'TransferType',
-    'CurriculumStrategy',
-    'ReplayPriority',
-
+    "ContinualLearningMethod",
+    "MemoryType",
+    "TransferType",
+    "CurriculumStrategy",
+    "ReplayPriority",
     # Data Classes
-    'Task',
-    'Experience',
-    'Memory',
-    'Skill',
-    'MetaLearningState',
-    'Curriculum',
-    'CapabilityAssessment',
-
+    "Task",
+    "Experience",
+    "Memory",
+    "Skill",
+    "MetaLearningState",
+    "Curriculum",
+    "CapabilityAssessment",
     # Singleton Getters
-    'get_continual_learning',
-    'get_lifelong_memory',
-    'get_knowledge_transfer',
-    'get_meta_learning',
-    'get_curriculum_learning',
-    'get_replay_consolidation',
-    'get_self_assessment',
+    "get_continual_learning",
+    "get_lifelong_memory",
+    "get_knowledge_transfer",
+    "get_meta_learning",
+    "get_curriculum_learning",
+    "get_replay_consolidation",
+    "get_self_assessment",
 ]

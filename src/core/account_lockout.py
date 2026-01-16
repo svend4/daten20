@@ -5,13 +5,13 @@ Protects against brute-force attacks by tracking failed login attempts
 and temporarily locking accounts after exceeding threshold.
 """
 
+import logging
 import sqlite3
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Tuple
 from pathlib import Path
-import logging
+from typing import Dict, Optional, Tuple
 
-logger = logging.getLogger('dms.account_lockout')
+logger = logging.getLogger("dms.account_lockout")
 
 
 class AccountLockoutManager:
@@ -19,10 +19,10 @@ class AccountLockoutManager:
 
     def __init__(
         self,
-        db_path: str = 'data/db/users.db',
+        db_path: str = "data/db/users.db",
         max_attempts: int = 5,
         lockout_duration_minutes: int = 30,
-        attempt_window_minutes: int = 15
+        attempt_window_minutes: int = 15,
     ):
         """
         Initialize account lockout manager.
@@ -48,7 +48,8 @@ class AccountLockoutManager:
         cursor = conn.cursor()
 
         # Login attempts table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS login_attempts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
@@ -57,10 +58,12 @@ class AccountLockoutManager:
                 attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 user_agent TEXT
             )
-        ''')
+        """
+        )
 
         # Account locks table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS account_locks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
@@ -69,30 +72,38 @@ class AccountLockoutManager:
                 reason TEXT DEFAULT 'too_many_failed_attempts',
                 locked_by TEXT DEFAULT 'system'
             )
-        ''')
+        """
+        )
 
         # Add locked_until column to users if not exists
         try:
-            cursor.execute('ALTER TABLE users ADD COLUMN locked_until TIMESTAMP NULL')
+            cursor.execute("ALTER TABLE users ADD COLUMN locked_until TIMESTAMP NULL")
         except sqlite3.OperationalError:
             pass  # Column already exists
 
         # Create indexes
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_login_attempts_username ON login_attempts(username, attempted_at DESC)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_account_locks_username ON account_locks(username)')
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_login_attempts_username ON login_attempts(username, attempted_at DESC)"
+        )
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_account_locks_username ON account_locks(username)")
 
         conn.commit()
         conn.close()
 
-    def record_login_attempt(self, username: str, success: bool, ip_address: Optional[str] = None, user_agent: Optional[str] = None):
+    def record_login_attempt(
+        self, username: str, success: bool, ip_address: Optional[str] = None, user_agent: Optional[str] = None
+    ):
         """Record login attempt."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO login_attempts (username, success, ip_address, user_agent)
             VALUES (?, ?, ?, ?)
-        ''', (username, 1 if success else 0, ip_address, user_agent))
+        """,
+            (username, 1 if success else 0, ip_address, user_agent),
+        )
 
         conn.commit()
         conn.close()
@@ -112,7 +123,7 @@ class AccountLockoutManager:
 
         if failed_count >= self.max_attempts:
             unlock_at = datetime.utcnow() + self.lockout_duration
-            self.lock_account(username, unlock_at, reason='too_many_failed_attempts')
+            self.lock_account(username, unlock_at, reason="too_many_failed_attempts")
             logger.warning(f"Account locked due to {failed_count} failed attempts: {username}")
 
     def get_recent_failed_attempts(self, username: str) -> int:
@@ -122,11 +133,14 @@ class AccountLockoutManager:
 
         cutoff_time = datetime.utcnow() - self.attempt_window
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT COUNT(*) FROM login_attempts
             WHERE username = ? AND success = 0
             AND attempted_at >= ?
-        ''', (username, cutoff_time.isoformat()))
+        """,
+            (username, cutoff_time.isoformat()),
+        )
 
         count = cursor.fetchone()[0]
         conn.close()
@@ -144,10 +158,13 @@ class AccountLockoutManager:
         cursor = conn.cursor()
 
         # Check account_locks table
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT unlock_at FROM account_locks
             WHERE username = ?
-        ''', (username,))
+        """,
+            (username,),
+        )
 
         row = cursor.fetchone()
         conn.close()
@@ -164,23 +181,29 @@ class AccountLockoutManager:
 
         return True, unlock_at
 
-    def lock_account(self, username: str, unlock_at: datetime, reason: str = 'manual', locked_by: str = 'system'):
+    def lock_account(self, username: str, unlock_at: datetime, reason: str = "manual", locked_by: str = "system"):
         """Lock account."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO account_locks
             (username, unlock_at, reason, locked_by)
             VALUES (?, ?, ?, ?)
-        ''', (username, unlock_at.isoformat(), reason, locked_by))
+        """,
+            (username, unlock_at.isoformat(), reason, locked_by),
+        )
 
         # Update users table
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE users
             SET locked_until = ?
             WHERE username = ?
-        ''', (unlock_at.isoformat(), username))
+        """,
+            (unlock_at.isoformat(), username),
+        )
 
         conn.commit()
         conn.close()
@@ -192,13 +215,16 @@ class AccountLockoutManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('DELETE FROM account_locks WHERE username = ?', (username,))
+        cursor.execute("DELETE FROM account_locks WHERE username = ?", (username,))
 
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE users
             SET locked_until = NULL
             WHERE username = ?
-        ''', (username,))
+        """,
+            (username,),
+        )
 
         conn.commit()
         conn.close()
@@ -213,10 +239,13 @@ class AccountLockoutManager:
         # Delete old failed attempts
         cutoff_time = datetime.utcnow() - self.attempt_window
 
-        cursor.execute('''
+        cursor.execute(
+            """
             DELETE FROM login_attempts
             WHERE username = ? AND success = 0 AND attempted_at < ?
-        ''', (username, cutoff_time.isoformat()))
+        """,
+            (username, cutoff_time.isoformat()),
+        )
 
         conn.commit()
         conn.close()
@@ -227,11 +256,11 @@ class AccountLockoutManager:
         failed_attempts = self.get_recent_failed_attempts(username)
 
         return {
-            'is_locked': is_locked,
-            'unlock_at': unlock_at.isoformat() if unlock_at else None,
-            'failed_attempts': failed_attempts,
-            'max_attempts': self.max_attempts,
-            'remaining_attempts': max(0, self.max_attempts - failed_attempts)
+            "is_locked": is_locked,
+            "unlock_at": unlock_at.isoformat() if unlock_at else None,
+            "failed_attempts": failed_attempts,
+            "max_attempts": self.max_attempts,
+            "remaining_attempts": max(0, self.max_attempts - failed_attempts),
         }
 
     def cleanup_expired_locks(self) -> int:
@@ -239,19 +268,25 @@ class AccountLockoutManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             DELETE FROM account_locks
             WHERE unlock_at <= ?
-        ''', (datetime.utcnow().isoformat(),))
+        """,
+            (datetime.utcnow().isoformat(),),
+        )
 
         deleted = cursor.rowcount
 
         # Clean users table
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE users
             SET locked_until = NULL
             WHERE locked_until IS NOT NULL AND locked_until <= ?
-        ''', (datetime.utcnow().isoformat(),))
+        """,
+            (datetime.utcnow().isoformat(),),
+        )
 
         conn.commit()
         conn.close()
@@ -266,21 +301,19 @@ class AccountLockoutManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT username, locked_at, unlock_at, reason
             FROM account_locks
             WHERE unlock_at > ?
             ORDER BY locked_at DESC
-        ''', (datetime.utcnow().isoformat(),))
+        """,
+            (datetime.utcnow().isoformat(),),
+        )
 
         accounts = []
         for row in cursor.fetchall():
-            accounts.append({
-                'username': row[0],
-                'locked_at': row[1],
-                'unlock_at': row[2],
-                'reason': row[3]
-            })
+            accounts.append({"username": row[0], "locked_at": row[1], "unlock_at": row[2], "reason": row[3]})
 
         conn.close()
         return accounts
@@ -291,16 +324,12 @@ _lockout_manager: Optional[AccountLockoutManager] = None
 
 
 def get_lockout_manager(
-    db_path: str = 'data/db/users.db',
-    max_attempts: int = 5,
-    lockout_duration_minutes: int = 30
+    db_path: str = "data/db/users.db", max_attempts: int = 5, lockout_duration_minutes: int = 30
 ) -> AccountLockoutManager:
     """Get or create account lockout manager instance."""
     global _lockout_manager
     if _lockout_manager is None:
         _lockout_manager = AccountLockoutManager(
-            db_path=db_path,
-            max_attempts=max_attempts,
-            lockout_duration_minutes=lockout_duration_minutes
+            db_path=db_path, max_attempts=max_attempts, lockout_duration_minutes=lockout_duration_minutes
         )
     return _lockout_manager

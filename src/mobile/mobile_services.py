@@ -18,22 +18,23 @@ Dependencies:
 - None (pure Python implementation, optional integrations)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Set
-from enum import Enum
-from datetime import datetime, timedelta
-from uuid import uuid4
-import threading
+import hashlib
 import json
 import logging
-import hashlib
+import threading
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
 
 class NotificationPlatform(str, Enum):
     """Push notification platforms"""
+
     APNS = "apns"  # Apple Push Notification Service
     FCM = "fcm"  # Firebase Cloud Messaging
     HMS = "hms"  # Huawei Mobile Services
@@ -42,6 +43,7 @@ class NotificationPlatform(str, Enum):
 
 class ConflictResolution(str, Enum):
     """Conflict resolution strategies"""
+
     LAST_WRITE_WINS = "last_write_wins"
     FIRST_WRITE_WINS = "first_write_wins"
     MANUAL = "manual"
@@ -52,6 +54,7 @@ class ConflictResolution(str, Enum):
 
 class SyncStatus(str, Enum):
     """Sync status"""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -61,6 +64,7 @@ class SyncStatus(str, Enum):
 
 class NotificationPriority(str, Enum):
     """Notification priority levels"""
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -70,6 +74,7 @@ class NotificationPriority(str, Enum):
 @dataclass
 class DeviceInfo:
     """Mobile device information"""
+
     device_id: str
     user_id: str
     platform: NotificationPlatform
@@ -88,6 +93,7 @@ class DeviceInfo:
 @dataclass
 class PushNotification:
     """Push notification message"""
+
     notification_id: str = field(default_factory=lambda: str(uuid4()))
     title: str = ""
     body: str = ""
@@ -104,6 +110,7 @@ class PushNotification:
 @dataclass
 class SyncOperation:
     """Offline sync operation"""
+
     operation_id: str = field(default_factory=lambda: str(uuid4()))
     device_id: str = ""
     user_id: str = ""
@@ -121,6 +128,7 @@ class SyncOperation:
 @dataclass
 class SyncConflict:
     """Sync conflict between client and server"""
+
     conflict_id: str = field(default_factory=lambda: str(uuid4()))
     operation: SyncOperation = field(default_factory=lambda: SyncOperation())
     server_data: Dict[str, Any] = field(default_factory=dict)
@@ -208,10 +216,7 @@ class PushNotificationService:
         self._lock = threading.Lock()
 
     def send_notification(
-        self,
-        user_id: str,
-        notification: PushNotification,
-        platforms: Optional[List[NotificationPlatform]] = None
+        self, user_id: str, notification: PushNotification, platforms: Optional[List[NotificationPlatform]] = None
     ) -> Dict[str, bool]:
         """
         Send push notification to user's devices
@@ -251,11 +256,7 @@ class PushNotificationService:
 
         return results
 
-    def send_to_devices(
-        self,
-        device_ids: List[str],
-        notification: PushNotification
-    ) -> Dict[str, bool]:
+    def send_to_devices(self, device_ids: List[str], notification: PushNotification) -> Dict[str, bool]:
         """
         Send notification to specific devices
 
@@ -291,8 +292,7 @@ class PushNotificationService:
         """
         # Simplified implementation
         logger.info(
-            f"Sending notification to {device.platform.value} "
-            f"device {device.device_id}: {notification.title}"
+            f"Sending notification to {device.platform.value} " f"device {device.device_id}: {notification.title}"
         )
 
         # In production:
@@ -303,9 +303,7 @@ class PushNotificationService:
         return True
 
     def get_notification_history(
-        self,
-        device_id: Optional[str] = None,
-        limit: int = 100
+        self, device_id: Optional[str] = None, limit: int = 100
     ) -> List[tuple[str, PushNotification]]:
         """Get notification history"""
         with self._lock:
@@ -346,16 +344,13 @@ class SyncEngine:
             self._pending_operations.append(operation)
 
             logger.info(
-                f"Queued {operation.operation} operation for "
-                f"{operation.resource_type}:{operation.resource_id}"
+                f"Queued {operation.operation} operation for " f"{operation.resource_type}:{operation.resource_id}"
             )
 
             return operation.operation_id
 
     def process_sync(
-        self,
-        device_id: str,
-        resolution: ConflictResolution = ConflictResolution.LAST_WRITE_WINS
+        self, device_id: str, resolution: ConflictResolution = ConflictResolution.LAST_WRITE_WINS
     ) -> Dict[str, Any]:
         """
         Process pending sync operations for device
@@ -372,11 +367,7 @@ class SyncEngine:
             device_ops = [op for op in self._pending_operations if op.device_id == device_id]
 
             if not device_ops:
-                return {
-                    "status": "up_to_date",
-                    "processed": 0,
-                    "conflicts": 0
-                }
+                return {"status": "up_to_date", "processed": 0, "conflicts": 0}
 
             processed = 0
             conflicts = 0
@@ -402,22 +393,18 @@ class SyncEngine:
 
             # Remove processed operations
             self._pending_operations = [
-                op for op in self._pending_operations
-                if op.device_id != device_id or op.status == SyncStatus.PENDING
+                op for op in self._pending_operations if op.device_id != device_id or op.status == SyncStatus.PENDING
             ]
 
             return {
                 "status": "synced",
                 "processed": processed,
                 "conflicts": conflicts,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
     def get_delta(
-        self,
-        user_id: str,
-        since_timestamp: datetime,
-        resource_types: Optional[List[str]] = None
+        self, user_id: str, since_timestamp: datetime, resource_types: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
         """
         Get delta changes since timestamp
@@ -440,12 +427,14 @@ class SyncEngine:
                 for resource_id, data in resources.items():
                     updated_at = data.get("updated_at")
                     if updated_at and updated_at > since_timestamp:
-                        changes.append({
-                            "resource_type": resource_type,
-                            "resource_id": resource_id,
-                            "data": data,
-                            "updated_at": updated_at.isoformat()
-                        })
+                        changes.append(
+                            {
+                                "resource_type": resource_type,
+                                "resource_id": resource_id,
+                                "data": data,
+                                "updated_at": updated_at.isoformat(),
+                            }
+                        )
 
             return sorted(changes, key=lambda x: x["updated_at"])
 
@@ -460,20 +449,12 @@ class SyncEngine:
         # Check version conflict
         server_version = server_data.get("version", 1)
         if operation.version < server_version:
-            return SyncConflict(
-                operation=operation,
-                server_data=server_data,
-                server_version=server_version
-            )
+            return SyncConflict(operation=operation, server_data=server_data, server_version=server_version)
 
         # Check timestamp conflict
         server_updated = server_data.get("updated_at")
         if server_updated and server_updated > operation.client_timestamp:
-            return SyncConflict(
-                operation=operation,
-                server_data=server_data,
-                server_version=server_version
-            )
+            return SyncConflict(operation=operation, server_data=server_data, server_version=server_version)
 
         return None
 
@@ -522,10 +503,7 @@ class SyncEngine:
             if operation.resource_id in self._server_state[operation.resource_type]:
                 del self._server_state[operation.resource_type][operation.resource_id]
 
-        logger.info(
-            f"Applied {operation.operation} on "
-            f"{operation.resource_type}:{operation.resource_id}"
-        )
+        logger.info(f"Applied {operation.operation} on " f"{operation.resource_type}:{operation.resource_id}")
 
     def _calculate_checksum(self, data: Dict[str, Any]) -> str:
         """Calculate checksum for data integrity"""
@@ -555,11 +533,7 @@ class MobileAuthService:
         self._refresh_tokens: Dict[str, str] = {}  # refresh_token -> device_id
         self._lock = threading.Lock()
 
-    def authenticate(
-        self,
-        device_id: str,
-        credentials: Dict[str, str]
-    ) -> Dict[str, Any]:
+    def authenticate(self, device_id: str, credentials: Dict[str, str]) -> Dict[str, Any]:
         """
         Authenticate device
 
@@ -579,7 +553,7 @@ class MobileAuthService:
                 "access_token": access_token,
                 "refresh_token": refresh_token,
                 "expires_at": datetime.now() + timedelta(hours=1),
-                "created_at": datetime.now()
+                "created_at": datetime.now(),
             }
             self._refresh_tokens[refresh_token] = device_id
 
@@ -587,7 +561,7 @@ class MobileAuthService:
             "access_token": access_token,
             "refresh_token": refresh_token,
             "expires_in": 3600,
-            "token_type": "Bearer"
+            "token_type": "Bearer",
         }
 
     def refresh_access_token(self, refresh_token: str) -> Dict[str, Any]:
@@ -602,11 +576,7 @@ class MobileAuthService:
             self._sessions[device_id]["access_token"] = access_token
             self._sessions[device_id]["expires_at"] = datetime.now() + timedelta(hours=1)
 
-            return {
-                "access_token": access_token,
-                "expires_in": 3600,
-                "token_type": "Bearer"
-            }
+            return {"access_token": access_token, "expires_in": 3600, "token_type": "Bearer"}
 
     def _generate_token(self) -> str:
         """Generate random token"""
@@ -666,11 +636,7 @@ class MobileAPIGateway:
         self._compression_enabled = True
         self._field_filtering = True
 
-    def optimize_response(
-        self,
-        data: Dict[str, Any],
-        fields: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+    def optimize_response(self, data: Dict[str, Any], fields: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Optimize API response for mobile
 
@@ -692,11 +658,7 @@ class MobileAPIGateway:
 
         return optimized
 
-    def create_delta_response(
-        self,
-        full_data: Dict[str, Any],
-        previous_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def create_delta_response(self, full_data: Dict[str, Any], previous_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create delta response with only changed fields
 
@@ -766,7 +728,7 @@ if __name__ == "__main__":
         push_token="apns-token-xyz",
         app_version="1.0.0",
         os_version="iOS 17.0",
-        device_model="iPhone 15 Pro"
+        device_model="iPhone 15 Pro",
     )
     push_service.device_manager.register_device(device)
 
@@ -775,7 +737,7 @@ if __name__ == "__main__":
         title="New Document",
         body="A new document has been shared with you",
         data={"document_id": "doc-789"},
-        priority=NotificationPriority.HIGH
+        priority=NotificationPriority.HIGH,
     )
     results = push_service.send_notification("user-456", notification)
     print(f"Push notification results: {results}")
@@ -787,7 +749,7 @@ if __name__ == "__main__":
         resource_type="document",
         resource_id="doc-789",
         operation="update",
-        data={"title": "Updated Document", "content": "New content"}
+        data={"title": "Updated Document", "content": "New content"},
     )
     op_id = sync_engine.queue_operation(operation)
     print(f"Queued operation: {op_id}")

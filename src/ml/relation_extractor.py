@@ -15,38 +15,40 @@ Supported relations:
 - ACQUIRED: Organization acquired Organization
 """
 
-from typing import List, Dict, Tuple, Optional, Set
 from dataclasses import dataclass
 from enum import Enum
+from typing import Dict, List, Optional, Set, Tuple
 
-from .ner import NEREngine, Entity, EntityType
+from .ner import Entity, EntityType, NEREngine
 
 
 class RelationType(str, Enum):
     """Types of relations between entities"""
-    WORKS_AT = "works_at"           # Person works at Organization
-    LOCATED_IN = "located_in"       # Entity located in Location
-    CEO_OF = "ceo_of"               # Person is CEO of Organization
-    MANAGER_OF = "manager_of"       # Person manages Organization
-    PART_OF = "part_of"             # Organization part of Organization
-    FOUNDED = "founded"             # Person founded Organization
-    ACQUIRED = "acquired"           # Organization acquired Organization
-    OWNS = "owns"                   # Person/Org owns Organization
-    MEMBER_OF = "member_of"         # Person member of Organization
-    RESIDES_IN = "resides_in"       # Person resides in Location
+
+    WORKS_AT = "works_at"  # Person works at Organization
+    LOCATED_IN = "located_in"  # Entity located in Location
+    CEO_OF = "ceo_of"  # Person is CEO of Organization
+    MANAGER_OF = "manager_of"  # Person manages Organization
+    PART_OF = "part_of"  # Organization part of Organization
+    FOUNDED = "founded"  # Person founded Organization
+    ACQUIRED = "acquired"  # Organization acquired Organization
+    OWNS = "owns"  # Person/Org owns Organization
+    MEMBER_OF = "member_of"  # Person member of Organization
+    RESIDES_IN = "resides_in"  # Person resides in Location
     HEADQUARTERED_IN = "headquartered_in"  # Organization HQ in Location
 
 
 @dataclass
 class Relation:
     """Semantic relation between two entities"""
-    subject: Entity          # Subject entity (e.g., "Max Mustermann")
-    relation: RelationType   # Relation type (e.g., WORKS_AT)
-    object: Entity          # Object entity (e.g., "Siemens AG")
-    confidence: float       # Confidence score (0.0-1.0)
-    context: str           # Original sentence/context
-    start: int             # Start position in text
-    end: int               # End position in text
+
+    subject: Entity  # Subject entity (e.g., "Max Mustermann")
+    relation: RelationType  # Relation type (e.g., WORKS_AT)
+    object: Entity  # Object entity (e.g., "Siemens AG")
+    confidence: float  # Confidence score (0.0-1.0)
+    context: str  # Original sentence/context
+    start: int  # Start position in text
+    end: int  # End position in text
 
 
 class RelationExtractor:
@@ -67,6 +69,7 @@ class RelationExtractor:
         if use_spacy:
             try:
                 import spacy
+
                 self.nlp = spacy.load(spacy_model)
                 self.available = True
             except (ImportError, OSError):
@@ -75,26 +78,26 @@ class RelationExtractor:
         # Define relation patterns (verb/preposition patterns)
         self.relation_patterns = {
             RelationType.WORKS_AT: {
-                'verbs': ['arbeiten', 'work', 'arbeitet', 'tätig'],
-                'preps': ['bei', 'at', 'für', 'for'],
-                'nouns': ['mitarbeiter', 'employee', 'angestellter']
+                "verbs": ["arbeiten", "work", "arbeitet", "tätig"],
+                "preps": ["bei", "at", "für", "for"],
+                "nouns": ["mitarbeiter", "employee", "angestellter"],
             },
             RelationType.CEO_OF: {
-                'nouns': ['geschäftsführer', 'ceo', 'vorstand', 'direktor', 'director', 'chief'],
-                'preps': ['von', 'of', 'der', 'des']
+                "nouns": ["geschäftsführer", "ceo", "vorstand", "direktor", "director", "chief"],
+                "preps": ["von", "of", "der", "des"],
             },
             RelationType.LOCATED_IN: {
-                'verbs': ['befinden', 'locate', 'liegen', 'sitzen'],
-                'preps': ['in', 'at', 'zu'],
-                'nouns': ['sitz', 'standort', 'location', 'headquarters']
+                "verbs": ["befinden", "locate", "liegen", "sitzen"],
+                "preps": ["in", "at", "zu"],
+                "nouns": ["sitz", "standort", "location", "headquarters"],
             },
             RelationType.FOUNDED: {
-                'verbs': ['gründen', 'found', 'establish', 'gründete'],
-                'nouns': ['gründer', 'founder']
+                "verbs": ["gründen", "found", "establish", "gründete"],
+                "nouns": ["gründer", "founder"],
             },
             RelationType.PART_OF: {
-                'preps': ['von', 'of'],
-                'nouns': ['teil', 'part', 'tochter', 'subsidiary', 'sparte', 'division']
+                "preps": ["von", "of"],
+                "nouns": ["teil", "part", "tochter", "subsidiary", "sparte", "division"],
             },
         }
 
@@ -166,15 +169,17 @@ class RelationExtractor:
                             obj_entity = self._find_matching_entity(obj.text, entities)
 
                             if subj_entity and obj_entity:
-                                relations.append(Relation(
-                                    subject=subj_entity,
-                                    relation=relation_type,
-                                    object=obj_entity,
-                                    confidence=0.8,
-                                    context=token.sent.text,
-                                    start=token.sent.start_char,
-                                    end=token.sent.end_char
-                                ))
+                                relations.append(
+                                    Relation(
+                                        subject=subj_entity,
+                                        relation=relation_type,
+                                        object=obj_entity,
+                                        confidence=0.8,
+                                        context=token.sent.text,
+                                        start=token.sent.start_char,
+                                        end=token.sent.end_char,
+                                    )
+                                )
 
         except Exception:
             # If dependency parsing fails, return empty list
@@ -220,11 +225,11 @@ class RelationExtractor:
 
         # Get text between entities
         if entity1.start < entity2.start:
-            between_text = text[entity1.end:entity2.start].lower()
+            between_text = text[entity1.end : entity2.start].lower()
             subject = entity1
             obj = entity2
         else:
-            between_text = text[entity2.end:entity1.start].lower()
+            between_text = text[entity2.end : entity1.start].lower()
             subject = entity2
             obj = entity1
 
@@ -234,21 +239,23 @@ class RelationExtractor:
 
         # WORKS_AT pattern (Person -> Organization)
         if subject.type == EntityType.PERSON and obj.type == EntityType.ORGANIZATION:
-            works_at_keywords = ['arbeitet bei', 'works at', 'tätig bei', 'employed by', 'mitarbeiter']
+            works_at_keywords = ["arbeitet bei", "works at", "tätig bei", "employed by", "mitarbeiter"]
             if any(kw in between_text for kw in works_at_keywords):
                 relation_type = RelationType.WORKS_AT
                 confidence = 0.9
 
         # CEO_OF pattern
         if subject.type == EntityType.PERSON and obj.type == EntityType.ORGANIZATION:
-            ceo_keywords = ['geschäftsführer', 'ceo', 'vorstand', 'director', 'leiter']
-            if any(kw in between_text or kw in text_lower[max(0, subject.start-20):subject.end] for kw in ceo_keywords):
+            ceo_keywords = ["geschäftsführer", "ceo", "vorstand", "director", "leiter"]
+            if any(
+                kw in between_text or kw in text_lower[max(0, subject.start - 20) : subject.end] for kw in ceo_keywords
+            ):
                 relation_type = RelationType.CEO_OF
                 confidence = 0.85
 
         # LOCATED_IN pattern (Organization/Person -> Location)
         if obj.type == EntityType.LOCATION:
-            location_keywords = ['in', 'aus', 'from', 'based in', 'sitz', 'standort']
+            location_keywords = ["in", "aus", "from", "based in", "sitz", "standort"]
             if any(kw in between_text for kw in location_keywords):
                 if subject.type == EntityType.ORGANIZATION:
                     relation_type = RelationType.HEADQUARTERED_IN
@@ -259,14 +266,14 @@ class RelationExtractor:
 
         # FOUNDED pattern
         if subject.type == EntityType.PERSON and obj.type == EntityType.ORGANIZATION:
-            founded_keywords = ['gründete', 'founded', 'gründer', 'founder']
+            founded_keywords = ["gründete", "founded", "gründer", "founder"]
             if any(kw in between_text for kw in founded_keywords):
                 relation_type = RelationType.FOUNDED
                 confidence = 0.85
 
         if relation_type:
             # Find sentence containing both entities
-            sentences = text.split('.')
+            sentences = text.split(".")
             context = text
             start = 0
             end = len(text)
@@ -285,7 +292,7 @@ class RelationExtractor:
                 confidence=confidence,
                 context=context,
                 start=start,
-                end=end
+                end=end,
             )
 
         return None
@@ -296,7 +303,7 @@ class RelationExtractor:
 
         # Check against relation patterns
         for rel_type, patterns in self.relation_patterns.items():
-            if 'verbs' in patterns and verb_lower in [v.lower() for v in patterns['verbs']]:
+            if "verbs" in patterns and verb_lower in [v.lower() for v in patterns["verbs"]]:
                 # Validate entity types
                 if self._valid_entity_types_for_relation(rel_type, subject_ent.label_, object_ent.label_):
                     return rel_type
@@ -306,10 +313,10 @@ class RelationExtractor:
     def _valid_entity_types_for_relation(self, relation: RelationType, subj_label: str, obj_label: str) -> bool:
         """Check if entity types are valid for given relation"""
         valid_combinations = {
-            RelationType.WORKS_AT: [('PERSON', 'ORG'), ('PER', 'ORG')],
-            RelationType.CEO_OF: [('PERSON', 'ORG'), ('PER', 'ORG')],
-            RelationType.LOCATED_IN: [('ORG', 'LOC'), ('ORG', 'GPE'), ('PERSON', 'LOC')],
-            RelationType.FOUNDED: [('PERSON', 'ORG'), ('PER', 'ORG')],
+            RelationType.WORKS_AT: [("PERSON", "ORG"), ("PER", "ORG")],
+            RelationType.CEO_OF: [("PERSON", "ORG"), ("PER", "ORG")],
+            RelationType.LOCATED_IN: [("ORG", "LOC"), ("ORG", "GPE"), ("PERSON", "LOC")],
+            RelationType.FOUNDED: [("PERSON", "ORG"), ("PER", "ORG")],
         }
 
         if relation in valid_combinations:

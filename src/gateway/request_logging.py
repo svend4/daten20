@@ -5,17 +5,18 @@ Provides comprehensive logging of API requests and responses with
 payload sanitization, PII redaction, and log aggregation support.
 """
 
-from typing import Optional, Dict, Any, List, Set
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime
+import hashlib
 import json
 import re
-import hashlib
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 
 class LogLevel(str, Enum):
     """Log levels"""
+
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -25,6 +26,7 @@ class LogLevel(str, Enum):
 
 class SanitizationLevel(str, Enum):
     """Sanitization levels"""
+
     NONE = "none"  # No sanitization
     BASIC = "basic"  # Redact passwords, tokens
     STRICT = "strict"  # Redact all PII
@@ -34,6 +36,7 @@ class SanitizationLevel(str, Enum):
 @dataclass
 class RequestLog:
     """API request log entry"""
+
     request_id: str
     timestamp: datetime
     method: str
@@ -51,6 +54,7 @@ class RequestLog:
 @dataclass
 class ResponseLog:
     """API response log entry"""
+
     request_id: str
     timestamp: datetime
     status_code: int
@@ -63,6 +67,7 @@ class ResponseLog:
 @dataclass
 class APILogEntry:
     """Combined API log entry"""
+
     request: RequestLog
     response: ResponseLog
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -92,7 +97,7 @@ class APILogEntry:
                 "response_time_ms": self.response.response_time_ms,
                 "error": self.response.error,
             },
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
@@ -103,34 +108,44 @@ class DataSanitizer:
     SENSITIVE_PATTERNS = {
         "password": re.compile(r'("password"\s*:\s*")[^"]*(")', re.IGNORECASE),
         "token": re.compile(r'("(?:token|api[_-]?key|secret)"\s*:\s*")[^"]*(")', re.IGNORECASE),
-        "auth": re.compile(r'(Authorization:\s*)\S+', re.IGNORECASE),
-        "bearer": re.compile(r'(Bearer\s+)\S+', re.IGNORECASE),
-        "basic": re.compile(r'(Basic\s+)\S+', re.IGNORECASE),
+        "auth": re.compile(r"(Authorization:\s*)\S+", re.IGNORECASE),
+        "bearer": re.compile(r"(Bearer\s+)\S+", re.IGNORECASE),
+        "basic": re.compile(r"(Basic\s+)\S+", re.IGNORECASE),
     }
 
     PII_PATTERNS = {
-        "email": re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'),
-        "phone": re.compile(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b'),
-        "ssn": re.compile(r'\b\d{3}-\d{2}-\d{4}\b'),
-        "credit_card": re.compile(r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b'),
+        "email": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),
+        "phone": re.compile(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b"),
+        "ssn": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+        "credit_card": re.compile(r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b"),
     }
 
     # Fields to always redact
     SENSITIVE_FIELDS = {
-        "password", "token", "api_key", "apikey", "secret",
-        "authorization", "auth", "credentials", "private_key"
+        "password",
+        "token",
+        "api_key",
+        "apikey",
+        "secret",
+        "authorization",
+        "auth",
+        "credentials",
+        "private_key",
     }
 
     PII_FIELDS = {
-        "email", "phone", "ssn", "social_security",
-        "credit_card", "card_number", "address", "dob", "date_of_birth"
+        "email",
+        "phone",
+        "ssn",
+        "social_security",
+        "credit_card",
+        "card_number",
+        "address",
+        "dob",
+        "date_of_birth",
     }
 
-    def sanitize(
-        self,
-        data: Any,
-        level: SanitizationLevel = SanitizationLevel.BASIC
-    ) -> Any:
+    def sanitize(self, data: Any, level: SanitizationLevel = SanitizationLevel.BASIC) -> Any:
         """
         Sanitize data based on level
 
@@ -153,11 +168,7 @@ class DataSanitizer:
 
         return data
 
-    def _sanitize_dict(
-        self,
-        data: Dict[str, Any],
-        level: SanitizationLevel
-    ) -> Dict[str, Any]:
+    def _sanitize_dict(self, data: Dict[str, Any], level: SanitizationLevel) -> Dict[str, Any]:
         """Sanitize dictionary"""
         sanitized = {}
 
@@ -180,18 +191,14 @@ class DataSanitizer:
 
         return sanitized
 
-    def _sanitize_string(
-        self,
-        data: str,
-        level: SanitizationLevel
-    ) -> str:
+    def _sanitize_string(self, data: str, level: SanitizationLevel) -> str:
         """Sanitize string"""
         result = data
 
         # Always redact sensitive patterns at BASIC level and above
         if level in [SanitizationLevel.BASIC, SanitizationLevel.STRICT, SanitizationLevel.FULL]:
             for pattern in self.SENSITIVE_PATTERNS.values():
-                result = pattern.sub(r'\1[REDACTED]\2', result)
+                result = pattern.sub(r"\1[REDACTED]\2", result)
 
         # Redact PII at STRICT level and above
         if level in [SanitizationLevel.STRICT, SanitizationLevel.FULL]:
@@ -216,7 +223,7 @@ class RequestLogger:
         sanitization_level: SanitizationLevel = SanitizationLevel.BASIC,
         max_body_size: int = 10000,  # Max bytes to log
         log_headers: bool = True,
-        log_body: bool = True
+        log_body: bool = True,
     ):
         self.sanitizer = DataSanitizer()
         self.sanitization_level = sanitization_level
@@ -233,7 +240,7 @@ class RequestLogger:
         query_params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         body: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> RequestLog:
         """
         Log API request
@@ -262,7 +269,7 @@ class RequestLogger:
         if body and self.log_body:
             # Truncate if too large
             if len(body) > self.max_body_size:
-                body = body[:self.max_body_size] + "... [TRUNCATED]"
+                body = body[: self.max_body_size] + "... [TRUNCATED]"
             body = self.sanitizer.sanitize(body, self.sanitization_level)
         else:
             body = None
@@ -279,7 +286,7 @@ class RequestLogger:
             user_agent=kwargs.get("user_agent"),
             user_id=kwargs.get("user_id"),
             api_key_id=kwargs.get("api_key_id"),
-            session_id=kwargs.get("session_id")
+            session_id=kwargs.get("session_id"),
         )
 
         return request_log
@@ -291,7 +298,7 @@ class RequestLogger:
         headers: Optional[Dict[str, str]] = None,
         body: Optional[str] = None,
         response_time_ms: float = 0.0,
-        error: Optional[str] = None
+        error: Optional[str] = None,
     ) -> ResponseLog:
         """
         Log API response
@@ -316,7 +323,7 @@ class RequestLogger:
         if body and self.log_body:
             # Truncate if too large
             if len(body) > self.max_body_size:
-                body = body[:self.max_body_size] + "... [TRUNCATED]"
+                body = body[: self.max_body_size] + "... [TRUNCATED]"
             body = self.sanitizer.sanitize(body, self.sanitization_level)
         else:
             body = None
@@ -328,16 +335,13 @@ class RequestLogger:
             headers=headers,
             body=body,
             response_time_ms=response_time_ms,
-            error=error
+            error=error,
         )
 
         return response_log
 
     def log_complete_request(
-        self,
-        request_log: RequestLog,
-        response_log: ResponseLog,
-        metadata: Optional[Dict[str, Any]] = None
+        self, request_log: RequestLog, response_log: ResponseLog, metadata: Optional[Dict[str, Any]] = None
     ):
         """
         Log complete request/response pair
@@ -347,11 +351,7 @@ class RequestLogger:
             response_log: Response log
             metadata: Additional metadata
         """
-        entry = APILogEntry(
-            request=request_log,
-            response=response_log,
-            metadata=metadata or {}
-        )
+        entry = APILogEntry(request=request_log, response=response_log, metadata=metadata or {})
 
         self.logs[request_log.request_id] = entry
 
@@ -377,7 +377,7 @@ class RequestLogger:
         user_id: Optional[str] = None,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[APILogEntry]:
         """
         Search logs
@@ -438,10 +438,7 @@ def get_request_logger() -> RequestLogger:
 
 
 def configure_request_logger(
-    sanitization_level: str = "basic",
-    max_body_size: int = 10000,
-    log_headers: bool = True,
-    log_body: bool = True
+    sanitization_level: str = "basic", max_body_size: int = 10000, log_headers: bool = True, log_body: bool = True
 ):
     """Configure global request logger"""
     global _request_logger
@@ -449,5 +446,5 @@ def configure_request_logger(
         sanitization_level=SanitizationLevel(sanitization_level),
         max_body_size=max_body_size,
         log_headers=log_headers,
-        log_body=log_body
+        log_body=log_body,
     )

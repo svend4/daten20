@@ -2,8 +2,8 @@
 
 import os
 import re
-from typing import Dict, Any
 from pathlib import Path
+from typing import Any, Dict
 
 
 class DocumentExporter:
@@ -60,9 +60,9 @@ class DocumentExporter:
             content: Document content
             output_path: Output file path
         """
-        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 
     def export_to_markdown(self, content: str, output_path: str, metadata: Dict[str, str] = None) -> None:
@@ -74,9 +74,9 @@ class DocumentExporter:
             output_path: Output file path
             metadata: Optional metadata for frontmatter
         """
-        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             # Add frontmatter if metadata provided
             if metadata:
                 f.write("---\n")
@@ -95,7 +95,7 @@ class DocumentExporter:
             output_path: Output file path
             title: Document title
         """
-        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
         # Convert to HTML (simple text to HTML with preserved formatting)
         html_content = self._text_to_html(content)
@@ -164,7 +164,7 @@ class DocumentExporter:
 </body>
 </html>"""
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_template)
 
     def export_to_pdf(self, content: str, output_path: str, title: str = "Документ") -> bool:
@@ -180,14 +180,17 @@ class DocumentExporter:
             True if successful, False otherwise
         """
         try:
-            from weasyprint import HTML
             from io import BytesIO
 
-            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+            from weasyprint import HTML
+
+            os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
             # Create HTML first
             html_content = self._text_to_html(content)
-            html_full = f"<html><head><meta charset='UTF-8'><title>{title}</title></head><body>{html_content}</body></html>"
+            html_full = (
+                f"<html><head><meta charset='UTF-8'><title>{title}</title></head><body>{html_content}</body></html>"
+            )
 
             # Convert to PDF
             HTML(string=html_full).write_pdf(output_path)
@@ -197,7 +200,7 @@ class DocumentExporter:
             # WeasyPrint not installed, try alternative method
             try:
                 # Create HTML file first
-                html_path = output_path.replace('.pdf', '.html')
+                html_path = output_path.replace(".pdf", ".html")
                 self.export_to_html(content, html_path, title)
                 return False  # PDF not created, but HTML created
             except Exception:
@@ -217,10 +220,10 @@ class DocumentExporter:
         """
         try:
             from docx import Document
-            from docx.shared import Pt, RGBColor
             from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from docx.shared import Pt, RGBColor
 
-            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+            os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
             doc = Document()
 
@@ -229,7 +232,7 @@ class DocumentExporter:
             title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
             # Process content
-            lines = content.split('\n')
+            lines = content.split("\n")
             for line in lines:
                 line = line.strip()
 
@@ -237,18 +240,18 @@ class DocumentExporter:
                     continue
 
                 # Detect headers
-                if line.startswith('БЛОК') or line.startswith('0.'):
+                if line.startswith("БЛОК") or line.startswith("0."):
                     doc.add_heading(line, level=1)
-                elif re.match(r'^\d+\.', line):
+                elif re.match(r"^\d+\.", line):
                     doc.add_heading(line, level=2)
                 else:
                     # Regular paragraph
                     para = doc.add_paragraph()
 
                     # Highlight variables
-                    parts = re.split(r'(\{[^}]+\})', line)
+                    parts = re.split(r"(\{[^}]+\})", line)
                     for part in parts:
-                        if part.startswith('{') and part.endswith('}'):
+                        if part.startswith("{") and part.endswith("}"):
                             run = para.add_run(part)
                             run.font.color.rgb = RGBColor(255, 140, 0)
                             run.bold = True
@@ -271,7 +274,7 @@ class DocumentExporter:
         Returns:
             HTML string
         """
-        lines = text.split('\n')
+        lines = text.split("\n")
         html_parts = []
         in_list = False
 
@@ -280,56 +283,57 @@ class DocumentExporter:
 
             if not line_stripped:
                 if in_list:
-                    html_parts.append('</ul>')
+                    html_parts.append("</ul>")
                     in_list = False
-                html_parts.append('<br>')
+                html_parts.append("<br>")
                 continue
 
             # Headers
-            if line_stripped.startswith('БЛОК') or line_stripped.startswith('МЕГА-ШАБЛОН'):
+            if line_stripped.startswith("БЛОК") or line_stripped.startswith("МЕГА-ШАБЛОН"):
                 if in_list:
-                    html_parts.append('</ul>')
+                    html_parts.append("</ul>")
                     in_list = False
-                html_parts.append(f'<h1>{self._escape_html(line_stripped)}</h1>')
-            elif re.match(r'^\d+\.', line_stripped):
+                html_parts.append(f"<h1>{self._escape_html(line_stripped)}</h1>")
+            elif re.match(r"^\d+\.", line_stripped):
                 if in_list:
-                    html_parts.append('</ul>')
+                    html_parts.append("</ul>")
                     in_list = False
-                html_parts.append(f'<h2>{self._escape_html(line_stripped)}</h2>')
-            elif line_stripped.startswith('---'):
+                html_parts.append(f"<h2>{self._escape_html(line_stripped)}</h2>")
+            elif line_stripped.startswith("---"):
                 if in_list:
-                    html_parts.append('</ul>')
+                    html_parts.append("</ul>")
                     in_list = False
-                html_parts.append('<hr>')
+                html_parts.append("<hr>")
             # Lists
-            elif line_stripped.startswith('•') or line_stripped.startswith('-'):
+            elif line_stripped.startswith("•") or line_stripped.startswith("-"):
                 if not in_list:
-                    html_parts.append('<ul>')
+                    html_parts.append("<ul>")
                     in_list = True
-                html_parts.append(f'<li>{self._highlight_variables(line_stripped[1:].strip())}</li>')
+                html_parts.append(f"<li>{self._highlight_variables(line_stripped[1:].strip())}</li>")
             else:
                 if in_list:
-                    html_parts.append('</ul>')
+                    html_parts.append("</ul>")
                     in_list = False
-                html_parts.append(f'<p>{self._highlight_variables(line_stripped)}</p>')
+                html_parts.append(f"<p>{self._highlight_variables(line_stripped)}</p>")
 
         if in_list:
-            html_parts.append('</ul>')
+            html_parts.append("</ul>")
 
-        return '\n'.join(html_parts)
+        return "\n".join(html_parts)
 
     def _escape_html(self, text: str) -> str:
         """Escape HTML special characters"""
-        return (text
-                .replace('&', '&amp;')
-                .replace('<', '&lt;')
-                .replace('>', '&gt;')
-                .replace('"', '&quot;')
-                .replace("'", '&#39;'))
+        return (
+            text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&#39;")
+        )
 
     def _highlight_variables(self, text: str) -> str:
         """Highlight template variables in HTML"""
         text = self._escape_html(text)
         # Highlight {Variable} patterns
-        text = re.sub(r'\{([^}]+)\}', r'<span class="variable">{\1}</span>', text)
+        text = re.sub(r"\{([^}]+)\}", r'<span class="variable">{\1}</span>', text)
         return text

@@ -4,15 +4,16 @@ Advanced Search System
 Provides full-text search with filters, sorting, and faceted search capabilities.
 """
 
-from typing import List, Dict, Optional, Any, Tuple
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-import re
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class SearchField(str, Enum):
     """Searchable fields"""
+
     ALL = "all"
     SERVICE_NAME = "service_name"
     REGION = "region"
@@ -23,6 +24,7 @@ class SearchField(str, Enum):
 
 class SortField(str, Enum):
     """Sort fields"""
+
     RELEVANCE = "relevance"
     NAME = "name"
     DATE_CREATED = "date_created"
@@ -33,6 +35,7 @@ class SortField(str, Enum):
 
 class SortOrder(str, Enum):
     """Sort order"""
+
     ASC = "asc"
     DESC = "desc"
 
@@ -40,6 +43,7 @@ class SortOrder(str, Enum):
 @dataclass
 class SearchFilter:
     """Search filter definition"""
+
     field: str
     operator: str  # eq, ne, gt, lt, gte, lte, in, contains, starts_with, ends_with
     value: Any
@@ -48,6 +52,7 @@ class SearchFilter:
 @dataclass
 class DateRangeFilter:
     """Date range filter"""
+
     start: Optional[datetime] = None
     end: Optional[datetime] = None
 
@@ -55,6 +60,7 @@ class DateRangeFilter:
 @dataclass
 class RangeFilter:
     """Numeric range filter"""
+
     min: Optional[float] = None
     max: Optional[float] = None
 
@@ -62,6 +68,7 @@ class RangeFilter:
 @dataclass
 class SearchQuery:
     """Search query definition"""
+
     query: str = ""
     fields: List[SearchField] = None
     filters: List[SearchFilter] = None
@@ -87,6 +94,7 @@ class SearchQuery:
 @dataclass
 class SearchResult:
     """Search result item"""
+
     id: int
     service_name: str
     region: str
@@ -103,6 +111,7 @@ class SearchResult:
 @dataclass
 class SearchResponse:
     """Search response with results and metadata"""
+
     results: List[SearchResult]
     total: int
     query: str
@@ -120,6 +129,7 @@ class AdvancedSearchEngine:
     def search(self, search_query: SearchQuery) -> SearchResponse:
         """Execute search query"""
         import time
+
         start_time = time.time()
 
         # Build SQL query
@@ -135,7 +145,7 @@ class AdvancedSearchEngine:
         sorted_results = self._sort_results(scored_results, search_query)
 
         # Paginate
-        paginated = sorted_results[search_query.offset:search_query.offset + search_query.limit]
+        paginated = sorted_results[search_query.offset : search_query.offset + search_query.limit]
 
         # Generate highlights
         highlighted = self._generate_highlights(paginated, search_query)
@@ -154,7 +164,7 @@ class AdvancedSearchEngine:
             query=search_query.query,
             facets=facets,
             suggestions=suggestions,
-            execution_time_ms=execution_time
+            execution_time_ms=execution_time,
         )
 
     def _build_query(self, search_query: SearchQuery) -> Tuple[str, List]:
@@ -186,7 +196,7 @@ class AdvancedSearchEngine:
 
         # Region filter
         if search_query.region_filter:
-            placeholders = ','.join(['?' for _ in search_query.region_filter])
+            placeholders = ",".join(["?" for _ in search_query.region_filter])
             conditions.append(f"region IN ({placeholders})")
             params.extend(search_query.region_filter)
 
@@ -240,7 +250,7 @@ class AdvancedSearchEngine:
         if not query.query:
             # No search query, all results have same relevance
             for result in results:
-                result['relevance_score'] = 1.0
+                result["relevance_score"] = 1.0
             return results
 
         query_terms = query.query.lower().split()
@@ -249,8 +259,8 @@ class AdvancedSearchEngine:
             score = 0.0
 
             # Score based on field matches
-            service_name = result.get('service_name', '').lower()
-            region = result.get('region', '').lower()
+            service_name = result.get("service_name", "").lower()
+            region = result.get("region", "").lower()
 
             for term in query_terms:
                 # Exact match in service name (highest weight)
@@ -268,29 +278,25 @@ class AdvancedSearchEngine:
                     score += 2.0
 
             # Normalize score
-            result['relevance_score'] = min(score / 10.0, 10.0)
+            result["relevance_score"] = min(score / 10.0, 10.0)
 
         return results
 
     def _sort_results(self, results: List[Dict], query: SearchQuery) -> List[Dict]:
         """Sort results based on sort field and order"""
         sort_map = {
-            SortField.RELEVANCE: 'relevance_score',
-            SortField.NAME: 'service_name',
-            SortField.DATE_CREATED: 'created_at',
-            SortField.DATE_MODIFIED: 'updated_at',
-            SortField.RATE: 'brutto_rate',
-            SortField.HOURS: 'hours_per_month'
+            SortField.RELEVANCE: "relevance_score",
+            SortField.NAME: "service_name",
+            SortField.DATE_CREATED: "created_at",
+            SortField.DATE_MODIFIED: "updated_at",
+            SortField.RATE: "brutto_rate",
+            SortField.HOURS: "hours_per_month",
         }
 
-        sort_key = sort_map.get(query.sort_by, 'relevance_score')
-        reverse = (query.sort_order == SortOrder.DESC)
+        sort_key = sort_map.get(query.sort_by, "relevance_score")
+        reverse = query.sort_order == SortOrder.DESC
 
-        return sorted(
-            results,
-            key=lambda x: x.get(sort_key, 0) or 0,
-            reverse=reverse
-        )
+        return sorted(results, key=lambda x: x.get(sort_key, 0) or 0, reverse=reverse)
 
     def _generate_highlights(self, results: List[Dict], query: SearchQuery) -> List[SearchResult]:
         """Generate highlighted snippets for search results"""
@@ -301,29 +307,29 @@ class AdvancedSearchEngine:
 
             if query.query:
                 # Highlight matches in service name
-                service_name = result.get('service_name', '')
+                service_name = result.get("service_name", "")
                 highlighted_name = self._highlight_text(service_name, query.query)
                 if highlighted_name != service_name:
-                    highlights['service_name'] = [highlighted_name]
+                    highlights["service_name"] = [highlighted_name]
 
                 # Highlight matches in region
-                region = result.get('region', '')
+                region = result.get("region", "")
                 highlighted_region = self._highlight_text(region, query.query)
                 if highlighted_region != region:
-                    highlights['region'] = [highlighted_region]
+                    highlights["region"] = [highlighted_region]
 
             search_result = SearchResult(
-                id=result['id'],
-                service_name=result.get('service_name', ''),
-                region=result.get('region', ''),
+                id=result["id"],
+                service_name=result.get("service_name", ""),
+                region=result.get("region", ""),
                 category=None,
-                brutto_rate=result.get('brutto_rate', 0.0),
-                hours_per_month=result.get('hours_per_month', 0),
-                date_created=result.get('created_at'),
-                date_modified=result.get('updated_at'),
+                brutto_rate=result.get("brutto_rate", 0.0),
+                hours_per_month=result.get("hours_per_month", 0),
+                date_created=result.get("created_at"),
+                date_modified=result.get("updated_at"),
                 tags=[],
-                relevance_score=result.get('relevance_score', 0.0),
-                highlights=highlights
+                relevance_score=result.get("relevance_score", 0.0),
+                highlights=highlights,
             )
 
             highlighted_results.append(search_result)
@@ -341,63 +347,48 @@ class AdvancedSearchEngine:
         for term in terms:
             # Case-insensitive replacement with highlighting
             pattern = re.compile(re.escape(term), re.IGNORECASE)
-            highlighted = pattern.sub(
-                lambda m: f"<mark>{m.group(0)}</mark>",
-                highlighted
-            )
+            highlighted = pattern.sub(lambda m: f"<mark>{m.group(0)}</mark>", highlighted)
 
         return highlighted
 
     def _calculate_facets(self, results: List[Dict]) -> Dict[str, Dict[str, int]]:
         """Calculate facets (aggregations) for search results"""
         facets = {
-            'region': {},
-            'rate_ranges': {
-                '0-30': 0,
-                '30-40': 0,
-                '40-50': 0,
-                '50-60': 0,
-                '60+': 0
-            },
-            'hours_ranges': {
-                '0-80': 0,
-                '80-120': 0,
-                '120-160': 0,
-                '160-200': 0,
-                '200+': 0
-            }
+            "region": {},
+            "rate_ranges": {"0-30": 0, "30-40": 0, "40-50": 0, "50-60": 0, "60+": 0},
+            "hours_ranges": {"0-80": 0, "80-120": 0, "120-160": 0, "160-200": 0, "200+": 0},
         }
 
         for result in results:
             # Region facet
-            region = result.get('region', 'Unknown')
-            facets['region'][region] = facets['region'].get(region, 0) + 1
+            region = result.get("region", "Unknown")
+            facets["region"][region] = facets["region"].get(region, 0) + 1
 
             # Rate range facet
-            rate = result.get('brutto_rate', 0)
+            rate = result.get("brutto_rate", 0)
             if rate < 30:
-                facets['rate_ranges']['0-30'] += 1
+                facets["rate_ranges"]["0-30"] += 1
             elif rate < 40:
-                facets['rate_ranges']['30-40'] += 1
+                facets["rate_ranges"]["30-40"] += 1
             elif rate < 50:
-                facets['rate_ranges']['40-50'] += 1
+                facets["rate_ranges"]["40-50"] += 1
             elif rate < 60:
-                facets['rate_ranges']['50-60'] += 1
+                facets["rate_ranges"]["50-60"] += 1
             else:
-                facets['rate_ranges']['60+'] += 1
+                facets["rate_ranges"]["60+"] += 1
 
             # Hours range facet
-            hours = result.get('hours_per_month', 0)
+            hours = result.get("hours_per_month", 0)
             if hours < 80:
-                facets['hours_ranges']['0-80'] += 1
+                facets["hours_ranges"]["0-80"] += 1
             elif hours < 120:
-                facets['hours_ranges']['80-120'] += 1
+                facets["hours_ranges"]["80-120"] += 1
             elif hours < 160:
-                facets['hours_ranges']['120-160'] += 1
+                facets["hours_ranges"]["120-160"] += 1
             elif hours < 200:
-                facets['hours_ranges']['160-200'] += 1
+                facets["hours_ranges"]["160-200"] += 1
             else:
-                facets['hours_ranges']['200+'] += 1
+                facets["hours_ranges"]["200+"] += 1
 
         return facets
 
@@ -410,8 +401,16 @@ class AdvancedSearchEngine:
 
         # Simple suggestions based on common terms
         common_terms = [
-            'shopping', 'cleaning', 'cooking', 'transport', 'care',
-            'nursing', 'therapy', 'medication', 'mobility', 'companionship'
+            "shopping",
+            "cleaning",
+            "cooking",
+            "transport",
+            "care",
+            "nursing",
+            "therapy",
+            "medication",
+            "mobility",
+            "companionship",
         ]
 
         query_lower = query.query.lower()

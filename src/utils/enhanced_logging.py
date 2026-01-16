@@ -19,49 +19,49 @@ Version: 1.0.0
 
 import logging
 import sys
-from typing import Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, Optional
 
 
 class Colors:
     """ANSI color codes for terminal output"""
 
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
-    DIM = '\033[2m'
-    ITALIC = '\033[3m'
-    UNDERLINE = '\033[4m'
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+    ITALIC = "\033[3m"
+    UNDERLINE = "\033[4m"
 
     # Foreground colors
-    BLACK = '\033[30m'
-    RED = '\033[31m'
-    GREEN = '\033[32m'
-    YELLOW = '\033[33m'
-    BLUE = '\033[34m'
-    MAGENTA = '\033[35m'
-    CYAN = '\033[36m'
-    WHITE = '\033[37m'
+    BLACK = "\033[30m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
 
     # Bright foreground colors
-    BRIGHT_BLACK = '\033[90m'
-    BRIGHT_RED = '\033[91m'
-    BRIGHT_GREEN = '\033[92m'
-    BRIGHT_YELLOW = '\033[93m'
-    BRIGHT_BLUE = '\033[94m'
-    BRIGHT_MAGENTA = '\033[95m'
-    BRIGHT_CYAN = '\033[96m'
-    BRIGHT_WHITE = '\033[97m'
+    BRIGHT_BLACK = "\033[90m"
+    BRIGHT_RED = "\033[91m"
+    BRIGHT_GREEN = "\033[92m"
+    BRIGHT_YELLOW = "\033[93m"
+    BRIGHT_BLUE = "\033[94m"
+    BRIGHT_MAGENTA = "\033[95m"
+    BRIGHT_CYAN = "\033[96m"
+    BRIGHT_WHITE = "\033[97m"
 
     # Background colors
-    BG_BLACK = '\033[40m'
-    BG_RED = '\033[41m'
-    BG_GREEN = '\033[42m'
-    BG_YELLOW = '\033[43m'
-    BG_BLUE = '\033[44m'
-    BG_MAGENTA = '\033[45m'
-    BG_CYAN = '\033[46m'
-    BG_WHITE = '\033[47m'
+    BG_BLACK = "\033[40m"
+    BG_RED = "\033[41m"
+    BG_GREEN = "\033[42m"
+    BG_YELLOW = "\033[43m"
+    BG_BLUE = "\033[44m"
+    BG_MAGENTA = "\033[45m"
+    BG_CYAN = "\033[46m"
+    BG_WHITE = "\033[47m"
 
 
 class Icons:
@@ -94,6 +94,7 @@ class Icons:
 
 class MessageLevel(Enum):
     """Message severity levels"""
+
     DEBUG = "debug"
     INFO = "info"
     SUCCESS = "success"
@@ -136,8 +137,8 @@ class ColoredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format log record with colors and icons"""
         # Get color and icon for level
-        color = self.LEVEL_COLORS.get(record.levelno, '')
-        icon = self.LEVEL_ICONS.get(record.levelno, '')
+        color = self.LEVEL_COLORS.get(record.levelno, "")
+        icon = self.LEVEL_ICONS.get(record.levelno, "")
 
         # Build message
         if self.use_colors:
@@ -152,7 +153,7 @@ class ColoredFormatter(logging.Formatter):
             else:
                 formatted = f"{timestamp} {level} {name} {Colors.ARROW} {message}"
         else:
-            timestamp = self.formatTime(record, '%H:%M:%S')
+            timestamp = self.formatTime(record, "%H:%M:%S")
             formatted = f"{timestamp} {record.levelname:8s} {record.name} → {record.getMessage()}"
 
         # Add exception info if present
@@ -251,11 +252,7 @@ class EnhancedLogger:
         filled = int(bar_length * current / total) if total > 0 else 0
 
         if self.use_colors:
-            bar = (
-                Colors.BRIGHT_GREEN + "█" * filled +
-                Colors.DIM + "░" * (bar_length - filled) +
-                Colors.RESET
-            )
+            bar = Colors.BRIGHT_GREEN + "█" * filled + Colors.DIM + "░" * (bar_length - filled) + Colors.RESET
             msg = f"{icon}{operation}: [{bar}] {percent:.0f}% ({current}/{total})"
         else:
             bar = "=" * filled + "-" * (bar_length - filled)
@@ -282,7 +279,7 @@ class EnhancedLogger:
             "low": Colors.BRIGHT_GREEN,
             "medium": Colors.BRIGHT_YELLOW,
             "high": Colors.BRIGHT_RED,
-            "critical": Colors.BG_RED + Colors.WHITE + Colors.BOLD
+            "critical": Colors.BG_RED + Colors.WHITE + Colors.BOLD,
         }
 
         color = severity_colors.get(severity.lower(), Colors.BRIGHT_YELLOW)
@@ -341,11 +338,7 @@ class EnhancedLogger:
 
 
 # Convenience functions
-def get_enhanced_logger(
-    name: str,
-    use_colors: bool = True,
-    show_icons: bool = True
-) -> EnhancedLogger:
+def get_enhanced_logger(name: str, use_colors: bool = True, show_icons: bool = True) -> EnhancedLogger:
     """
     Get an enhanced logger instance
 
@@ -360,11 +353,7 @@ def get_enhanced_logger(
     return EnhancedLogger(name, use_colors, show_icons)
 
 
-def setup_enhanced_logging(
-    level: str = "INFO",
-    use_colors: bool = True,
-    show_icons: bool = True
-):
+def setup_enhanced_logging(level: str = "INFO", use_colors: bool = True, show_icons: bool = True):
     """
     Setup enhanced logging globally
 

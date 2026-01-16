@@ -12,17 +12,18 @@ Provides enterprise scaling capabilities:
 - Connection pooling
 """
 
-from typing import Optional, List, Dict, Any, Callable
+import hashlib
+import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-import threading
-import time
-import hashlib
+from typing import Any, Callable, Dict, List, Optional
 
 
 class LoadBalancingAlgorithm(str, Enum):
     """Load balancing algorithms"""
+
     ROUND_ROBIN = "round_robin"
     LEAST_CONNECTIONS = "least_connections"
     IP_HASH = "ip_hash"
@@ -32,6 +33,7 @@ class LoadBalancingAlgorithm(str, Enum):
 
 class ServiceStatus(str, Enum):
     """Service instance status"""
+
     HEALTHY = "healthy"
     UNHEALTHY = "unhealthy"
     DRAINING = "draining"  # Accepting no new connections
@@ -40,6 +42,7 @@ class ServiceStatus(str, Enum):
 
 class ScalingPolicy(str, Enum):
     """Auto-scaling policies"""
+
     CPU_BASED = "cpu_based"
     MEMORY_BASED = "memory_based"
     REQUEST_RATE_BASED = "request_rate_based"
@@ -48,6 +51,7 @@ class ScalingPolicy(str, Enum):
 
 class CircuitState(str, Enum):
     """Circuit breaker states"""
+
     CLOSED = "closed"  # Normal operation
     OPEN = "open"  # Failing, rejecting requests
     HALF_OPEN = "half_open"  # Testing if recovered
@@ -56,6 +60,7 @@ class CircuitState(str, Enum):
 @dataclass
 class ServiceInstance:
     """Service instance"""
+
     id: str
     host: str
     port: int
@@ -79,6 +84,7 @@ class ServiceInstance:
 @dataclass
 class ScalingConfig:
     """Auto-scaling configuration"""
+
     min_instances: int = 1
     max_instances: int = 10
     target_cpu_percent: float = 70.0
@@ -91,6 +97,7 @@ class ScalingConfig:
 @dataclass
 class CircuitBreakerConfig:
     """Circuit breaker configuration"""
+
     failure_threshold: int = 5  # Open circuit after N failures
     timeout_seconds: int = 60  # Try again after N seconds
     success_threshold: int = 2  # Close circuit after N successes in half-open
@@ -110,16 +117,11 @@ class ServiceRegistry:
         host: str,
         port: int,
         weight: int = 1,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> ServiceInstance:
         """Register service instance"""
         instance = ServiceInstance(
-            id=instance_id,
-            host=host,
-            port=port,
-            weight=weight,
-            status=ServiceStatus.STARTING,
-            metadata=metadata or {}
+            id=instance_id, host=host, port=port, weight=weight, status=ServiceStatus.STARTING, metadata=metadata or {}
         )
 
         with self.lock:
@@ -145,11 +147,7 @@ class ServiceRegistry:
 
         return False
 
-    def get_service_instances(
-        self,
-        service_name: str,
-        healthy_only: bool = True
-    ) -> List[ServiceInstance]:
+    def get_service_instances(self, service_name: str, healthy_only: bool = True) -> List[ServiceInstance]:
         """Get service instances"""
         with self.lock:
             instances = self.services.get(service_name, [])
@@ -159,12 +157,7 @@ class ServiceRegistry:
 
             return list(instances)
 
-    def update_instance_status(
-        self,
-        service_name: str,
-        instance_id: str,
-        status: ServiceStatus
-    ) -> bool:
+    def update_instance_status(self, service_name: str, instance_id: str, status: ServiceStatus) -> bool:
         """Update instance status"""
         with self.lock:
             instances = self.services.get(service_name, [])
@@ -184,18 +177,14 @@ class LoadBalancer:
     def __init__(
         self,
         algorithm: LoadBalancingAlgorithm = LoadBalancingAlgorithm.ROUND_ROBIN,
-        service_registry: Optional[ServiceRegistry] = None
+        service_registry: Optional[ServiceRegistry] = None,
     ):
         self.algorithm = algorithm
         self.registry = service_registry or ServiceRegistry()
         self.current_index: Dict[str, int] = {}
         self.lock = threading.Lock()
 
-    def select_instance(
-        self,
-        service_name: str,
-        client_ip: Optional[str] = None
-    ) -> Optional[ServiceInstance]:
+    def select_instance(self, service_name: str, client_ip: Optional[str] = None) -> Optional[ServiceInstance]:
         """Select instance using load balancing algorithm"""
         instances = self.registry.get_service_instances(service_name, healthy_only=True)
 
@@ -238,11 +227,7 @@ class LoadBalancer:
         index = hash_value % len(instances)
         return instances[index]
 
-    def _weighted_round_robin(
-        self,
-        service_name: str,
-        instances: List[ServiceInstance]
-    ) -> ServiceInstance:
+    def _weighted_round_robin(self, service_name: str, instances: List[ServiceInstance]) -> ServiceInstance:
         """Weighted round-robin selection"""
         # Expand instances based on weight
         weighted_instances = []
@@ -254,6 +239,7 @@ class LoadBalancer:
     def _random(self, instances: List[ServiceInstance]) -> ServiceInstance:
         """Random selection"""
         import random
+
         return random.choice(instances)
 
 
@@ -309,19 +295,11 @@ class HealthChecker:
             if is_healthy:
                 instance.consecutive_failures = 0
                 if instance.status != ServiceStatus.HEALTHY:
-                    self.registry.update_instance_status(
-                        service_name,
-                        instance.id,
-                        ServiceStatus.HEALTHY
-                    )
+                    self.registry.update_instance_status(service_name, instance.id, ServiceStatus.HEALTHY)
             else:
                 instance.consecutive_failures += 1
                 if instance.consecutive_failures >= self.failure_threshold:
-                    self.registry.update_instance_status(
-                        service_name,
-                        instance.id,
-                        ServiceStatus.UNHEALTHY
-                    )
+                    self.registry.update_instance_status(service_name, instance.id, ServiceStatus.UNHEALTHY)
 
         except Exception as e:
             instance.consecutive_failures += 1
@@ -331,22 +309,14 @@ class HealthChecker:
 class AutoScaler:
     """Auto-scaling manager"""
 
-    def __init__(
-        self,
-        service_registry: ServiceRegistry,
-        scaling_config: ScalingConfig
-    ):
+    def __init__(self, service_registry: ServiceRegistry, scaling_config: ScalingConfig):
         self.registry = service_registry
         self.config = scaling_config
         self.last_scale_up: Dict[str, datetime] = {}
         self.last_scale_down: Dict[str, datetime] = {}
 
     def evaluate_scaling(
-        self,
-        service_name: str,
-        current_cpu_percent: float,
-        current_memory_percent: float,
-        current_rps: float
+        self, service_name: str, current_cpu_percent: float, current_memory_percent: float, current_rps: float
     ) -> Optional[str]:
         """Evaluate if scaling is needed"""
         instances = self.registry.get_service_instances(service_name, healthy_only=True)
@@ -356,9 +326,9 @@ class AutoScaler:
 
         # Check if should scale up
         should_scale_up = (
-            current_cpu_percent > self.config.target_cpu_percent or
-            current_memory_percent > self.config.target_memory_percent or
-            current_rps > self.config.target_requests_per_second
+            current_cpu_percent > self.config.target_cpu_percent
+            or current_memory_percent > self.config.target_memory_percent
+            or current_rps > self.config.target_requests_per_second
         )
 
         if should_scale_up and current_count < self.config.max_instances:
@@ -366,13 +336,13 @@ class AutoScaler:
 
             if not last_scale_up or (now - last_scale_up).seconds > self.config.scale_up_cooldown_seconds:
                 self.last_scale_up[service_name] = now
-                return 'scale_up'
+                return "scale_up"
 
         # Check if should scale down
         should_scale_down = (
-            current_cpu_percent < self.config.target_cpu_percent * 0.5 and
-            current_memory_percent < self.config.target_memory_percent * 0.5 and
-            current_rps < self.config.target_requests_per_second * 0.5
+            current_cpu_percent < self.config.target_cpu_percent * 0.5
+            and current_memory_percent < self.config.target_memory_percent * 0.5
+            and current_rps < self.config.target_requests_per_second * 0.5
         )
 
         if should_scale_down and current_count > self.config.min_instances:
@@ -380,7 +350,7 @@ class AutoScaler:
 
             if not last_scale_down or (now - last_scale_down).seconds > self.config.scale_down_cooldown_seconds:
                 self.last_scale_down[service_name] = now
-                return 'scale_down'
+                return "scale_down"
 
         return None
 
@@ -408,11 +378,7 @@ class AutoScaler:
         print(f"[AutoScaler] Scaling down {service_name}, removing {instance_to_remove.id}")
 
         # Set to draining status
-        self.registry.update_instance_status(
-            service_name,
-            instance_to_remove.id,
-            ServiceStatus.DRAINING
-        )
+        self.registry.update_instance_status(service_name, instance_to_remove.id, ServiceStatus.DRAINING)
 
         # In production, would:
         # 1. Wait for existing connections to finish
@@ -514,15 +480,12 @@ class ScalingEngine:
     def __init__(
         self,
         algorithm: LoadBalancingAlgorithm = LoadBalancingAlgorithm.ROUND_ROBIN,
-        scaling_config: Optional[ScalingConfig] = None
+        scaling_config: Optional[ScalingConfig] = None,
     ):
         self.service_registry = ServiceRegistry()
         self.load_balancer = LoadBalancer(algorithm, self.service_registry)
         self.health_checker = HealthChecker(self.service_registry)
-        self.auto_scaler = AutoScaler(
-            self.service_registry,
-            scaling_config or ScalingConfig()
-        )
+        self.auto_scaler = AutoScaler(self.service_registry, scaling_config or ScalingConfig())
         self.session_manager = SessionManager()
         self.circuit_breakers: Dict[str, CircuitBreaker] = {}
 
@@ -537,23 +500,13 @@ class ScalingEngine:
         print("[ScalingEngine] Stopped")
 
     def register_service_instance(
-        self,
-        service_name: str,
-        instance_id: str,
-        host: str,
-        port: int,
-        weight: int = 1
+        self, service_name: str, instance_id: str, host: str, port: int, weight: int = 1
     ) -> ServiceInstance:
         """Register service instance"""
-        return self.service_registry.register_service(
-            service_name, instance_id, host, port, weight
-        )
+        return self.service_registry.register_service(service_name, instance_id, host, port, weight)
 
     def route_request(
-        self,
-        service_name: str,
-        session_id: Optional[str] = None,
-        client_ip: Optional[str] = None
+        self, service_name: str, session_id: Optional[str] = None, client_ip: Optional[str] = None
     ) -> Optional[ServiceInstance]:
         """Route request to service instance"""
         # Check for session affinity
@@ -577,9 +530,7 @@ class ScalingEngine:
     def get_circuit_breaker(self, service_name: str) -> CircuitBreaker:
         """Get circuit breaker for service"""
         if service_name not in self.circuit_breakers:
-            self.circuit_breakers[service_name] = CircuitBreaker(
-                CircuitBreakerConfig()
-            )
+            self.circuit_breakers[service_name] = CircuitBreaker(CircuitBreakerConfig())
 
         return self.circuit_breakers[service_name]
 
@@ -592,20 +543,20 @@ class ScalingEngine:
             total_requests = sum(i.total_requests for i in instances)
 
             status[service_name] = {
-                'total_instances': len(instances),
-                'healthy_instances': healthy_count,
-                'total_requests': total_requests,
-                'instances': [
+                "total_instances": len(instances),
+                "healthy_instances": healthy_count,
+                "total_requests": total_requests,
+                "instances": [
                     {
-                        'id': i.id,
-                        'host': i.host,
-                        'port': i.port,
-                        'status': i.status.value,
-                        'active_connections': i.active_connections,
-                        'total_requests': i.total_requests
+                        "id": i.id,
+                        "host": i.host,
+                        "port": i.port,
+                        "status": i.status.value,
+                        "active_connections": i.active_connections,
+                        "total_requests": i.total_requests,
                     }
                     for i in instances
-                ]
+                ],
             }
 
         return status

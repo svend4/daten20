@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class AuthMethod(Enum):
     """Authentication methods."""
+
     X509_CERTIFICATE = "x509"
     PSK = "psk"  # Pre-shared key
     JWT_TOKEN = "jwt"
@@ -31,6 +32,7 @@ class AuthMethod(Enum):
 
 class AccessLevel(Enum):
     """Device access levels."""
+
     READ_ONLY = "read_only"
     READ_WRITE = "read_write"
     ADMIN = "admin"
@@ -39,6 +41,7 @@ class AccessLevel(Enum):
 @dataclass
 class Certificate:
     """X.509 certificate."""
+
     cert_id: str
     common_name: str
     device_id: str
@@ -65,6 +68,7 @@ class Certificate:
 @dataclass
 class PreSharedKey:
     """Pre-shared key for device authentication."""
+
     key_id: str
     device_id: str
     key_value: str  # Hashed key
@@ -76,6 +80,7 @@ class PreSharedKey:
 @dataclass
 class DeviceCredentials:
     """Device authentication credentials."""
+
     device_id: str
     auth_method: AuthMethod
     credentials: Any  # Certificate, PSK, or token
@@ -87,6 +92,7 @@ class DeviceCredentials:
 @dataclass
 class AccessControlEntry:
     """Access control list entry."""
+
     ace_id: str
     device_id: str
     resource: str  # topic, endpoint, register, etc.
@@ -98,6 +104,7 @@ class AccessControlEntry:
 @dataclass
 class FirmwareSignature:
     """Firmware signature for secure boot."""
+
     firmware_version: str
     signature: str
     algorithm: str = "sha256"
@@ -117,25 +124,18 @@ class DeviceAuthenticator:
         device_id: str,
         auth_method: AuthMethod,
         credentials: Any,
-        access_level: AccessLevel = AccessLevel.READ_WRITE
+        access_level: AccessLevel = AccessLevel.READ_WRITE,
     ):
         """Register device credentials."""
         device_creds = DeviceCredentials(
-            device_id=device_id,
-            auth_method=auth_method,
-            credentials=credentials,
-            access_level=access_level
+            device_id=device_id, auth_method=auth_method, credentials=credentials, access_level=access_level
         )
 
         self.credentials[device_id] = device_creds
 
         logger.info(f"Registered credentials for device {device_id} ({auth_method.value})")
 
-    async def authenticate(
-        self,
-        device_id: str,
-        credentials: Any
-    ) -> bool:
+    async def authenticate(self, device_id: str, credentials: Any) -> bool:
         """Authenticate device."""
         device_creds = self.credentials.get(device_id)
 
@@ -214,12 +214,7 @@ class CertificateManager:
         self.certificates: Dict[str, Certificate] = {}
         self.ca_public_key = "CA_PUBLIC_KEY"  # Mock CA key
 
-    def issue_certificate(
-        self,
-        device_id: str,
-        common_name: str,
-        validity_days: int = 365
-    ) -> Certificate:
+    def issue_certificate(self, device_id: str, common_name: str, validity_days: int = 365) -> Certificate:
         """Issue new certificate for device."""
         # Generate certificate (mock)
         cert_id = str(uuid4())
@@ -232,7 +227,7 @@ class CertificateManager:
             device_id=device_id,
             public_key=public_key,
             fingerprint=fingerprint,
-            expires_at=datetime.now() + timedelta(days=validity_days)
+            expires_at=datetime.now() + timedelta(days=validity_days),
         )
 
         self.certificates[cert_id] = cert
@@ -265,11 +260,7 @@ class CertificateManager:
         # In production, would verify against CA public key
         return True
 
-    def rotate_certificate(
-        self,
-        old_cert_id: str,
-        validity_days: int = 365
-    ) -> Optional[Certificate]:
+    def rotate_certificate(self, old_cert_id: str, validity_days: int = 365) -> Optional[Certificate]:
         """Rotate certificate (issue new, revoke old)."""
         old_cert = self.certificates.get(old_cert_id)
 
@@ -278,9 +269,7 @@ class CertificateManager:
 
         # Issue new certificate
         new_cert = self.issue_certificate(
-            device_id=old_cert.device_id,
-            common_name=old_cert.common_name,
-            validity_days=validity_days
+            device_id=old_cert.device_id, common_name=old_cert.common_name, validity_days=validity_days
         )
 
         # Revoke old certificate
@@ -296,11 +285,7 @@ class PSKManager:
     def __init__(self):
         self.keys: Dict[str, PreSharedKey] = {}
 
-    def generate_psk(
-        self,
-        device_id: str,
-        validity_days: Optional[int] = None
-    ) -> PreSharedKey:
+    def generate_psk(self, device_id: str, validity_days: Optional[int] = None) -> PreSharedKey:
         """Generate pre-shared key for device."""
         # Generate random key
         key_value = secrets.token_urlsafe(32)
@@ -312,12 +297,7 @@ class PSKManager:
         if validity_days:
             expires_at = datetime.now() + timedelta(days=validity_days)
 
-        psk = PreSharedKey(
-            key_id=key_id,
-            device_id=device_id,
-            key_value=key_hash,
-            expires_at=expires_at
-        )
+        psk = PreSharedKey(key_id=key_id, device_id=device_id, key_value=key_hash, expires_at=expires_at)
 
         self.keys[key_id] = psk
 
@@ -365,21 +345,11 @@ class AccessControl:
     def __init__(self):
         self.acl: Dict[str, List[AccessControlEntry]] = {}
 
-    def add_rule(
-        self,
-        device_id: str,
-        resource: str,
-        permissions: Set[str]
-    ) -> AccessControlEntry:
+    def add_rule(self, device_id: str, resource: str, permissions: Set[str]) -> AccessControlEntry:
         """Add access control rule."""
         ace_id = str(uuid4())
 
-        ace = AccessControlEntry(
-            ace_id=ace_id,
-            device_id=device_id,
-            resource=resource,
-            permissions=permissions
-        )
+        ace = AccessControlEntry(ace_id=ace_id, device_id=device_id, resource=resource, permissions=permissions)
 
         if device_id not in self.acl:
             self.acl[device_id] = []
@@ -389,12 +359,7 @@ class AccessControl:
         logger.info(f"Added ACL rule for device {device_id}: {resource} -> {permissions}")
         return ace
 
-    def check_permission(
-        self,
-        device_id: str,
-        resource: str,
-        permission: str
-    ) -> bool:
+    def check_permission(self, device_id: str, resource: str, permission: str) -> bool:
         """Check if device has permission for resource."""
         device_rules = self.acl.get(device_id, [])
 
@@ -433,20 +398,13 @@ class SecureBoot:
         self.public_keys[key_id] = public_key
         logger.info(f"Registered public key {key_id}")
 
-    def sign_firmware(
-        self,
-        firmware_version: str,
-        firmware_data: bytes,
-        private_key_id: str
-    ) -> FirmwareSignature:
+    def sign_firmware(self, firmware_version: str, firmware_data: bytes, private_key_id: str) -> FirmwareSignature:
         """Sign firmware for secure boot."""
         # Calculate signature (mock)
         signature = hashlib.sha256(firmware_data).hexdigest()
 
         firmware_sig = FirmwareSignature(
-            firmware_version=firmware_version,
-            signature=signature,
-            public_key_id=private_key_id
+            firmware_version=firmware_version, signature=signature, public_key_id=private_key_id
         )
 
         self.signatures[firmware_version] = firmware_sig
@@ -454,11 +412,7 @@ class SecureBoot:
         logger.info(f"Signed firmware {firmware_version}")
         return firmware_sig
 
-    def verify_firmware(
-        self,
-        firmware_version: str,
-        firmware_data: bytes
-    ) -> bool:
+    def verify_firmware(self, firmware_version: str, firmware_data: bytes) -> bool:
         """Verify firmware signature."""
         signature = self.signatures.get(firmware_version)
 
@@ -531,20 +485,11 @@ class IoTSecurity:
         self.secure_boot = SecureBoot()
         self.encryption = EncryptionManager()
 
-    async def authenticate_device(
-        self,
-        device_id: str,
-        credentials: Any
-    ) -> bool:
+    async def authenticate_device(self, device_id: str, credentials: Any) -> bool:
         """Authenticate device."""
         return await self.authenticator.authenticate(device_id, credentials)
 
-    def issue_certificate(
-        self,
-        device_id: str,
-        common_name: str,
-        **kwargs
-    ) -> Certificate:
+    def issue_certificate(self, device_id: str, common_name: str, **kwargs) -> Certificate:
         """Issue device certificate."""
         return self.cert_manager.issue_certificate(device_id, common_name, **kwargs)
 
@@ -552,21 +497,11 @@ class IoTSecurity:
         """Generate pre-shared key."""
         return self.psk_manager.generate_psk(device_id, **kwargs)
 
-    def add_access_rule(
-        self,
-        device_id: str,
-        resource: str,
-        permissions: Set[str]
-    ) -> AccessControlEntry:
+    def add_access_rule(self, device_id: str, resource: str, permissions: Set[str]) -> AccessControlEntry:
         """Add access control rule."""
         return self.access_control.add_rule(device_id, resource, permissions)
 
-    def check_access(
-        self,
-        device_id: str,
-        resource: str,
-        permission: str
-    ) -> bool:
+    def check_access(self, device_id: str, resource: str, permission: str) -> bool:
         """Check device access permission."""
         # First check authentication
         if not self.authenticator.is_authenticated(device_id):
@@ -575,12 +510,7 @@ class IoTSecurity:
         # Then check ACL
         return self.access_control.check_permission(device_id, resource, permission)
 
-    def sign_firmware(
-        self,
-        version: str,
-        data: bytes,
-        key_id: str
-    ) -> FirmwareSignature:
+    def sign_firmware(self, version: str, data: bytes, key_id: str) -> FirmwareSignature:
         """Sign firmware."""
         return self.secure_boot.sign_firmware(version, data, key_id)
 

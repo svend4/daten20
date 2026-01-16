@@ -10,28 +10,25 @@ Tests all major functionality of DocumentQualityAnalyzer:
 - Batch analysis
 """
 
-import pytest
-import sys
-import os
 import json
+import os
+import sys
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the quality analyzer module
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("doc_quality", "doc-quality.py")
 doc_quality = importlib.util.module_from_spec(spec)
-sys.modules['doc_quality'] = doc_quality  # Add to sys.modules for imports to work
+sys.modules["doc_quality"] = doc_quality  # Add to sys.modules for imports to work
 spec.loader.exec_module(doc_quality)
 
-from doc_quality import (
-    DocumentQualityAnalyzer,
-    QualityIssue,
-    QualityDimension,
-    QualityReport
-)
+from doc_quality import DocumentQualityAnalyzer, QualityDimension, QualityIssue, QualityReport
 
 
 # Fixtures
@@ -57,7 +54,8 @@ def sample1_path(sample_docs_dir):
 def good_quality_doc(tmp_path):
     """Create a high-quality document."""
     doc = tmp_path / "good_quality.txt"
-    doc.write_text("""
+    doc.write_text(
+        """
 High Quality Document
 =====================
 
@@ -74,7 +72,8 @@ Date: 15.03.2025
 The content is well-organized and easy to read.
 Each sentence is concise and focused.
 The document follows best practices for technical writing.
-    """.strip())
+    """.strip()
+    )
     return str(doc)
 
 
@@ -82,13 +81,15 @@ The document follows best practices for technical writing.
 def poor_quality_doc(tmp_path):
     """Create a low-quality document."""
     doc = tmp_path / "poor_quality.txt"
-    doc.write_text("""
+    doc.write_text(
+        """
 this document has many quality issues like missing capitalization and very long sentences that go on and on without proper punctuation making it difficult to read and understand the content which is not properly structured and formatted according to standard writing conventions and best practices
 
 invalid email: notanemail
 invalid phone: abc123
 old date: 01.01.1990
-    """.strip())
+    """.strip()
+    )
     return str(doc)
 
 
@@ -243,7 +244,7 @@ class TestDocumentQualityAnalyzer:
         dimensions = {
             "completeness": QualityDimension("Completeness", 90.0, [], {}),
             "accuracy": QualityDimension("Accuracy", 85.0, [], {}),
-            "readability": QualityDimension("Readability", 80.0, [], {})
+            "readability": QualityDimension("Readability", 80.0, [], {}),
         }
 
         overall = analyzer._calculate_overall_quality(dimensions)
@@ -254,13 +255,9 @@ class TestDocumentQualityAnalyzer:
 
     def test_generate_recommendations(self, analyzer):
         """Test recommendation generation"""
-        dimensions = {
-            "completeness": QualityDimension("Completeness", 50.0, [], {})  # Low score
-        }
+        dimensions = {"completeness": QualityDimension("Completeness", 50.0, [], {})}  # Low score
 
-        issues = [
-            QualityIssue("missing_field", "critical", "completeness", "field1", "Critical issue")
-        ]
+        issues = [QualityIssue("missing_field", "critical", "completeness", "field1", "Critical issue")]
 
         recommendations = analyzer._generate_recommendations(dimensions, issues)
 
@@ -337,7 +334,7 @@ class TestDocumentQualityAnalyzer:
             dimension="completeness",
             location="test_location",
             message="Test message",
-            suggestion="Test suggestion"
+            suggestion="Test suggestion",
         )
 
         assert issue.severity in ["low", "medium", "high", "critical"]
@@ -346,12 +343,7 @@ class TestDocumentQualityAnalyzer:
 
     def test_quality_dimension_structure(self):
         """Test QualityDimension structure"""
-        dimension = QualityDimension(
-            name="Test Dimension",
-            score=85.5,
-            issues=[],
-            metrics={"test_metric": 100}
-        )
+        dimension = QualityDimension(name="Test Dimension", score=85.5, issues=[], metrics={"test_metric": 100})
 
         assert dimension.name == "Test Dimension"
         assert dimension.score == 85.5
@@ -373,7 +365,7 @@ class TestDocumentQualityAnalyzerIntegration:
 
         # 3. Save report
         output_file = tmp_path / "quality_report.json"
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(report.to_dict(), f, indent=2)
 
         # 4. Verify saved report

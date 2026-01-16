@@ -21,41 +21,40 @@ Legacy:
 Version: 3.7.0
 """
 
-__version__ = '3.7.0'
+__version__ = "3.7.0"
+
+# Calendar & Scheduling
+from .calendar import (
+    CalendarEvent,
+    CalendarManager,
+    CalendarProvider,
+    get_calendar_client,
+)
 
 # Cloud Storage
 from .cloud_storage import (
+    CloudFile,
+    FilePermission,
+    SharePermission,
     StorageManager,
     StorageProvider,
-    CloudFile,
-    SharePermission,
-    FilePermission,
     get_storage_manager,
-)
-
-# Productivity Suite
-from .productivity import (
-    ProductivityManager,
-    ProductivitySuite,
-    Document,
-    Spreadsheet,
-    Email,
-    DocumentEditor,
-    SpreadsheetManager,
-    EmailClient,
-    get_productivity_client,
 )
 
 # Communication Platforms
 from .communication import (
-    CommunicationManager,
-    Platform,
     Channel,
+    CommunicationManager,
     Message,
     MessageFormatter,
+    Platform,
     WebhookManager,
     get_communication_client,
 )
+from .crm import CRMEntityType, CRMIntegrationEngine, CRMSystem, configure_crm_engine, get_crm_engine
+
+# Legacy integrations (v2.8)
+from .erp import EntityType, ERPIntegrationEngine, ERPSystem, configure_erp_engine, get_erp_engine
 
 # E-Signature
 from .esignature import (
@@ -67,121 +66,99 @@ from .esignature import (
     get_esignature_client,
 )
 
-# Calendar & Scheduling
-from .calendar import (
-    CalendarManager,
-    CalendarProvider,
-    CalendarEvent,
-    get_calendar_client,
-)
-
 # File Conversion
 from .file_conversion import (
+    ConversionResult,
     FileConverter,
     FileFormat,
-    ConversionResult,
     get_file_converter,
 )
-
-# Legacy integrations (v2.8)
-from .erp import (
-    ERPIntegrationEngine,
-    get_erp_engine,
-    configure_erp_engine,
-    ERPSystem,
-    EntityType
-)
-
-from .crm import (
-    CRMIntegrationEngine,
-    get_crm_engine,
-    configure_crm_engine,
-    CRMSystem,
-    CRMEntityType
-)
-
 from .payments import (
     PaymentGateway,
-    get_payment_gateway,
-    configure_payment_gateway,
-    PaymentProvider,
     PaymentMethod,
-    PaymentStatus
+    PaymentProvider,
+    PaymentStatus,
+    configure_payment_gateway,
+    get_payment_gateway,
 )
 
-from .webhooks import (
-    WebhookManager as LegacyWebhookManager,
-    get_webhook_manager,
-    WebhookEvent
+# Productivity Suite
+from .productivity import (
+    Document,
+    DocumentEditor,
+    Email,
+    EmailClient,
+    ProductivityManager,
+    ProductivitySuite,
+    Spreadsheet,
+    SpreadsheetManager,
+    get_productivity_client,
 )
+from .webhooks import WebhookEvent
+from .webhooks import WebhookManager as LegacyWebhookManager
+from .webhooks import get_webhook_manager
 
 __all__ = [
     # Cloud Storage
-    'StorageManager',
-    'StorageProvider',
-    'CloudFile',
-    'SharePermission',
-    'FilePermission',
-    'get_storage_manager',
-
+    "StorageManager",
+    "StorageProvider",
+    "CloudFile",
+    "SharePermission",
+    "FilePermission",
+    "get_storage_manager",
     # Productivity Suite
-    'ProductivityManager',
-    'ProductivitySuite',
-    'Document',
-    'Spreadsheet',
-    'Email',
-    'DocumentEditor',
-    'SpreadsheetManager',
-    'EmailClient',
-    'get_productivity_client',
-
+    "ProductivityManager",
+    "ProductivitySuite",
+    "Document",
+    "Spreadsheet",
+    "Email",
+    "DocumentEditor",
+    "SpreadsheetManager",
+    "EmailClient",
+    "get_productivity_client",
     # Communication Platforms
-    'CommunicationManager',
-    'Platform',
-    'Channel',
-    'Message',
-    'MessageFormatter',
-    'WebhookManager',
-    'get_communication_client',
-
+    "CommunicationManager",
+    "Platform",
+    "Channel",
+    "Message",
+    "MessageFormatter",
+    "WebhookManager",
+    "get_communication_client",
     # E-Signature
-    'ESignatureManager',
-    'SignatureProvider',
-    'SignatureRequest',
-    'SignatureStatus',
-    'Signer',
-    'get_esignature_client',
-
+    "ESignatureManager",
+    "SignatureProvider",
+    "SignatureRequest",
+    "SignatureStatus",
+    "Signer",
+    "get_esignature_client",
     # Calendar & Scheduling
-    'CalendarManager',
-    'CalendarProvider',
-    'CalendarEvent',
-    'get_calendar_client',
-
+    "CalendarManager",
+    "CalendarProvider",
+    "CalendarEvent",
+    "get_calendar_client",
     # File Conversion
-    'FileConverter',
-    'FileFormat',
-    'ConversionResult',
-    'get_file_converter',
-
+    "FileConverter",
+    "FileFormat",
+    "ConversionResult",
+    "get_file_converter",
     # Legacy (v2.8)
-    'ERPIntegrationEngine',
-    'get_erp_engine',
-    'configure_erp_engine',
-    'CRMIntegrationEngine',
-    'get_crm_engine',
-    'configure_crm_engine',
-    'PaymentGateway',
-    'get_payment_gateway',
-    'configure_payment_gateway',
-    'LegacyWebhookManager',
-    'get_webhook_manager',
-    'ERPSystem',
-    'EntityType',
-    'CRMSystem',
-    'CRMEntityType',
-    'PaymentProvider',
-    'PaymentMethod',
-    'PaymentStatus',
-    'WebhookEvent',
+    "ERPIntegrationEngine",
+    "get_erp_engine",
+    "configure_erp_engine",
+    "CRMIntegrationEngine",
+    "get_crm_engine",
+    "configure_crm_engine",
+    "PaymentGateway",
+    "get_payment_gateway",
+    "configure_payment_gateway",
+    "LegacyWebhookManager",
+    "get_webhook_manager",
+    "ERPSystem",
+    "EntityType",
+    "CRMSystem",
+    "CRMEntityType",
+    "PaymentProvider",
+    "PaymentMethod",
+    "PaymentStatus",
+    "WebhookEvent",
 ]

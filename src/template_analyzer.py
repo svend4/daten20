@@ -6,8 +6,8 @@ Template Analyzer - Анализатор структуры шаблонов
 профессионального планирования услуг персонального бюджета.
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -17,8 +17,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.core.parser import TemplateParser
 from src.core.validator import TemplateValidator
 from src.utils.formatting import (
-    header, section, success, error, warning, info,
-    table, key_value, colored, bold, divider
+    bold,
+    colored,
+    divider,
+    error,
+    header,
+    info,
+    key_value,
+    section,
+    success,
+    table,
+    warning,
 )
 from src.utils.helpers import format_currency, truncate_text
 
@@ -175,7 +184,7 @@ class TemplateAnalyzer:
         print(section(f"БЛОК {block_id}: {block.title}"))
 
         content = self.parser.get_block_content(block_id)
-        content_lines = content.split('\n')
+        content_lines = content.split("\n")
 
         if len(content_lines) > lines:
             print(warning(f"Показаны первые {lines} строк из {len(content_lines)}"))
@@ -238,7 +247,7 @@ class TemplateAnalyzer:
                 "total_lines": self.structure.total_lines,
                 "total_blocks": self.structure.total_blocks,
                 "total_sections": self.structure.total_sections,
-                "total_variables": self.structure.total_variables
+                "total_variables": self.structure.total_variables,
             },
             "blocks": [
                 {
@@ -246,14 +255,14 @@ class TemplateAnalyzer:
                     "title": block.title,
                     "sections_count": len(block.sections),
                     "variables_count": len(block.variables),
-                    "variables": [var.name for var in block.variables]
+                    "variables": [var.name for var in block.variables],
                 }
                 for block in self.structure.blocks
-            ]
+            ],
         }
 
         try:
-            with open(output_file, 'w', encoding='utf-8') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             print(success(f"Структура экспортирована в {output_file}"))
         except Exception as e:
@@ -263,72 +272,30 @@ class TemplateAnalyzer:
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
-        description="Анализатор структуры шаблона документов",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Анализатор структуры шаблона документов", formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
     parser.add_argument(
-        "template",
-        nargs="?",
-        default="mSchablone",
-        help="Путь к файлу шаблона (по умолчанию: mSchablone)"
+        "template", nargs="?", default="mSchablone", help="Путь к файлу шаблона (по умолчанию: mSchablone)"
     )
 
-    parser.add_argument(
-        "--blocks",
-        action="store_true",
-        help="Показать список всех блоков"
-    )
+    parser.add_argument("--blocks", action="store_true", help="Показать список всех блоков")
 
-    parser.add_argument(
-        "--variables",
-        action="store_true",
-        help="Показать все переменные"
-    )
+    parser.add_argument("--variables", action="store_true", help="Показать все переменные")
 
-    parser.add_argument(
-        "--block",
-        type=int,
-        metavar="ID",
-        help="Показать содержимое блока по ID"
-    )
+    parser.add_argument("--block", type=int, metavar="ID", help="Показать содержимое блока по ID")
 
-    parser.add_argument(
-        "--block-vars",
-        type=int,
-        metavar="ID",
-        help="Показать переменные конкретного блока"
-    )
+    parser.add_argument("--block-vars", type=int, metavar="ID", help="Показать переменные конкретного блока")
 
-    parser.add_argument(
-        "--stats",
-        action="store_true",
-        help="Показать детальную статистику"
-    )
+    parser.add_argument("--stats", action="store_true", help="Показать детальную статистику")
 
-    parser.add_argument(
-        "--search",
-        metavar="QUERY",
-        help="Поиск текста в шаблоне"
-    )
+    parser.add_argument("--search", metavar="QUERY", help="Поиск текста в шаблоне")
 
-    parser.add_argument(
-        "--case-sensitive",
-        action="store_true",
-        help="Регистрозависимый поиск"
-    )
+    parser.add_argument("--case-sensitive", action="store_true", help="Регистрозависимый поиск")
 
-    parser.add_argument(
-        "--export",
-        metavar="FILE",
-        help="Экспортировать структуру в JSON файл"
-    )
+    parser.add_argument("--export", metavar="FILE", help="Экспортировать структуру в JSON файл")
 
-    parser.add_argument(
-        "--all",
-        action="store_true",
-        help="Показать всю информацию"
-    )
+    parser.add_argument("--all", action="store_true", help="Показать всю информацию")
 
     args = parser.parse_args()
 
@@ -339,8 +306,9 @@ def main():
     analyzer.analyze()
 
     # Show requested information
-    if args.all or (not any([args.blocks, args.variables, args.block, args.block_vars,
-                              args.stats, args.search, args.export])):
+    if args.all or (
+        not any([args.blocks, args.variables, args.block, args.block_vars, args.stats, args.search, args.export])
+    ):
         analyzer.show_summary()
         analyzer.show_blocks()
 

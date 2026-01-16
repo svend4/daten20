@@ -16,22 +16,24 @@ Version: 4.3.0
 
 import asyncio
 import math
-import numpy as np
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from enum import Enum
-from typing import Dict, List, Optional, Any, Tuple, Callable
 import threading
 import uuid
 from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import numpy as np
 
 # ============================================================================
 # ROBOT CONTROL SYSTEM
 # ============================================================================
 
+
 class RobotType(Enum):
     """Robot type classifications"""
+
     MOBILE_ROBOT = "mobile_robot"  # AGV, AMR
     MANIPULATOR = "manipulator"  # Robot arm
     MOBILE_MANIPULATOR = "mobile_manipulator"  # Mobile + arm
@@ -42,6 +44,7 @@ class RobotType(Enum):
 
 class ControlMode(Enum):
     """Robot control modes"""
+
     POSITION = "position"
     VELOCITY = "velocity"
     TORQUE = "torque"
@@ -52,6 +55,7 @@ class ControlMode(Enum):
 @dataclass
 class RobotStatus:
     """Robot status information"""
+
     robot_id: str
     position: Tuple[float, float, float]
     orientation: Tuple[float, float, float]
@@ -69,26 +73,24 @@ class SafetySystem:
         self.robot_id = robot_id
         self._emergency_stop = False
         self._collision_detected = False
-        self._workspace_limits = {
-            'x': (-10, 10),
-            'y': (-10, 10),
-            'z': (0, 3)
-        }
+        self._workspace_limits = {"x": (-10, 10), "y": (-10, 10), "z": (0, 3)}
         self._max_velocity = 2.0  # m/s
         self._lock = threading.Lock()
 
     def check_collision(self, sensor_data: Dict[str, Any]) -> bool:
         """Check for potential collisions"""
         # Simplified collision detection
-        min_distance = sensor_data.get('min_obstacle_distance', float('inf'))
+        min_distance = sensor_data.get("min_obstacle_distance", float("inf"))
         return min_distance < 0.3  # 30cm safety margin
 
     def check_workspace_limits(self, position: Tuple[float, float, float]) -> bool:
         """Check if position is within workspace limits"""
         x, y, z = position
-        return (self._workspace_limits['x'][0] <= x <= self._workspace_limits['x'][1] and
-                self._workspace_limits['y'][0] <= y <= self._workspace_limits['y'][1] and
-                self._workspace_limits['z'][0] <= z <= self._workspace_limits['z'][1])
+        return (
+            self._workspace_limits["x"][0] <= x <= self._workspace_limits["x"][1]
+            and self._workspace_limits["y"][0] <= y <= self._workspace_limits["y"][1]
+            and self._workspace_limits["z"][0] <= z <= self._workspace_limits["z"][1]
+        )
 
     def emergency_stop(self):
         """Trigger emergency stop"""
@@ -150,10 +152,13 @@ class RobotController:
         await asyncio.sleep(0.1)
         self._is_connected = True
 
-    async def move_to(self, position: Tuple[float, float, float],
-                     orientation: Optional[Tuple[float, float, float]] = None,
-                     max_velocity: float = 1.0,
-                     collision_check: bool = True) -> Dict[str, Any]:
+    async def move_to(
+        self,
+        position: Tuple[float, float, float],
+        orientation: Optional[Tuple[float, float, float]] = None,
+        max_velocity: float = 1.0,
+        collision_check: bool = True,
+    ) -> Dict[str, Any]:
         """Move robot to target position"""
         if not self._is_connected:
             raise RuntimeError("Robot not connected")
@@ -170,7 +175,7 @@ class RobotController:
         distance = np.linalg.norm(direction)
 
         if distance < 0.01:
-            return {'success': True, 'distance': 0}
+            return {"success": True, "distance": 0}
 
         # Normalize direction
         direction = direction / distance
@@ -181,7 +186,7 @@ class RobotController:
             # Check safety
             if not self._safety_system.is_safe():
                 await self._motion_controller.stop()
-                return {'success': False, 'reason': 'Safety stop triggered'}
+                return {"success": False, "reason": "Safety stop triggered"}
 
             # Update position
             alpha = (step + 1) / steps
@@ -196,24 +201,26 @@ class RobotController:
         if orientation:
             self._orientation = np.array(orientation)
 
-        return {'success': True, 'distance': distance, 'time_seconds': steps * 0.1}
+        return {"success": True, "distance": distance, "time_seconds": steps * 0.1}
 
-    async def pick_object(self, object_id: str, grasp_type: str = 'precision',
-                         approach_height: float = 0.1) -> Dict[str, Any]:
+    async def pick_object(
+        self, object_id: str, grasp_type: str = "precision", approach_height: float = 0.1
+    ) -> Dict[str, Any]:
         """Pick up an object"""
         # Simulate object picking
         await asyncio.sleep(0.5)  # Approach time
         await asyncio.sleep(0.3)  # Grasp time
 
         return {
-            'success': True,
-            'object_id': object_id,
-            'grasp_type': grasp_type,
-            'grasp_quality': np.random.uniform(0.7, 0.99)
+            "success": True,
+            "object_id": object_id,
+            "grasp_type": grasp_type,
+            "grasp_quality": np.random.uniform(0.7, 0.99),
         }
 
-    async def place_object(self, target_position: Tuple[float, float, float],
-                          placement_type: str = 'gentle') -> Dict[str, Any]:
+    async def place_object(
+        self, target_position: Tuple[float, float, float], placement_type: str = "gentle"
+    ) -> Dict[str, Any]:
         """Place object at target location"""
         # Move to placement position
         await self.move_to(target_position, max_velocity=0.5)
@@ -221,11 +228,7 @@ class RobotController:
         # Simulate placement
         await asyncio.sleep(0.3)
 
-        return {
-            'success': True,
-            'target_position': target_position,
-            'placement_type': placement_type
-        }
+        return {"success": True, "target_position": target_position, "placement_type": placement_type}
 
     async def get_status(self) -> RobotStatus:
         """Get current robot status"""
@@ -236,7 +239,7 @@ class RobotController:
                 orientation=tuple(self._orientation),
                 battery_percent=self._battery_percent,
                 is_moving=np.linalg.norm(self._motion_controller._current_velocity) > 0.01,
-                current_task=self._current_task
+                current_task=self._current_task,
             )
 
 
@@ -252,9 +255,7 @@ def get_robot_controller() -> RobotController:
         with _rc_lock:
             if _robot_controller is None:
                 _robot_controller = RobotController(
-                    robot_id='robot_default',
-                    robot_type=RobotType.MOBILE_MANIPULATOR,
-                    control_mode=ControlMode.VELOCITY
+                    robot_id="robot_default", robot_type=RobotType.MOBILE_MANIPULATOR, control_mode=ControlMode.VELOCITY
                 )
     return _robot_controller
 
@@ -263,8 +264,10 @@ def get_robot_controller() -> RobotController:
 # MOTION PLANNING & NAVIGATION
 # ============================================================================
 
+
 class PathPlanningAlgorithm(Enum):
     """Path planning algorithms"""
+
     A_STAR = "a_star"
     RRT = "rrt"
     RRT_STAR = "rrt_star"
@@ -275,6 +278,7 @@ class PathPlanningAlgorithm(Enum):
 
 class SLAMAlgorithm(Enum):
     """SLAM algorithms"""
+
     CARTOGRAPHER = "cartographer"
     GMAPPING = "gmapping"
     ORB_SLAM = "orb_slam"
@@ -284,6 +288,7 @@ class SLAMAlgorithm(Enum):
 @dataclass
 class MapData:
     """Map representation"""
+
     width: int
     height: int
     resolution: float  # meters per cell
@@ -298,11 +303,14 @@ class PathPlanner:
         self.algorithm = algorithm
         self._planning_cache = {}
 
-    async def plan_path(self, start: Tuple[float, float, float],
-                       goal: Tuple[float, float, float],
-                       algorithm: Optional[PathPlanningAlgorithm] = None,
-                       allow_diagonal: bool = True,
-                       smoothing: bool = True) -> List[Tuple[float, float, float]]:
+    async def plan_path(
+        self,
+        start: Tuple[float, float, float],
+        goal: Tuple[float, float, float],
+        algorithm: Optional[PathPlanningAlgorithm] = None,
+        allow_diagonal: bool = True,
+        smoothing: bool = True,
+    ) -> List[Tuple[float, float, float]]:
         """Plan path from start to goal"""
         if algorithm is None:
             algorithm = self.algorithm
@@ -332,9 +340,9 @@ class PathPlanner:
 
         return path
 
-    def _a_star_planning(self, start: Tuple[float, float, float],
-                        goal: Tuple[float, float, float],
-                        allow_diagonal: bool) -> List[Tuple[float, float, float]]:
+    def _a_star_planning(
+        self, start: Tuple[float, float, float], goal: Tuple[float, float, float], allow_diagonal: bool
+    ) -> List[Tuple[float, float, float]]:
         """A* path planning"""
         # Simplified A* - generate waypoints
         num_waypoints = int(np.linalg.norm(np.array(goal) - np.array(start)) / 0.5) + 1
@@ -347,14 +355,16 @@ class PathPlanner:
 
         return path
 
-    def _rrt_planning(self, start: Tuple[float, float, float],
-                     goal: Tuple[float, float, float]) -> List[Tuple[float, float, float]]:
+    def _rrt_planning(
+        self, start: Tuple[float, float, float], goal: Tuple[float, float, float]
+    ) -> List[Tuple[float, float, float]]:
         """RRT path planning"""
         # Simplified RRT
         return self._straight_line_path(start, goal)
 
-    def _straight_line_path(self, start: Tuple[float, float, float],
-                           goal: Tuple[float, float, float]) -> List[Tuple[float, float, float]]:
+    def _straight_line_path(
+        self, start: Tuple[float, float, float], goal: Tuple[float, float, float]
+    ) -> List[Tuple[float, float, float]]:
         """Generate straight line path"""
         return [start, goal]
 
@@ -366,9 +376,7 @@ class PathPlanner:
         # Simplified smoothing - average consecutive points
         smoothed = [path[0]]
         for i in range(1, len(path) - 1):
-            smoothed_point = tuple(
-                (np.array(path[i - 1]) + 2 * np.array(path[i]) + np.array(path[i + 1])) / 4
-            )
+            smoothed_point = tuple((np.array(path[i - 1]) + 2 * np.array(path[i]) + np.array(path[i + 1])) / 4)
             smoothed.append(smoothed_point)
         smoothed.append(path[-1])
 
@@ -390,11 +398,7 @@ class SLAMEngine:
 
         # Initialize map
         self._map_data = MapData(
-            width=1000,
-            height=1000,
-            resolution=0.05,  # 5cm per cell
-            data=np.zeros((1000, 1000)),
-            origin=(0, 0, 0)
+            width=1000, height=1000, resolution=0.05, data=np.zeros((1000, 1000)), origin=(0, 0, 0)  # 5cm per cell
         )
 
     async def stop(self):
@@ -420,25 +424,21 @@ class SLAMEngine:
 class ObstacleAvoidance:
     """Dynamic obstacle avoidance"""
 
-    def __init__(self, algorithm: str = 'dwa'):
+    def __init__(self, algorithm: str = "dwa"):
         self.algorithm = algorithm
         self._obstacles: List[Dict[str, Any]] = []
 
     def add_obstacle(self, position: Tuple[float, float], radius: float):
         """Add detected obstacle"""
-        self._obstacles.append({
-            'position': position,
-            'radius': radius,
-            'detected_at': datetime.now()
-        })
+        self._obstacles.append({"position": position, "radius": radius, "detected_at": datetime.now()})
 
     def clear_obstacles(self):
         """Clear obstacle list"""
         self._obstacles.clear()
 
-    async def compute_velocity(self, current_velocity: np.ndarray,
-                               target_velocity: np.ndarray,
-                               robot_position: np.ndarray) -> np.ndarray:
+    async def compute_velocity(
+        self, current_velocity: np.ndarray, target_velocity: np.ndarray, robot_position: np.ndarray
+    ) -> np.ndarray:
         """Compute safe velocity considering obstacles"""
         if not self._obstacles:
             return target_velocity
@@ -447,12 +447,12 @@ class ObstacleAvoidance:
         safe_velocity = target_velocity.copy()
 
         for obstacle in self._obstacles:
-            obs_pos = np.array(obstacle['position'] + (0,))
+            obs_pos = np.array(obstacle["position"] + (0,))
             distance = np.linalg.norm(robot_position[:2] - obs_pos[:2])
 
-            if distance < obstacle['radius'] + 0.5:
+            if distance < obstacle["radius"] + 0.5:
                 # Too close - reduce velocity
-                reduction_factor = max(0, (distance - obstacle['radius']) / 0.5)
+                reduction_factor = max(0, (distance - obstacle["radius"]) / 0.5)
                 safe_velocity *= reduction_factor
 
         return safe_velocity
@@ -461,9 +461,7 @@ class ObstacleAvoidance:
 class NavigationStack:
     """Complete navigation system"""
 
-    def __init__(self, global_planner: str = 'a_star',
-                 local_planner: str = 'dwa',
-                 costmap_resolution: float = 0.05):
+    def __init__(self, global_planner: str = "a_star", local_planner: str = "dwa", costmap_resolution: float = 0.05):
         self.global_planner = PathPlanner(PathPlanningAlgorithm.A_STAR)
         self.local_planner = local_planner
         self.costmap_resolution = costmap_resolution
@@ -471,9 +469,9 @@ class NavigationStack:
         self._slam = SLAMEngine()
         self._obstacle_avoidance = ObstacleAvoidance()
 
-    async def navigate_to_goal(self, goal_pose: Tuple[float, float, float],
-                              tolerance: float = 0.1,
-                              timeout: int = 300) -> Dict[str, Any]:
+    async def navigate_to_goal(
+        self, goal_pose: Tuple[float, float, float], tolerance: float = 0.1, timeout: int = 300
+    ) -> Dict[str, Any]:
         """Navigate to goal pose"""
         start_time = datetime.now()
 
@@ -484,17 +482,14 @@ class NavigationStack:
         current_pose = self._slam.get_robot_pose()
 
         # Plan global path
-        path = await self.global_planner.plan_path(
-            start=current_pose,
-            goal=goal_pose
-        )
+        path = await self.global_planner.plan_path(start=current_pose, goal=goal_pose)
 
         # Execute path
         for waypoint in path:
             # Check timeout
             elapsed = (datetime.now() - start_time).total_seconds()
             if elapsed > timeout:
-                return {'success': False, 'reason': 'Timeout'}
+                return {"success": False, "reason": "Timeout"}
 
             # Check if reached waypoint
             distance = np.linalg.norm(np.array(waypoint) - np.array(current_pose))
@@ -505,10 +500,10 @@ class NavigationStack:
             current_pose = waypoint
 
         return {
-            'success': True,
-            'final_pose': current_pose,
-            'path_length': len(path),
-            'time_seconds': (datetime.now() - start_time).total_seconds()
+            "success": True,
+            "final_pose": current_pose,
+            "path_length": len(path),
+            "time_seconds": (datetime.now() - start_time).total_seconds(),
         }
 
 
@@ -531,8 +526,10 @@ def get_navigation_stack() -> NavigationStack:
 # COMPUTER VISION
 # ============================================================================
 
+
 class VisionModel(Enum):
     """Computer vision models"""
+
     YOLO_V8 = "yolov8"
     FASTER_RCNN = "faster_rcnn"
     MASK_RCNN = "mask_rcnn"
@@ -542,6 +539,7 @@ class VisionModel(Enum):
 @dataclass
 class Detection:
     """Object detection result"""
+
     class_name: str
     confidence: float
     bbox: Tuple[int, int, int, int]  # x, y, w, h
@@ -552,9 +550,7 @@ class Detection:
 class ObjectDetector:
     """Object detection system"""
 
-    def __init__(self, model: VisionModel = VisionModel.YOLO_V8,
-                 confidence: float = 0.5,
-                 device: str = 'cpu'):
+    def __init__(self, model: VisionModel = VisionModel.YOLO_V8, confidence: float = 0.5, device: str = "cpu"):
         self.model = model
         self.confidence = confidence
         self.device = device
@@ -569,16 +565,20 @@ class ObjectDetector:
         num_detections = np.random.randint(0, 5)
         detections = []
 
-        classes = ['document', 'person', 'box', 'chair', 'table']
+        classes = ["document", "person", "box", "chair", "table"]
 
         for i in range(num_detections):
             detection = Detection(
                 class_name=np.random.choice(classes),
                 confidence=np.random.uniform(self.confidence, 0.99),
-                bbox=(np.random.randint(0, 400), np.random.randint(0, 300),
-                     np.random.randint(50, 150), np.random.randint(50, 150)),
+                bbox=(
+                    np.random.randint(0, 400),
+                    np.random.randint(0, 300),
+                    np.random.randint(50, 150),
+                    np.random.randint(50, 150),
+                ),
                 x=np.random.randint(0, 640),
-                y=np.random.randint(0, 480)
+                y=np.random.randint(0, 480),
             )
             detections.append(detection)
 
@@ -588,12 +588,15 @@ class ObjectDetector:
 class DepthEstimator:
     """Depth estimation system"""
 
-    def __init__(self, method: str = 'stereo'):
+    def __init__(self, method: str = "stereo"):
         self.method = method
 
-    async def estimate_depth(self, left_image: Optional[np.ndarray] = None,
-                            right_image: Optional[np.ndarray] = None,
-                            image: Optional[np.ndarray] = None) -> np.ndarray:
+    async def estimate_depth(
+        self,
+        left_image: Optional[np.ndarray] = None,
+        right_image: Optional[np.ndarray] = None,
+        image: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
         """Estimate depth map"""
         # Simulate depth estimation
         await asyncio.sleep(0.05)
@@ -623,19 +626,19 @@ class DocumentRecognizer:
         await asyncio.sleep(0.1)
 
         result = {
-            'has_barcode': np.random.random() > 0.7,
-            'has_qr_code': np.random.random() > 0.8,
-            'has_text': np.random.random() > 0.5
+            "has_barcode": np.random.random() > 0.7,
+            "has_qr_code": np.random.random() > 0.8,
+            "has_text": np.random.random() > 0.5,
         }
 
-        if result['has_barcode']:
-            result['barcode_data'] = f"BARCODE_{np.random.randint(1000000, 9999999)}"
+        if result["has_barcode"]:
+            result["barcode_data"] = f"BARCODE_{np.random.randint(1000000, 9999999)}"
 
-        if result['has_qr_code']:
-            result['qr_data'] = f"https://example.com/doc/{np.random.randint(1000, 9999)}"
+        if result["has_qr_code"]:
+            result["qr_data"] = f"https://example.com/doc/{np.random.randint(1000, 9999)}"
 
-        if result['has_text']:
-            result['text'] = "Sample document text recognized by OCR"
+        if result["has_text"]:
+            result["text"] = "Sample document text recognized by OCR"
 
         return result
 
@@ -643,7 +646,7 @@ class DocumentRecognizer:
 class VisualServoing:
     """Vision-based robot control"""
 
-    def __init__(self, method: str = 'ibvs'):
+    def __init__(self, method: str = "ibvs"):
         self.method = method  # 'ibvs' or 'pbvs'
 
     async def track_object(self, target_object_id: str) -> Dict[str, Any]:
@@ -651,11 +654,7 @@ class VisualServoing:
         # Simulate visual servoing
         await asyncio.sleep(0.5)
 
-        return {
-            'success': True,
-            'object_id': target_object_id,
-            'tracking_error': np.random.uniform(0, 5)  # pixels
-        }
+        return {"success": True, "object_id": target_object_id, "tracking_error": np.random.uniform(0, 5)}  # pixels
 
 
 class PoseEstimator:
@@ -664,20 +663,15 @@ class PoseEstimator:
     def __init__(self):
         self._marker_database = {}
 
-    async def estimate_pose(self, image: np.ndarray,
-                           object_id: Optional[str] = None) -> Dict[str, Any]:
+    async def estimate_pose(self, image: np.ndarray, object_id: Optional[str] = None) -> Dict[str, Any]:
         """Estimate 6-DOF pose of object"""
         # Simulate pose estimation
         await asyncio.sleep(0.02)
 
         pose = {
-            'position': (np.random.uniform(-1, 1),
-                        np.random.uniform(-1, 1),
-                        np.random.uniform(0.5, 2)),
-            'orientation': (np.random.uniform(-180, 180),
-                           np.random.uniform(-180, 180),
-                           np.random.uniform(-180, 180)),
-            'confidence': np.random.uniform(0.8, 0.99)
+            "position": (np.random.uniform(-1, 1), np.random.uniform(-1, 1), np.random.uniform(0.5, 2)),
+            "orientation": (np.random.uniform(-180, 180), np.random.uniform(-180, 180), np.random.uniform(-180, 180)),
+            "confidence": np.random.uniform(0.8, 0.99),
         }
 
         return pose
@@ -695,11 +689,11 @@ def get_vision_system() -> Dict[str, Any]:
         with _vision_lock:
             if _vision_system is None:
                 _vision_system = {
-                    'detector': ObjectDetector(),
-                    'depth': DepthEstimator(),
-                    'document': DocumentRecognizer(),
-                    'servoing': VisualServoing(),
-                    'pose': PoseEstimator()
+                    "detector": ObjectDetector(),
+                    "depth": DepthEstimator(),
+                    "document": DocumentRecognizer(),
+                    "servoing": VisualServoing(),
+                    "pose": PoseEstimator(),
                 }
     return _vision_system
 
@@ -708,8 +702,10 @@ def get_vision_system() -> Dict[str, Any]:
 # MANIPULATION & GRASPING
 # ============================================================================
 
+
 class GraspType(Enum):
     """Types of grasps"""
+
     PRECISION = "precision"  # Fingertip grasp
     POWER = "power"  # Palm grasp
     LATERAL = "lateral"  # Side grasp
@@ -720,6 +716,7 @@ class GraspType(Enum):
 @dataclass
 class GraspPose:
     """Grasp pose representation"""
+
     pose: Tuple[float, float, float, float, float, float]  # x, y, z, roll, pitch, yaw
     quality: float
     grasp_type: GraspType
@@ -729,13 +726,13 @@ class GraspPose:
 class GraspPlanner:
     """Grasp planning system"""
 
-    def __init__(self, method: str = 'gpd'):
+    def __init__(self, method: str = "gpd"):
         self.method = method
         self._grasp_database = {}
 
-    async def plan_grasps(self, object_point_cloud: np.ndarray,
-                         num_grasps: int = 10,
-                         quality_threshold: float = 0.5) -> List[GraspPose]:
+    async def plan_grasps(
+        self, object_point_cloud: np.ndarray, num_grasps: int = 10, quality_threshold: float = 0.5
+    ) -> List[GraspPose]:
         """Plan grasp poses for object"""
         # Simulate grasp planning
         await asyncio.sleep(0.2)
@@ -746,15 +743,17 @@ class GraspPlanner:
         for i in range(num_grasps):
             quality = np.random.uniform(quality_threshold, 1.0)
             grasp = GraspPose(
-                pose=(np.random.uniform(-0.5, 0.5),
-                     np.random.uniform(-0.5, 0.5),
-                     np.random.uniform(0.1, 0.5),
-                     np.random.uniform(-180, 180),
-                     np.random.uniform(-180, 180),
-                     np.random.uniform(-180, 180)),
+                pose=(
+                    np.random.uniform(-0.5, 0.5),
+                    np.random.uniform(-0.5, 0.5),
+                    np.random.uniform(0.1, 0.5),
+                    np.random.uniform(-180, 180),
+                    np.random.uniform(-180, 180),
+                    np.random.uniform(-180, 180),
+                ),
                 quality=quality,
                 grasp_type=np.random.choice(grasp_types),
-                approach_direction=(0, 0, -1)
+                approach_direction=(0, 0, -1),
             )
             grasps.append(grasp)
 
@@ -767,20 +766,18 @@ class GraspPlanner:
 class ManipulationController:
     """Robotic manipulator control"""
 
-    def __init__(self, robot_id: str, arm: str = 'right',
-                 gripper_type: str = 'parallel_jaw'):
+    def __init__(self, robot_id: str, arm: str = "right", gripper_type: str = "parallel_jaw"):
         self.robot_id = robot_id
         self.arm = arm
         self.gripper_type = gripper_type
         self._is_gripping = False
 
-    async def move_to_pose(self, pose: Tuple[float, ...],
-                          max_velocity: float = 0.5) -> Dict[str, Any]:
+    async def move_to_pose(self, pose: Tuple[float, ...], max_velocity: float = 0.5) -> Dict[str, Any]:
         """Move arm to target pose"""
         # Simulate arm movement
         await asyncio.sleep(0.5)
 
-        return {'success': True, 'pose': pose}
+        return {"success": True, "pose": pose}
 
     async def open_gripper(self, width: float = 0.08):
         """Open gripper"""
@@ -791,7 +788,7 @@ class ManipulationController:
         """Close gripper with specified force"""
         await asyncio.sleep(0.2)
         self._is_gripping = True
-        return {'success': True, 'force': force}
+        return {"success": True, "force": force}
 
 
 class ForceController:
@@ -800,13 +797,12 @@ class ForceController:
     def __init__(self):
         self._force_threshold = 50  # Newtons
 
-    async def apply_force(self, force: np.ndarray,
-                         duration: float = 1.0):
+    async def apply_force(self, force: np.ndarray, duration: float = 1.0):
         """Apply controlled force"""
         # Simulate force application
         await asyncio.sleep(duration)
 
-        return {'success': True, 'applied_force': force}
+        return {"success": True, "applied_force": force}
 
 
 class PickAndPlace:
@@ -815,11 +811,14 @@ class PickAndPlace:
     def __init__(self, manipulator: ManipulationController):
         self.manipulator = manipulator
 
-    async def execute(self, pick_pose: Tuple[float, ...],
-                     place_pose: Tuple[float, ...],
-                     approach_distance: float = 0.1,
-                     retreat_distance: float = 0.1,
-                     grasp_force: float = 20) -> Dict[str, Any]:
+    async def execute(
+        self,
+        pick_pose: Tuple[float, ...],
+        place_pose: Tuple[float, ...],
+        approach_distance: float = 0.1,
+        retreat_distance: float = 0.1,
+        grasp_force: float = 20,
+    ) -> Dict[str, Any]:
         """Execute pick-and-place operation"""
         # Approach pick pose
         approach_pose = list(pick_pose)
@@ -846,24 +845,22 @@ class PickAndPlace:
         # Retreat
         await self.manipulator.move_to_pose(tuple(retreat_pose))
 
-        return {
-            'success': True,
-            'pick_pose': pick_pose,
-            'place_pose': place_pose
-        }
+        return {"success": True, "pick_pose": pick_pose, "place_pose": place_pose}
 
 
 class BinPicking:
     """Bin picking with vision"""
 
-    def __init__(self, manipulator: ManipulationController,
-                 vision_system: Dict[str, Any]):
+    def __init__(self, manipulator: ManipulationController, vision_system: Dict[str, Any]):
         self.manipulator = manipulator
         self.vision_system = vision_system
 
-    async def pick_all_objects(self, bin_location: Tuple[float, float, float],
-                               target_location: Tuple[float, float, float],
-                               max_attempts_per_object: int = 3) -> List[str]:
+    async def pick_all_objects(
+        self,
+        bin_location: Tuple[float, float, float],
+        target_location: Tuple[float, float, float],
+        max_attempts_per_object: int = 3,
+    ) -> List[str]:
         """Pick all objects from bin"""
         picked_objects = []
 
@@ -895,12 +892,12 @@ def get_manipulation_system() -> Dict[str, Any]:
     if _manipulation_system is None:
         with _manip_lock:
             if _manipulation_system is None:
-                manip = ManipulationController('robot_default')
+                manip = ManipulationController("robot_default")
                 _manipulation_system = {
-                    'grasp_planner': GraspPlanner(),
-                    'manipulator': manip,
-                    'force_controller': ForceController(),
-                    'pick_and_place': PickAndPlace(manip)
+                    "grasp_planner": GraspPlanner(),
+                    "manipulator": manip,
+                    "force_controller": ForceController(),
+                    "pick_and_place": PickAndPlace(manip),
                 }
     return _manipulation_system
 
@@ -909,8 +906,10 @@ def get_manipulation_system() -> Dict[str, Any]:
 # HUMAN-ROBOT INTERACTION
 # ============================================================================
 
+
 class GestureType(Enum):
     """Recognized gesture types"""
+
     POINTING = "pointing"
     WAVING = "waving"
     STOP = "stop"
@@ -921,6 +920,7 @@ class GestureType(Enum):
 @dataclass
 class VoiceCommand:
     """Voice command result"""
+
     text: str
     confidence: float
     intent: Optional[str] = None
@@ -930,9 +930,7 @@ class VoiceCommand:
 class SpeechInterface:
     """Speech recognition and synthesis"""
 
-    def __init__(self, language: str = 'en',
-                 wake_word: str = 'hey robot',
-                 tts_voice: str = 'neural'):
+    def __init__(self, language: str = "en", wake_word: str = "hey robot", tts_voice: str = "neural"):
         self.language = language
         self.wake_word = wake_word
         self.tts_voice = tts_voice
@@ -946,21 +944,13 @@ class SpeechInterface:
         await asyncio.sleep(timeout)
 
         # Simulate speech recognition
-        commands = [
-            "Go to room 305",
-            "Deliver this document",
-            "Clean the floor",
-            "Follow me"
-        ]
+        commands = ["Go to room 305", "Deliver this document", "Clean the floor", "Follow me"]
 
         text = np.random.choice(commands)
 
         self._listening = False
 
-        return VoiceCommand(
-            text=text,
-            confidence=np.random.uniform(0.8, 0.99)
-        )
+        return VoiceCommand(text=text, confidence=np.random.uniform(0.8, 0.99))
 
     async def speak(self, text: str):
         """Speak text using TTS"""
@@ -983,16 +973,10 @@ class GestureRecognizer:
         gesture_types = list(GestureType)
         detected = np.random.choice(gesture_types)
 
-        result = {
-            'type': detected.value,
-            'confidence': np.random.uniform(0.7, 0.99),
-            'direction': None
-        }
+        result = {"type": detected.value, "confidence": np.random.uniform(0.7, 0.99), "direction": None}
 
         if detected == GestureType.POINTING:
-            result['direction'] = (np.random.uniform(-5, 5),
-                                  np.random.uniform(-5, 5),
-                                  0)
+            result["direction"] = (np.random.uniform(-5, 5), np.random.uniform(-5, 5), 0)
 
         self._gesture_history.append(result)
 
@@ -1002,8 +986,7 @@ class GestureRecognizer:
 class CollaborativeSpace:
     """Collaborative workspace safety monitoring"""
 
-    def __init__(self, workspace_bounds: Tuple[Tuple[float, float], Tuple[float, float]],
-                 safety_zones: List[str]):
+    def __init__(self, workspace_bounds: Tuple[Tuple[float, float], Tuple[float, float]], safety_zones: List[str]):
         self.workspace_bounds = workspace_bounds
         self.safety_zones = safety_zones
         self._humans_detected = []
@@ -1024,17 +1007,13 @@ class CollaborativeSpace:
 
         if human_present:
             return {
-                'detected': True,
-                'distance': np.random.uniform(0.5, 5.0),
-                'position': (np.random.uniform(-3, 3),
-                            np.random.uniform(-3, 3),
-                            0),
-                'velocity': (np.random.uniform(-0.5, 0.5),
-                            np.random.uniform(-0.5, 0.5),
-                            0)
+                "detected": True,
+                "distance": np.random.uniform(0.5, 5.0),
+                "position": (np.random.uniform(-3, 3), np.random.uniform(-3, 3), 0),
+                "velocity": (np.random.uniform(-0.5, 0.5), np.random.uniform(-0.5, 0.5), 0),
             }
         else:
-            return {'detected': False}
+            return {"detected": False}
 
 
 class IntentPredictor:
@@ -1048,7 +1027,7 @@ class IntentPredictor:
         # Simulate intent prediction
         await asyncio.sleep(0.05)
 
-        intents = ['approaching_robot', 'passing_by', 'working', 'idle']
+        intents = ["approaching_robot", "passing_by", "working", "idle"]
         predicted = np.random.choice(intents)
 
         return predicted
@@ -1060,8 +1039,9 @@ class SocialBehavior:
     def __init__(self):
         self._personal_space_radius = 1.2  # meters
 
-    async def navigate_socially(self, goal: Tuple[float, float],
-                                human_positions: List[Tuple[float, float]]) -> List[Tuple[float, float]]:
+    async def navigate_socially(
+        self, goal: Tuple[float, float], human_positions: List[Tuple[float, float]]
+    ) -> List[Tuple[float, float]]:
         """Navigate while respecting personal space"""
         # Adjust path to avoid personal spaces
         path = [goal]  # Simplified
@@ -1081,11 +1061,11 @@ def get_hri_system() -> Dict[str, Any]:
         with _hri_lock:
             if _hri_system is None:
                 _hri_system = {
-                    'speech': SpeechInterface(),
-                    'gestures': GestureRecognizer(),
-                    'collab_space': CollaborativeSpace(((0, 0), (10, 10)), []),
-                    'intent': IntentPredictor(),
-                    'social': SocialBehavior()
+                    "speech": SpeechInterface(),
+                    "gestures": GestureRecognizer(),
+                    "collab_space": CollaborativeSpace(((0, 0), (10, 10)), []),
+                    "intent": IntentPredictor(),
+                    "social": SocialBehavior(),
                 }
     return _hri_system
 
@@ -1094,8 +1074,10 @@ def get_hri_system() -> Dict[str, Any]:
 # FLEET MANAGEMENT
 # ============================================================================
 
+
 class TaskAllocationAlgorithm(Enum):
     """Task allocation algorithms"""
+
     GREEDY = "greedy"
     HUNGARIAN = "hungarian"
     AUCTION = "auction"
@@ -1105,12 +1087,13 @@ class TaskAllocationAlgorithm(Enum):
 @dataclass
 class Task:
     """Robot task definition"""
+
     task_id: str
     task_type: str
     priority: str
     location: Tuple[float, float]
     assigned_robot: Optional[str] = None
-    status: str = 'pending'
+    status: str = "pending"
 
 
 class FleetManager:
@@ -1121,41 +1104,41 @@ class FleetManager:
         self._tasks: Dict[str, Task] = {}
         self._lock = threading.Lock()
 
-    async def register_robot(self, robot_id: str,
-                            capabilities: List[str],
-                            max_payload_kg: float,
-                            battery_capacity_wh: float):
+    async def register_robot(
+        self, robot_id: str, capabilities: List[str], max_payload_kg: float, battery_capacity_wh: float
+    ):
         """Register robot with fleet"""
         with self._lock:
             self._robots[robot_id] = {
-                'robot_id': robot_id,
-                'capabilities': capabilities,
-                'max_payload_kg': max_payload_kg,
-                'battery_capacity_wh': battery_capacity_wh,
-                'current_task': None,
-                'battery_percent': 100.0,
-                'status': 'idle',
-                'registered_at': datetime.now()
+                "robot_id": robot_id,
+                "capabilities": capabilities,
+                "max_payload_kg": max_payload_kg,
+                "battery_capacity_wh": battery_capacity_wh,
+                "current_task": None,
+                "battery_percent": 100.0,
+                "status": "idle",
+                "registered_at": datetime.now(),
             }
 
     def get_available_robots(self) -> List[str]:
         """Get list of available robot IDs"""
         with self._lock:
-            return [rid for rid, info in self._robots.items()
-                   if info['status'] == 'idle' and info['battery_percent'] > 20]
+            return [
+                rid for rid, info in self._robots.items() if info["status"] == "idle" and info["battery_percent"] > 20
+            ]
 
     async def get_metrics(self) -> Dict[str, Any]:
         """Get fleet-wide metrics"""
         with self._lock:
             total_robots = len(self._robots)
-            active_robots = sum(1 for r in self._robots.values() if r['status'] == 'busy')
+            active_robots = sum(1 for r in self._robots.values() if r["status"] == "busy")
 
             return {
-                'total_robots': total_robots,
-                'active_robots': active_robots,
-                'tasks_completed': len([t for t in self._tasks.values() if t.status == 'completed']),
-                'avg_task_time_min': np.random.uniform(3, 10),
-                'utilization_percent': (active_robots / total_robots * 100) if total_robots > 0 else 0
+                "total_robots": total_robots,
+                "active_robots": active_robots,
+                "tasks_completed": len([t for t in self._tasks.values() if t.status == "completed"]),
+                "avg_task_time_min": np.random.uniform(3, 10),
+                "utilization_percent": (active_robots / total_robots * 100) if total_robots > 0 else 0,
             }
 
 
@@ -1165,9 +1148,9 @@ class TaskAllocator:
     def __init__(self, algorithm: TaskAllocationAlgorithm = TaskAllocationAlgorithm.HUNGARIAN):
         self.algorithm = algorithm
 
-    async def allocate_tasks(self, tasks: List[Dict[str, Any]],
-                            available_robots: List[str],
-                            objective: str = 'minimize_time') -> Dict[str, str]:
+    async def allocate_tasks(
+        self, tasks: List[Dict[str, Any]], available_robots: List[str], objective: str = "minimize_time"
+    ) -> Dict[str, str]:
         """Allocate tasks to robots"""
         # Simulate task allocation
         await asyncio.sleep(0.05)
@@ -1177,7 +1160,7 @@ class TaskAllocator:
         # Simple greedy allocation
         for i, task in enumerate(tasks):
             if i < len(available_robots):
-                allocation[task['id']] = available_robots[i]
+                allocation[task["id"]] = available_robots[i]
 
         return allocation
 
@@ -1193,23 +1176,21 @@ class BatteryManager:
         robots = []
 
         for robot_id, info in self.fleet._robots.items():
-            if info['battery_percent'] < threshold:
+            if info["battery_percent"] < threshold:
                 robots.append(robot_id)
 
         return robots
 
-    async def schedule_charging(self, robot_id: str,
-                               charge_station: str,
-                               priority: str = 'normal'):
+    async def schedule_charging(self, robot_id: str, charge_station: str, priority: str = "normal"):
         """Schedule robot charging"""
         # Simulate charging scheduling
         await asyncio.sleep(0.1)
 
         return {
-            'robot_id': robot_id,
-            'charge_station': charge_station,
-            'estimated_charge_time_min': 30,
-            'priority': priority
+            "robot_id": robot_id,
+            "charge_station": charge_station,
+            "estimated_charge_time_min": 30,
+            "priority": priority,
         }
 
 
@@ -1245,7 +1226,7 @@ class PerformanceMonitor:
     async def collect_metrics(self, fleet: FleetManager):
         """Collect fleet metrics"""
         metrics = await fleet.get_metrics()
-        metrics['timestamp'] = datetime.now()
+        metrics["timestamp"] = datetime.now()
 
         self._metrics_history.append(metrics)
 
@@ -1253,16 +1234,19 @@ class PerformanceMonitor:
 
     def get_metrics_summary(self, time_window_hours: int = 24) -> Dict[str, Any]:
         """Get metrics summary"""
-        recent_metrics = [m for m in self._metrics_history
-                         if (datetime.now() - m['timestamp']).total_seconds() < time_window_hours * 3600]
+        recent_metrics = [
+            m
+            for m in self._metrics_history
+            if (datetime.now() - m["timestamp"]).total_seconds() < time_window_hours * 3600
+        ]
 
         if not recent_metrics:
             return {}
 
         return {
-            'avg_utilization': np.mean([m['utilization_percent'] for m in recent_metrics]),
-            'avg_active_robots': np.mean([m['active_robots'] for m in recent_metrics]),
-            'total_tasks': sum(m['tasks_completed'] for m in recent_metrics)
+            "avg_utilization": np.mean([m["utilization_percent"] for m in recent_metrics]),
+            "avg_active_robots": np.mean([m["active_robots"] for m in recent_metrics]),
+            "total_tasks": sum(m["tasks_completed"] for m in recent_metrics),
         }
 
 
@@ -1285,8 +1269,10 @@ def get_fleet_manager() -> FleetManager:
 # ROBOT DIGITAL TWIN
 # ============================================================================
 
+
 class SimulationEngine(Enum):
     """Supported simulation engines"""
+
     GAZEBO = "gazebo"
     PYBULLET = "pybullet"
     MUJOCO = "mujoco"
@@ -1320,12 +1306,11 @@ class PhysicsSimulator:
 class PredictiveAnalytics:
     """Predictive maintenance analytics"""
 
-    def __init__(self, twin_engine: 'DigitalTwinEngine'):
+    def __init__(self, twin_engine: "DigitalTwinEngine"):
         self.twin_engine = twin_engine
         self._failure_models = {}
 
-    async def analyze_wear(self, robot_id: str, component: str,
-                          prediction_horizon_days: int = 30) -> Dict[str, Any]:
+    async def analyze_wear(self, robot_id: str, component: str, prediction_horizon_days: int = 30) -> Dict[str, Any]:
         """Analyze component wear and predict failures"""
         # Simulate wear analysis
         await asyncio.sleep(0.2)
@@ -1333,12 +1318,12 @@ class PredictiveAnalytics:
         failure_probability = np.random.uniform(0, 1)
 
         result = {
-            'robot_id': robot_id,
-            'component': component,
-            'current_wear': np.random.uniform(0, 1),
-            'failure_probability': failure_probability,
-            'predicted_lifetime_days': np.random.randint(10, 200),
-            'maintenance_date': datetime.now() + timedelta(days=np.random.randint(5, 60))
+            "robot_id": robot_id,
+            "component": component,
+            "current_wear": np.random.uniform(0, 1),
+            "failure_probability": failure_probability,
+            "predicted_lifetime_days": np.random.randint(10, 200),
+            "maintenance_date": datetime.now() + timedelta(days=np.random.randint(5, 60)),
         }
 
         return result
@@ -1350,33 +1335,31 @@ class PerformanceOptimizer:
     def __init__(self):
         self._optimization_history = []
 
-    async def optimize_parameters(self, robot_id: str,
-                                 objective: str = 'minimize_energy') -> Dict[str, Any]:
+    async def optimize_parameters(self, robot_id: str, objective: str = "minimize_energy") -> Dict[str, Any]:
         """Optimize robot parameters"""
         # Simulate parameter optimization
         await asyncio.sleep(0.5)
 
         optimized_params = {
-            'max_velocity': np.random.uniform(0.5, 2.0),
-            'max_acceleration': np.random.uniform(0.5, 2.0),
-            'trajectory_smoothness': np.random.uniform(0.5, 1.0)
+            "max_velocity": np.random.uniform(0.5, 2.0),
+            "max_acceleration": np.random.uniform(0.5, 2.0),
+            "trajectory_smoothness": np.random.uniform(0.5, 1.0),
         }
 
         improvement = np.random.uniform(5, 25)  # Percent improvement
 
         return {
-            'robot_id': robot_id,
-            'objective': objective,
-            'optimized_params': optimized_params,
-            'improvement_percent': improvement
+            "robot_id": robot_id,
+            "objective": objective,
+            "optimized_params": optimized_params,
+            "improvement_percent": improvement,
         }
 
 
 class DigitalTwinEngine:
     """Robot digital twin engine"""
 
-    def __init__(self, simulation: SimulationEngine = SimulationEngine.PYBULLET,
-                 sync_rate_hz: float = 100):
+    def __init__(self, simulation: SimulationEngine = SimulationEngine.PYBULLET, sync_rate_hz: float = 100):
         self.simulation = simulation
         self.sync_rate_hz = sync_rate_hz
 
@@ -1389,10 +1372,7 @@ class DigitalTwinEngine:
         # Simulate loading robot model
         await asyncio.sleep(0.2)
 
-        self._robots[robot_id] = {
-            'urdf_path': urdf_path,
-            'loaded_at': datetime.now()
-        }
+        self._robots[robot_id] = {"urdf_path": urdf_path, "loaded_at": datetime.now()}
 
     async def start_sync(self, physical_robot_id: str):
         """Start synchronization with physical robot"""
@@ -1416,10 +1396,10 @@ class DigitalTwinEngine:
         await asyncio.sleep(1.0)
 
         result = {
-            'success': np.random.random() > 0.1,  # 90% success rate
-            'time_seconds': np.random.uniform(5, 30),
-            'energy_wh': np.random.uniform(10, 100),
-            'collisions': np.random.randint(0, 3)
+            "success": np.random.random() > 0.1,  # 90% success rate
+            "time_seconds": np.random.uniform(5, 30),
+            "energy_wh": np.random.uniform(10, 100),
+            "collisions": np.random.randint(0, 3),
         }
 
         return result
@@ -1427,9 +1407,9 @@ class DigitalTwinEngine:
     async def get_real_time_data(self) -> Dict[str, Any]:
         """Get real-time synchronization data"""
         return {
-            'position_error': np.random.uniform(0, 5),  # mm
-            'velocity_tracking': np.random.uniform(90, 100),  # percent
-            'sync_latency_ms': np.random.uniform(1, 10)
+            "position_error": np.random.uniform(0, 5),  # mm
+            "velocity_tracking": np.random.uniform(90, 100),  # percent
+            "sync_latency_ms": np.random.uniform(1, 10),
         }
 
 

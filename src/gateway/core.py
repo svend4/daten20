@@ -4,17 +4,18 @@ API Gateway Core
 Central gateway for routing, rate limiting, and request management.
 """
 
-from typing import Optional, Dict, Any, List, Callable
+import hashlib
+import json
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-import time
-import hashlib
-import json
+from typing import Any, Callable, Dict, List, Optional
 
 
 class HTTPMethod(str, Enum):
     """HTTP methods"""
+
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -26,6 +27,7 @@ class HTTPMethod(str, Enum):
 
 class RouteStatus(str, Enum):
     """Route status"""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     MAINTENANCE = "maintenance"
@@ -34,6 +36,7 @@ class RouteStatus(str, Enum):
 @dataclass
 class Route:
     """API route configuration"""
+
     path: str
     methods: List[HTTPMethod]
     backend_url: str
@@ -49,6 +52,7 @@ class Route:
 @dataclass
 class Request:
     """Incoming request"""
+
     method: HTTPMethod
     path: str
     headers: Dict[str, str]
@@ -67,6 +71,7 @@ class Request:
 @dataclass
 class Response:
     """Outgoing response"""
+
     status_code: int
     headers: Dict[str, str]
     body: Optional[str] = None
@@ -76,6 +81,7 @@ class Response:
 @dataclass
 class CircuitBreakerState:
     """Circuit breaker state"""
+
     failures: int = 0
     last_failure_time: Optional[datetime] = None
     is_open: bool = False
@@ -108,27 +114,27 @@ class APIGateway:
                 path="/api/v1/services",
                 methods=[HTTPMethod.GET, HTTPMethod.POST],
                 backend_url="http://localhost:5000/api/v1/services",
-                description="Services CRUD operations"
+                description="Services CRUD operations",
             ),
             Route(
                 path="/api/v1/services/<id>",
                 methods=[HTTPMethod.GET, HTTPMethod.PUT, HTTPMethod.DELETE],
                 backend_url="http://localhost:5000/api/v1/services/<id>",
-                description="Single service operations"
+                description="Single service operations",
             ),
             Route(
                 path="/api/v1/calculate",
                 methods=[HTTPMethod.POST],
                 backend_url="http://localhost:5000/api/v1/calculate",
                 rate_limit=100,  # 100 req/min
-                description="Financial calculations"
+                description="Financial calculations",
             ),
             Route(
                 path="/api/v1/statistics",
                 methods=[HTTPMethod.GET],
                 backend_url="http://localhost:5000/api/v1/statistics",
                 rate_limit=60,
-                description="System statistics"
+                description="System statistics",
             ),
             Route(
                 path="/api/v1/auth/login",
@@ -136,8 +142,8 @@ class APIGateway:
                 backend_url="http://localhost:5000/api/v1/auth/login",
                 auth_required=False,
                 rate_limit=10,  # Stricter for auth
-                description="User authentication"
-            )
+                description="User authentication",
+            ),
         ]
 
         for route in routes:
@@ -164,15 +170,15 @@ class APIGateway:
 
         # Pattern matching (simplified)
         for route_path, route in self.routes.items():
-            if '<' in route_path:
+            if "<" in route_path:
                 # Convert route pattern to regex-like matching
-                pattern_parts = route_path.split('/')
-                path_parts = path.split('/')
+                pattern_parts = route_path.split("/")
+                path_parts = path.split("/")
 
                 if len(pattern_parts) == len(path_parts):
                     match = True
                     for pp, pt in zip(pattern_parts, path_parts):
-                        if pp.startswith('<') and pp.endswith('>'):
+                        if pp.startswith("<") and pp.endswith(">"):
                             continue  # Variable part
                         elif pp != pt:
                             match = False
@@ -196,10 +202,7 @@ class APIGateway:
 
         # Clean old timestamps
         if key in self.rate_limits:
-            self.rate_limits[key] = [
-                ts for ts in self.rate_limits[key]
-                if now - ts < window
-            ]
+            self.rate_limits[key] = [ts for ts in self.rate_limits[key] if now - ts < window]
         else:
             self.rate_limits[key] = []
 
@@ -256,33 +259,33 @@ class APIGateway:
         """Transform request before sending to backend"""
         # Build backend request
         backend_request = {
-            'method': request.method.value,
-            'url': route.backend_url,
-            'headers': request.headers.copy(),
-            'timeout': route.timeout
+            "method": request.method.value,
+            "url": route.backend_url,
+            "headers": request.headers.copy(),
+            "timeout": route.timeout,
         }
 
         # Add query parameters
         if request.query_params:
-            backend_request['params'] = request.query_params
+            backend_request["params"] = request.query_params
 
         # Add body
         if request.body:
-            backend_request['data'] = request.body
+            backend_request["data"] = request.body
 
         # Add authentication headers
         if route.auth_required and request.api_key:
-            backend_request['headers']['X-API-Key'] = request.api_key
+            backend_request["headers"]["X-API-Key"] = request.api_key
 
         return backend_request
 
     def transform_response(self, backend_response: Dict[str, Any]) -> Response:
         """Transform backend response"""
         return Response(
-            status_code=backend_response.get('status_code', 200),
-            headers=backend_response.get('headers', {}),
-            body=backend_response.get('body'),
-            latency_ms=backend_response.get('latency_ms', 0)
+            status_code=backend_response.get("status_code", 200),
+            headers=backend_response.get("headers", {}),
+            body=backend_response.get("body"),
+            latency_ms=backend_response.get("latency_ms", 0),
         )
 
     def handle_request(self, request: Request) -> Response:
@@ -294,36 +297,36 @@ class APIGateway:
         if not route:
             return Response(
                 status_code=404,
-                headers={'Content-Type': 'application/json'},
-                body=json.dumps({'error': 'Route not found'}),
-                latency_ms=(time.time() - start_time) * 1000
+                headers={"Content-Type": "application/json"},
+                body=json.dumps({"error": "Route not found"}),
+                latency_ms=(time.time() - start_time) * 1000,
             )
 
         # Check route status
         if route.status != RouteStatus.ACTIVE:
             return Response(
                 status_code=503,
-                headers={'Content-Type': 'application/json'},
-                body=json.dumps({'error': 'Service unavailable'}),
-                latency_ms=(time.time() - start_time) * 1000
+                headers={"Content-Type": "application/json"},
+                body=json.dumps({"error": "Service unavailable"}),
+                latency_ms=(time.time() - start_time) * 1000,
             )
 
         # Check authentication
         if route.auth_required and not request.api_key:
             return Response(
                 status_code=401,
-                headers={'Content-Type': 'application/json'},
-                body=json.dumps({'error': 'Authentication required'}),
-                latency_ms=(time.time() - start_time) * 1000
+                headers={"Content-Type": "application/json"},
+                body=json.dumps({"error": "Authentication required"}),
+                latency_ms=(time.time() - start_time) * 1000,
             )
 
         # Check rate limit
         if not self.check_rate_limit(request, route):
             return Response(
                 status_code=429,
-                headers={'Content-Type': 'application/json'},
-                body=json.dumps({'error': 'Rate limit exceeded'}),
-                latency_ms=(time.time() - start_time) * 1000
+                headers={"Content-Type": "application/json"},
+                body=json.dumps({"error": "Rate limit exceeded"}),
+                latency_ms=(time.time() - start_time) * 1000,
             )
 
         # Check circuit breaker
@@ -331,9 +334,9 @@ class APIGateway:
             if not self.check_circuit_breaker(route.backend_url):
                 return Response(
                     status_code=503,
-                    headers={'Content-Type': 'application/json'},
-                    body=json.dumps({'error': 'Service temporarily unavailable'}),
-                    latency_ms=(time.time() - start_time) * 1000
+                    headers={"Content-Type": "application/json"},
+                    body=json.dumps({"error": "Service temporarily unavailable"}),
+                    latency_ms=(time.time() - start_time) * 1000,
                 )
 
         # Transform request
@@ -347,10 +350,10 @@ class APIGateway:
 
             # Simulated success
             backend_response = {
-                'status_code': 200,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({'status': 'success'}),
-                'latency_ms': 50
+                "status_code": 200,
+                "headers": {"Content-Type": "application/json"},
+                "body": json.dumps({"status": "success"}),
+                "latency_ms": 50,
             }
 
             self.record_success(route.backend_url)
@@ -359,10 +362,10 @@ class APIGateway:
             self.record_failure(route.backend_url)
 
             backend_response = {
-                'status_code': 500,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({'error': str(e)}),
-                'latency_ms': (time.time() - start_time) * 1000
+                "status_code": 500,
+                "headers": {"Content-Type": "application/json"},
+                "body": json.dumps({"error": str(e)}),
+                "latency_ms": (time.time() - start_time) * 1000,
             }
 
         # Transform response
@@ -377,14 +380,14 @@ class APIGateway:
     def log_request(self, request: Request, route: Route, response: Response):
         """Log request for analytics"""
         log_entry = {
-            'timestamp': request.timestamp.isoformat(),
-            'method': request.method.value,
-            'path': request.path,
-            'route': route.path,
-            'status_code': response.status_code,
-            'latency_ms': response.latency_ms,
-            'client_ip': request.client_ip,
-            'user_id': request.user_id
+            "timestamp": request.timestamp.isoformat(),
+            "method": request.method.value,
+            "path": request.path,
+            "route": route.path,
+            "status_code": response.status_code,
+            "latency_ms": response.latency_ms,
+            "client_ip": request.client_ip,
+            "user_id": request.user_id,
         }
 
         self.request_history.append(log_entry)
@@ -398,35 +401,34 @@ class APIGateway:
         cutoff_time = datetime.now().timestamp() - (minutes * 60)
 
         recent_requests = [
-            r for r in self.request_history
-            if datetime.fromisoformat(r['timestamp']).timestamp() > cutoff_time
+            r for r in self.request_history if datetime.fromisoformat(r["timestamp"]).timestamp() > cutoff_time
         ]
 
         if not recent_requests:
             return {
-                'total_requests': 0,
-                'requests_per_minute': 0,
-                'avg_latency_ms': 0,
-                'error_rate': 0,
-                'status_codes': {}
+                "total_requests": 0,
+                "requests_per_minute": 0,
+                "avg_latency_ms": 0,
+                "error_rate": 0,
+                "status_codes": {},
             }
 
         total = len(recent_requests)
-        errors = len([r for r in recent_requests if r['status_code'] >= 400])
-        latencies = [r['latency_ms'] for r in recent_requests]
+        errors = len([r for r in recent_requests if r["status_code"] >= 400])
+        latencies = [r["latency_ms"] for r in recent_requests]
 
         # Status code distribution
         status_codes = {}
         for req in recent_requests:
-            code = req['status_code']
+            code = req["status_code"]
             status_codes[code] = status_codes.get(code, 0) + 1
 
         return {
-            'total_requests': total,
-            'requests_per_minute': total / minutes,
-            'avg_latency_ms': sum(latencies) / len(latencies),
-            'error_rate': (errors / total * 100) if total > 0 else 0,
-            'status_codes': status_codes
+            "total_requests": total,
+            "requests_per_minute": total / minutes,
+            "avg_latency_ms": sum(latencies) / len(latencies),
+            "error_rate": (errors / total * 100) if total > 0 else 0,
+            "status_codes": status_codes,
         }
 
 

@@ -9,22 +9,24 @@ Tests all major functionality of DocumentComparator:
 - Report generation
 """
 
-import pytest
-import sys
 import os
+import sys
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the comparator module
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("doc_comparator", "doc-comparator.py")
 doc_comparator = importlib.util.module_from_spec(spec)
-sys.modules['doc_comparator'] = doc_comparator  # Add to sys.modules for imports to work
+sys.modules["doc_comparator"] = doc_comparator  # Add to sys.modules for imports to work
 spec.loader.exec_module(doc_comparator)
 
-from doc_comparator import DocumentComparator, ComparisonResult
+from doc_comparator import ComparisonResult, DocumentComparator
 
 
 # Fixtures
@@ -140,14 +142,14 @@ class TestDocumentComparator:
 
         diff_stats = comparator._analyze_diff(text1, text2)
 
-        assert 'added' in diff_stats
-        assert 'removed' in diff_stats
-        assert 'modified' in diff_stats
-        assert 'unchanged' in diff_stats
+        assert "added" in diff_stats
+        assert "removed" in diff_stats
+        assert "modified" in diff_stats
+        assert "unchanged" in diff_stats
 
-        assert diff_stats['added'] >= 0
-        assert diff_stats['removed'] >= 0
-        assert diff_stats['unchanged'] > 0
+        assert diff_stats["added"] >= 0
+        assert diff_stats["removed"] >= 0
+        assert diff_stats["unchanged"] > 0
 
     def test_entity_comparison(self, comparator):
         """Test entity comparison"""
@@ -156,13 +158,13 @@ class TestDocumentComparator:
 
         entity_stats = comparator._compare_entities(text1, text2)
 
-        assert 'doc1_count' in entity_stats
-        assert 'doc2_count' in entity_stats
-        assert 'common_count' in entity_stats
-        assert 'overlap' in entity_stats
+        assert "doc1_count" in entity_stats
+        assert "doc2_count" in entity_stats
+        assert "common_count" in entity_stats
+        assert "overlap" in entity_stats
 
-        assert entity_stats['doc1_count'] >= 0
-        assert entity_stats['doc2_count'] >= 0
+        assert entity_stats["doc1_count"] >= 0
+        assert entity_stats["doc2_count"] >= 0
 
     def test_unified_diff_generation(self, comparator):
         """Test unified diff generation"""
@@ -199,6 +201,7 @@ class TestDocumentComparator:
 
         # Should be valid JSON
         import json
+
         data = json.loads(report)
         assert "cosine_similarity" in data
         assert "jaccard_similarity" in data
@@ -229,11 +232,7 @@ class TestDocumentComparator:
 
     def test_comparison_without_entities(self, comparator, sample1_path, sample2_path):
         """Test comparison without entity analysis"""
-        result = comparator.compare(
-            sample1_path,
-            sample2_path,
-            include_entities=False
-        )
+        result = comparator.compare(sample1_path, sample2_path, include_entities=False)
 
         assert result.entities_doc1 == 0
         assert result.entities_doc2 == 0
@@ -241,11 +240,7 @@ class TestDocumentComparator:
 
     def test_comparison_without_diff(self, comparator, sample1_path, sample2_path):
         """Test comparison without diff generation"""
-        result = comparator.compare(
-            sample1_path,
-            sample2_path,
-            include_diff=False
-        )
+        result = comparator.compare(sample1_path, sample2_path, include_diff=False)
 
         assert result.diff_unified == ""
         assert result.diff_html == ""

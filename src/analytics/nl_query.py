@@ -18,20 +18,21 @@ Dependencies:
 - datetime for date parsing
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Tuple
-from enum import Enum
-from datetime import datetime, timedelta
-import re
 import logging
+import re
 import threading
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class QueryIntent(str, Enum):
     """Query intent types"""
+
     AGGREGATE = "aggregate"  # Sum, average, count
     FILTER = "filter"  # Find records matching criteria
     SORT = "sort"  # Sort by field
@@ -44,6 +45,7 @@ class QueryIntent(str, Enum):
 
 class AggregateFunction(str, Enum):
     """Aggregate functions"""
+
     SUM = "sum"
     AVG = "avg"
     COUNT = "count"
@@ -53,6 +55,7 @@ class AggregateFunction(str, Enum):
 
 class TimeGranularity(str, Enum):
     """Time granularity for grouping"""
+
     HOUR = "hour"
     DAY = "day"
     WEEK = "week"
@@ -64,6 +67,7 @@ class TimeGranularity(str, Enum):
 @dataclass
 class Entity:
     """Extracted entity"""
+
     entity_type: str  # metric, dimension, value, time, etc.
     value: str
     normalized_value: Optional[Any] = None
@@ -73,6 +77,7 @@ class Entity:
 @dataclass
 class TimeRange:
     """Time range for query"""
+
     start: Optional[datetime] = None
     end: Optional[datetime] = None
     relative: Optional[str] = None  # "last 7 days", "this month", etc.
@@ -102,15 +107,15 @@ class TimeRange:
             end = start + timedelta(days=1)
         elif "week" in self.relative.lower():
             # Extract number
-            match = re.search(r'(\d+)', self.relative)
+            match = re.search(r"(\d+)", self.relative)
             days = int(match.group(1)) * 7 if match else 7
             start = end - timedelta(days=days)
         elif "month" in self.relative.lower():
-            match = re.search(r'(\d+)', self.relative)
+            match = re.search(r"(\d+)", self.relative)
             months = int(match.group(1)) if match else 1
             start = end - timedelta(days=months * 30)
         elif "year" in self.relative.lower():
-            match = re.search(r'(\d+)', self.relative)
+            match = re.search(r"(\d+)", self.relative)
             years = int(match.group(1)) if match else 1
             start = end - timedelta(days=years * 365)
         else:
@@ -123,6 +128,7 @@ class TimeRange:
 @dataclass
 class ParsedQuery:
     """Parsed natural language query"""
+
     original_query: str
     intent: QueryIntent
     entities: List[Entity] = field(default_factory=list)
@@ -148,47 +154,47 @@ class IntentClassifier:
     def __init__(self):
         self._intent_patterns = {
             QueryIntent.AGGREGATE: [
-                r'\b(total|sum|average|mean|count|number)\b',
-                r'\bhow (many|much)\b',
-                r'\bwhat (is|are) the (total|average|sum)\b',
+                r"\b(total|sum|average|mean|count|number)\b",
+                r"\bhow (many|much)\b",
+                r"\bwhat (is|are) the (total|average|sum)\b",
             ],
             QueryIntent.FILTER: [
-                r'\b(show|list|find|get|display)\b.*\bwhere\b',
-                r'\bwith\b.*\b(greater|less|equal|above|below)\b',
-                r'\b(customers|users|transactions) (with|that|who)\b',
+                r"\b(show|list|find|get|display)\b.*\bwhere\b",
+                r"\bwith\b.*\b(greater|less|equal|above|below)\b",
+                r"\b(customers|users|transactions) (with|that|who)\b",
             ],
             QueryIntent.SORT: [
-                r'\b(sort|order|rank)\b',
-                r'\b(highest|lowest|best|worst)\b',
-                r'\b(top|bottom)\b',
+                r"\b(sort|order|rank)\b",
+                r"\b(highest|lowest|best|worst)\b",
+                r"\b(top|bottom)\b",
             ],
             QueryIntent.COMPARE: [
-                r'\bcompare\b',
-                r'\b(versus|vs|compared to)\b',
-                r'\bdifference between\b',
+                r"\bcompare\b",
+                r"\b(versus|vs|compared to)\b",
+                r"\bdifference between\b",
             ],
             QueryIntent.TREND: [
-                r'\btrend\b',
-                r'\bover time\b',
-                r'\b(growth|decline)\b',
-                r'\bhow .* (changed|evolved)\b',
+                r"\btrend\b",
+                r"\bover time\b",
+                r"\b(growth|decline)\b",
+                r"\bhow .* (changed|evolved)\b",
             ],
             QueryIntent.TOP_N: [
-                r'\btop \d+\b',
-                r'\bbottom \d+\b',
-                r'\b(best|worst) \d+\b',
+                r"\btop \d+\b",
+                r"\bbottom \d+\b",
+                r"\b(best|worst) \d+\b",
             ],
             QueryIntent.FORECAST: [
-                r'\bforecast\b',
-                r'\bpredict\b',
-                r'\bexpected\b',
-                r'\bnext (week|month|quarter|year)\b',
+                r"\bforecast\b",
+                r"\bpredict\b",
+                r"\bexpected\b",
+                r"\bnext (week|month|quarter|year)\b",
             ],
             QueryIntent.ANOMALY: [
-                r'\banomaly\b',
-                r'\bunusual\b',
-                r'\boutlier\b',
-                r'\bspike\b',
+                r"\banomaly\b",
+                r"\bunusual\b",
+                r"\boutlier\b",
+                r"\bspike\b",
             ],
         }
 
@@ -235,26 +241,48 @@ class EntityExtractor:
 
         # Common time expressions
         self._time_patterns = [
-            (r'\b(last|past) (\d+) (day|week|month|year)s?\b', 'relative'),
-            (r'\btoday\b', 'relative'),
-            (r'\byesterday\b', 'relative'),
-            (r'\bthis (week|month|quarter|year)\b', 'relative'),
-            (r'\b(\d{4})-(\d{2})-(\d{2})\b', 'absolute'),
+            (r"\b(last|past) (\d+) (day|week|month|year)s?\b", "relative"),
+            (r"\btoday\b", "relative"),
+            (r"\byesterday\b", "relative"),
+            (r"\bthis (week|month|quarter|year)\b", "relative"),
+            (r"\b(\d{4})-(\d{2})-(\d{2})\b", "absolute"),
         ]
 
     def _default_schema(self) -> Dict[str, Any]:
         """Default data schema"""
         return {
             "metrics": [
-                "revenue", "sales", "profit", "cost", "price",
-                "users", "customers", "transactions", "orders",
-                "churn", "retention", "conversion", "engagement"
+                "revenue",
+                "sales",
+                "profit",
+                "cost",
+                "price",
+                "users",
+                "customers",
+                "transactions",
+                "orders",
+                "churn",
+                "retention",
+                "conversion",
+                "engagement",
             ],
             "dimensions": [
-                "product", "category", "region", "country", "city",
-                "customer", "user", "segment", "channel", "source",
-                "date", "time", "day", "month", "year"
-            ]
+                "product",
+                "category",
+                "region",
+                "country",
+                "city",
+                "customer",
+                "user",
+                "segment",
+                "channel",
+                "source",
+                "date",
+                "time",
+                "day",
+                "month",
+                "year",
+            ],
         }
 
     def extract(self, query: str) -> List[Entity]:
@@ -273,61 +301,59 @@ class EntityExtractor:
         # Extract metrics
         for metric in self._metric_keywords:
             if metric.lower() in query_lower:
-                entities.append(Entity(
-                    entity_type="metric",
-                    value=metric,
-                    normalized_value=metric.lower().replace(" ", "_"),
-                    confidence=0.9
-                ))
+                entities.append(
+                    Entity(
+                        entity_type="metric",
+                        value=metric,
+                        normalized_value=metric.lower().replace(" ", "_"),
+                        confidence=0.9,
+                    )
+                )
 
         # Extract dimensions
         for dimension in self._dimension_keywords:
             if dimension.lower() in query_lower:
-                entities.append(Entity(
-                    entity_type="dimension",
-                    value=dimension,
-                    normalized_value=dimension.lower().replace(" ", "_"),
-                    confidence=0.9
-                ))
+                entities.append(
+                    Entity(
+                        entity_type="dimension",
+                        value=dimension,
+                        normalized_value=dimension.lower().replace(" ", "_"),
+                        confidence=0.9,
+                    )
+                )
 
         # Extract time expressions
         for pattern, time_type in self._time_patterns:
             match = re.search(pattern, query_lower)
             if match:
-                entities.append(Entity(
-                    entity_type="time",
-                    value=match.group(0),
-                    normalized_value=time_type,
-                    confidence=0.95
-                ))
+                entities.append(
+                    Entity(entity_type="time", value=match.group(0), normalized_value=time_type, confidence=0.95)
+                )
 
         # Extract numbers
-        numbers = re.findall(r'\b\d+(?:\.\d+)?\b', query)
+        numbers = re.findall(r"\b\d+(?:\.\d+)?\b", query)
         for num in numbers:
-            entities.append(Entity(
-                entity_type="number",
-                value=num,
-                normalized_value=float(num),
-                confidence=1.0
-            ))
+            entities.append(Entity(entity_type="number", value=num, normalized_value=float(num), confidence=1.0))
 
         # Extract aggregate functions
         agg_patterns = {
-            AggregateFunction.SUM: r'\b(total|sum)\b',
-            AggregateFunction.AVG: r'\b(average|mean|avg)\b',
-            AggregateFunction.COUNT: r'\b(count|number)\b',
-            AggregateFunction.MIN: r'\b(minimum|min|lowest)\b',
-            AggregateFunction.MAX: r'\b(maximum|max|highest)\b',
+            AggregateFunction.SUM: r"\b(total|sum)\b",
+            AggregateFunction.AVG: r"\b(average|mean|avg)\b",
+            AggregateFunction.COUNT: r"\b(count|number)\b",
+            AggregateFunction.MIN: r"\b(minimum|min|lowest)\b",
+            AggregateFunction.MAX: r"\b(maximum|max|highest)\b",
         }
 
         for agg_func, pattern in agg_patterns.items():
             if re.search(pattern, query_lower):
-                entities.append(Entity(
-                    entity_type="aggregate_function",
-                    value=agg_func.value,
-                    normalized_value=agg_func,
-                    confidence=0.95
-                ))
+                entities.append(
+                    Entity(
+                        entity_type="aggregate_function",
+                        value=agg_func.value,
+                        normalized_value=agg_func,
+                        confidence=0.95,
+                    )
+                )
 
         return entities
 
@@ -417,10 +443,7 @@ class QueryGenerator:
 
         if parsed_query.time_range:
             start, end = parsed_query.time_range.to_absolute()
-            match_stage["timestamp"] = {
-                "$gte": start,
-                "$lt": end
-            }
+            match_stage["timestamp"] = {"$gte": start, "$lt": end}
 
         if parsed_query.filters:
             match_stage.update(parsed_query.filters)
@@ -438,9 +461,7 @@ class QueryGenerator:
 
             # Aggregation
             agg_op = f"${parsed_query.aggregate_function.value}"
-            group_stage[parsed_query.metric] = {
-                agg_op: f"${parsed_query.metric}"
-            }
+            group_stage[parsed_query.metric] = {agg_op: f"${parsed_query.metric}"}
 
             pipeline.append({"$group": group_stage})
 
@@ -486,12 +507,7 @@ class NLQueryProcessor:
         entities = self.entity_extractor.extract(query)
 
         # Build parsed query
-        parsed = ParsedQuery(
-            original_query=query,
-            intent=intent,
-            entities=entities,
-            confidence=confidence
-        )
+        parsed = ParsedQuery(original_query=query, intent=intent, entities=entities, confidence=confidence)
 
         # Extract specific fields from entities
         for entity in entities:
@@ -507,7 +523,7 @@ class NLQueryProcessor:
 
         # Extract limit (for top N queries)
         if intent == QueryIntent.TOP_N:
-            top_match = re.search(r'(top|bottom|best|worst) (\d+)', query.lower())
+            top_match = re.search(r"(top|bottom|best|worst) (\d+)", query.lower())
             if top_match:
                 parsed.limit = int(top_match.group(2))
                 parsed.sort_order = "desc" if top_match.group(1) in ["top", "best"] else "asc"
@@ -561,6 +577,7 @@ def get_nl_processor(schema: Optional[Dict[str, Any]] = None) -> NLQueryProcesso
 
     if _nl_processor_instance is None:
         import threading
+
         with _instance_lock:
             if _nl_processor_instance is None:
                 _nl_processor_instance = NLQueryProcessor(schema)

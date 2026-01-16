@@ -11,25 +11,26 @@ Professional PowerPoint presentation generation with:
 - Custom themes and branding
 """
 
-from typing import List, Dict, Any, Optional, Union, Tuple
+import logging
 from datetime import datetime
 from pathlib import Path
-import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
     from pptx import Presentation
-    from pptx.util import Inches, Pt
-    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-    from pptx.enum.shapes import MSO_SHAPE
-    from pptx.dml.color import RGBColor
     from pptx.chart.data import CategoryChartData
+    from pptx.dml.color import RGBColor
     from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
+    from pptx.enum.shapes import MSO_SHAPE
+    from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+    from pptx.util import Inches, Pt
+
     PYTHON_PPTX_AVAILABLE = True
 except ImportError:
     PYTHON_PPTX_AVAILABLE = False
     logging.warning("python-pptx not available. PowerPoint export disabled.")
 
-logger = logging.getLogger('dms.powerpoint')
+logger = logging.getLogger("dms.powerpoint")
 
 
 class PPTTheme:
@@ -47,8 +48,8 @@ class PPTTheme:
         self.color_bg = RGBColor(255, 255, 255)  # White
 
         # Fonts
-        self.font_title = 'Calibri'
-        self.font_body = 'Calibri'
+        self.font_title = "Calibri"
+        self.font_body = "Calibri"
         self.font_size_title = Pt(44)
         self.font_size_heading = Pt(32)
         self.font_size_body = Pt(18)
@@ -72,8 +73,7 @@ class PowerPointExporter:
         """
         if not PYTHON_PPTX_AVAILABLE:
             raise ImportError(
-                "python-pptx is required for PowerPoint export. "
-                "Install it with: pip install python-pptx"
+                "python-pptx is required for PowerPoint export. " "Install it with: pip install python-pptx"
             )
 
         self.theme = theme or PPTTheme()
@@ -119,8 +119,7 @@ class PowerPointExporter:
         logger.info(f"Added title slide: {title}")
         return slide
 
-    def add_content_slide(self, title: str, content: Union[str, List[str]],
-                         bullet_points: bool = True) -> Any:
+    def add_content_slide(self, title: str, content: Union[str, List[str]], bullet_points: bool = True) -> Any:
         """
         Add a content slide with bullet points or text.
 
@@ -167,10 +166,14 @@ class PowerPointExporter:
         logger.info(f"Added content slide: {title}")
         return slide
 
-    def add_comparison_slide(self, title: str, left_content: List[str],
-                           right_content: List[str],
-                           left_title: str = "Before",
-                           right_title: str = "After") -> Any:
+    def add_comparison_slide(
+        self,
+        title: str,
+        left_content: List[str],
+        right_content: List[str],
+        left_title: str = "Before",
+        right_title: str = "After",
+    ) -> Any:
         """
         Add a comparison slide (two-column layout).
 
@@ -228,8 +231,7 @@ class PowerPointExporter:
             p.font.color.rgb = self.theme.color_text
             p.level = 1
 
-    def add_table_slide(self, title: str, data: List[List[str]],
-                       headers: Optional[List[str]] = None) -> Any:
+    def add_table_slide(self, title: str, data: List[List[str]], headers: Optional[List[str]] = None) -> Any:
         """
         Add a slide with a table.
 
@@ -296,9 +298,14 @@ class PowerPointExporter:
         logger.info(f"Added table slide: {title}")
         return slide
 
-    def add_chart_slide(self, title: str, chart_type: str,
-                       categories: List[str], series_data: Dict[str, List[float]],
-                       chart_title: Optional[str] = None) -> Any:
+    def add_chart_slide(
+        self,
+        title: str,
+        chart_type: str,
+        categories: List[str],
+        series_data: Dict[str, List[float]],
+        chart_title: Optional[str] = None,
+    ) -> Any:
         """
         Add a slide with a chart.
 
@@ -331,10 +338,10 @@ class PowerPointExporter:
 
         # Map chart types
         chart_type_map = {
-            'bar': XL_CHART_TYPE.BAR_CLUSTERED,
-            'column': XL_CHART_TYPE.COLUMN_CLUSTERED,
-            'line': XL_CHART_TYPE.LINE,
-            'pie': XL_CHART_TYPE.PIE
+            "bar": XL_CHART_TYPE.BAR_CLUSTERED,
+            "column": XL_CHART_TYPE.COLUMN_CLUSTERED,
+            "line": XL_CHART_TYPE.LINE,
+            "pie": XL_CHART_TYPE.PIE,
         }
 
         chart_type_enum = chart_type_map.get(chart_type.lower(), XL_CHART_TYPE.COLUMN_CLUSTERED)
@@ -348,9 +355,7 @@ class PowerPointExporter:
 
         # Add chart
         x, y, cx, cy = Inches(1), Inches(1.5), Inches(8), Inches(4)
-        chart = slide.shapes.add_chart(
-            chart_type_enum, x, y, cx, cy, chart_data
-        ).chart
+        chart = slide.shapes.add_chart(chart_type_enum, x, y, cx, cy, chart_data).chart
 
         # Set chart title
         if chart_title:
@@ -365,8 +370,7 @@ class PowerPointExporter:
         logger.info(f"Added {chart_type} chart slide: {title}")
         return slide
 
-    def add_image_slide(self, title: str, image_path: str,
-                       caption: Optional[str] = None) -> Any:
+    def add_image_slide(self, title: str, image_path: str, caption: Optional[str] = None) -> Any:
         """
         Add a slide with an image.
 
@@ -422,8 +426,7 @@ class PowerPointExporter:
 
         return slide
 
-    def add_section_divider(self, section_title: str,
-                           subtitle: Optional[str] = None) -> Any:
+    def add_section_divider(self, section_title: str, subtitle: Optional[str] = None) -> Any:
         """
         Add a section divider slide.
 
@@ -492,8 +495,7 @@ class PowerPointExporter:
             logger.error(f"Error saving presentation: {e}")
             return False
 
-    def export_services_presentation(self, services: List[Dict[str, Any]],
-                                    output_path: str) -> bool:
+    def export_services_presentation(self, services: List[Dict[str, Any]], output_path: str) -> bool:
         """
         Export services data as a presentation.
 
@@ -506,16 +508,13 @@ class PowerPointExporter:
         """
         try:
             # Title slide
-            self.add_title_slide(
-                "Services Report",
-                f"Generated on {datetime.now().strftime('%Y-%m-%d')}"
-            )
+            self.add_title_slide("Services Report", f"Generated on {datetime.now().strftime('%Y-%m-%d')}")
 
             # Overview slide
             overview_content = [
                 f"Total Services: {len(services)}",
                 f"Report Date: {datetime.now().strftime('%Y-%m-%d')}",
-                "Analysis includes financial data and regional distribution"
+                "Analysis includes financial data and regional distribution",
             ]
             self.add_content_slide("Overview", overview_content)
 
@@ -523,7 +522,7 @@ class PowerPointExporter:
             if services:
                 regions = {}
                 for service in services:
-                    region = service.get('region', 'Unknown')
+                    region = service.get("region", "Unknown")
                     regions[region] = regions.get(region, 0) + 1
 
                 if regions:
@@ -532,7 +531,7 @@ class PowerPointExporter:
                         "column",
                         list(regions.keys()),
                         {"Count": list(regions.values())},
-                        "Distribution of Services by Region"
+                        "Distribution of Services by Region",
                     )
 
             # Summary slide
@@ -542,8 +541,8 @@ class PowerPointExporter:
                     "All services analyzed successfully",
                     "Financial calculations completed",
                     "Regional distribution documented",
-                    "Thank you for your attention"
-                ]
+                    "Thank you for your attention",
+                ],
             )
 
             # Save presentation
@@ -555,8 +554,7 @@ class PowerPointExporter:
 
 
 # Convenience functions
-def create_presentation(title: str, slides_data: List[Dict[str, Any]],
-                       output_path: str) -> bool:
+def create_presentation(title: str, slides_data: List[Dict[str, Any]], output_path: str) -> bool:
     """
     Quick create a presentation from structured data.
 
@@ -572,19 +570,19 @@ def create_presentation(title: str, slides_data: List[Dict[str, Any]],
     exporter.add_title_slide(title)
 
     for slide_data in slides_data:
-        slide_type = slide_data.get('type', 'content')
-        title = slide_data.get('title', '')
-        content = slide_data.get('content', [])
+        slide_type = slide_data.get("type", "content")
+        title = slide_data.get("title", "")
+        content = slide_data.get("content", [])
 
-        if slide_type == 'content':
+        if slide_type == "content":
             exporter.add_content_slide(title, content)
-        elif slide_type == 'table':
-            headers = slide_data.get('headers')
+        elif slide_type == "table":
+            headers = slide_data.get("headers")
             exporter.add_table_slide(title, content, headers)
-        elif slide_type == 'chart':
-            chart_type = slide_data.get('chart_type', 'column')
-            categories = slide_data.get('categories', [])
-            series = slide_data.get('series', {})
+        elif slide_type == "chart":
+            chart_type = slide_data.get("chart_type", "column")
+            categories = slide_data.get("categories", [])
+            series = slide_data.get("series", {})
             exporter.add_chart_slide(title, chart_type, categories, series)
 
     return exporter.save(output_path)

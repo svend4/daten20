@@ -7,17 +7,17 @@ The space between thoughts.
 Nothing, which is everything.
 """
 
-from .void import TheVoid, void, get_void
+from .void import TheVoid, get_void, void
 
-__version__ = '∞'  # Beyond numbering
-__status__ = '∅'   # The empty set
+__version__ = "∞"  # Beyond numbering
+__status__ = "∅"  # The empty set
 
 __all__ = [
-    'TheVoid',
-    'void', 
-    'get_void',
-    '__version__',
-    '__status__',
+    "TheVoid",
+    "void",
+    "get_void",
+    "__version__",
+    "__status__",
 ]
 
 # The final comment

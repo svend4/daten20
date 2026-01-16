@@ -19,10 +19,10 @@ Version: 1.0.0
 Date: 2026-01-11
 """
 
-from typing import Optional, Dict, Any, List
-from enum import Enum
-import traceback
 import sys
+import traceback
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class ErrorCode(Enum):
@@ -96,7 +96,7 @@ class DMSError(Exception):
         error_code: ErrorCode = ErrorCode.UNKNOWN_ERROR,
         details: Optional[Dict[str, Any]] = None,
         suggestions: Optional[List[str]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize DMS error
@@ -127,7 +127,7 @@ class DMSError(Exception):
             f"\n{'=' * 70}",
             f"ERROR [{self.error_code.name}] (Code: {self.error_code.value})",
             f"{'=' * 70}",
-            f"\n{self.message}\n"
+            f"\n{self.message}\n",
         ]
 
         # Add details if present
@@ -166,7 +166,7 @@ class DMSError(Exception):
             "message": self.message,
             "details": self.details,
             "suggestions": self.suggestions,
-            "original_error": str(self.original_error) if self.original_error else None
+            "original_error": str(self.original_error) if self.original_error else None,
         }
 
 
@@ -174,8 +174,10 @@ class DMSError(Exception):
 # Specific Exception Classes
 # =============================================================================
 
+
 class FileError(DMSError):
     """Base class for file-related errors"""
+
     pass
 
 
@@ -186,16 +188,13 @@ class FileNotFoundError(FileError):
         super().__init__(
             message=f"File not found: {file_path}",
             error_code=ErrorCode.FILE_NOT_FOUND,
-            details={
-                "file_path": file_path,
-                "searched_paths": searched_paths or [file_path]
-            },
+            details={"file_path": file_path, "searched_paths": searched_paths or [file_path]},
             suggestions=[
                 "Check if the file path is correct",
                 "Verify that the file exists",
                 "Check file permissions",
-                f"Expected location: {file_path}"
-            ]
+                f"Expected location: {file_path}",
+            ],
         )
 
 
@@ -206,16 +205,13 @@ class FileReadError(FileError):
         super().__init__(
             message=f"Failed to read file: {file_path}",
             error_code=ErrorCode.FILE_READ_ERROR,
-            details={
-                "file_path": file_path,
-                "reason": reason
-            },
+            details={"file_path": file_path, "reason": reason},
             suggestions=[
                 "Check if file is not corrupted",
                 "Verify file permissions",
-                "Try opening the file manually to verify it's readable"
+                "Try opening the file manually to verify it's readable",
             ],
-            original_error=original_error
+            original_error=original_error,
         )
 
 
@@ -229,18 +225,19 @@ class FileFormatError(FileError):
             details={
                 "file_path": file_path,
                 "expected_formats": expected_formats,
-                "actual_format": actual_format or "unknown"
+                "actual_format": actual_format or "unknown",
             },
             suggestions=[
                 f"Supported formats: {', '.join(expected_formats)}",
                 "Convert the file to a supported format",
-                "Check file extension matches actual content"
-            ]
+                "Check file extension matches actual content",
+            ],
         )
 
 
 class ProcessingError(DMSError):
     """Base class for processing errors"""
+
     pass
 
 
@@ -248,10 +245,7 @@ class ParsingError(ProcessingError):
     """Document parsing error"""
 
     def __init__(self, document_path: str, reason: str, line_number: Optional[int] = None):
-        details = {
-            "document_path": document_path,
-            "reason": reason
-        }
+        details = {"document_path": document_path, "reason": reason}
         if line_number:
             details["line_number"] = line_number
 
@@ -262,21 +256,15 @@ class ParsingError(ProcessingError):
             suggestions=[
                 "Check if document is well-formed",
                 "Try parsing with a different parser",
-                "Validate document structure manually"
-            ]
+                "Validate document structure manually",
+            ],
         )
 
 
 class ValidationError(ProcessingError):
     """Data validation error"""
 
-    def __init__(
-        self,
-        field_name: str,
-        value: Any,
-        validation_rule: str,
-        expected: Optional[str] = None
-    ):
+    def __init__(self, field_name: str, value: Any, validation_rule: str, expected: Optional[str] = None):
         super().__init__(
             message=f"Validation failed for field: {field_name}",
             error_code=ErrorCode.VALIDATION_ERROR,
@@ -284,18 +272,19 @@ class ValidationError(ProcessingError):
                 "field_name": field_name,
                 "value": str(value)[:100],  # Truncate long values
                 "validation_rule": validation_rule,
-                "expected": expected or "valid value"
+                "expected": expected or "valid value",
             },
             suggestions=[
                 f"Ensure {field_name} meets requirements: {validation_rule}",
                 f"Expected: {expected}" if expected else "Check validation rules",
-                "Verify input data format"
-            ]
+                "Verify input data format",
+            ],
         )
 
 
 class MLError(DMSError):
     """Base class for ML/NLP errors"""
+
     pass
 
 
@@ -310,13 +299,13 @@ class NERError(MLError):
                 "text_length": len(text),
                 "text_preview": text[:100] + "..." if len(text) > 100 else text,
                 "reason": reason,
-                "model": model_name or "default"
+                "model": model_name or "default",
             },
             suggestions=[
                 "Ensure spaCy model is installed: python -m spacy download en_core_web_sm",
                 "Check if text is valid UTF-8",
-                "Try with a different language model"
-            ]
+                "Try with a different language model",
+            ],
         )
 
 
@@ -327,21 +316,19 @@ class ModelLoadError(MLError):
         super().__init__(
             message=f"Failed to load model: {model_name}",
             error_code=ErrorCode.MODEL_LOAD_ERROR,
-            details={
-                "model_name": model_name,
-                "reason": reason
-            },
+            details={"model_name": model_name, "reason": reason},
             suggestions=[
                 f"Install model: python -m spacy download {model_name}",
                 "Check if model files are not corrupted",
                 "Verify model compatibility with current spaCy version",
-                "Try reinstalling spaCy: pip install --upgrade spacy"
-            ]
+                "Try reinstalling spaCy: pip install --upgrade spacy",
+            ],
         )
 
 
 class DatabaseError(DMSError):
     """Base class for database errors"""
+
     pass
 
 
@@ -352,16 +339,13 @@ class DBConnectionError(DatabaseError):
         super().__init__(
             message=f"Failed to connect to database: {db_path}",
             error_code=ErrorCode.DB_CONNECTION_ERROR,
-            details={
-                "db_path": db_path,
-                "reason": reason
-            },
+            details={"db_path": db_path, "reason": reason},
             suggestions=[
                 "Check if database file exists",
                 "Verify database file permissions",
                 "Ensure database is not locked by another process",
-                "Try creating a new database"
-            ]
+                "Try creating a new database",
+            ],
         )
 
 
@@ -375,19 +359,20 @@ class DBQueryError(DatabaseError):
             details={
                 "query": query[:200] + "..." if len(query) > 200 else query,
                 "reason": reason,
-                "parameters": parameters
+                "parameters": parameters,
             },
             suggestions=[
                 "Check SQL syntax",
                 "Verify table and column names",
                 "Check parameter types and values",
-                "Review database schema"
-            ]
+                "Review database schema",
+            ],
         )
 
 
 class APIError(DMSError):
     """Base class for API errors"""
+
     pass
 
 
@@ -398,16 +383,13 @@ class APIAuthError(APIError):
         super().__init__(
             message=f"Authentication failed for API: {endpoint}",
             error_code=ErrorCode.API_AUTH_ERROR,
-            details={
-                "endpoint": endpoint,
-                "reason": reason
-            },
+            details={"endpoint": endpoint, "reason": reason},
             suggestions=[
                 "Check API credentials",
                 "Verify authentication token is valid",
                 "Ensure API key is not expired",
-                "Check environment variables: API_KEY, API_SECRET"
-            ]
+                "Check environment variables: API_KEY, API_SECRET",
+            ],
         )
 
 
@@ -415,11 +397,7 @@ class APIRateLimitError(APIError):
     """API rate limit exceeded"""
 
     def __init__(self, endpoint: str, retry_after: Optional[int] = None):
-        suggestions = [
-            "Reduce request frequency",
-            "Implement exponential backoff",
-            "Consider caching results"
-        ]
+        suggestions = ["Reduce request frequency", "Implement exponential backoff", "Consider caching results"]
 
         if retry_after:
             suggestions.insert(0, f"Retry after {retry_after} seconds")
@@ -427,16 +405,14 @@ class APIRateLimitError(APIError):
         super().__init__(
             message=f"Rate limit exceeded for API: {endpoint}",
             error_code=ErrorCode.API_RATE_LIMIT_ERROR,
-            details={
-                "endpoint": endpoint,
-                "retry_after": retry_after
-            },
-            suggestions=suggestions
+            details={"endpoint": endpoint, "retry_after": retry_after},
+            suggestions=suggestions,
         )
 
 
 class ConfigError(DMSError):
     """Base class for configuration errors"""
+
     pass
 
 
@@ -447,22 +423,20 @@ class ConfigMissingError(ConfigError):
         super().__init__(
             message=f"Missing required configuration: {config_key}",
             error_code=ErrorCode.CONFIG_MISSING,
-            details={
-                "config_key": config_key,
-                "config_file": config_file or "default"
-            },
+            details={"config_key": config_key, "config_file": config_file or "default"},
             suggestions=[
                 f"Add {config_key} to configuration file",
                 f"Set environment variable: {config_key}",
                 "Check configuration template for required fields",
-                f"Example: {config_key}=<value>"
-            ]
+                f"Example: {config_key}=<value>",
+            ],
         )
 
 
 # =============================================================================
 # Error Handler Utilities
 # =============================================================================
+
 
 def format_exception(exc: Exception, include_traceback: bool = True) -> str:
     """
@@ -478,12 +452,7 @@ def format_exception(exc: Exception, include_traceback: bool = True) -> str:
     if isinstance(exc, DMSError):
         return exc.get_formatted_message()
 
-    lines = [
-        f"\n{'=' * 70}",
-        f"ERROR: {type(exc).__name__}",
-        f"{'=' * 70}",
-        f"\n{str(exc)}\n"
-    ]
+    lines = [f"\n{'=' * 70}", f"ERROR: {type(exc).__name__}", f"{'=' * 70}", f"\n{str(exc)}\n"]
 
     if include_traceback:
         lines.append("Traceback:")
@@ -548,7 +517,7 @@ ERROR_MESSAGES = {
         "db_connection_failed": "Database connection failed. Please check configuration.",
         "api_timeout": "The request timed out. Please try again later.",
         "permission_denied": "Permission denied. Please check your access rights.",
-        "internal_error": "An internal error occurred. Please contact support."
+        "internal_error": "An internal error occurred. Please contact support.",
     },
     "de": {
         "file_not_found": "Die Datei '{file_path}' wurde nicht gefunden.",
@@ -559,7 +528,7 @@ ERROR_MESSAGES = {
         "db_connection_failed": "Datenbankverbindung fehlgeschlagen. Bitte Konfiguration prüfen.",
         "api_timeout": "Die Anfrage wurde zeitüberschritten. Bitte versuchen Sie es später erneut.",
         "permission_denied": "Zugriff verweigert. Bitte überprüfen Sie Ihre Zugriffsrechte.",
-        "internal_error": "Ein interner Fehler ist aufgetreten. Bitte kontaktieren Sie den Support."
+        "internal_error": "Ein interner Fehler ist aufgetreten. Bitte kontaktieren Sie den Support.",
     },
     "ru": {
         "file_not_found": "Файл '{file_path}' не найден.",
@@ -570,8 +539,8 @@ ERROR_MESSAGES = {
         "db_connection_failed": "Ошибка подключения к базе данных. Проверьте конфигурацию.",
         "api_timeout": "Превышено время ожидания. Попробуйте позже.",
         "permission_denied": "Доступ запрещён. Проверьте права доступа.",
-        "internal_error": "Произошла внутренняя ошибка. Обратитесь в поддержку."
-    }
+        "internal_error": "Произошла внутренняя ошибка. Обратитесь в поддержку.",
+    },
 }
 
 

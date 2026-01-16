@@ -15,71 +15,64 @@ Core Systems:
 
 Example Usage:
     from neurosymbolic import get_logic_tensor_network
-    
+
     ltn = get_logic_tensor_network()
     # Train with logical constraints
     await ltn.add_predicate("is_red", neural_network)
     await ltn.add_rule("forall x: is_red(x) -> is_colored(x)")
 """
 
-from .neurosymbolic_services import (
-    # Enums
-    LogicOperator,
-    ModuleType,
-    SynthesisAlgorithm,
-    ReasoningMode,
-    
-    # Data Classes
-    Predicate,
-    LogicRule,
-    Module,
-    Program,
-    LogicalForm,
-    Triple,
-    
-    # Service Classes
-    LogicTensorNetwork,
-    NeuralModuleNetwork,
-    ProgramSynthesisEngine,
-    SemanticParser,
+from .neurosymbolic_services import (  # Enums; Data Classes; Service Classes; Singleton Getters
     DifferentiableReasoner,
-    KnowledgeGraphEmbedder,
     HybridLearningSystem,
-    
-    # Singleton Getters
+    KnowledgeGraphEmbedder,
+    LogicalForm,
+    LogicOperator,
+    LogicRule,
+    LogicTensorNetwork,
+    Module,
+    ModuleType,
+    NeuralModuleNetwork,
+    Predicate,
+    Program,
+    ProgramSynthesisEngine,
+    ReasoningMode,
+    SemanticParser,
+    SynthesisAlgorithm,
+    Triple,
+    get_differentiable_reasoner,
+    get_hybrid_learning_system,
+    get_knowledge_graph_embedder,
     get_logic_tensor_network,
     get_neural_module_network,
     get_program_synthesis_engine,
     get_semantic_parser,
-    get_differentiable_reasoner,
-    get_knowledge_graph_embedder,
-    get_hybrid_learning_system,
 )
 
-__version__ = '14.0.0'
+__version__ = "14.0.0"
 __all__ = [
-    'LogicOperator',
-    'ModuleType',
-    'SynthesisAlgorithm',
-    'ReasoningMode',
-    'Predicate',
-    'LogicRule',
-    'Module',
-    'Program',
-    'LogicalForm',
-    'Triple',
-    'LogicTensorNetwork',
-    'NeuralModuleNetwork',
-    'ProgramSynthesisEngine',
-    'SemanticParser',
-    'DifferentiableReasoner',
-    'KnowledgeGraphEmbedder',
-    'HybridLearningSystem',
-    'get_logic_tensor_network',
-    'get_neural_module_network',
-    'get_program_synthesis_engine',
-    'get_semantic_parser',
-    'get_differentiable_reasoner',
-    'get_knowledge_graph_embedder',
-    'get_hybrid_learning_system',
+    "LogicOperator",
+    "ModuleType",
+    "SynthesisAlgorithm",
+    "ReasoningMode",
+    "Predicate",
+    "LogicRule",
+    "Module",
+    "Program",
+    "LogicalForm",
+    "Triple",
+    "LogicTensorNetwork",
+    "NeuralModuleNetwork",
+    "ProgramSynthesisEngine",
+    "SemanticParser",
+    "DifferentiableReasoner",
+    "KnowledgeGraphEmbedder",
+    "HybridLearningSystem",
+    "get_logic_tensor_network",
+    "get_neural_module_network",
+    "get_program_synthesis_engine",
+    "get_semantic_parser",
+    "get_differentiable_reasoner",
+    "get_knowledge_graph_embedder",
+    "get_hybrid_learning_system",
 ]

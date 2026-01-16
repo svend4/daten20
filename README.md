@@ -10,6 +10,8 @@
 [![Tests](https://github.com/svend4/daten20/actions/workflows/tests.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/tests.yml)
 [![Security](https://github.com/svend4/daten20/actions/workflows/security.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/security.yml)
 [![Performance](https://github.com/svend4/daten20/actions/workflows/performance.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/performance.yml)
+[![codecov](https://codecov.io/gh/svend4/daten20/branch/main/graph/badge.svg)](https://codecov.io/gh/svend4/daten20)
+[![PR Validation](https://github.com/svend4/daten20/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/svend4/daten20/actions/workflows/pr-validation.yml)
 
 **Enterprise-Ready Document Management System для планирования социальных услуг**
 

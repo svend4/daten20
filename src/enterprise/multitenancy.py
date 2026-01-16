@@ -10,23 +10,25 @@ Provides multi-tenant architecture with:
 - Resource quotas and limits
 """
 
-from typing import Optional, List, Dict, Any
+import threading
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-import uuid
-import threading
+from typing import Any, Dict, List, Optional
 
 
 class IsolationStrategy(str, Enum):
     """Data isolation strategies"""
+
     DATABASE_PER_TENANT = "database_per_tenant"  # Most isolated
-    SCHEMA_PER_TENANT = "schema_per_tenant"      # Medium isolation
-    SHARED_DATABASE = "shared_database"          # Least isolated, most efficient
+    SCHEMA_PER_TENANT = "schema_per_tenant"  # Medium isolation
+    SHARED_DATABASE = "shared_database"  # Least isolated, most efficient
 
 
 class TenantStatus(str, Enum):
     """Tenant lifecycle status"""
+
     PROVISIONING = "provisioning"
     ACTIVE = "active"
     SUSPENDED = "suspended"
@@ -36,6 +38,7 @@ class TenantStatus(str, Enum):
 
 class SubscriptionPlan(str, Enum):
     """Subscription plans"""
+
     FREE = "free"
     STARTER = "starter"
     PROFESSIONAL = "professional"
@@ -46,6 +49,7 @@ class SubscriptionPlan(str, Enum):
 @dataclass
 class ResourceQuota:
     """Resource quota limits"""
+
     max_users: int = 10
     max_services: int = 100
     max_storage_gb: int = 10
@@ -57,6 +61,7 @@ class ResourceQuota:
 @dataclass
 class Tenant:
     """Multi-tenant organization"""
+
     id: str
     name: str
     slug: str  # URL-friendly identifier
@@ -78,6 +83,7 @@ class Tenant:
 @dataclass
 class TenantUsage:
     """Tenant resource usage tracking"""
+
     tenant_id: str
     users_count: int = 0
     services_count: int = 0
@@ -91,6 +97,7 @@ class TenantUsage:
 @dataclass
 class TenantContext:
     """Current tenant context"""
+
     tenant_id: str
     tenant_name: str
     user_id: Optional[int] = None
@@ -107,22 +114,18 @@ class TenantContextManager:
     @staticmethod
     def set_context(tenant_id: str, tenant_name: str, user_id: Optional[int] = None):
         """Set current tenant context"""
-        _tenant_context.current = TenantContext(
-            tenant_id=tenant_id,
-            tenant_name=tenant_name,
-            user_id=user_id
-        )
+        _tenant_context.current = TenantContext(tenant_id=tenant_id, tenant_name=tenant_name, user_id=user_id)
 
     @staticmethod
     def get_context() -> Optional[TenantContext]:
         """Get current tenant context"""
-        return getattr(_tenant_context, 'current', None)
+        return getattr(_tenant_context, "current", None)
 
     @staticmethod
     def clear_context():
         """Clear tenant context"""
-        if hasattr(_tenant_context, 'current'):
-            delattr(_tenant_context, 'current')
+        if hasattr(_tenant_context, "current"):
+            delattr(_tenant_context, "current")
 
     @staticmethod
     def get_tenant_id() -> Optional[str]:
@@ -140,15 +143,11 @@ class TenantProvisioner:
             self._create_default_data,
             self._setup_integrations,
             self._configure_security,
-            self._activate_tenant
+            self._activate_tenant,
         ]
 
     def provision_tenant(
-        self,
-        name: str,
-        slug: str,
-        plan: SubscriptionPlan,
-        isolation_strategy: IsolationStrategy
+        self, name: str, slug: str, plan: SubscriptionPlan, isolation_strategy: IsolationStrategy
     ) -> Tenant:
         """Provision new tenant"""
         tenant_id = str(uuid.uuid4())
@@ -161,7 +160,7 @@ class TenantProvisioner:
             status=TenantStatus.PROVISIONING,
             isolation_strategy=isolation_strategy,
             subscription_plan=plan,
-            quota=self._get_quota_for_plan(plan)
+            quota=self._get_quota_for_plan(plan),
         )
 
         # Execute provisioning steps
@@ -219,7 +218,7 @@ class TenantProvisioner:
                 max_storage_gb=5,
                 max_api_calls_per_day=1000,
                 max_workflows=3,
-                max_integrations=2
+                max_integrations=2,
             ),
             SubscriptionPlan.STARTER: ResourceQuota(
                 max_users=10,
@@ -227,7 +226,7 @@ class TenantProvisioner:
                 max_storage_gb=20,
                 max_api_calls_per_day=10000,
                 max_workflows=10,
-                max_integrations=5
+                max_integrations=5,
             ),
             SubscriptionPlan.PROFESSIONAL: ResourceQuota(
                 max_users=50,
@@ -235,7 +234,7 @@ class TenantProvisioner:
                 max_storage_gb=100,
                 max_api_calls_per_day=100000,
                 max_workflows=50,
-                max_integrations=20
+                max_integrations=20,
             ),
             SubscriptionPlan.ENTERPRISE: ResourceQuota(
                 max_users=999999,
@@ -243,8 +242,8 @@ class TenantProvisioner:
                 max_storage_gb=999999,
                 max_api_calls_per_day=999999999,
                 max_workflows=999999,
-                max_integrations=999999
-            )
+                max_integrations=999999,
+            ),
         }
 
         return quotas.get(plan, quotas[SubscriptionPlan.FREE])
@@ -264,7 +263,7 @@ class TenantManager:
         slug: str,
         plan: SubscriptionPlan = SubscriptionPlan.FREE,
         isolation_strategy: IsolationStrategy = IsolationStrategy.SHARED_DATABASE,
-        domain: Optional[str] = None
+        domain: Optional[str] = None,
     ) -> Tenant:
         """Create new tenant"""
         # Check if slug is unique
@@ -309,8 +308,8 @@ class TenantManager:
             return False
 
         tenant.status = TenantStatus.SUSPENDED
-        tenant.metadata['suspension_reason'] = reason
-        tenant.metadata['suspended_at'] = datetime.now().isoformat()
+        tenant.metadata["suspension_reason"] = reason
+        tenant.metadata["suspended_at"] = datetime.now().isoformat()
 
         print(f"[Tenant] Suspended {tenant.name}: {reason}")
         return True
@@ -322,8 +321,8 @@ class TenantManager:
             return False
 
         tenant.status = TenantStatus.ACTIVE
-        tenant.metadata.pop('suspension_reason', None)
-        tenant.metadata['reactivated_at'] = datetime.now().isoformat()
+        tenant.metadata.pop("suspension_reason", None)
+        tenant.metadata["reactivated_at"] = datetime.now().isoformat()
 
         print(f"[Tenant] Reactivated {tenant.name}")
         return True
@@ -350,12 +349,12 @@ class TenantManager:
             return False
 
         quota_checks = {
-            'users': usage.users_count < tenant.quota.max_users,
-            'services': usage.services_count < tenant.quota.max_services,
-            'storage': usage.storage_used_gb < tenant.quota.max_storage_gb,
-            'api_calls': usage.api_calls_today < tenant.quota.max_api_calls_per_day,
-            'workflows': usage.workflows_count < tenant.quota.max_workflows,
-            'integrations': usage.integrations_count < tenant.quota.max_integrations
+            "users": usage.users_count < tenant.quota.max_users,
+            "services": usage.services_count < tenant.quota.max_services,
+            "storage": usage.storage_used_gb < tenant.quota.max_storage_gb,
+            "api_calls": usage.api_calls_today < tenant.quota.max_api_calls_per_day,
+            "workflows": usage.workflows_count < tenant.quota.max_workflows,
+            "integrations": usage.integrations_count < tenant.quota.max_integrations,
         }
 
         return quota_checks.get(resource, True)
@@ -366,15 +365,15 @@ class TenantManager:
         if not usage:
             return
 
-        if resource == 'users':
+        if resource == "users":
             usage.users_count += amount
-        elif resource == 'services':
+        elif resource == "services":
             usage.services_count += amount
-        elif resource == 'api_calls':
+        elif resource == "api_calls":
             usage.api_calls_today += amount
-        elif resource == 'workflows':
+        elif resource == "workflows":
             usage.workflows_count += amount
-        elif resource == 'integrations':
+        elif resource == "integrations":
             usage.integrations_count += amount
 
         usage.last_updated = datetime.now()
@@ -396,11 +395,11 @@ class TenantManager:
             by_strategy[strategy] = by_strategy.get(strategy, 0) + 1
 
         return {
-            'total_tenants': total_tenants,
-            'active_tenants': active_tenants,
-            'suspended_tenants': suspended_tenants,
-            'by_plan': by_plan,
-            'by_isolation_strategy': by_strategy
+            "total_tenants": total_tenants,
+            "active_tenants": active_tenants,
+            "suspended_tenants": suspended_tenants,
+            "by_plan": by_plan,
+            "by_isolation_strategy": by_strategy,
         }
 
 
@@ -418,7 +417,7 @@ class DataIsolationMiddleware:
             raise ValueError("No tenant context set")
 
         # Add WHERE clause or AND condition
-        if 'WHERE' in query.upper():
+        if "WHERE" in query.upper():
             return query + f" AND {table}.tenant_id = '{tenant_id}'"
         else:
             return query + f" WHERE {table}.tenant_id = '{tenant_id}'"
@@ -430,7 +429,7 @@ class DataIsolationMiddleware:
         if not tenant_id:
             raise ValueError("No tenant context set")
 
-        data['tenant_id'] = tenant_id
+        data["tenant_id"] = tenant_id
         return data
 
     def validate_tenant_access(self, resource_tenant_id: str) -> bool:

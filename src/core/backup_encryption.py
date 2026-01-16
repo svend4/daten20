@@ -5,15 +5,15 @@ Provides encryption and decryption for backup files.
 Uses Fernet (symmetric encryption) for secure backup storage.
 """
 
-import os
 import gzip
 import json
 import logging
+import os
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Union
-from datetime import datetime
 
-logger = logging.getLogger('dms.backup_encryption')
+logger = logging.getLogger("dms.backup_encryption")
 
 
 class BackupEncryption:
@@ -36,11 +36,11 @@ class BackupEncryption:
         """
         try:
             from cryptography.fernet import Fernet
+
             self.Fernet = Fernet
         except ImportError:
             raise ImportError(
-                "cryptography package required for backup encryption. "
-                "Install with: pip install cryptography"
+                "cryptography package required for backup encryption. " "Install with: pip install cryptography"
             )
 
         # Load or generate key
@@ -50,7 +50,7 @@ class BackupEncryption:
             self.key = self._load_key(key_file)
         else:
             # Use environment variable or generate new key
-            key_str = os.getenv('BACKUP_ENCRYPTION_KEY')
+            key_str = os.getenv("BACKUP_ENCRYPTION_KEY")
             if key_str:
                 self.key = key_str.encode()
             else:
@@ -69,6 +69,7 @@ class BackupEncryption:
             32-byte encryption key
         """
         from cryptography.fernet import Fernet
+
         key = Fernet.generate_key()
         logger.info("New encryption key generated")
         return key
@@ -90,7 +91,7 @@ class BackupEncryption:
         if not key_path.exists():
             raise FileNotFoundError(f"Encryption key file not found: {key_file}")
 
-        with open(key_path, 'rb') as f:
+        with open(key_path, "rb") as f:
             key = f.read().strip()
 
         logger.info(f"Encryption key loaded from {key_file}")
@@ -109,7 +110,7 @@ class BackupEncryption:
         key_path = Path(key_file)
         key_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(key_path, 'wb') as f:
+        with open(key_path, "wb") as f:
             f.write(self.key)
 
         # Set secure permissions (owner read/write only)
@@ -117,12 +118,7 @@ class BackupEncryption:
 
         logger.info(f"Encryption key saved to {key_file}")
 
-    def encrypt_file(
-        self,
-        input_file: str,
-        output_file: Optional[str] = None,
-        compress: bool = True
-    ) -> str:
+    def encrypt_file(self, input_file: str, output_file: Optional[str] = None, compress: bool = True) -> str:
         """
         Encrypt file.
 
@@ -146,7 +142,7 @@ class BackupEncryption:
             output_file = f"{input_file}.encrypted"
 
         # Read file
-        with open(input_path, 'rb') as f:
+        with open(input_path, "rb") as f:
             data = f.read()
 
         # Compress if requested
@@ -160,21 +156,13 @@ class BackupEncryption:
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             f.write(encrypted_data)
 
-        logger.info(
-            f"File encrypted: {input_file} -> {output_file} "
-            f"(compressed: {compress})"
-        )
+        logger.info(f"File encrypted: {input_file} -> {output_file} " f"(compressed: {compress})")
         return str(output_path)
 
-    def decrypt_file(
-        self,
-        input_file: str,
-        output_file: Optional[str] = None,
-        compressed: bool = True
-    ) -> str:
+    def decrypt_file(self, input_file: str, output_file: Optional[str] = None, compressed: bool = True) -> str:
         """
         Decrypt file.
 
@@ -196,13 +184,13 @@ class BackupEncryption:
 
         # Default output path
         if not output_file:
-            if input_file.endswith('.encrypted'):
+            if input_file.endswith(".encrypted"):
                 output_file = input_file[:-10]  # Remove .encrypted
             else:
                 output_file = f"{input_file}.decrypted"
 
         # Read encrypted file
-        with open(input_path, 'rb') as f:
+        with open(input_path, "rb") as f:
             encrypted_data = f.read()
 
         # Decrypt
@@ -224,21 +212,13 @@ class BackupEncryption:
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             f.write(data)
 
-        logger.info(
-            f"File decrypted: {input_file} -> {output_file} "
-            f"(compressed: {compressed})"
-        )
+        logger.info(f"File decrypted: {input_file} -> {output_file} " f"(compressed: {compressed})")
         return str(output_path)
 
-    def encrypt_backup(
-        self,
-        backup_dir: str,
-        output_file: str,
-        metadata: Optional[dict] = None
-    ) -> str:
+    def encrypt_backup(self, backup_dir: str, output_file: str, metadata: Optional[dict] = None) -> str:
         """
         Create encrypted backup of directory.
 
@@ -253,8 +233,8 @@ class BackupEncryption:
         Raises:
             FileNotFoundError: If backup directory not found
         """
-        import tarfile
         import io
+        import tarfile
 
         backup_path = Path(backup_dir)
         if not backup_path.exists():
@@ -263,7 +243,7 @@ class BackupEncryption:
         # Create tar archive in memory
         tar_buffer = io.BytesIO()
 
-        with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
+        with tarfile.open(fileobj=tar_buffer, mode="w:gz") as tar:
             tar.add(backup_path, arcname=backup_path.name)
 
         tar_data = tar_buffer.getvalue()
@@ -272,13 +252,13 @@ class BackupEncryption:
         if metadata is None:
             metadata = {}
 
-        metadata['backup_dir'] = str(backup_path)
-        metadata['timestamp'] = datetime.now().isoformat()
-        metadata['size_bytes'] = len(tar_data)
+        metadata["backup_dir"] = str(backup_path)
+        metadata["timestamp"] = datetime.now().isoformat()
+        metadata["size_bytes"] = len(tar_data)
 
         # Combine metadata and data
         metadata_json = json.dumps(metadata).encode()
-        metadata_length = len(metadata_json).to_bytes(4, 'big')
+        metadata_length = len(metadata_json).to_bytes(4, "big")
 
         combined_data = metadata_length + metadata_json + tar_data
 
@@ -289,21 +269,13 @@ class BackupEncryption:
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             f.write(encrypted_data)
 
-        logger.info(
-            f"Encrypted backup created: {backup_dir} -> {output_file} "
-            f"({len(tar_data)} bytes)"
-        )
+        logger.info(f"Encrypted backup created: {backup_dir} -> {output_file} " f"({len(tar_data)} bytes)")
         return str(output_path)
 
-    def restore_backup(
-        self,
-        backup_file: str,
-        output_dir: str,
-        verify_metadata: bool = True
-    ) -> dict:
+    def restore_backup(self, backup_file: str, output_dir: str, verify_metadata: bool = True) -> dict:
         """
         Restore encrypted backup.
 
@@ -319,15 +291,15 @@ class BackupEncryption:
             FileNotFoundError: If backup file not found
             ValueError: If backup is invalid
         """
-        import tarfile
         import io
+        import tarfile
 
         backup_path = Path(backup_file)
         if not backup_path.exists():
             raise FileNotFoundError(f"Backup file not found: {backup_file}")
 
         # Read encrypted backup
-        with open(backup_path, 'rb') as f:
+        with open(backup_path, "rb") as f:
             encrypted_data = f.read()
 
         # Decrypt
@@ -338,15 +310,15 @@ class BackupEncryption:
             raise ValueError("Invalid backup file or wrong encryption key")
 
         # Extract metadata
-        metadata_length = int.from_bytes(combined_data[:4], 'big')
-        metadata_json = combined_data[4:4+metadata_length]
-        tar_data = combined_data[4+metadata_length:]
+        metadata_length = int.from_bytes(combined_data[:4], "big")
+        metadata_json = combined_data[4 : 4 + metadata_length]
+        tar_data = combined_data[4 + metadata_length :]
 
         metadata = json.loads(metadata_json.decode())
 
         # Verify metadata if requested
         if verify_metadata:
-            if metadata.get('size_bytes') != len(tar_data):
+            if metadata.get("size_bytes") != len(tar_data):
                 raise ValueError("Backup integrity check failed")
 
         # Extract tar archive
@@ -355,20 +327,17 @@ class BackupEncryption:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        with tarfile.open(fileobj=tar_buffer, mode='r:gz') as tar:
+        with tarfile.open(fileobj=tar_buffer, mode="r:gz") as tar:
             tar.extractall(output_path)
 
-        logger.info(
-            f"Backup restored: {backup_file} -> {output_dir} "
-            f"(timestamp: {metadata.get('timestamp')})"
-        )
+        logger.info(f"Backup restored: {backup_file} -> {output_dir} " f"(timestamp: {metadata.get('timestamp')})")
         return metadata
 
 
 # Example usage
-if __name__ == '__main__':
-    import tempfile
+if __name__ == "__main__":
     import shutil
+    import tempfile
 
     # Configure logging
     logging.basicConfig(level=logging.INFO)
@@ -392,7 +361,7 @@ if __name__ == '__main__':
 
         # Create test file
         test_file = test_dir / "test.txt"
-        with open(test_file, 'w') as f:
+        with open(test_file, "w") as f:
             f.write("This is a test file for backup encryption\n" * 100)
 
         # Encrypt file
@@ -405,8 +374,8 @@ if __name__ == '__main__':
         print(f"File decrypted: {decrypted}\n")
 
         # Verify content
-        with open(test_file, 'r') as f1:
-            with open(decrypted, 'r') as f2:
+        with open(test_file, "r") as f1:
+            with open(decrypted, "r") as f2:
                 if f1.read() == f2.read():
                     print("✓ File content verified\n")
 
@@ -420,11 +389,7 @@ if __name__ == '__main__':
 
         # Create encrypted backup
         backup_file = test_dir / "backup.enc"
-        encryptor.encrypt_backup(
-            str(backup_dir),
-            str(backup_file),
-            metadata={'description': 'Test backup'}
-        )
+        encryptor.encrypt_backup(str(backup_dir), str(backup_file), metadata={"description": "Test backup"})
         print(f"Backup created: {backup_file}")
         print(f"Backup size: {backup_file.stat().st_size} bytes\n")
 

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class EdgeNodeStatus(Enum):
     """Edge node status."""
+
     ONLINE = "online"
     OFFLINE = "offline"
     SYNCING = "syncing"
@@ -32,6 +33,7 @@ class EdgeNodeStatus(Enum):
 
 class FunctionStatus(Enum):
     """Edge function status."""
+
     DEPLOYED = "deployed"
     RUNNING = "running"
     STOPPED = "stopped"
@@ -40,6 +42,7 @@ class FunctionStatus(Enum):
 
 class SyncStatus(Enum):
     """Cloud sync status."""
+
     SYNCED = "synced"
     PENDING = "pending"
     SYNCING = "syncing"
@@ -49,6 +52,7 @@ class SyncStatus(Enum):
 @dataclass
 class EdgeResources:
     """Edge node resource usage."""
+
     cpu_percent: float = 0.0
     memory_mb: int = 0
     disk_mb: int = 0
@@ -59,6 +63,7 @@ class EdgeResources:
 @dataclass
 class EdgeNode:
     """Edge computing node."""
+
     node_id: str
     node_name: str
     location: str
@@ -66,7 +71,7 @@ class EdgeNode:
     ip_address: Optional[str] = None
     resources: EdgeResources = field(default_factory=EdgeResources)
     capabilities: Set[str] = field(default_factory=set)
-    functions: Dict[str, 'EdgeFunction'] = field(default_factory=dict)
+    functions: Dict[str, "EdgeFunction"] = field(default_factory=dict)
     cache: Dict[str, Any] = field(default_factory=dict)
     last_seen: datetime = field(default_factory=datetime.now)
     created_at: datetime = field(default_factory=datetime.now)
@@ -76,6 +81,7 @@ class EdgeNode:
 @dataclass
 class EdgeFunction:
     """Lambda function deployed at edge."""
+
     function_id: str
     function_name: str
     code: str
@@ -94,6 +100,7 @@ class EdgeFunction:
 @dataclass
 class ProcessingResult:
     """Edge processing result."""
+
     function_id: str
     input_data: Any
     output_data: Any
@@ -106,6 +113,7 @@ class ProcessingResult:
 @dataclass
 class CacheEntry:
     """Edge cache entry."""
+
     key: str
     value: Any
     ttl: int  # seconds
@@ -170,10 +178,7 @@ class EdgeCache:
         if not self.cache:
             return
 
-        lru_key = min(
-            self.cache.items(),
-            key=lambda x: x[1].accessed_at
-        )[0]
+        lru_key = min(self.cache.items(), key=lambda x: x[1].accessed_at)[0]
 
         del self.cache[lru_key]
         logger.debug(f"Evicted cache entry: {lru_key}")
@@ -184,11 +189,11 @@ class EdgeCache:
         hit_rate = self.hits / total_requests if total_requests > 0 else 0.0
 
         return {
-            'size': len(self.cache),
-            'max_size': self.max_size,
-            'hits': self.hits,
-            'misses': self.misses,
-            'hit_rate': hit_rate
+            "size": len(self.cache),
+            "max_size": self.max_size,
+            "hits": self.hits,
+            "misses": self.misses,
+            "hit_rate": hit_rate,
         }
 
 
@@ -201,11 +206,7 @@ class EdgeProcessor:
         self.results: deque = deque(maxlen=1000)
         self.running = False
 
-    async def process(
-        self,
-        function: EdgeFunction,
-        data: Any
-    ) -> ProcessingResult:
+    async def process(self, function: EdgeFunction, data: Any) -> ProcessingResult:
         """Process data with edge function."""
         start_time = datetime.now()
 
@@ -220,7 +221,7 @@ class EdgeProcessor:
                 input_data=data,
                 output_data=result,
                 success=True,
-                execution_time_ms=execution_time
+                execution_time_ms=execution_time,
             )
 
             # Update function stats
@@ -243,30 +244,27 @@ class EdgeProcessor:
                 output_data=None,
                 success=False,
                 execution_time_ms=execution_time,
-                error=str(e)
+                error=str(e),
             )
 
     async def _execute_function(self, function: EdgeFunction, data: Any) -> Any:
         """Execute edge function code."""
         # Create execution environment
-        local_vars = {'data': data, 'result': None}
+        local_vars = {"data": data, "result": None}
 
         try:
             # Execute function code with timeout
             exec(function.code, {}, local_vars)
 
             # Call process function if defined
-            if 'process' in local_vars:
-                process_func = local_vars['process']
+            if "process" in local_vars:
+                process_func = local_vars["process"]
                 if asyncio.iscoroutinefunction(process_func):
-                    result = await asyncio.wait_for(
-                        process_func(data),
-                        timeout=function.timeout
-                    )
+                    result = await asyncio.wait_for(process_func(data), timeout=function.timeout)
                 else:
                     result = process_func(data)
             else:
-                result = local_vars.get('result')
+                result = local_vars.get("result")
 
             return result
 
@@ -282,10 +280,7 @@ class EdgeProcessor:
         while self.running:
             try:
                 # Get item from queue
-                function, data = await asyncio.wait_for(
-                    self.processing_queue.get(),
-                    timeout=1.0
-                )
+                function, data = await asyncio.wait_for(self.processing_queue.get(), timeout=1.0)
 
                 # Process
                 result = await self.process(function, data)
@@ -314,31 +309,16 @@ class StreamProcessor:
 
     def add_to_stream(self, stream_id: str, data: Any):
         """Add data to stream."""
-        self.streams[stream_id].append({
-            'data': data,
-            'timestamp': datetime.now()
-        })
+        self.streams[stream_id].append({"data": data, "timestamp": datetime.now()})
 
-    def get_stream_window(
-        self,
-        stream_id: str,
-        window_seconds: int = 60
-    ) -> List[Any]:
+    def get_stream_window(self, stream_id: str, window_seconds: int = 60) -> List[Any]:
         """Get stream data within time window."""
         stream = self.streams.get(stream_id, deque())
         cutoff = datetime.now() - timedelta(seconds=window_seconds)
 
-        return [
-            item['data'] for item in stream
-            if item['timestamp'] >= cutoff
-        ]
+        return [item["data"] for item in stream if item["timestamp"] >= cutoff]
 
-    def aggregate(
-        self,
-        stream_id: str,
-        aggregation_func: Callable,
-        window_seconds: int = 60
-    ) -> Any:
+    def aggregate(self, stream_id: str, aggregation_func: Callable, window_seconds: int = 60) -> Any:
         """Aggregate stream data."""
         window_data = self.get_stream_window(stream_id, window_seconds)
 
@@ -347,10 +327,7 @@ class StreamProcessor:
 
         try:
             result = aggregation_func(window_data)
-            self.aggregations[stream_id] = {
-                'result': result,
-                'timestamp': datetime.now()
-            }
+            self.aggregations[stream_id] = {"result": result, "timestamp": datetime.now()}
             return result
         except Exception as e:
             logger.error(f"Stream aggregation error: {e}")
@@ -369,8 +346,8 @@ class EdgeSync:
 
     def add_to_sync(self, data: Dict[str, Any]):
         """Add data to sync queue."""
-        data['node_id'] = self.node_id
-        data['timestamp'] = datetime.now()
+        data["node_id"] = self.node_id
+        data["timestamp"] = datetime.now()
         self.pending_sync.append(data)
         self.sync_status = SyncStatus.PENDING
 
@@ -410,10 +387,10 @@ class EdgeSync:
     def get_sync_stats(self) -> Dict[str, Any]:
         """Get sync statistics."""
         return {
-            'status': self.sync_status.value,
-            'pending_items': len(self.pending_sync),
-            'last_sync': self.last_sync,
-            'failures': self.sync_failures
+            "status": self.sync_status.value,
+            "pending_items": len(self.pending_sync),
+            "last_sync": self.last_sync,
+            "failures": self.sync_failures,
         }
 
 
@@ -423,23 +400,12 @@ class EdgeOrchestrator:
     def __init__(self):
         self.nodes: Dict[str, EdgeNode] = {}
 
-    def register_node(
-        self,
-        node_id: str,
-        node_name: str,
-        location: str,
-        **kwargs
-    ) -> EdgeNode:
+    def register_node(self, node_id: str, node_name: str, location: str, **kwargs) -> EdgeNode:
         """Register new edge node."""
         if node_id in self.nodes:
             raise ValueError(f"Node {node_id} already registered")
 
-        node = EdgeNode(
-            node_id=node_id,
-            node_name=node_name,
-            location=location,
-            **kwargs
-        )
+        node = EdgeNode(node_id=node_id, node_name=node_name, location=location, **kwargs)
 
         self.nodes[node_id] = node
 
@@ -450,10 +416,7 @@ class EdgeOrchestrator:
         """Get edge node."""
         return self.nodes.get(node_id)
 
-    def list_nodes(
-        self,
-        status: Optional[EdgeNodeStatus] = None
-    ) -> List[EdgeNode]:
+    def list_nodes(self, status: Optional[EdgeNodeStatus] = None) -> List[EdgeNode]:
         """List edge nodes."""
         nodes = list(self.nodes.values())
 
@@ -471,12 +434,7 @@ class EdgeOrchestrator:
         return False
 
     async def deploy_function(
-        self,
-        node_id: str,
-        function_name: str,
-        code: str,
-        trigger: str,
-        **kwargs
+        self, node_id: str, function_name: str, code: str, trigger: str, **kwargs
     ) -> Optional[EdgeFunction]:
         """Deploy function to edge node."""
         node = self.nodes.get(node_id)
@@ -486,11 +444,7 @@ class EdgeOrchestrator:
 
         function_id = str(uuid4())
         function = EdgeFunction(
-            function_id=function_id,
-            function_name=function_name,
-            code=code,
-            trigger=trigger,
-            **kwargs
+            function_id=function_id, function_name=function_name, code=code, trigger=trigger, **kwargs
         )
 
         node.functions[function_id] = function
@@ -498,11 +452,7 @@ class EdgeOrchestrator:
         logger.info(f"Deployed function {function_name} to node {node_id}")
         return function
 
-    async def undeploy_function(
-        self,
-        node_id: str,
-        function_id: str
-    ) -> bool:
+    async def undeploy_function(self, node_id: str, function_id: str) -> bool:
         """Remove function from edge node."""
         node = self.nodes.get(node_id)
         if not node:
@@ -520,31 +470,15 @@ class EdgeOrchestrator:
         node = self.nodes.get(node_id)
         return node.resources if node else None
 
-    def update_node_resources(
-        self,
-        node_id: str,
-        cpu_percent: float,
-        memory_mb: int,
-        disk_mb: int
-    ):
+    def update_node_resources(self, node_id: str, cpu_percent: float, memory_mb: int, disk_mb: int):
         """Update node resource usage."""
         node = self.nodes.get(node_id)
         if node:
-            node.resources = EdgeResources(
-                cpu_percent=cpu_percent,
-                memory_mb=memory_mb,
-                disk_mb=disk_mb
-            )
+            node.resources = EdgeResources(cpu_percent=cpu_percent, memory_mb=memory_mb, disk_mb=disk_mb)
 
-    def find_best_node(
-        self,
-        required_resources: Optional[Dict[str, Any]] = None
-    ) -> Optional[EdgeNode]:
+    def find_best_node(self, required_resources: Optional[Dict[str, Any]] = None) -> Optional[EdgeNode]:
         """Find best edge node for deployment."""
-        available_nodes = [
-            n for n in self.nodes.values()
-            if n.status == EdgeNodeStatus.ONLINE
-        ]
+        available_nodes = [n for n in self.nodes.values() if n.status == EdgeNodeStatus.ONLINE]
 
         if not available_nodes:
             return None
@@ -563,13 +497,7 @@ class EdgePlatform:
         self.syncs: Dict[str, EdgeSync] = {}
         self.stream_processors: Dict[str, StreamProcessor] = {}
 
-    async def register_edge_node(
-        self,
-        node_id: str,
-        node_name: str,
-        location: str,
-        **kwargs
-    ) -> EdgeNode:
+    async def register_edge_node(self, node_id: str, node_name: str, location: str, **kwargs) -> EdgeNode:
         """Register new edge node."""
         node = self.orchestrator.register_node(node_id, node_name, location, **kwargs)
 
@@ -585,12 +513,7 @@ class EdgePlatform:
         return node
 
     async def deploy_function(
-        self,
-        function_name: str,
-        code: str,
-        trigger: str,
-        node_id: Optional[str] = None,
-        **kwargs
+        self, function_name: str, code: str, trigger: str, node_id: Optional[str] = None, **kwargs
     ) -> Optional[EdgeFunction]:
         """Deploy function to edge node."""
         # Auto-select node if not specified
@@ -602,19 +525,10 @@ class EdgePlatform:
             node_id = node.node_id
 
         return await self.orchestrator.deploy_function(
-            node_id=node_id,
-            function_name=function_name,
-            code=code,
-            trigger=trigger,
-            **kwargs
+            node_id=node_id, function_name=function_name, code=code, trigger=trigger, **kwargs
         )
 
-    async def process_at_edge(
-        self,
-        node_id: str,
-        function_id: str,
-        data: Any
-    ) -> Optional[ProcessingResult]:
+    async def process_at_edge(self, node_id: str, function_id: str, data: Any) -> Optional[ProcessingResult]:
         """Process data at edge node."""
         node = self.orchestrator.get_node(node_id)
         if not node:
@@ -630,13 +544,7 @@ class EdgePlatform:
 
         return await processor.process(function, data)
 
-    def cache_at_edge(
-        self,
-        node_id: str,
-        key: str,
-        value: Any,
-        ttl: int = 3600
-    ) -> bool:
+    def cache_at_edge(self, node_id: str, key: str, value: Any, ttl: int = 3600) -> bool:
         """Cache data at edge node."""
         cache = self.caches.get(node_id)
         if not cache:
@@ -645,11 +553,7 @@ class EdgePlatform:
         cache.set(key, value, ttl)
         return True
 
-    def get_from_edge_cache(
-        self,
-        node_id: str,
-        key: str
-    ) -> Optional[Any]:
+    def get_from_edge_cache(self, node_id: str, key: str) -> Optional[Any]:
         """Get data from edge cache."""
         cache = self.caches.get(node_id)
         if not cache:
@@ -657,11 +561,7 @@ class EdgePlatform:
 
         return cache.get(key)
 
-    async def sync_to_cloud(
-        self,
-        node_id: str,
-        data: Dict[str, Any]
-    ) -> bool:
+    async def sync_to_cloud(self, node_id: str, data: Dict[str, Any]) -> bool:
         """Add data to cloud sync queue."""
         sync = self.syncs.get(node_id)
         if not sync:
@@ -688,16 +588,16 @@ class EdgePlatform:
         sync = self.syncs.get(node_id)
 
         return {
-            'node_id': node_id,
-            'status': node.status.value,
-            'functions': len(node.functions),
-            'resources': {
-                'cpu_percent': node.resources.cpu_percent,
-                'memory_mb': node.resources.memory_mb,
-                'disk_mb': node.resources.disk_mb
+            "node_id": node_id,
+            "status": node.status.value,
+            "functions": len(node.functions),
+            "resources": {
+                "cpu_percent": node.resources.cpu_percent,
+                "memory_mb": node.resources.memory_mb,
+                "disk_mb": node.resources.disk_mb,
             },
-            'cache': cache.get_stats() if cache else None,
-            'sync': sync.get_sync_stats() if sync else None
+            "cache": cache.get_stats() if cache else None,
+            "sync": sync.get_sync_stats() if sync else None,
         }
 
 

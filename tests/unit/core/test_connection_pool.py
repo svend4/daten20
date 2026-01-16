@@ -2,20 +2,21 @@
 Tests for database connection pool.
 """
 
-import pytest
-import tempfile
 import sqlite3
+import tempfile
 import threading
 import time
 from pathlib import Path
 
-from src.core.connection_pool import ConnectionPool, get_connection_pool, close_connection_pool
+import pytest
+
+from src.core.connection_pool import ConnectionPool, close_connection_pool, get_connection_pool
 
 
 @pytest.fixture
 def temp_db():
     """Create temporary database."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
     yield db_path
     # Cleanup
@@ -34,8 +35,8 @@ class TestConnectionPool:
         assert pool.pool_size == 3
         assert pool.db_path == temp_db
         stats = pool.get_stats()
-        assert stats['pool_size'] == 3
-        assert stats['connections_created'] == 3
+        assert stats["pool_size"] == 3
+        assert stats["connections_created"] == 3
         pool.close_all()
 
     def test_get_connection(self, temp_db):
@@ -53,12 +54,12 @@ class TestConnectionPool:
         conn = pool.get_connection()
 
         stats1 = pool.get_stats()
-        available_before = stats1['available_connections']
+        available_before = stats1["available_connections"]
 
         pool.return_connection(conn)
 
         stats2 = pool.get_stats()
-        available_after = stats2['available_connections']
+        available_after = stats2["available_connections"]
 
         assert available_after == available_before + 1
         pool.close_all()
@@ -95,7 +96,7 @@ class TestConnectionPool:
             cursor.execute("SELECT * FROM test WHERE id = 1")
             result = cursor.fetchone()
             assert result is not None
-            assert result[1] == 'test'
+            assert result[1] == "test"
 
         pool.close_all()
 
@@ -136,7 +137,7 @@ class TestConnectionPool:
         conn3 = pool.get_connection()  # Should create new connection
 
         stats = pool.get_stats()
-        assert stats['connections_created'] >= 3
+        assert stats["connections_created"] >= 3
 
         pool.return_connection(conn1)
         pool.return_connection(conn2)
@@ -166,7 +167,7 @@ class TestConnectionPool:
 
             # Check journal mode
             cursor.execute("PRAGMA journal_mode")
-            assert cursor.fetchone()[0] == 'wal'
+            assert cursor.fetchone()[0] == "wal"
 
             # Check foreign keys
             cursor.execute("PRAGMA foreign_keys")
@@ -214,33 +215,33 @@ class TestConnectionPool:
         pool = ConnectionPool(temp_db, pool_size=3)
 
         stats_before = pool.get_stats()
-        assert stats_before['available_connections'] == 3
+        assert stats_before["available_connections"] == 3
 
         pool.close_all()
 
         stats_after = pool.get_stats()
-        assert stats_after['available_connections'] == 0
+        assert stats_after["available_connections"] == 0
 
     def test_stats(self, temp_db):
         """Test pool statistics."""
         pool = ConnectionPool(temp_db, pool_size=3)
 
         stats = pool.get_stats()
-        assert 'pool_size' in stats
-        assert 'connections_created' in stats
-        assert 'available_connections' in stats
-        assert 'active_connections' in stats
+        assert "pool_size" in stats
+        assert "connections_created" in stats
+        assert "available_connections" in stats
+        assert "active_connections" in stats
 
-        assert stats['pool_size'] == 3
-        assert stats['connections_created'] == 3
-        assert stats['available_connections'] == 3
-        assert stats['active_connections'] == 0
+        assert stats["pool_size"] == 3
+        assert stats["connections_created"] == 3
+        assert stats["available_connections"] == 3
+        assert stats["active_connections"] == 0
 
         # Get a connection
         conn = pool.get_connection()
         stats2 = pool.get_stats()
-        assert stats2['available_connections'] == 2
-        assert stats2['active_connections'] == 1
+        assert stats2["available_connections"] == 2
+        assert stats2["active_connections"] == 1
 
         pool.return_connection(conn)
         pool.close_all()
@@ -291,12 +292,12 @@ class TestPoolContextManager:
         """Test using pool as context manager."""
         with ConnectionPool(temp_db, pool_size=2) as pool:
             stats = pool.get_stats()
-            assert stats['pool_size'] == 2
+            assert stats["pool_size"] == 2
 
         # Pool should be closed after exiting context
         stats_after = pool.get_stats()
-        assert stats_after['available_connections'] == 0
+        assert stats_after["available_connections"] == 0
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

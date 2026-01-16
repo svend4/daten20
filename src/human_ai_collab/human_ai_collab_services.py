@@ -16,19 +16,21 @@ This module provides 7 core systems:
 """
 
 import asyncio
-import numpy as np
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional, Any, Set, Tuple
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+import numpy as np
 
 # ============================================================================
 # Enums
 # ============================================================================
 
+
 class TaskRole(Enum):
     """Who should perform a task"""
+
     HUMAN = "human"
     AI = "ai"
     COLLABORATIVE = "collaborative"
@@ -37,6 +39,7 @@ class TaskRole(Enum):
 
 class IntentType(Enum):
     """Type of user intent"""
+
     COMMAND = "command"  # Direct instruction
     REQUEST = "request"  # Ask for help
     QUERY = "query"  # Information seeking
@@ -46,6 +49,7 @@ class IntentType(Enum):
 
 class ControlMode(Enum):
     """Interaction control paradigm"""
+
     COMMAND_CONTROL = "command_control"  # Human directs, AI executes
     COLLABORATIVE = "collaborative"  # Joint decision making
     DELEGATED = "delegated"  # AI acts independently
@@ -54,6 +58,7 @@ class ControlMode(Enum):
 
 class AugmentationType(Enum):
     """Type of human augmentation"""
+
     COGNITIVE = "cognitive"  # Memory, attention, decision support
     PHYSICAL = "physical"  # Motor, sensory enhancement
     PRODUCTIVITY = "productivity"  # Automation, completion
@@ -62,6 +67,7 @@ class AugmentationType(Enum):
 
 class ExplanationType(Enum):
     """Type of explanation"""
+
     LOCAL = "local"  # Why this specific output
     GLOBAL = "global"  # How system generally works
     CONTRASTIVE = "contrastive"  # Why X instead of Y
@@ -72,9 +78,11 @@ class ExplanationType(Enum):
 # Data Classes
 # ============================================================================
 
+
 @dataclass
 class CollaborativeTask:
     """Represents a task in joint human-AI work"""
+
     task_id: str
     name: str
     description: str
@@ -91,6 +99,7 @@ class CollaborativeTask:
 @dataclass
 class Intent:
     """Represents understood user intent"""
+
     intent_id: str
     intent_type: IntentType
     content: str
@@ -105,6 +114,7 @@ class Intent:
 @dataclass
 class Capability:
     """Represents an AI capability"""
+
     capability_id: str
     name: str
     description: str
@@ -118,6 +128,7 @@ class Capability:
 @dataclass
 class MentalModel:
     """Shared mental model between human and AI"""
+
     model_id: str
     shared_goals: List[str]
     shared_knowledge: Dict[str, Any]
@@ -131,6 +142,7 @@ class MentalModel:
 @dataclass
 class AugmentationResult:
     """Result of performance augmentation"""
+
     augmentation_id: str
     augmentation_type: AugmentationType
     original_input: Any
@@ -144,6 +156,7 @@ class AugmentationResult:
 @dataclass
 class Explanation:
     """Explanation of AI behavior"""
+
     explanation_id: str
     explanation_type: ExplanationType
     target_output: Any
@@ -157,6 +170,7 @@ class Explanation:
 @dataclass
 class TrustMetrics:
     """Metrics for trust calibration"""
+
     appropriate_reliance: float  # % correct trust decisions
     over_trust_rate: float  # % inappropriate reliance
     under_trust_rate: float  # % missed opportunities
@@ -168,6 +182,7 @@ class TrustMetrics:
 # ============================================================================
 # 1. Collaborative Task Management System
 # ============================================================================
+
 
 class CollaborativeTaskManagement:
     """
@@ -185,11 +200,7 @@ class CollaborativeTaskManagement:
         self.allocation_history: List[Dict[str, Any]] = []
         self.handoff_success_rate: float = 0.95
 
-    async def decompose_task(
-        self,
-        goal: str,
-        max_subtasks: int = 20
-    ) -> List[CollaborativeTask]:
+    async def decompose_task(self, goal: str, max_subtasks: int = 20) -> List[CollaborativeTask]:
         """
         Decompose complex goal into subtasks.
 
@@ -213,12 +224,12 @@ class CollaborativeTaskManagement:
                 description=f"Component task {i+1} for achieving: {goal}",
                 assigned_role=TaskRole.HUMAN,  # Will be allocated
                 status="pending",
-                created_at=datetime.now()
+                created_at=datetime.now(),
             )
 
             # Add dependencies (later tasks depend on earlier ones)
             if i > 0 and np.random.random() > 0.5:
-                task.dependencies.append(subtasks[i-1].task_id)
+                task.dependencies.append(subtasks[i - 1].task_id)
 
             subtasks.append(task)
             self.tasks[task.task_id] = task
@@ -229,7 +240,7 @@ class CollaborativeTaskManagement:
         self,
         task: CollaborativeTask,
         human_capabilities: Optional[Set[str]] = None,
-        ai_capabilities: Optional[Set[str]] = None
+        ai_capabilities: Optional[Set[str]] = None,
     ) -> TaskRole:
         """
         Allocate task to human, AI, or collaborative execution.
@@ -264,20 +275,14 @@ class CollaborativeTaskManagement:
         task.assigned_role = allocation
 
         # Record allocation
-        self.allocation_history.append({
-            "task_id": task.task_id,
-            "allocation": allocation.value,
-            "timestamp": datetime.now()
-        })
+        self.allocation_history.append(
+            {"task_id": task.task_id, "allocation": allocation.value, "timestamp": datetime.now()}
+        )
 
         return allocation
 
     async def handoff_task(
-        self,
-        task_id: str,
-        from_role: TaskRole,
-        to_role: TaskRole,
-        context: Optional[Dict[str, Any]] = None
+        self, task_id: str, from_role: TaskRole, to_role: TaskRole, context: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
         Transfer task from one role to another.
@@ -329,10 +334,7 @@ class CollaborativeTaskManagement:
             return 0.7  # Default 70% synergy
 
         # Calculate from history
-        collaborative_tasks = [
-            h for h in self.allocation_history
-            if h["allocation"] in ["collaborative", "negotiated"]
-        ]
+        collaborative_tasks = [h for h in self.allocation_history if h["allocation"] in ["collaborative", "negotiated"]]
 
         if not collaborative_tasks:
             return 0.7
@@ -347,6 +349,7 @@ class CollaborativeTaskManagement:
 # ============================================================================
 # 2. Human Intent Understanding & Prediction
 # ============================================================================
+
 
 class HumanIntentUnderstanding:
     """
@@ -367,7 +370,7 @@ class HumanIntentUnderstanding:
         self,
         user_input: str,
         context: Optional[Dict[str, Any]] = None,
-        multimodal_signals: Optional[Dict[str, Any]] = None
+        multimodal_signals: Optional[Dict[str, Any]] = None,
     ) -> Intent:
         """
         Understand user intent from input and context.
@@ -403,17 +406,10 @@ class HumanIntentUnderstanding:
         confidence = np.random.uniform(0.85, 0.98)
 
         # Extract parameters (simplified)
-        parameters = {
-            "raw_input": user_input,
-            "length": len(user_input),
-            "context_available": context is not None
-        }
+        parameters = {"raw_input": user_input, "length": len(user_input), "context_available": context is not None}
 
         # Generate alternatives (for top-3 >95% accuracy)
-        alternatives = [
-            (IntentType.REQUEST.value, 0.08),
-            (IntentType.QUERY.value, 0.05)
-        ]
+        alternatives = [(IntentType.REQUEST.value, 0.08), (IntentType.QUERY.value, 0.05)]
 
         intent = Intent(
             intent_id=f"intent_{datetime.now().timestamp()}",
@@ -424,17 +420,14 @@ class HumanIntentUnderstanding:
             timestamp=datetime.now(),
             context=context or {},
             needs_clarification=confidence < 0.7,
-            alternatives=alternatives
+            alternatives=alternatives,
         )
 
         self.intent_history.append(intent)
 
         return intent
 
-    async def predict_next_intent(
-        self,
-        current_context: Dict[str, Any]
-    ) -> Intent:
+    async def predict_next_intent(self, current_context: Dict[str, Any]) -> Intent:
         """
         Proactively predict user's next likely intent.
 
@@ -469,16 +462,12 @@ class HumanIntentUnderstanding:
             confidence=confidence,
             parameters={"is_prediction": True},
             timestamp=datetime.now(),
-            context=current_context
+            context=current_context,
         )
 
         return predicted
 
-    async def clarify_intent(
-        self,
-        ambiguous_intent: Intent,
-        max_questions: int = 2
-    ) -> Intent:
+    async def clarify_intent(self, ambiguous_intent: Intent, max_questions: int = 2) -> Intent:
         """
         Resolve ambiguous intent through active probing.
 
@@ -501,7 +490,7 @@ class HumanIntentUnderstanding:
             parameters=ambiguous_intent.parameters,
             timestamp=datetime.now(),
             context=ambiguous_intent.context,
-            needs_clarification=False
+            needs_clarification=False,
         )
 
         return clarified
@@ -510,6 +499,7 @@ class HumanIntentUnderstanding:
 # ============================================================================
 # 3. AI Capability Matching & Recommendation
 # ============================================================================
+
 
 class AICapabilityMatching:
     """
@@ -550,24 +540,17 @@ class AICapabilityMatching:
                 performance_profile={
                     "accuracy": accuracy,
                     "speed_ms": np.random.uniform(50, 500),
-                    "resource_usage": np.random.uniform(0.1, 0.8)
+                    "resource_usage": np.random.uniform(0.1, 0.8),
                 },
                 limitations=[
                     "May struggle with domain-specific terminology",
-                    "Performance degrades on very long inputs"
+                    "Performance degrades on very long inputs",
                 ],
-                examples=[
-                    f"Example use of {name}: ...",
-                    f"Another {name} example: ..."
-                ],
-                confidence=np.random.uniform(0.85, 0.95)
+                examples=[f"Example use of {name}: ...", f"Another {name} example: ..."],
+                confidence=np.random.uniform(0.85, 0.95),
             )
 
-    async def match_capabilities(
-        self,
-        user_need: str,
-        top_k: int = 10
-    ) -> List[Tuple[Capability, float]]:
+    async def match_capabilities(self, user_need: str, top_k: int = 10) -> List[Tuple[Capability, float]]:
         """
         Find AI capabilities matching user's need.
 
@@ -609,11 +592,7 @@ class AICapabilityMatching:
 
         return matches[:top_k]
 
-    async def recommend_proactively(
-        self,
-        current_task: str,
-        user_context: Dict[str, Any]
-    ) -> Optional[Capability]:
+    async def recommend_proactively(self, current_task: str, user_context: Dict[str, Any]) -> Optional[Capability]:
         """
         Proactively suggest AI capability when detecting struggle/inefficiency.
 
@@ -642,11 +621,7 @@ class AICapabilityMatching:
 
         return None
 
-    async def update_preferences(
-        self,
-        capability_id: str,
-        feedback: float  # -1 to 1 (rejection to acceptance)
-    ):
+    async def update_preferences(self, capability_id: str, feedback: float):  # -1 to 1 (rejection to acceptance)
         """
         Update user preferences based on feedback.
 
@@ -665,6 +640,7 @@ class AICapabilityMatching:
 # 4. Shared Mental Models & Context Synchronization
 # ============================================================================
 
+
 class SharedMentalModels:
     """
     Maintains shared understanding between human and AI.
@@ -680,11 +656,7 @@ class SharedMentalModels:
         self.mental_models: Dict[str, MentalModel] = {}
         self.sync_latency_ms: float = 100.0
 
-    async def create_mental_model(
-        self,
-        session_id: str,
-        initial_goals: Optional[List[str]] = None
-    ) -> MentalModel:
+    async def create_mental_model(self, session_id: str, initial_goals: Optional[List[str]] = None) -> MentalModel:
         """
         Create new shared mental model for a session.
 
@@ -703,17 +675,14 @@ class SharedMentalModels:
             shared_plans=[],
             alignment_score=1.0,  # Perfect at start
             last_updated=datetime.now(),
-            divergences=[]
+            divergences=[],
         )
 
         self.mental_models[session_id] = model
         return model
 
     async def synchronize_context(
-        self,
-        session_id: str,
-        human_state: Dict[str, Any],
-        ai_state: Dict[str, Any]
+        self, session_id: str, human_state: Dict[str, Any], ai_state: Dict[str, Any]
     ) -> float:
         """
         Synchronize context between human and AI.
@@ -758,10 +727,7 @@ class SharedMentalModels:
 
         return model.alignment_score
 
-    async def detect_conflicts(
-        self,
-        session_id: str
-    ) -> List[str]:
+    async def detect_conflicts(self, session_id: str) -> List[str]:
         """
         Identify divergent beliefs/assumptions.
 
@@ -782,12 +748,7 @@ class SharedMentalModels:
         # Return detected divergences
         return model.divergences
 
-    async def repair_misunderstanding(
-        self,
-        session_id: str,
-        conflict_key: str,
-        resolution: Any
-    ) -> bool:
+    async def repair_misunderstanding(self, session_id: str, conflict_key: str, resolution: Any) -> bool:
         """
         Fix misunderstandings when detected.
 
@@ -822,6 +783,7 @@ class SharedMentalModels:
 # 5. Mixed-Initiative Interaction & Control
 # ============================================================================
 
+
 class MixedInitiativeControl:
     """
     Manages dynamic control between human and AI.
@@ -838,10 +800,7 @@ class MixedInitiativeControl:
         self.autonomy_level: float = 0.3  # 0=human control, 1=full autonomy
         self.interruption_threshold: float = 0.7
 
-    async def set_control_mode(
-        self,
-        mode: ControlMode
-    ):
+    async def set_control_mode(self, mode: ControlMode):
         """
         Set interaction control paradigm.
 
@@ -855,17 +814,12 @@ class MixedInitiativeControl:
             ControlMode.COMMAND_CONTROL: 0.2,
             ControlMode.COLLABORATIVE: 0.5,
             ControlMode.DELEGATED: 0.8,
-            ControlMode.MONITORED: 0.9
+            ControlMode.MONITORED: 0.9,
         }
 
         self.autonomy_level = mode_autonomy.get(mode, 0.5)
 
-    async def should_ai_initiate(
-        self,
-        opportunity: str,
-        importance: float,
-        user_busy: bool
-    ) -> bool:
+    async def should_ai_initiate(self, opportunity: str, importance: float, user_busy: bool) -> bool:
         """
         Decide if AI should proactively act/suggest.
 
@@ -894,12 +848,7 @@ class MixedInitiativeControl:
 
         return False
 
-    async def transfer_control(
-        self,
-        from_agent: str,  # "human" or "ai"
-        to_agent: str,
-        reason: str
-    ) -> float:
+    async def transfer_control(self, from_agent: str, to_agent: str, reason: str) -> float:  # "human" or "ai"
         """
         Transfer control between human and AI.
 
@@ -920,11 +869,7 @@ class MixedInitiativeControl:
 
         return latency
 
-    async def assess_interruption(
-        self,
-        message: str,
-        urgency: float
-    ) -> Tuple[bool, str]:
+    async def assess_interruption(self, message: str, urgency: float) -> Tuple[bool, str]:
         """
         Decide whether to interrupt user.
 
@@ -948,11 +893,7 @@ class MixedInitiativeControl:
             # Low urgency: defer
             return False, "background"
 
-    async def adapt_autonomy(
-        self,
-        performance_history: List[float],
-        user_feedback: float
-    ):
+    async def adapt_autonomy(self, performance_history: List[float], user_feedback: float):
         """
         Adapt autonomy level based on performance and feedback.
 
@@ -976,6 +917,7 @@ class MixedInitiativeControl:
 # 6. Human Performance Augmentation
 # ============================================================================
 
+
 class HumanPerformanceAugmentation:
     """
     Augments human cognitive, physical, productivity, and skill performance.
@@ -991,10 +933,7 @@ class HumanPerformanceAugmentation:
         self.augmentation_history: List[AugmentationResult] = []
 
     async def cognitive_augmentation(
-        self,
-        task_type: str,
-        input_data: Any,
-        user_context: Dict[str, Any]
+        self, task_type: str, input_data: Any, user_context: Dict[str, Any]
     ) -> AugmentationResult:
         """
         Provide cognitive augmentation (memory, attention, decision support).
@@ -1042,17 +981,13 @@ class HumanPerformanceAugmentation:
             improvement_factor=improvement,
             latency_ms=latency,
             timestamp=datetime.now(),
-            explanation=f"Applied {task_type} augmentation"
+            explanation=f"Applied {task_type} augmentation",
         )
 
         self.augmentation_history.append(result)
         return result
 
-    async def productivity_augmentation(
-        self,
-        task: str,
-        partial_work: Any
-    ) -> AugmentationResult:
+    async def productivity_augmentation(self, task: str, partial_work: Any) -> AugmentationResult:
         """
         Augment productivity through automation, completion, templates.
 
@@ -1086,17 +1021,14 @@ class HumanPerformanceAugmentation:
             improvement_factor=improvement,
             latency_ms=latency,
             timestamp=datetime.now(),
-            explanation="Auto-completed based on context"
+            explanation="Auto-completed based on context",
         )
 
         self.augmentation_history.append(result)
         return result
 
     async def skill_augmentation(
-        self,
-        skill_domain: str,
-        user_level: str,  # "novice", "intermediate", "expert"
-        task: Any
+        self, skill_domain: str, user_level: str, task: Any  # "novice", "intermediate", "expert"
     ) -> AugmentationResult:
         """
         Bridge skill gaps and accelerate learning.
@@ -1117,7 +1049,7 @@ class HumanPerformanceAugmentation:
         level_multipliers = {
             "novice": 5.0,  # Biggest help for novices
             "intermediate": 3.0,
-            "expert": 1.5  # Even experts benefit
+            "expert": 1.5,  # Even experts benefit
         }
 
         improvement = level_multipliers.get(user_level, 2.0)
@@ -1134,7 +1066,7 @@ class HumanPerformanceAugmentation:
             improvement_factor=improvement,
             latency_ms=latency,
             timestamp=datetime.now(),
-            explanation=f"Skill augmentation for {user_level} in {skill_domain}"
+            explanation=f"Skill augmentation for {user_level} in {skill_domain}",
         )
 
         self.augmentation_history.append(result)
@@ -1164,6 +1096,7 @@ class HumanPerformanceAugmentation:
 # 7. Trust, Transparency & Explainability
 # ============================================================================
 
+
 class TrustTransparencyExplainability:
     """
     Ensures trustworthy AI through transparency and explainability.
@@ -1180,10 +1113,7 @@ class TrustTransparencyExplainability:
         self.trust_metrics: Optional[TrustMetrics] = None
 
     async def generate_explanation(
-        self,
-        output: Any,
-        explanation_type: ExplanationType,
-        context: Optional[Dict[str, Any]] = None
+        self, output: Any, explanation_type: ExplanationType, context: Optional[Dict[str, Any]] = None
     ) -> Explanation:
         """
         Generate explanation of AI behavior.
@@ -1233,7 +1163,7 @@ class TrustTransparencyExplainability:
             feature_importance=features,
             examples=[],
             confidence=0.8,
-            generation_time_s=generation_time
+            generation_time_s=generation_time,
         )
 
         self.explanations.append(explanation)
@@ -1243,7 +1173,7 @@ class TrustTransparencyExplainability:
         self,
         ai_predictions: List[Tuple[Any, float]],  # (prediction, confidence)
         ground_truth: List[Any],
-        user_reliance_decisions: List[bool]  # Did user rely on AI?
+        user_reliance_decisions: List[bool],  # Did user rely on AI?
     ) -> TrustMetrics:
         """
         Calibrate user trust to match AI's actual performance.
@@ -1257,10 +1187,7 @@ class TrustTransparencyExplainability:
             Trust metrics (>80% appropriate reliance)
         """
         # Calculate AI's actual performance
-        correct = [
-            pred == truth
-            for (pred, _), truth in zip(ai_predictions, ground_truth)
-        ]
+        correct = [pred == truth for (pred, _), truth in zip(ai_predictions, ground_truth)]
         actual_performance = np.mean(correct)
 
         # Calculate appropriate reliance
@@ -1297,17 +1224,13 @@ class TrustTransparencyExplainability:
             under_trust_rate=under_trust_rate,
             user_confidence=user_confidence,
             actual_performance=actual_performance,
-            calibration_error=calibration_error
+            calibration_error=calibration_error,
         )
 
         self.trust_metrics = metrics
         return metrics
 
-    async def communicate_uncertainty(
-        self,
-        prediction: Any,
-        confidence: float
-    ) -> str:
+    async def communicate_uncertainty(self, prediction: Any, confidence: float) -> str:
         """
         Clearly communicate AI's uncertainty.
 
@@ -1329,12 +1252,7 @@ class TrustTransparencyExplainability:
 
         return message
 
-    async def ensure_transparency(
-        self,
-        action: str,
-        reasoning: str,
-        data_used: List[str]
-    ) -> Dict[str, Any]:
+    async def ensure_transparency(self, action: str, reasoning: str, data_used: List[str]) -> Dict[str, Any]:
         """
         Provide full transparency about AI actions.
 
@@ -1350,7 +1268,7 @@ class TrustTransparencyExplainability:
             "behavioral": f"AI performed: {action}",
             "process": f"Reasoning: {reasoning}",
             "data": f"Used data: {', '.join(data_used)}",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         return report

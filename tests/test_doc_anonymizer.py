@@ -10,18 +10,19 @@ Tests PII anonymization functionality including:
 - Batch processing
 """
 
-import pytest
-import re
-import hashlib
 import base64
-from pathlib import Path
-
+import hashlib
+import re
 
 # Import required modules
 import sys
+from pathlib import Path
+
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.ml.ner import NEREngine, EntityType
+from src.ml.ner import EntityType, NEREngine
 
 
 class TestPIIDetection:
@@ -41,16 +42,16 @@ class TestPIIDetection:
 
     def test_email_detection(self, sample_text_with_pii):
         """Test email address detection"""
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
         emails = re.findall(email_pattern, sample_text_with_pii)
 
         assert len(emails) > 0
-        assert 'john.smith@example.com' in emails
+        assert "john.smith@example.com" in emails
 
     def test_phone_detection(self, sample_text_with_pii):
         """Test phone number detection"""
-        phone_pattern = r'[\+]?[(]?\d{1,4}[)]?[-\s\.]?\(?\d{1,4}\)?[-\s\.]?\d{1,4}[-\s\.]?\d{1,9}'
+        phone_pattern = r"[\+]?[(]?\d{1,4}[)]?[-\s\.]?\(?\d{1,4}\)?[-\s\.]?\d{1,4}[-\s\.]?\d{1,9}"
 
         phones = re.findall(phone_pattern, sample_text_with_pii)
 
@@ -58,30 +59,30 @@ class TestPIIDetection:
 
     def test_iban_detection(self, sample_text_with_pii):
         """Test IBAN detection"""
-        iban_pattern = r'\b[A-Z]{2}\d{2}[A-Z0-9]{1,30}\b'
+        iban_pattern = r"\b[A-Z]{2}\d{2}[A-Z0-9]{1,30}\b"
 
         ibans = re.findall(iban_pattern, sample_text_with_pii)
 
         assert len(ibans) > 0
-        assert 'DE89370400440532013000' in ibans
+        assert "DE89370400440532013000" in ibans
 
     def test_date_detection(self, sample_text_with_pii):
         """Test date detection"""
-        date_pattern = r'\b\d{1,2}\.\d{1,2}\.\d{4}\b'
+        date_pattern = r"\b\d{1,2}\.\d{1,2}\.\d{4}\b"
 
         dates = re.findall(date_pattern, sample_text_with_pii)
 
         assert len(dates) > 0
-        assert '01.01.1990' in dates
+        assert "01.01.1990" in dates
 
     def test_ip_address_detection(self, sample_text_with_pii):
         """Test IP address detection"""
-        ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
+        ip_pattern = r"\b(?:\d{1,3}\.){3}\d{1,3}\b"
 
         ips = re.findall(ip_pattern, sample_text_with_pii)
 
         assert len(ips) > 0
-        assert '192.168.1.1' in ips
+        assert "192.168.1.1" in ips
 
     def test_person_name_detection(self, sample_text_with_pii):
         """Test person name detection using NER"""
@@ -123,47 +124,45 @@ class TestAnonymizationStrategies:
     def test_redaction_strategy(self):
         """Test redaction (complete removal)"""
         text = "My email is john@example.com"
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
         # Redact email
-        anonymized = re.sub(email_pattern, '[REDACTED]', text)
+        anonymized = re.sub(email_pattern, "[REDACTED]", text)
 
-        assert '[REDACTED]' in anonymized
-        assert 'john@example.com' not in anonymized
+        assert "[REDACTED]" in anonymized
+        assert "john@example.com" not in anonymized
 
     def test_masking_strategy(self):
         """Test masking (partial concealment)"""
         email = "john.smith@example.com"
 
         # Mask email: j***@e******.com
-        parts = email.split('@')
+        parts = email.split("@")
         if len(parts) == 2:
             local, domain = parts
-            domain_parts = domain.split('.')
+            domain_parts = domain.split(".")
 
-            masked_local = local[0] + '*' * (len(local) - 1) if len(local) > 1 else local
-            masked_domain = domain_parts[0][0] + '*' * (len(domain_parts[0]) - 1)
+            masked_local = local[0] + "*" * (len(local) - 1) if len(local) > 1 else local
+            masked_domain = domain_parts[0][0] + "*" * (len(domain_parts[0]) - 1)
             masked = f"{masked_local}@{masked_domain}.{domain_parts[1]}"
 
-            assert masked[0] == 'j'  # First char preserved
-            assert '*' in masked  # Contains masking
-            assert masked.endswith('.com')  # TLD preserved
+            assert masked[0] == "j"  # First char preserved
+            assert "*" in masked  # Contains masking
+            assert masked.endswith(".com")  # TLD preserved
 
     def test_replacement_strategy(self):
         """Test replacement with fake data"""
         text = "John Smith"
 
         # Replace with fake name
-        replacements = {
-            "John Smith": "Jane Doe"
-        }
+        replacements = {"John Smith": "Jane Doe"}
 
         anonymized = text
         for original, fake in replacements.items():
             anonymized = anonymized.replace(original, fake)
 
-        assert 'Jane Doe' in anonymized
-        assert 'John Smith' not in anonymized
+        assert "Jane Doe" in anonymized
+        assert "John Smith" not in anonymized
 
     def test_pseudonymization_strategy(self):
         """Test pseudonymization (consistent hashing)"""
@@ -186,11 +185,11 @@ class TestAnonymizationStrategies:
         date = "01.01.1990"
 
         # Generalize to year only
-        year = date.split('.')[-1]
+        year = date.split(".")[-1]
         generalized = f"{year}"
 
         assert generalized == "1990"
-        assert '01.01' not in generalized
+        assert "01.01" not in generalized
 
 
 class TestReversibleAnonymization:
@@ -201,7 +200,7 @@ class TestReversibleAnonymization:
         mapping = {
             "john.smith@example.com": "user1@anon.com",
             "John Smith": "Person A",
-            "+1-555-123-4567": "+1-000-000-0000"
+            "+1-555-123-4567": "+1-000-000-0000",
         }
 
         # Mapping should be reversible
@@ -217,12 +216,13 @@ class TestReversibleAnonymization:
 
         # Serialize and encode (in production, use Fernet/AES)
         import json
+
         mapping_json = json.dumps(mapping)
         encoded = base64.b64encode(mapping_json.encode()).decode()
 
         # Should be encoded
         assert encoded != mapping_json
-        assert 'secret' not in encoded
+        assert "secret" not in encoded
 
         # Should be decodable
         decoded = base64.b64decode(encoded.encode()).decode()
@@ -234,10 +234,7 @@ class TestReversibleAnonymization:
         """Test de-anonymization using mapping"""
         original_text = "Contact John Smith at john@example.com"
 
-        mapping = {
-            "John Smith": "Person A",
-            "john@example.com": "user1@anon.com"
-        }
+        mapping = {"John Smith": "Person A", "john@example.com": "user1@anon.com"}
 
         # Anonymize
         anonymized = original_text
@@ -268,8 +265,8 @@ class TestComplianceModes:
         # Should be able to completely remove PII
         gdpr_anonymized = "[REDACTED]'s email is [REDACTED]"
 
-        assert 'John Smith' not in gdpr_anonymized
-        assert 'john@example.com' not in gdpr_anonymized
+        assert "John Smith" not in gdpr_anonymized
+        assert "john@example.com" not in gdpr_anonymized
 
     def test_hipaa_requirements(self):
         """Test HIPAA compliance requirements"""
@@ -284,7 +281,7 @@ class TestComplianceModes:
             "Social security numbers",
             "Medical record numbers",
             "Account numbers",
-            "IP addresses"
+            "IP addresses",
         ]
 
         # All should be anonymizable
@@ -298,7 +295,7 @@ class TestComplianceModes:
             "file": "document.pdf",
             "pii_types_found": ["email", "phone", "name"],
             "strategy": "masking",
-            "compliance_mode": "gdpr"
+            "compliance_mode": "gdpr",
         }
 
         # Audit trail should capture key information
@@ -312,41 +309,28 @@ class TestBatchProcessing:
 
     def test_process_multiple_documents(self):
         """Test processing multiple documents"""
-        documents = [
-            "John's email is john@example.com",
-            "Jane's phone is +1-555-999-8888",
-            "Bob lives in New York"
-        ]
+        documents = ["John's email is john@example.com", "Jane's phone is +1-555-999-8888", "Bob lives in New York"]
 
         # Process all
         results = []
         for doc in documents:
             # Simple email redaction
-            anonymized = re.sub(
-                r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-                '[EMAIL]',
-                doc
-            )
+            anonymized = re.sub(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "[EMAIL]", doc)
 
             # Simple phone redaction
             anonymized = re.sub(
-                r'[\+]?\d{1,4}[-\s\.]?\(?\d{1,4}\)?[-\s\.]?\d{1,4}[-\s\.]?\d{1,9}',
-                '[PHONE]',
-                anonymized
+                r"[\+]?\d{1,4}[-\s\.]?\(?\d{1,4}\)?[-\s\.]?\d{1,4}[-\s\.]?\d{1,9}", "[PHONE]", anonymized
             )
 
             results.append(anonymized)
 
         assert len(results) == len(documents)
-        assert '[EMAIL]' in results[0]
-        assert '[PHONE]' in results[1]
+        assert "[EMAIL]" in results[0]
+        assert "[PHONE]" in results[1]
 
     def test_consistent_anonymization(self):
         """Test that same PII is anonymized consistently"""
-        docs = [
-            "John Smith at john@example.com",
-            "Contact John Smith"
-        ]
+        docs = ["John Smith at john@example.com", "Contact John Smith"]
 
         # Create consistent mapping
         mapping = {"John Smith": "PERSON_ABC123"}
@@ -370,8 +354,8 @@ class TestEdgeCases:
         """Test handling of empty document"""
         text = ""
 
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        anonymized = re.sub(email_pattern, '[EMAIL]', text)
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+        anonymized = re.sub(email_pattern, "[EMAIL]", text)
 
         # Should handle gracefully
         assert anonymized == ""
@@ -383,7 +367,9 @@ class TestEdgeCases:
         ner = NEREngine()
         entities = ner.extract_entities(text)
 
-        pii_entities = [e for e in entities if e.type in [EntityType.PERSON, EntityType.LOCATION, EntityType.ORGANIZATION]]
+        pii_entities = [
+            e for e in entities if e.type in [EntityType.PERSON, EntityType.LOCATION, EntityType.ORGANIZATION]
+        ]
 
         # Should return empty or minimal results
         # (may still detect some entities depending on model)
@@ -396,14 +382,14 @@ class TestEdgeCases:
         # Should handle duplicates
         anonymized = text.replace("John Smith", "[REDACTED]")
 
-        assert anonymized.count('[REDACTED]') == 2
+        assert anonymized.count("[REDACTED]") == 2
 
     def test_overlapping_pii(self):
         """Test handling of overlapping PII patterns"""
         text = "john.smith@example.com.uk"
 
         # Email with .co.uk TLD
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
         emails = re.findall(email_pattern, text)
 
@@ -415,7 +401,7 @@ class TestEdgeCases:
         text = "Email: o'reilly@example.com"
 
         # Should handle apostrophes and special chars
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
         # Note: This pattern may not match o'reilly
         # In production, pattern should be more robust
@@ -434,12 +420,12 @@ class TestEdgeCases:
         """Test handling of very long documents"""
         long_text = " ".join(["word"] * 10000) + " john@example.com"
 
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
         # Should handle long documents
-        anonymized = re.sub(email_pattern, '[EMAIL]', long_text)
+        anonymized = re.sub(email_pattern, "[EMAIL]", long_text)
 
-        assert '[EMAIL]' in anonymized
+        assert "[EMAIL]" in anonymized
 
 
 class TestAnonymizerCLI:
@@ -449,27 +435,19 @@ class TestAnonymizerCLI:
         """Test CLI help message"""
         import subprocess
 
-        result = subprocess.run(
-            ['python', 'doc-anonymizer.py', '--help'],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["python", "doc-anonymizer.py", "--help"], capture_output=True, text=True)
 
         assert result.returncode == 0
-        assert 'anonymize' in result.stdout.lower()
+        assert "anonymize" in result.stdout.lower()
 
     def test_cli_commands_exist(self):
         """Test that all commands exist"""
         import subprocess
 
-        commands = ['scan', 'anonymize', 'deanonymize', 'batch']
+        commands = ["scan", "anonymize", "deanonymize", "batch"]
 
         for cmd in commands:
-            result = subprocess.run(
-                ['python', 'doc-anonymizer.py', cmd, '--help'],
-                capture_output=True,
-                text=True
-            )
+            result = subprocess.run(["python", "doc-anonymizer.py", cmd, "--help"], capture_output=True, text=True)
 
             assert result.returncode == 0
 
@@ -483,10 +461,10 @@ class TestPIITypes:
             "simple@example.com",
             "first.last@example.com",
             "user+tag@example.co.uk",
-            "name_123@subdomain.example.com"
+            "name_123@subdomain.example.com",
         ]
 
-        pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
         for email in emails:
             matches = re.findall(pattern, email)
@@ -494,14 +472,9 @@ class TestPIITypes:
 
     def test_phone_variants(self):
         """Test various phone number formats"""
-        phones = [
-            "+1-555-123-4567",
-            "(555) 123-4567",
-            "555.123.4567",
-            "5551234567"
-        ]
+        phones = ["+1-555-123-4567", "(555) 123-4567", "555.123.4567", "5551234567"]
 
-        pattern = r'[\+]?[(]?\d{1,4}[)]?[-\s\.]?\(?\d{1,4}\)?[-\s\.]?\d{1,4}[-\s\.]?\d{1,9}'
+        pattern = r"[\+]?[(]?\d{1,4}[)]?[-\s\.]?\(?\d{1,4}\)?[-\s\.]?\d{1,4}[-\s\.]?\d{1,9}"
 
         for phone in phones:
             matches = re.findall(pattern, phone)
@@ -509,18 +482,14 @@ class TestPIITypes:
 
     def test_date_variants(self):
         """Test various date formats"""
-        dates = [
-            "01.01.2020",
-            "31.12.1999",
-            "15.06.1985"
-        ]
+        dates = ["01.01.2020", "31.12.1999", "15.06.1985"]
 
-        pattern = r'\b\d{1,2}\.\d{1,2}\.\d{4}\b'
+        pattern = r"\b\d{1,2}\.\d{1,2}\.\d{4}\b"
 
         for date in dates:
             matches = re.findall(pattern, date)
             assert len(matches) > 0, f"Failed to detect: {date}"
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

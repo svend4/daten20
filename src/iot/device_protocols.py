@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class ProtocolType(Enum):
     """Supported protocol types."""
+
     MQTT = "mqtt"
     COAP = "coap"
     HTTP = "http"
@@ -33,6 +34,7 @@ class ProtocolType(Enum):
 
 class MessageFormat(Enum):
     """Message serialization formats."""
+
     JSON = "json"
     CBOR = "cbor"
     PROTOBUF = "protobuf"
@@ -43,6 +45,7 @@ class MessageFormat(Enum):
 @dataclass
 class ProtocolMessage:
     """Generic protocol message."""
+
     protocol: ProtocolType
     endpoint: str  # topic, URL, register address, etc.
     payload: Any
@@ -54,6 +57,7 @@ class ProtocolMessage:
 @dataclass
 class ConnectionConfig:
     """Protocol connection configuration."""
+
     protocol: ProtocolType
     host: str
     port: int
@@ -68,6 +72,7 @@ class ConnectionConfig:
 @dataclass
 class Connection:
     """Active protocol connection."""
+
     connection_id: str
     config: ConnectionConfig
     connected: bool = False
@@ -136,14 +141,14 @@ class MQTTProtocol(BaseProtocol):
         await asyncio.sleep(0.1)
 
         self.connected = True
-        await self._trigger_callback('connected')
+        await self._trigger_callback("connected")
 
         return True
 
     async def disconnect(self):
         """Disconnect from MQTT broker."""
         self.connected = False
-        await self._trigger_callback('disconnected')
+        await self._trigger_callback("disconnected")
         logger.info("Disconnected from MQTT broker")
 
     async def send(self, message: ProtocolMessage) -> bool:
@@ -216,12 +221,7 @@ class CoAPProtocol(BaseProtocol):
 
     async def get(self, path: str) -> Optional[Any]:
         """CoAP GET request."""
-        message = ProtocolMessage(
-            protocol=ProtocolType.COAP,
-            endpoint=path,
-            payload=None,
-            metadata={'method': 'GET'}
-        )
+        message = ProtocolMessage(protocol=ProtocolType.COAP, endpoint=path, payload=None, metadata={"method": "GET"})
 
         if await self.send(message):
             return await self.receive()
@@ -231,10 +231,7 @@ class CoAPProtocol(BaseProtocol):
     async def post(self, path: str, payload: Any) -> bool:
         """CoAP POST request."""
         message = ProtocolMessage(
-            protocol=ProtocolType.COAP,
-            endpoint=path,
-            payload=payload,
-            metadata={'method': 'POST'}
+            protocol=ProtocolType.COAP, endpoint=path, payload=payload, metadata={"method": "POST"}
         )
 
         return await self.send(message)
@@ -260,7 +257,7 @@ class HTTPProtocol(BaseProtocol):
         if not self.connected:
             return False
 
-        method = message.metadata.get('method', 'POST')
+        method = message.metadata.get("method", "POST")
         logger.debug(f"HTTP {method} to {message.endpoint}")
 
         # Mock HTTP request
@@ -277,12 +274,7 @@ class HTTPProtocol(BaseProtocol):
 
     async def get(self, path: str) -> Optional[Any]:
         """HTTP GET request."""
-        message = ProtocolMessage(
-            protocol=ProtocolType.HTTP,
-            endpoint=path,
-            payload=None,
-            metadata={'method': 'GET'}
-        )
+        message = ProtocolMessage(protocol=ProtocolType.HTTP, endpoint=path, payload=None, metadata={"method": "GET"})
 
         if await self.send(message):
             response = await self.receive()
@@ -293,10 +285,7 @@ class HTTPProtocol(BaseProtocol):
     async def post(self, path: str, payload: Any) -> Optional[Any]:
         """HTTP POST request."""
         message = ProtocolMessage(
-            protocol=ProtocolType.HTTP,
-            endpoint=path,
-            payload=payload,
-            metadata={'method': 'POST'}
+            protocol=ProtocolType.HTTP, endpoint=path, payload=payload, metadata={"method": "POST"}
         )
 
         if await self.send(message):
@@ -344,11 +333,7 @@ class ModbusProtocol(BaseProtocol):
 
         return None
 
-    async def read_holding_registers(
-        self,
-        address: int,
-        count: int = 1
-    ) -> Optional[List[int]]:
+    async def read_holding_registers(self, address: int, count: int = 1) -> Optional[List[int]]:
         """Read holding registers."""
         if not self.connected:
             return None
@@ -359,11 +344,7 @@ class ModbusProtocol(BaseProtocol):
         await asyncio.sleep(0.01)
         return [0] * count
 
-    async def write_single_register(
-        self,
-        address: int,
-        value: int
-    ) -> bool:
+    async def write_single_register(self, address: int, value: int) -> bool:
         """Write single register."""
         if not self.connected:
             return False
@@ -378,11 +359,7 @@ class ModbusProtocol(BaseProtocol):
 class ProtocolAdapter:
     """Translate between different protocols."""
 
-    def translate(
-        self,
-        message: ProtocolMessage,
-        target_protocol: ProtocolType
-    ) -> ProtocolMessage:
+    def translate(self, message: ProtocolMessage, target_protocol: ProtocolType) -> ProtocolMessage:
         """Translate message to target protocol."""
         if message.protocol == target_protocol:
             return message
@@ -394,17 +371,14 @@ class ProtocolAdapter:
                 endpoint=f"/mqtt/{message.endpoint}",
                 payload=message.payload,
                 format=message.format,
-                metadata={'original_topic': message.endpoint}
+                metadata={"original_topic": message.endpoint},
             )
 
         # HTTP to MQTT translation
         if message.protocol == ProtocolType.HTTP and target_protocol == ProtocolType.MQTT:
-            topic = message.metadata.get('original_topic', 'devices/data')
+            topic = message.metadata.get("original_topic", "devices/data")
             return ProtocolMessage(
-                protocol=ProtocolType.MQTT,
-                endpoint=topic,
-                payload=message.payload,
-                format=message.format
+                protocol=ProtocolType.MQTT, endpoint=topic, payload=message.payload, format=message.format
             )
 
         # Generic translation
@@ -413,7 +387,7 @@ class ProtocolAdapter:
             endpoint=message.endpoint,
             payload=message.payload,
             format=message.format,
-            metadata={**message.metadata, 'translated_from': message.protocol.value}
+            metadata={**message.metadata, "translated_from": message.protocol.value},
         )
 
 
@@ -424,41 +398,41 @@ class MessageSerializer:
     def serialize(payload: Any, format: MessageFormat) -> bytes:
         """Serialize payload to bytes."""
         if format == MessageFormat.JSON:
-            return json.dumps(payload).encode('utf-8')
+            return json.dumps(payload).encode("utf-8")
 
         elif format == MessageFormat.PLAIN_TEXT:
-            return str(payload).encode('utf-8')
+            return str(payload).encode("utf-8")
 
         elif format == MessageFormat.CBOR:
             # Mock CBOR encoding
-            return json.dumps(payload).encode('utf-8')
+            return json.dumps(payload).encode("utf-8")
 
         elif format == MessageFormat.PROTOBUF:
             # Mock Protobuf encoding
-            return json.dumps(payload).encode('utf-8')
+            return json.dumps(payload).encode("utf-8")
 
         else:
-            return str(payload).encode('utf-8')
+            return str(payload).encode("utf-8")
 
     @staticmethod
     def deserialize(data: bytes, format: MessageFormat) -> Any:
         """Deserialize bytes to payload."""
         if format == MessageFormat.JSON:
-            return json.loads(data.decode('utf-8'))
+            return json.loads(data.decode("utf-8"))
 
         elif format == MessageFormat.PLAIN_TEXT:
-            return data.decode('utf-8')
+            return data.decode("utf-8")
 
         elif format == MessageFormat.CBOR:
             # Mock CBOR decoding
-            return json.loads(data.decode('utf-8'))
+            return json.loads(data.decode("utf-8"))
 
         elif format == MessageFormat.PROTOBUF:
             # Mock Protobuf decoding
-            return json.loads(data.decode('utf-8'))
+            return json.loads(data.decode("utf-8"))
 
         else:
-            return data.decode('utf-8')
+            return data.decode("utf-8")
 
 
 class ConnectionPool:
@@ -469,11 +443,7 @@ class ConnectionPool:
         self.connections: Dict[str, Connection] = {}
         self.protocols: Dict[str, BaseProtocol] = {}
 
-    async def get_connection(
-        self,
-        connection_id: str,
-        config: ConnectionConfig
-    ) -> Optional[BaseProtocol]:
+    async def get_connection(self, connection_id: str, config: ConnectionConfig) -> Optional[BaseProtocol]:
         """Get or create connection."""
         # Check existing connection
         if connection_id in self.protocols:
@@ -492,10 +462,7 @@ class ConnectionPool:
         # Connect
         if await protocol.connect():
             connection = Connection(
-                connection_id=connection_id,
-                config=config,
-                connected=True,
-                connected_at=datetime.now()
+                connection_id=connection_id, config=config, connected=True, connected_at=datetime.now()
             )
 
             self.connections[connection_id] = connection
@@ -530,9 +497,9 @@ class ConnectionPool:
     def get_stats(self) -> Dict[str, Any]:
         """Get connection pool statistics."""
         return {
-            'active_connections': len(self.connections),
-            'max_connections': self.max_connections,
-            'by_protocol': self._count_by_protocol()
+            "active_connections": len(self.connections),
+            "max_connections": self.max_connections,
+            "by_protocol": self._count_by_protocol(),
         }
 
     def _count_by_protocol(self) -> Dict[str, int]:
@@ -552,21 +519,9 @@ class DeviceConnector:
         self.adapter = ProtocolAdapter()
         self.serializer = MessageSerializer()
 
-    async def connect_device(
-        self,
-        device_id: str,
-        protocol: str,
-        host: str,
-        port: int,
-        **kwargs
-    ) -> bool:
+    async def connect_device(self, device_id: str, protocol: str, host: str, port: int, **kwargs) -> bool:
         """Connect to device."""
-        config = ConnectionConfig(
-            protocol=ProtocolType(protocol),
-            host=host,
-            port=port,
-            **kwargs
-        )
+        config = ConnectionConfig(protocol=ProtocolType(protocol), host=host, port=port, **kwargs)
 
         protocol_instance = await self.connection_pool.get_connection(device_id, config)
 
@@ -576,13 +531,7 @@ class DeviceConnector:
         """Disconnect device."""
         await self.connection_pool.release_connection(device_id)
 
-    async def send_message(
-        self,
-        device_id: str,
-        endpoint: str,
-        payload: Any,
-        protocol: Optional[str] = None
-    ) -> bool:
+    async def send_message(self, device_id: str, endpoint: str, payload: Any, protocol: Optional[str] = None) -> bool:
         """Send message to device."""
         protocol_instance = self.connection_pool.protocols.get(device_id)
 
@@ -591,11 +540,7 @@ class DeviceConnector:
             return False
 
         # Create message
-        message = ProtocolMessage(
-            protocol=protocol_instance.config.protocol,
-            endpoint=endpoint,
-            payload=payload
-        )
+        message = ProtocolMessage(protocol=protocol_instance.config.protocol, endpoint=endpoint, payload=payload)
 
         # Send
         return await protocol_instance.send(message)

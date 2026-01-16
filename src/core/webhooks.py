@@ -5,25 +5,27 @@ Provides webhook functionality for integrating with external systems.
 Supports event-based notifications with retry logic and delivery tracking.
 """
 
-import requests
-import json
-import time
 import hashlib
 import hmac
-from typing import Dict, List, Any, Optional, Callable
+import json
+import logging
+import sqlite3
+import time
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from dataclasses import dataclass, field, asdict
-import logging
-from threading import Thread
 from queue import Queue
-import sqlite3
+from threading import Thread
+from typing import Any, Callable, Dict, List, Optional
 
-logger = logging.getLogger('dms.webhooks')
+import requests
+
+logger = logging.getLogger("dms.webhooks")
 
 
 class WebhookEvent(str, Enum):
     """Supported webhook events."""
+
     SERVICE_CREATED = "service.created"
     SERVICE_UPDATED = "service.updated"
     SERVICE_DELETED = "service.deleted"
@@ -35,6 +37,7 @@ class WebhookEvent(str, Enum):
 
 class WebhookStatus(str, Enum):
     """Webhook delivery status."""
+
     PENDING = "pending"
     SENDING = "sending"
     SUCCESS = "success"
@@ -45,6 +48,7 @@ class WebhookStatus(str, Enum):
 @dataclass
 class WebhookConfig:
     """Configuration for a webhook endpoint."""
+
     url: str
     events: List[WebhookEvent]
     secret: Optional[str] = None
@@ -62,6 +66,7 @@ class WebhookConfig:
 @dataclass
 class WebhookDelivery:
     """Record of a webhook delivery attempt."""
+
     id: Optional[int] = None
     webhook_id: int = 0
     event: str = ""
@@ -78,7 +83,7 @@ class WebhookDelivery:
 class WebhookManager:
     """Manage webhook registrations and deliveries."""
 
-    def __init__(self, db_path: str = 'data/db/webhooks.db'):
+    def __init__(self, db_path: str = "data/db/webhooks.db"):
         """
         Initialize webhook manager.
 
@@ -98,7 +103,8 @@ class WebhookManager:
         cursor = conn.cursor()
 
         # Webhooks table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS webhooks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 url TEXT NOT NULL,
@@ -111,10 +117,12 @@ class WebhookManager:
                 metadata TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        ''')
+        """
+        )
 
         # Deliveries table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS webhook_deliveries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 webhook_id INTEGER NOT NULL,
@@ -129,7 +137,8 @@ class WebhookManager:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (webhook_id) REFERENCES webhooks(id)
             )
-        ''')
+        """
+        )
 
         conn.commit()
         conn.close()
@@ -141,21 +150,21 @@ class WebhookManager:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute('SELECT * FROM webhooks WHERE enabled = 1')
+        cursor.execute("SELECT * FROM webhooks WHERE enabled = 1")
         rows = cursor.fetchall()
 
         for row in rows:
             webhook = WebhookConfig(
-                url=row['url'],
-                events=[WebhookEvent(e) for e in json.loads(row['events'])],
-                secret=row['secret'],
-                enabled=bool(row['enabled']),
-                retry_count=row['retry_count'],
-                timeout=row['timeout'],
-                custom_headers=json.loads(row['custom_headers']) if row['custom_headers'] else {},
-                metadata=json.loads(row['metadata']) if row['metadata'] else {}
+                url=row["url"],
+                events=[WebhookEvent(e) for e in json.loads(row["events"])],
+                secret=row["secret"],
+                enabled=bool(row["enabled"]),
+                retry_count=row["retry_count"],
+                timeout=row["timeout"],
+                custom_headers=json.loads(row["custom_headers"]) if row["custom_headers"] else {},
+                metadata=json.loads(row["metadata"]) if row["metadata"] else {},
             )
-            self.webhooks[row['id']] = webhook
+            self.webhooks[row["id"]] = webhook
 
         conn.close()
         logger.info(f"Loaded {len(self.webhooks)} webhooks")
@@ -173,19 +182,22 @@ class WebhookManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO webhooks (url, events, secret, enabled, retry_count, timeout, custom_headers, metadata)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            webhook.url,
-            json.dumps([e.value for e in webhook.events]),
-            webhook.secret,
-            int(webhook.enabled),
-            webhook.retry_count,
-            webhook.timeout,
-            json.dumps(webhook.custom_headers),
-            json.dumps(webhook.metadata)
-        ))
+        """,
+            (
+                webhook.url,
+                json.dumps([e.value for e in webhook.events]),
+                webhook.secret,
+                int(webhook.enabled),
+                webhook.retry_count,
+                webhook.timeout,
+                json.dumps(webhook.custom_headers),
+                json.dumps(webhook.metadata),
+            ),
+        )
 
         webhook_id = cursor.lastrowid
         conn.commit()
@@ -206,7 +218,7 @@ class WebhookManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('UPDATE webhooks SET enabled = 0 WHERE id = ?', (webhook_id,))
+        cursor.execute("UPDATE webhooks SET enabled = 0 WHERE id = ?", (webhook_id,))
         conn.commit()
         conn.close()
 
@@ -236,11 +248,7 @@ class WebhookManager:
 
         # Queue deliveries
         for webhook_id, webhook_config in matching_webhooks:
-            delivery = WebhookDelivery(
-                webhook_id=webhook_id,
-                event=event.value,
-                payload=payload
-            )
+            delivery = WebhookDelivery(webhook_id=webhook_id, event=event.value, payload=payload)
 
             # Save delivery to database
             delivery_id = self._save_delivery(delivery)
@@ -256,22 +264,25 @@ class WebhookManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO webhook_deliveries (
                 webhook_id, event, payload, status, attempt_count,
                 last_attempt, response_code, response_body, error_message
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            delivery.webhook_id,
-            delivery.event,
-            json.dumps(delivery.payload),
-            delivery.status.value,
-            delivery.attempt_count,
-            delivery.last_attempt.isoformat() if delivery.last_attempt else None,
-            delivery.response_code,
-            delivery.response_body,
-            delivery.error_message
-        ))
+        """,
+            (
+                delivery.webhook_id,
+                delivery.event,
+                json.dumps(delivery.payload),
+                delivery.status.value,
+                delivery.attempt_count,
+                delivery.last_attempt.isoformat() if delivery.last_attempt else None,
+                delivery.response_code,
+                delivery.response_body,
+                delivery.error_message,
+            ),
+        )
 
         delivery_id = cursor.lastrowid
         conn.commit()
@@ -284,20 +295,23 @@ class WebhookManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE webhook_deliveries
             SET status = ?, attempt_count = ?, last_attempt = ?,
                 response_code = ?, response_body = ?, error_message = ?
             WHERE id = ?
-        ''', (
-            delivery.status.value,
-            delivery.attempt_count,
-            delivery.last_attempt.isoformat() if delivery.last_attempt else None,
-            delivery.response_code,
-            delivery.response_body,
-            delivery.error_message,
-            delivery.id
-        ))
+        """,
+            (
+                delivery.status.value,
+                delivery.attempt_count,
+                delivery.last_attempt.isoformat() if delivery.last_attempt else None,
+                delivery.response_code,
+                delivery.response_body,
+                delivery.error_message,
+                delivery.id,
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -323,32 +337,19 @@ class WebhookManager:
         delivery.status = WebhookStatus.SENDING
 
         # Prepare payload
-        webhook_payload = {
-            'event': delivery.event,
-            'timestamp': datetime.now().isoformat(),
-            'data': delivery.payload
-        }
+        webhook_payload = {"event": delivery.event, "timestamp": datetime.now().isoformat(), "data": delivery.payload}
 
         # Prepare headers
-        headers = {
-            'Content-Type': 'application/json',
-            'User-Agent': 'DMS-Webhook/2.1',
-            **webhook.custom_headers
-        }
+        headers = {"Content-Type": "application/json", "User-Agent": "DMS-Webhook/2.1", **webhook.custom_headers}
 
         # Add signature if secret is configured
         if webhook.secret:
             signature = self._generate_signature(webhook_payload, webhook.secret)
-            headers['X-Webhook-Signature'] = signature
+            headers["X-Webhook-Signature"] = signature
 
         try:
             # Send request
-            response = requests.post(
-                webhook.url,
-                json=webhook_payload,
-                headers=headers,
-                timeout=webhook.timeout
-            )
+            response = requests.post(webhook.url, json=webhook_payload, headers=headers, timeout=webhook.timeout)
 
             delivery.response_code = response.status_code
             delivery.response_body = response.text[:1000]  # Limit size
@@ -384,16 +385,13 @@ class WebhookManager:
         Returns:
             Hex signature
         """
-        payload_bytes = json.dumps(payload, sort_keys=True).encode('utf-8')
-        signature = hmac.new(
-            secret.encode('utf-8'),
-            payload_bytes,
-            hashlib.sha256
-        ).hexdigest()
+        payload_bytes = json.dumps(payload, sort_keys=True).encode("utf-8")
+        signature = hmac.new(secret.encode("utf-8"), payload_bytes, hashlib.sha256).hexdigest()
         return signature
 
     def _start_delivery_worker(self):
         """Start background worker for webhook delivery."""
+
         def worker():
             while True:
                 try:
@@ -409,7 +407,7 @@ class WebhookManager:
                     # Retry if failed
                     if not success and delivery.attempt_count < webhook.retry_count:
                         # Exponential backoff
-                        retry_delay = 2 ** delivery.attempt_count
+                        retry_delay = 2**delivery.attempt_count
                         logger.info(f"Retrying webhook {webhook_id} in {retry_delay}s")
                         time.sleep(retry_delay)
 
@@ -433,30 +431,33 @@ class WebhookManager:
         cursor = conn.cursor()
 
         # Total deliveries
-        cursor.execute('SELECT COUNT(*) FROM webhook_deliveries')
+        cursor.execute("SELECT COUNT(*) FROM webhook_deliveries")
         total = cursor.fetchone()[0]
 
         # By status
-        cursor.execute('SELECT status, COUNT(*) FROM webhook_deliveries GROUP BY status')
+        cursor.execute("SELECT status, COUNT(*) FROM webhook_deliveries GROUP BY status")
         by_status = dict(cursor.fetchall())
 
         # Recent failures
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT webhook_id, event, error_message, created_at
             FROM webhook_deliveries
             WHERE status = ?
             ORDER BY created_at DESC
             LIMIT 10
-        ''', (WebhookStatus.FAILED.value,))
+        """,
+            (WebhookStatus.FAILED.value,),
+        )
         recent_failures = cursor.fetchall()
 
         conn.close()
 
         return {
-            'total_deliveries': total,
-            'by_status': by_status,
-            'recent_failures': recent_failures,
-            'active_webhooks': len(self.webhooks)
+            "total_deliveries": total,
+            "by_status": by_status,
+            "recent_failures": recent_failures,
+            "active_webhooks": len(self.webhooks),
         }
 
 

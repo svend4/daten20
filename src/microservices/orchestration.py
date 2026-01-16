@@ -21,20 +21,22 @@ Dependencies:
 - pyyaml
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Set
-from enum import Enum
-from datetime import datetime
-import logging
-import yaml
 import json
+import logging
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
+
+import yaml
 
 logger = logging.getLogger(__name__)
 
 
 class DeploymentStrategy(str, Enum):
     """Deployment strategy types"""
+
     ROLLING_UPDATE = "rolling_update"
     RECREATE = "recreate"
     BLUE_GREEN = "blue_green"
@@ -43,6 +45,7 @@ class DeploymentStrategy(str, Enum):
 
 class ResourceType(str, Enum):
     """Kubernetes resource types"""
+
     DEPLOYMENT = "Deployment"
     SERVICE = "Service"
     CONFIGMAP = "ConfigMap"
@@ -63,6 +66,7 @@ class ResourceType(str, Enum):
 
 class ProbeType(str, Enum):
     """Probe types for health checks"""
+
     HTTP = "httpGet"
     TCP = "tcpSocket"
     EXEC = "exec"
@@ -71,6 +75,7 @@ class ProbeType(str, Enum):
 @dataclass
 class ResourceRequirements:
     """Container resource requirements"""
+
     cpu_request: str = "100m"  # millicores
     cpu_limit: str = "500m"
     memory_request: str = "128Mi"
@@ -80,6 +85,7 @@ class ResourceRequirements:
 @dataclass
 class Probe:
     """Health check probe configuration"""
+
     probe_type: ProbeType = ProbeType.HTTP
     path: str = "/health"
     port: int = 8080
@@ -93,6 +99,7 @@ class Probe:
 @dataclass
 class ContainerSpec:
     """Container specification"""
+
     name: str
     image: str
     tag: str = "latest"
@@ -111,6 +118,7 @@ class ContainerSpec:
 @dataclass
 class AutoscalingConfig:
     """Horizontal Pod Autoscaler configuration"""
+
     min_replicas: int = 1
     max_replicas: int = 10
     target_cpu_utilization: int = 80
@@ -121,6 +129,7 @@ class AutoscalingConfig:
 @dataclass
 class NetworkPolicyRule:
     """Network policy rule"""
+
     from_pods: List[Dict[str, str]] = field(default_factory=list)  # Label selectors
     from_namespaces: List[str] = field(default_factory=list)
     ports: List[int] = field(default_factory=list)
@@ -149,7 +158,7 @@ class KubernetesManifest:
         replicas: int = 1,
         labels: Optional[Dict[str, str]] = None,
         strategy: DeploymentStrategy = DeploymentStrategy.ROLLING_UPDATE,
-        annotations: Optional[Dict[str, str]] = None
+        annotations: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         Create Deployment manifest
@@ -170,36 +179,22 @@ class KubernetesManifest:
         manifest = {
             "apiVersion": "apps/v1",
             "kind": "Deployment",
-            "metadata": {
-                "name": name,
-                "namespace": self.namespace,
-                "labels": labels
-            },
+            "metadata": {"name": name, "namespace": self.namespace, "labels": labels},
             "spec": {
                 "replicas": replicas,
-                "selector": {
-                    "matchLabels": labels
-                },
+                "selector": {"matchLabels": labels},
                 "template": {
-                    "metadata": {
-                        "labels": labels,
-                        "annotations": annotations or {}
-                    },
-                    "spec": {
-                        "containers": [self._build_container(c) for c in containers]
-                    }
-                }
-            }
+                    "metadata": {"labels": labels, "annotations": annotations or {}},
+                    "spec": {"containers": [self._build_container(c) for c in containers]},
+                },
+            },
         }
 
         # Add deployment strategy
         if strategy == DeploymentStrategy.ROLLING_UPDATE:
             manifest["spec"]["strategy"] = {
                 "type": "RollingUpdate",
-                "rollingUpdate": {
-                    "maxSurge": 1,
-                    "maxUnavailable": 0
-                }
+                "rollingUpdate": {"maxSurge": 1, "maxUnavailable": 0},
             }
         elif strategy == DeploymentStrategy.RECREATE:
             manifest["spec"]["strategy"] = {"type": "Recreate"}
@@ -212,7 +207,7 @@ class KubernetesManifest:
         selector: Dict[str, str],
         ports: List[Dict[str, int]],
         service_type: str = "ClusterIP",
-        annotations: Optional[Dict[str, str]] = None
+        annotations: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         Create Service manifest
@@ -230,31 +225,19 @@ class KubernetesManifest:
         return {
             "apiVersion": "v1",
             "kind": "Service",
-            "metadata": {
-                "name": name,
-                "namespace": self.namespace,
-                "annotations": annotations or {}
-            },
+            "metadata": {"name": name, "namespace": self.namespace, "annotations": annotations or {}},
             "spec": {
                 "type": service_type,
                 "selector": selector,
                 "ports": [
-                    {
-                        "name": f"port-{i}",
-                        "protocol": "TCP",
-                        "port": p["port"],
-                        "targetPort": p["targetPort"]
-                    }
+                    {"name": f"port-{i}", "protocol": "TCP", "port": p["port"], "targetPort": p["targetPort"]}
                     for i, p in enumerate(ports)
-                ]
-            }
+                ],
+            },
         }
 
     def create_configmap(
-        self,
-        name: str,
-        data: Dict[str, str],
-        binary_data: Optional[Dict[str, bytes]] = None
+        self, name: str, data: Dict[str, str], binary_data: Optional[Dict[str, bytes]] = None
     ) -> Dict[str, Any]:
         """
         Create ConfigMap manifest
@@ -270,11 +253,8 @@ class KubernetesManifest:
         manifest = {
             "apiVersion": "v1",
             "kind": "ConfigMap",
-            "metadata": {
-                "name": name,
-                "namespace": self.namespace
-            },
-            "data": data
+            "metadata": {"name": name, "namespace": self.namespace},
+            "data": data,
         }
 
         if binary_data:
@@ -282,12 +262,7 @@ class KubernetesManifest:
 
         return manifest
 
-    def create_secret(
-        self,
-        name: str,
-        data: Dict[str, str],
-        secret_type: str = "Opaque"
-    ) -> Dict[str, Any]:
+    def create_secret(self, name: str, data: Dict[str, str], secret_type: str = "Opaque") -> Dict[str, Any]:
         """
         Create Secret manifest
 
@@ -302,28 +277,17 @@ class KubernetesManifest:
         import base64
 
         # Base64 encode all values
-        encoded_data = {
-            k: base64.b64encode(v.encode()).decode()
-            for k, v in data.items()
-        }
+        encoded_data = {k: base64.b64encode(v.encode()).decode() for k, v in data.items()}
 
         return {
             "apiVersion": "v1",
             "kind": "Secret",
-            "metadata": {
-                "name": name,
-                "namespace": self.namespace
-            },
+            "metadata": {"name": name, "namespace": self.namespace},
             "type": secret_type,
-            "data": encoded_data
+            "data": encoded_data,
         }
 
-    def create_hpa(
-        self,
-        name: str,
-        target_deployment: str,
-        config: AutoscalingConfig
-    ) -> Dict[str, Any]:
+    def create_hpa(self, name: str, target_deployment: str, config: AutoscalingConfig) -> Dict[str, Any]:
         """
         Create HorizontalPodAutoscaler manifest
 
@@ -340,48 +304,33 @@ class KubernetesManifest:
                 "type": "Resource",
                 "resource": {
                     "name": "cpu",
-                    "target": {
-                        "type": "Utilization",
-                        "averageUtilization": config.target_cpu_utilization
-                    }
-                }
+                    "target": {"type": "Utilization", "averageUtilization": config.target_cpu_utilization},
+                },
             }
         ]
 
         if config.target_memory_utilization:
-            metrics.append({
-                "type": "Resource",
-                "resource": {
-                    "name": "memory",
-                    "target": {
-                        "type": "Utilization",
-                        "averageUtilization": config.target_memory_utilization
-                    }
+            metrics.append(
+                {
+                    "type": "Resource",
+                    "resource": {
+                        "name": "memory",
+                        "target": {"type": "Utilization", "averageUtilization": config.target_memory_utilization},
+                    },
                 }
-            })
+            )
 
         return {
             "apiVersion": "autoscaling/v2",
             "kind": "HorizontalPodAutoscaler",
-            "metadata": {
-                "name": name,
-                "namespace": self.namespace
-            },
+            "metadata": {"name": name, "namespace": self.namespace},
             "spec": {
-                "scaleTargetRef": {
-                    "apiVersion": "apps/v1",
-                    "kind": "Deployment",
-                    "name": target_deployment
-                },
+                "scaleTargetRef": {"apiVersion": "apps/v1", "kind": "Deployment", "name": target_deployment},
                 "minReplicas": config.min_replicas,
                 "maxReplicas": config.max_replicas,
                 "metrics": metrics,
-                "behavior": {
-                    "scaleDown": {
-                        "stabilizationWindowSeconds": config.scale_down_stabilization_seconds
-                    }
-                }
-            }
+                "behavior": {"scaleDown": {"stabilizationWindowSeconds": config.scale_down_stabilization_seconds}},
+            },
         }
 
     def create_network_policy(
@@ -389,7 +338,7 @@ class KubernetesManifest:
         name: str,
         pod_selector: Dict[str, str],
         ingress_rules: List[NetworkPolicyRule],
-        egress_rules: Optional[List[NetworkPolicyRule]] = None
+        egress_rules: Optional[List[NetworkPolicyRule]] = None,
     ) -> Dict[str, Any]:
         """
         Create NetworkPolicy manifest
@@ -406,14 +355,8 @@ class KubernetesManifest:
         manifest = {
             "apiVersion": "networking.k8s.io/v1",
             "kind": "NetworkPolicy",
-            "metadata": {
-                "name": name,
-                "namespace": self.namespace
-            },
-            "spec": {
-                "podSelector": {"matchLabels": pod_selector},
-                "policyTypes": ["Ingress"]
-            }
+            "metadata": {"name": name, "namespace": self.namespace},
+            "spec": {"podSelector": {"matchLabels": pod_selector}, "policyTypes": ["Ingress"]},
         }
 
         # Ingress rules
@@ -422,20 +365,13 @@ class KubernetesManifest:
             rule_spec = {"from": []}
 
             for pod_labels in rule.from_pods:
-                rule_spec["from"].append({
-                    "podSelector": {"matchLabels": pod_labels}
-                })
+                rule_spec["from"].append({"podSelector": {"matchLabels": pod_labels}})
 
             for ns in rule.from_namespaces:
-                rule_spec["from"].append({
-                    "namespaceSelector": {"matchLabels": {"name": ns}}
-                })
+                rule_spec["from"].append({"namespaceSelector": {"matchLabels": {"name": ns}}})
 
             if rule.ports:
-                rule_spec["ports"] = [
-                    {"protocol": "TCP", "port": port}
-                    for port in rule.ports
-                ]
+                rule_spec["ports"] = [{"protocol": "TCP", "port": port} for port in rule.ports]
 
             ingress.append(rule_spec)
 
@@ -448,11 +384,7 @@ class KubernetesManifest:
 
         return manifest
 
-    def create_service_account(
-        self,
-        name: str,
-        labels: Optional[Dict[str, str]] = None
-    ) -> Dict[str, Any]:
+    def create_service_account(self, name: str, labels: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """
         Create ServiceAccount manifest
 
@@ -466,11 +398,7 @@ class KubernetesManifest:
         return {
             "apiVersion": "v1",
             "kind": "ServiceAccount",
-            "metadata": {
-                "name": name,
-                "namespace": self.namespace,
-                "labels": labels or {}
-            }
+            "metadata": {"name": name, "namespace": self.namespace, "labels": labels or {}},
         }
 
     def _build_container(self, spec: ContainerSpec) -> Dict[str, Any]:
@@ -479,15 +407,9 @@ class KubernetesManifest:
             "name": spec.name,
             "image": f"{spec.image}:{spec.tag}",
             "resources": {
-                "requests": {
-                    "cpu": spec.resources.cpu_request,
-                    "memory": spec.resources.memory_request
-                },
-                "limits": {
-                    "cpu": spec.resources.cpu_limit,
-                    "memory": spec.resources.memory_limit
-                }
-            }
+                "requests": {"cpu": spec.resources.cpu_request, "memory": spec.resources.memory_request},
+                "limits": {"cpu": spec.resources.cpu_limit, "memory": spec.resources.memory_limit},
+            },
         }
 
         if spec.command:
@@ -497,22 +419,13 @@ class KubernetesManifest:
             container["args"] = spec.args
 
         if spec.ports:
-            container["ports"] = [
-                {"containerPort": port, "protocol": "TCP"}
-                for port in spec.ports
-            ]
+            container["ports"] = [{"containerPort": port, "protocol": "TCP"} for port in spec.ports]
 
         if spec.env:
-            container["env"] = [
-                {"name": k, "value": v}
-                for k, v in spec.env.items()
-            ]
+            container["env"] = [{"name": k, "value": v} for k, v in spec.env.items()]
 
         if spec.env_from:
-            container["envFrom"] = [
-                {"configMapRef": {"name": name}}
-                for name in spec.env_from
-            ]
+            container["envFrom"] = [{"configMapRef": {"name": name}} for name in spec.env_from]
 
         if spec.liveness_probe:
             container["livenessProbe"] = self._build_probe(spec.liveness_probe)
@@ -524,10 +437,7 @@ class KubernetesManifest:
             container["startupProbe"] = self._build_probe(spec.startup_probe)
 
         if spec.volume_mounts:
-            container["volumeMounts"] = [
-                {"name": name, "mountPath": path}
-                for name, path in spec.volume_mounts.items()
-            ]
+            container["volumeMounts"] = [{"name": name, "mountPath": path} for name, path in spec.volume_mounts.items()]
 
         return container
 
@@ -538,15 +448,11 @@ class KubernetesManifest:
             "periodSeconds": probe.period_seconds,
             "timeoutSeconds": probe.timeout_seconds,
             "successThreshold": probe.success_threshold,
-            "failureThreshold": probe.failure_threshold
+            "failureThreshold": probe.failure_threshold,
         }
 
         if probe.probe_type == ProbeType.HTTP:
-            probe_spec["httpGet"] = {
-                "path": probe.path,
-                "port": probe.port,
-                "scheme": "HTTP"
-            }
+            probe_spec["httpGet"] = {"path": probe.path, "port": probe.port, "scheme": "HTTP"}
         elif probe.probe_type == ProbeType.TCP:
             probe_spec["tcpSocket"] = {"port": probe.port}
         elif probe.probe_type == ProbeType.EXEC:
@@ -574,10 +480,7 @@ class HelmChartGenerator:
         self.version = version
 
     def generate_chart_yaml(
-        self,
-        description: str,
-        app_version: str = "1.0.0",
-        maintainers: Optional[List[Dict[str, str]]] = None
+        self, description: str, app_version: str = "1.0.0", maintainers: Optional[List[Dict[str, str]]] = None
     ) -> str:
         """
         Generate Chart.yaml
@@ -596,7 +499,7 @@ class HelmChartGenerator:
             "description": description,
             "type": "application",
             "version": self.version,
-            "appVersion": app_version
+            "appVersion": app_version,
         }
 
         if maintainers:
@@ -605,11 +508,7 @@ class HelmChartGenerator:
         return yaml.dump(chart, default_flow_style=False)
 
     def generate_values_yaml(
-        self,
-        image: str,
-        tag: str = "latest",
-        replicas: int = 1,
-        resources: Optional[ResourceRequirements] = None
+        self, image: str, tag: str = "latest", replicas: int = 1, resources: Optional[ResourceRequirements] = None
     ) -> str:
         """
         Generate values.yaml
@@ -627,31 +526,18 @@ class HelmChartGenerator:
 
         values = {
             "replicaCount": replicas,
-            "image": {
-                "repository": image,
-                "pullPolicy": "IfNotPresent",
-                "tag": tag
-            },
-            "service": {
-                "type": "ClusterIP",
-                "port": 80
-            },
+            "image": {"repository": image, "pullPolicy": "IfNotPresent", "tag": tag},
+            "service": {"type": "ClusterIP", "port": 80},
             "resources": {
-                "requests": {
-                    "cpu": resources.cpu_request,
-                    "memory": resources.memory_request
-                },
-                "limits": {
-                    "cpu": resources.cpu_limit,
-                    "memory": resources.memory_limit
-                }
+                "requests": {"cpu": resources.cpu_request, "memory": resources.memory_request},
+                "limits": {"cpu": resources.cpu_limit, "memory": resources.memory_limit},
             },
             "autoscaling": {
                 "enabled": False,
                 "minReplicas": 1,
                 "maxReplicas": 10,
-                "targetCPUUtilizationPercentage": 80
-            }
+                "targetCPUUtilizationPercentage": 80,
+            },
         }
 
         return yaml.dump(values, default_flow_style=False)
@@ -715,7 +601,7 @@ class DeploymentController:
         name: str,
         containers: List[ContainerSpec],
         strategy: DeploymentStrategy = DeploymentStrategy.ROLLING_UPDATE,
-        **kwargs
+        **kwargs,
     ) -> List[Dict[str, Any]]:
         """
         Deploy application
@@ -732,12 +618,7 @@ class DeploymentController:
         manifests = []
 
         # Create deployment
-        deployment = self.manifest.create_deployment(
-            name=name,
-            containers=containers,
-            strategy=strategy,
-            **kwargs
-        )
+        deployment = self.manifest.create_deployment(name=name, containers=containers, strategy=strategy, **kwargs)
         manifests.append(deployment)
 
         # Create service
@@ -747,21 +628,13 @@ class DeploymentController:
                 ports.append({"port": port, "targetPort": port})
 
         if ports:
-            service = self.manifest.create_service(
-                name=name,
-                selector={"app": name},
-                ports=ports
-            )
+            service = self.manifest.create_service(name=name, selector={"app": name}, ports=ports)
             manifests.append(service)
 
         return manifests
 
     def canary_deploy(
-        self,
-        name: str,
-        containers: List[ContainerSpec],
-        canary_weight: int = 10,
-        **kwargs
+        self, name: str, containers: List[ContainerSpec], canary_weight: int = 10, **kwargs
     ) -> List[Dict[str, Any]]:
         """
         Canary deployment
@@ -783,7 +656,7 @@ class DeploymentController:
             name=f"{name}-stable",
             containers=containers,
             replicas=stable_replicas,
-            labels={"app": name, "version": "stable"}
+            labels={"app": name, "version": "stable"},
         )
         manifests.append(stable)
 
@@ -793,15 +666,13 @@ class DeploymentController:
             name=f"{name}-canary",
             containers=containers,
             replicas=canary_replicas,
-            labels={"app": name, "version": "canary"}
+            labels={"app": name, "version": "canary"},
         )
         manifests.append(canary)
 
         # Service (routes to both)
         service = self.manifest.create_service(
-            name=name,
-            selector={"app": name},
-            ports=[{"port": 80, "targetPort": 8080}]
+            name=name, selector={"app": name}, ports=[{"port": 80, "targetPort": 8080}]
         )
         manifests.append(service)
 
@@ -823,35 +694,21 @@ if __name__ == "__main__":
         ports=[8080],
         env={"ENV": "production"},
         resources=ResourceRequirements(
-            cpu_request="200m",
-            cpu_limit="1000m",
-            memory_request="256Mi",
-            memory_limit="1Gi"
+            cpu_request="200m", cpu_limit="1000m", memory_request="256Mi", memory_limit="1Gi"
         ),
-        readiness_probe=Probe(
-            probe_type=ProbeType.HTTP,
-            path="/health",
-            port=8080
-        )
+        readiness_probe=Probe(probe_type=ProbeType.HTTP, path="/health", port=8080),
     )
 
     # Create deployment
     deployment = manifest.create_deployment(
-        name="myapp",
-        containers=[container],
-        replicas=3,
-        strategy=DeploymentStrategy.ROLLING_UPDATE
+        name="myapp", containers=[container], replicas=3, strategy=DeploymentStrategy.ROLLING_UPDATE
     )
 
     print("Deployment manifest:")
     print(yaml.dump(deployment, default_flow_style=False))
 
     # Create HPA
-    hpa_config = AutoscalingConfig(
-        min_replicas=2,
-        max_replicas=10,
-        target_cpu_utilization=70
-    )
+    hpa_config = AutoscalingConfig(min_replicas=2, max_replicas=10, target_cpu_utilization=70)
     hpa = manifest.create_hpa("myapp-hpa", "myapp", hpa_config)
 
     print("\nHPA manifest:")

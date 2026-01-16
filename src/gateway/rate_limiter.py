@@ -5,17 +5,18 @@ Implements rate limiting and throttling for API endpoints using
 Token Bucket and Sliding Window algorithms.
 """
 
-from typing import Optional, Dict, Any, List, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime, timedelta
+import threading
 import time
 from collections import deque
-import threading
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class RateLimitAlgorithm(str, Enum):
     """Rate limiting algorithms"""
+
     TOKEN_BUCKET = "token_bucket"
     SLIDING_WINDOW = "sliding_window"
     FIXED_WINDOW = "fixed_window"
@@ -24,6 +25,7 @@ class RateLimitAlgorithm(str, Enum):
 
 class RateLimitScope(str, Enum):
     """Rate limit scope"""
+
     USER = "user"
     API_KEY = "api_key"
     IP = "ip"
@@ -34,6 +36,7 @@ class RateLimitScope(str, Enum):
 @dataclass
 class RateLimitConfig:
     """Rate limit configuration"""
+
     max_requests: int
     window_seconds: int
     burst_allowance: int = 0  # Additional burst capacity
@@ -44,6 +47,7 @@ class RateLimitConfig:
 @dataclass
 class RateLimitResult:
     """Result of rate limit check"""
+
     allowed: bool
     remaining: int
     reset_at: datetime
@@ -55,12 +59,7 @@ class RateLimitResult:
 class TokenBucket:
     """Token Bucket algorithm implementation"""
 
-    def __init__(
-        self,
-        capacity: int,
-        refill_rate: float,  # Tokens per second
-        initial_tokens: Optional[int] = None
-    ):
+    def __init__(self, capacity: int, refill_rate: float, initial_tokens: Optional[int] = None):  # Tokens per second
         self.capacity = capacity
         self.refill_rate = refill_rate
         self.tokens = initial_tokens if initial_tokens is not None else capacity
@@ -234,16 +233,10 @@ class RateLimiter:
                     self.limiters[key] = TokenBucket(capacity, refill_rate)
 
                 elif self.config.algorithm == RateLimitAlgorithm.SLIDING_WINDOW:
-                    self.limiters[key] = SlidingWindow(
-                        self.config.max_requests,
-                        self.config.window_seconds
-                    )
+                    self.limiters[key] = SlidingWindow(self.config.max_requests, self.config.window_seconds)
 
                 elif self.config.algorithm == RateLimitAlgorithm.FIXED_WINDOW:
-                    self.limiters[key] = FixedWindow(
-                        self.config.max_requests,
-                        self.config.window_seconds
-                    )
+                    self.limiters[key] = FixedWindow(self.config.max_requests, self.config.window_seconds)
 
             return self.limiters[key]
 
@@ -272,7 +265,7 @@ class RateLimiter:
                 reset_at=reset_at,
                 retry_after=retry_after,
                 limit=self.config.max_requests,
-                current_usage=self.config.max_requests - remaining
+                current_usage=self.config.max_requests - remaining,
             )
 
         elif self.config.algorithm in [RateLimitAlgorithm.SLIDING_WINDOW, RateLimitAlgorithm.FIXED_WINDOW]:
@@ -289,14 +282,11 @@ class RateLimiter:
                 reset_at=reset_at,
                 retry_after=retry_after,
                 limit=self.config.max_requests,
-                current_usage=self.config.max_requests - remaining
+                current_usage=self.config.max_requests - remaining,
             )
 
         return RateLimitResult(
-            allowed=True,
-            remaining=self.config.max_requests,
-            reset_at=datetime.utcnow(),
-            limit=self.config.max_requests
+            allowed=True, remaining=self.config.max_requests, reset_at=datetime.utcnow(), limit=self.config.max_requests
         )
 
     def reset_limit(self, identifier: str):
@@ -318,10 +308,7 @@ class MultiLevelRateLimiter:
         """Add rate limiter with specific configuration"""
         self.limiters[name] = RateLimiter(config)
 
-    def check_rate_limits(
-        self,
-        identifiers: Dict[str, str]
-    ) -> Tuple[bool, List[RateLimitResult]]:
+    def check_rate_limits(self, identifiers: Dict[str, str]) -> Tuple[bool, List[RateLimitResult]]:
         """
         Check rate limits across all configured limiters
 
@@ -345,17 +332,10 @@ class MultiLevelRateLimiter:
 
         return all_allowed, results
 
-    def get_most_restrictive_result(
-        self,
-        results: List[RateLimitResult]
-    ) -> RateLimitResult:
+    def get_most_restrictive_result(self, results: List[RateLimitResult]) -> RateLimitResult:
         """Get most restrictive rate limit result"""
         if not results:
-            return RateLimitResult(
-                allowed=True,
-                remaining=0,
-                reset_at=datetime.utcnow()
-            )
+            return RateLimitResult(allowed=True, remaining=0, reset_at=datetime.utcnow())
 
         # Return first disallowed result, or result with least remaining
         disallowed = [r for r in results if not r.allowed]
@@ -372,28 +352,28 @@ RATE_LIMIT_TIERS = {
         window_seconds=3600,  # 100 requests per hour
         burst_allowance=10,
         algorithm=RateLimitAlgorithm.TOKEN_BUCKET,
-        scope=RateLimitScope.USER
+        scope=RateLimitScope.USER,
     ),
     "basic": RateLimitConfig(
         max_requests=1000,
         window_seconds=3600,  # 1000 requests per hour
         burst_allowance=50,
         algorithm=RateLimitAlgorithm.TOKEN_BUCKET,
-        scope=RateLimitScope.USER
+        scope=RateLimitScope.USER,
     ),
     "premium": RateLimitConfig(
         max_requests=10000,
         window_seconds=3600,  # 10000 requests per hour
         burst_allowance=100,
         algorithm=RateLimitAlgorithm.TOKEN_BUCKET,
-        scope=RateLimitScope.USER
+        scope=RateLimitScope.USER,
     ),
     "enterprise": RateLimitConfig(
         max_requests=100000,
         window_seconds=3600,  # 100000 requests per hour
         burst_allowance=1000,
         algorithm=RateLimitAlgorithm.TOKEN_BUCKET,
-        scope=RateLimitScope.USER
+        scope=RateLimitScope.USER,
     ),
 }
 
@@ -410,12 +390,15 @@ def get_rate_limiter() -> MultiLevelRateLimiter:
 
         # Add default limiters
         _global_rate_limiter.add_limiter("user", RATE_LIMIT_TIERS["basic"])
-        _global_rate_limiter.add_limiter("global", RateLimitConfig(
-            max_requests=100000,
-            window_seconds=60,  # 100k requests per minute globally
-            algorithm=RateLimitAlgorithm.SLIDING_WINDOW,
-            scope=RateLimitScope.GLOBAL
-        ))
+        _global_rate_limiter.add_limiter(
+            "global",
+            RateLimitConfig(
+                max_requests=100000,
+                window_seconds=60,  # 100k requests per minute globally
+                algorithm=RateLimitAlgorithm.SLIDING_WINDOW,
+                scope=RateLimitScope.GLOBAL,
+            ),
+        )
 
     return _global_rate_limiter
 
