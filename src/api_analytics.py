@@ -17,12 +17,12 @@ from flask import Blueprint, jsonify, request, send_file
 
 # Import analytics modules
 from src.analytics.bi_dashboard import KPI, BIDashboard, ReportFormat, ReportFrequency
-from src.analytics.data_mining import DataMining
+from src.analytics.data_mining import DataMiningEngine
 from src.analytics.data_warehouse import DataWarehouse
-from src.analytics.nl_query import NaturalLanguageQuery
+from src.analytics.nl_query import NLQueryProcessor
 from src.analytics.olap_cube import OLAPCube
-from src.analytics.predictive_analytics import PredictiveAnalytics
-from src.analytics.streaming_analytics import StreamingAnalytics
+from src.analytics.predictive_analytics import PredictiveAnalyticsEngine
+from src.analytics.streaming_analytics import StreamProcessor
 
 # Setup logger
 logger = logging.getLogger("dms.api.analytics")
@@ -32,12 +32,12 @@ api_analytics = Blueprint("api_analytics", __name__, url_prefix="/api/v1/analyti
 
 # Initialize analytics components
 bi_dashboard = BIDashboard()
-predictive_analytics = PredictiveAnalytics()
+predictive_analytics = PredictiveAnalyticsEngine()
 data_warehouse = DataWarehouse()
-olap_cube = OLAPCube()
-data_mining = DataMining()
-streaming_analytics = StreamingAnalytics()
-nl_query = NaturalLanguageQuery()
+olap_cube = OLAPCube(name="default_cube")
+data_mining = DataMiningEngine()
+streaming_analytics = StreamProcessor()
+nl_query = NLQueryProcessor()
 
 
 # ==========================================
