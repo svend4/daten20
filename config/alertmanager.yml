@@ -1,0 +1,219 @@
+# Alertmanager Configuration for DMS
+# Version: 1.0
+# Date: 2026-01-16
+
+global:
+  # Global SMTP settings (for email notifications)
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'dms-alerts@example.com'
+  smtp_auth_username: 'dms-alerts@example.com'
+  smtp_auth_password: 'your-app-password'
+  smtp_require_tls: true
+
+  # Slack webhook URL (if using Slack)
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+  # Default notification templates
+  resolve_timeout: 5m
+
+# Route tree for alerts
+route:
+  # Default receiver
+  receiver: 'team-general'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'cluster', 'service']
+
+  # How long to wait before sending initial notification
+  group_wait: 10s
+
+  # How long to wait before sending notification about new alerts
+  # added to an already-firing group
+  group_interval: 10s
+
+  # How long to wait before re-sending a given alert
+  repeat_interval: 12h
+
+  # Child routes
+  routes:
+    # Critical alerts go to PagerDuty and Slack
+    - match:
+        severity: critical
+      receiver: 'team-critical'
+      continue: true
+      routes:
+        - match:
+            component: application
+          receiver: 'team-app-critical'
+
+        - match:
+            component: database
+          receiver: 'team-db-critical'
+
+    # Warning alerts go to Slack
+    - match:
+        severity: warning
+      receiver: 'team-warnings'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+
+    # Info alerts go to email
+    - match:
+        severity: info
+      receiver: 'team-info'
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 24h
+
+    # Security alerts always go to security team
+    - match:
+        component: security
+      receiver: 'team-security'
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1h
+
+# Inhibition rules (suppress certain alerts when others are firing)
+inhibit_rules:
+  # Inhibit warning-level alerts if critical-level is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # Inhibit application alerts if application is down
+  - source_match:
+      alertname: 'DMSApplicationDown'
+    target_match_re:
+      component: 'application'
+    equal: ['instance']
+
+  # Inhibit database query alerts if database is down
+  - source_match:
+      alertname: 'DatabaseDown'
+    target_match_re:
+      alertname: '(SlowDatabaseQueries|HighDatabaseConnections)'
+    equal: ['instance']
+
+# Receivers (notification endpoints)
+receivers:
+  # General team notifications (email + Slack)
+  - name: 'team-general'
+    email_configs:
+      - to: 'team@example.com'
+        headers:
+          Subject: '[DMS] {{ .GroupLabels.alertname }}'
+        html: |
+          {{ range .Alerts }}
+            <h3>{{ .Labels.alertname }}</h3>
+            <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+            <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+            <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+            <hr>
+          {{ end }}
+
+    slack_configs:
+      - channel: '#dms-alerts'
+        username: 'DMS Alertmanager'
+        icon_emoji: ':warning:'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+  # Critical alerts (PagerDuty + Slack + Email)
+  - name: 'team-critical'
+    email_configs:
+      - to: 'oncall@example.com,team-lead@example.com'
+        headers:
+          Subject: '[CRITICAL] [DMS] {{ .GroupLabels.alertname }}'
+
+    slack_configs:
+      - channel: '#dms-critical'
+        username: 'DMS Alertmanager'
+        icon_emoji: ':rotating_light:'
+        title: ':rotating_light: CRITICAL ALERT'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Severity:* {{ .Labels.severity }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        color: 'danger'
+
+    # PagerDuty integration
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        description: '{{ .GroupLabels.alertname }} - {{ .Annotations.summary }}'
+
+  # Application critical alerts
+  - name: 'team-app-critical'
+    email_configs:
+      - to: 'app-team@example.com'
+        headers:
+          Subject: '[CRITICAL] [DMS App] {{ .GroupLabels.alertname }}'
+
+    slack_configs:
+      - channel: '#dms-app-team'
+        username: 'DMS Alertmanager'
+        icon_emoji: ':fire:'
+        title: 'Application Critical Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        color: 'danger'
+
+  # Database critical alerts
+  - name: 'team-db-critical'
+    email_configs:
+      - to: 'db-team@example.com'
+        headers:
+          Subject: '[CRITICAL] [DMS DB] {{ .GroupLabels.alertname }}'
+
+    slack_configs:
+      - channel: '#dms-db-team'
+        username: 'DMS Alertmanager'
+        icon_emoji: ':database:'
+        title: 'Database Critical Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        color: 'danger'
+
+  # Warning alerts
+  - name: 'team-warnings'
+    slack_configs:
+      - channel: '#dms-warnings'
+        username: 'DMS Alertmanager'
+        icon_emoji: ':warning:'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        color: 'warning'
+
+  # Info alerts
+  - name: 'team-info'
+    email_configs:
+      - to: 'dms-info@example.com'
+        headers:
+          Subject: '[INFO] [DMS] {{ .GroupLabels.alertname }}'
+
+  # Security team
+  - name: 'team-security'
+    email_configs:
+      - to: 'security-team@example.com'
+        headers:
+          Subject: '[SECURITY] [DMS] {{ .GroupLabels.alertname }}'
+
+    slack_configs:
+      - channel: '#security-alerts'
+        username: 'DMS Security'
+        icon_emoji: ':lock:'
+        title: 'Security Alert'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        color: 'danger'
+
+# Templates for custom notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

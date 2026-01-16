@@ -1,0 +1,164 @@
+{
+  "dashboard": {
+    "title": "DMS - Document Processing",
+    "tags": ["dms", "documents"],
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Documents Processing Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_documents_processed_total[5m])) by (operation)",
+            "legendFormat": "{{operation}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Documents/sec"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Documents Success Rate",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_documents_processed_total{status=\"success\"}[5m])) / sum(rate(dms_documents_processed_total[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 0.9, "color": "yellow"},
+                {"value": 0.95, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Processing Duration by Operation (p50, p95, p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(dms_document_processing_duration_seconds_bucket[5m])) by (le, operation))",
+            "legendFormat": "p50 - {{operation}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(dms_document_processing_duration_seconds_bucket[5m])) by (le, operation))",
+            "legendFormat": "p95 - {{operation}}",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(dms_document_processing_duration_seconds_bucket[5m])) by (le, operation))",
+            "legendFormat": "p99 - {{operation}}",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Duration"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Documents by Type",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(increase(dms_documents_processed_total[1h])) by (document_type)",
+            "legendFormat": "{{document_type}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Documents by Operation",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(increase(dms_documents_processed_total[1h])) by (operation)",
+            "legendFormat": "{{operation}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Document Size Distribution",
+        "type": "heatmap",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_document_size_bytes_bucket[5m])) by (le)",
+            "format": "heatmap",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "bytes"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Active Processing",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "sum(dms_documents_processing_active)",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Errors by Operation",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 16, "x": 8, "y": 32},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_documents_processed_total{status=\"error\"}[5m])) by (operation)",
+            "legendFormat": "{{operation}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Errors/sec"
+          }
+        ]
+      }
+    ]
+  }
+}
