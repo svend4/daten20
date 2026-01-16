@@ -198,6 +198,61 @@ services:
 
   # ==================== SUPPORTING SERVICES ====================
 
+  # ==================== JAEGER (Distributed Tracing) ====================
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: dms-jaeger
+    restart: unless-stopped
+    environment:
+      # Collector settings
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+
+      # Storage settings (memory for development, badger for production)
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+
+      # Query settings
+      - QUERY_BASE_PATH=/jaeger
+
+      # Sampling settings
+      - SAMPLING_STRATEGIES_FILE=/etc/jaeger/sampling.json
+    volumes:
+      - jaeger_data:/badger
+      - ./config/jaeger-sampling.json:/etc/jaeger/sampling.json:ro
+    ports:
+      # Jaeger UI
+      - "16686:16686"
+      # Jaeger Collector HTTP
+      - "14268:14268"
+      # Jaeger Collector gRPC
+      - "14250:14250"
+      # Jaeger Agent (Thrift compact)
+      - "6831:6831/udp"
+      # Jaeger Agent (Thrift binary)
+      - "6832:6832/udp"
+      # Zipkin compatible endpoint
+      - "9411:9411"
+      # OTLP gRPC
+      - "4317:4317"
+      # OTLP HTTP
+      - "4318:4318"
+    networks:
+      - dms-monitoring
+      - dms-backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:14269/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.dms.monitoring=jaeger"
+      - "com.dms.description=Distributed tracing and monitoring"
+
   # PostgreSQL (if not already running)
   postgres:
     image: postgres:15-alpine
@@ -269,4 +324,8 @@ volumes:
 
   redis_data:
     name: dms-redis-data
+    driver: local
+
+  jaeger_data:
+    name: dms-jaeger-data
     driver: local
