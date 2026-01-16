@@ -15,10 +15,16 @@ Dependencies:
 - pandas, numpy, scikit-learn
 """
 
+from __future__ import annotations
+
 import threading
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    import pandas as pd
+    import numpy as np
 
 try:
     import numpy as np
@@ -29,6 +35,8 @@ try:
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
+    np = None  # type: ignore
+    pd = None  # type: ignore
     print("Warning: scikit-learn not available. Data mining features limited.")
 
 

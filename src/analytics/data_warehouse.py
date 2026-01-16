@@ -20,12 +20,18 @@ Dependencies:
 - sqlalchemy (for database operations)
 """
 
+from __future__ import annotations
+
 import json
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    import pandas as pd
+    import numpy as np
 
 try:
     import numpy as np
@@ -34,6 +40,8 @@ try:
     PANDAS_AVAILABLE = True
 except ImportError:
     PANDAS_AVAILABLE = False
+    np = None  # type: ignore
+    pd = None  # type: ignore
     print("Warning: pandas not available. Data Warehouse features limited.")
 
 

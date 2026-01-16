@@ -487,6 +487,19 @@ class RevenueForecaster:
 
     def _linear_forecast(self, dates: List[datetime], values: List[float], periods: int) -> ForecastResult:
         """Simple linear regression forecast"""
+        # Handle empty data
+        if not values or not dates:
+            now = datetime.now()
+            future_dates = [now + timedelta(days=30 * i) for i in range(1, periods + 1)]
+            return ForecastResult(
+                method=ForecastMethod.LINEAR_REGRESSION,
+                predictions=[0.0] * periods,
+                dates=future_dates,
+                confidence_lower=[0.0] * periods,
+                confidence_upper=[0.0] * periods,
+                accuracy_metrics={},
+            )
+
         if not SKLEARN_AVAILABLE:
             # Ultra-simple fallback: use last value
             last_value = values[-1]
