@@ -130,6 +130,7 @@ class AuditLogger:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
+        # Create table
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS audit_log (
@@ -145,13 +146,19 @@ class AuditLogger:
                 ip_address TEXT,
                 user_agent TEXT,
                 status TEXT DEFAULT 'success',
-                error_message TEXT,
-                INDEX idx_timestamp (timestamp),
-                INDEX idx_user_id (user_id),
-                INDEX idx_action (action),
-                INDEX idx_resource (resource_type, resource_id)
+                error_message TEXT
             )
         """
+        )
+
+        # Create indexes
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_timestamp ON audit_log (timestamp)"
+        )
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_id ON audit_log (user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_action ON audit_log (action)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_resource ON audit_log (resource_type, resource_id)"
         )
 
         conn.commit()
