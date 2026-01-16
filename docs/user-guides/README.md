@@ -1,10 +1,17 @@
 # 📚 Document Management System - User Guides
 
 **Version:** 4.1.0
-**Last Updated:** 2026-01-14
-**Total Guides:** 11 CLI Tools
+**Last Updated:** 2026-01-16
+**Total Guides:** 13 CLI Tools
 
 Welcome to the comprehensive user guide collection for the Document Management System (DMS). This guide helps you choose the right tool for your task.
+
+## 📚 New: Complete Documentation
+
+- **[Master Guide](CLI_TOOLS_MASTER_GUIDE.md)** - Complete documentation for all 13 CLI tools (1200+ lines)
+- **[Quick Reference](CLI_TOOLS_QUICK_REFERENCE.md)** - Fast reference guide with examples (300+ lines)
+
+These comprehensive guides include detailed usage examples, best practices, and troubleshooting for every tool.
 
 ---
 
@@ -25,6 +32,8 @@ Welcome to the comprehensive user guide collection for the Document Management S
 | Use visual interface | [doc-dashboard.py](doc-dashboard.md) | Web UI |
 | Manage all services | [doc-master.py](doc-master.md) | Service orchestration |
 | Access via API | [doc-api-server.py](doc-api-server.md) | REST API |
+| Administer system | [dms-admin.py](CLI_TOOLS_MASTER_GUIDE.md#12-dms-admin) | DMS administration |
+| Enterprise management | [enterprise-admin.py](CLI_TOOLS_MASTER_GUIDE.md#13-enterprise-admin) | Enterprise admin |
 
 ---
 
@@ -646,14 +655,15 @@ docker exec -it <container-id> python doc-processor.py --help
 
 ## 📝 Version History
 
-### v4.1.0 (2026-01-14)
-- ✅ Complete user guide collection (11 guides)
-- ✅ Master guide with workflow examples
-- ✅ Comprehensive tool comparison
-- ✅ Common use cases documented
+### v4.1.0 (2026-01-16) - Phase 4 Task 42 ✅
+- ✅ Complete Master Guide for all 13 CLI tools (1200+ lines)
+- ✅ Quick Reference Guide (300+ lines)
+- ✅ Comprehensive tool documentation with examples
+- ✅ Best practices and troubleshooting included
+- ✅ Added dms-admin.py and enterprise-admin.py documentation
 
 ### v4.0.0 (2026-01-10)
-- ✅ All 11 CLI tools production-ready
+- ✅ All 13 CLI tools production-ready
 - ✅ Web dashboard launched
 - ✅ API server with OpenAPI docs
 - ✅ 172/172 tests passing
