@@ -2,9 +2,11 @@
 Tests for CSRF protection module.
 """
 
-import pytest
 import time
-from flask import Flask, request, jsonify
+
+import pytest
+from flask import Flask, jsonify, request
+
 from src.core.csrf_protection import CSRFProtection, csrf_exempt
 
 
@@ -12,8 +14,8 @@ from src.core.csrf_protection import CSRFProtection, csrf_exempt
 def app():
     """Create Flask app for testing."""
     app = Flask(__name__)
-    app.secret_key = 'test-secret-key-for-testing'
-    app.config['TESTING'] = True
+    app.secret_key = "test-secret-key-for-testing"
+    app.config["TESTING"] = True
     return app
 
 
@@ -28,14 +30,14 @@ def client(app, csrf):
     """Create test client with CSRF protection."""
     csrf.init_app(app)
 
-    @app.route('/test', methods=['POST'])
+    @app.route("/test", methods=["POST"])
     def test_route():
-        return jsonify({'status': 'ok'})
+        return jsonify({"status": "ok"})
 
-    @app.route('/exempt', methods=['POST'])
+    @app.route("/exempt", methods=["POST"])
     @csrf_exempt
     def exempt_route():
-        return jsonify({'status': 'exempt'})
+        return jsonify({"status": "exempt"})
 
     return app.test_client()
 
@@ -51,7 +53,7 @@ class TestCSRFTokenGeneration:
             token = csrf.generate_token()
             assert token is not None
             assert len(token) > 0
-            assert '.' in token  # Format: timestamp.signature
+            assert "." in token  # Format: timestamp.signature
 
     def test_generate_token_format(self, app, csrf):
         """Test token has correct format."""
@@ -59,7 +61,7 @@ class TestCSRFTokenGeneration:
 
         with app.test_request_context():
             token = csrf.generate_token()
-            parts = token.split('.')
+            parts = token.split(".")
 
             assert len(parts) == 2  # timestamp and signature
             assert parts[0].isdigit()  # timestamp is numeric
@@ -85,10 +87,10 @@ class TestCSRFTokenGeneration:
         with app.test_request_context():
             html = csrf.generate_input()
 
-            assert '<input' in html
+            assert "<input" in html
             assert 'type="hidden"' in html
             assert 'name="_csrf_token"' in html
-            assert 'value=' in html
+            assert "value=" in html
 
 
 class TestCSRFTokenValidation:
@@ -99,17 +101,21 @@ class TestCSRFTokenValidation:
         csrf.init_app(app)
 
         # Use single request context for both generation and validation
-        with app.test_request_context(method='POST', data={}):
+        with app.test_request_context(method="POST", data={}):
             from flask import session
+
             # Initialize session
-            session['_csrf_token'] = 'test_csrf_token'
+            session["_csrf_token"] = "test_csrf_token"
 
             # Generate token in same context
             token = csrf.generate_token()
 
             # Mock the form data with token
             from flask import request
-            request.form = type('obj', (), {'get': lambda self, key, default=None: token if key == '_csrf_token' else default})()
+
+            request.form = type(
+                "obj", (), {"get": lambda self, key, default=None: token if key == "_csrf_token" else default}
+            )()
 
             # Validate in same context
             assert csrf.validate_token(token)
@@ -122,12 +128,12 @@ class TestCSRFTokenValidation:
             csrf.generate_token()  # Generate session token
 
             # Try to validate random token
-            with app.test_request_context(method='POST'):
-                assert not csrf.validate_token('invalid.token')
+            with app.test_request_context(method="POST"):
+                assert not csrf.validate_token("invalid.token")
 
     def test_validate_expired_token(self, app, csrf):
         """Test validation fails for expired token."""
-        app.config['CSRF_TIME_LIMIT'] = 1  # 1 second
+        app.config["CSRF_TIME_LIMIT"] = 1  # 1 second
         csrf.init_app(app)
 
         with app.test_request_context():
@@ -136,31 +142,35 @@ class TestCSRFTokenValidation:
             # Wait for token to expire
             time.sleep(1.5)
 
-            with app.test_request_context(method='POST'):
+            with app.test_request_context(method="POST"):
                 assert not csrf.validate_token(token)
 
     def test_validate_no_session_token(self, app, csrf):
         """Test validation fails without session token."""
         csrf.init_app(app)
 
-        with app.test_request_context(method='POST'):
+        with app.test_request_context(method="POST"):
             # Try to validate without generating session token first
-            assert not csrf.validate_token('some.token')
+            assert not csrf.validate_token("some.token")
 
     def test_validate_token_from_form(self, app, csrf):
         """Test token validation from form data."""
         csrf.init_app(app)
 
         # Use single request context with form data
-        with app.test_request_context(method='POST', data={}):
+        with app.test_request_context(method="POST", data={}):
             from flask import session
-            session['_csrf_token'] = 'test_csrf_token'
+
+            session["_csrf_token"] = "test_csrf_token"
 
             token = csrf.generate_token()
 
             # Mock form with token
             from flask import request
-            request.form = type('obj', (), {'get': lambda self, key, default=None: token if key == '_csrf_token' else default})()
+
+            request.form = type(
+                "obj", (), {"get": lambda self, key, default=None: token if key == "_csrf_token" else default}
+            )()
 
             # Should auto-detect token from form
             assert csrf.validate_token()
@@ -170,15 +180,19 @@ class TestCSRFTokenValidation:
         csrf.init_app(app)
 
         # Use single request context with headers
-        with app.test_request_context(method='POST', headers={'X-CSRF-Token': 'placeholder'}):
+        with app.test_request_context(method="POST", headers={"X-CSRF-Token": "placeholder"}):
             from flask import session
-            session['_csrf_token'] = 'test_csrf_token'
+
+            session["_csrf_token"] = "test_csrf_token"
 
             token = csrf.generate_token()
 
             # Update header with actual token
             from flask import request
-            request.headers = type('obj', (), {'get': lambda self, key, default=None: token if key == 'X-CSRF-Token' else default})()
+
+            request.headers = type(
+                "obj", (), {"get": lambda self, key, default=None: token if key == "X-CSRF-Token" else default}
+            )()
 
             # Should auto-detect token from header
             assert csrf.validate_token()
@@ -188,15 +202,17 @@ class TestCSRFTokenValidation:
         csrf.init_app(app)
 
         # Use single request context with JSON
-        with app.test_request_context(method='POST', json={}):
+        with app.test_request_context(method="POST", json={}):
             from flask import session
-            session['_csrf_token'] = 'test_csrf_token'
+
+            session["_csrf_token"] = "test_csrf_token"
 
             token = csrf.generate_token()
 
             # Mock JSON with token
             from flask import request
-            request.json = {'_csrf_token': token}
+
+            request.json = {"_csrf_token": token}
             request.get_json = lambda force=False, silent=False, cache=True: request.json
 
             # Should auto-detect token from JSON
@@ -208,18 +224,19 @@ class TestCSRFProtectionIntegration:
 
     def test_post_without_token_blocked(self, client):
         """Test POST without token is blocked."""
-        response = client.post('/test')
+        response = client.post("/test")
         assert response.status_code == 403
 
     def test_get_requests_allowed(self, client):
         """Test GET requests are always allowed."""
         # Add GET route
         with client.application.test_request_context():
-            @client.application.route('/get-test')
-            def get_route():
-                return jsonify({'status': 'ok'})
 
-        response = client.get('/get-test')
+            @client.application.route("/get-test")
+            def get_route():
+                return jsonify({"status": "ok"})
+
+        response = client.get("/get-test")
         assert response.status_code in [200, 404]  # 404 if route not registered properly
 
     def test_post_with_valid_token_allowed(self, client):
@@ -230,18 +247,19 @@ class TestCSRFProtectionIntegration:
 
         with client.application.test_request_context():
             from src.core.csrf_protection import csrf
+
             token = csrf.generate_token()
 
-        response = client.post('/test', data={'_csrf_token': token})
+        response = client.post("/test", data={"_csrf_token": token})
         assert response.status_code in [200, 403]  # May fail due to session handling
 
     def test_exempt_route_no_token_needed(self, client):
         """Test exempt route doesn't require token."""
-        response = client.post('/exempt')
+        response = client.post("/exempt")
         assert response.status_code == 200
 
         data = response.get_json()
-        assert data['status'] == 'exempt'
+        assert data["status"] == "exempt"
 
 
 class TestCSRFExempt:
@@ -252,12 +270,12 @@ class TestCSRFExempt:
         csrf.init_app(app)
 
         @csrf_exempt
-        @app.route('/test-exempt', methods=['POST'], endpoint='test_view')
+        @app.route("/test-exempt", methods=["POST"], endpoint="test_view")
         def test_view():
-            return 'ok'
+            return "ok"
 
         # Check view is in exempt list
-        assert 'test_view' in csrf.exempt_views
+        assert "test_view" in csrf.exempt_views
 
     def test_exempt_function_execution(self, app, csrf):
         """Test exempt function executes normally."""
@@ -276,25 +294,26 @@ class TestCSRFConfiguration:
 
     def test_csrf_enabled_config(self, app, csrf):
         """Test CSRF can be enabled/disabled."""
-        app.config['CSRF_ENABLED'] = False
+        app.config["CSRF_ENABLED"] = False
         csrf.init_app(app)
 
         with app.test_client() as client:
             # Even without token, should pass if disabled
             with client.application.test_request_context():
-                @client.application.route('/config-test', methods=['POST'])
+
+                @client.application.route("/config-test", methods=["POST"])
                 def test():
-                    return 'ok'
+                    return "ok"
 
             # This test is more about configuration than actual behavior
-            assert app.config['CSRF_ENABLED'] == False
+            assert app.config["CSRF_ENABLED"] == False
 
     def test_csrf_time_limit_config(self, app, csrf):
         """Test CSRF time limit configuration."""
-        app.config['CSRF_TIME_LIMIT'] = 7200  # 2 hours
+        app.config["CSRF_TIME_LIMIT"] = 7200  # 2 hours
         csrf.init_app(app)
 
-        assert app.config['CSRF_TIME_LIMIT'] == 7200
+        assert app.config["CSRF_TIME_LIMIT"] == 7200
 
     def test_secret_key_required(self):
         """Test that SECRET_KEY is required."""
@@ -305,7 +324,7 @@ class TestCSRFConfiguration:
         with pytest.raises(ValueError) as exc_info:
             csrf.init_app(app)
 
-        assert 'SECRET_KEY' in str(exc_info.value)
+        assert "SECRET_KEY" in str(exc_info.value)
 
 
 class TestCSRFTemplateHelpers:
@@ -342,10 +361,10 @@ class TestCSRFSecurity:
             token = csrf.generate_token()
 
             # Try to tamper with token
-            parts = token.split('.')
-            tampered_token = parts[0] + '.tampered_signature'
+            parts = token.split(".")
+            tampered_token = parts[0] + ".tampered_signature"
 
-            with app.test_request_context(method='POST'):
+            with app.test_request_context(method="POST"):
                 # Tampered token should fail validation
                 assert not csrf.validate_token(tampered_token)
 
@@ -355,7 +374,7 @@ class TestCSRFSecurity:
 
         with app.test_request_context():
             token = csrf.generate_token()
-            parts = token.split('.')
+            parts = token.split(".")
 
             # First part should be a valid timestamp
             timestamp = int(parts[0])
@@ -363,6 +382,7 @@ class TestCSRFSecurity:
 
             # Timestamp should be recent
             import time
+
             current_time = int(time.time())
             assert abs(current_time - timestamp) < 10  # Within 10 seconds
 
@@ -393,15 +413,15 @@ class TestCSRFErrorHandling:
         with app.test_request_context():
             csrf.generate_token()
 
-            with app.test_request_context(method='POST'):
+            with app.test_request_context(method="POST"):
                 # Token without dot separator
-                assert not csrf.validate_token('invalidtoken')
+                assert not csrf.validate_token("invalidtoken")
 
                 # Token with too many parts
-                assert not csrf.validate_token('part1.part2.part3')
+                assert not csrf.validate_token("part1.part2.part3")
 
                 # Token with non-numeric timestamp
-                assert not csrf.validate_token('abc.signature')
+                assert not csrf.validate_token("abc.signature")
 
 
 class TestCSRFMethodExemptions:
@@ -410,23 +430,23 @@ class TestCSRFMethodExemptions:
     def test_get_method_exempt(self, app, csrf):
         """Test GET method is exempt from CSRF."""
         csrf.init_app(app)
-        assert 'GET' in csrf.exempt_methods
+        assert "GET" in csrf.exempt_methods
 
     def test_head_method_exempt(self, app, csrf):
         """Test HEAD method is exempt from CSRF."""
         csrf.init_app(app)
-        assert 'HEAD' in csrf.exempt_methods
+        assert "HEAD" in csrf.exempt_methods
 
     def test_options_method_exempt(self, app, csrf):
         """Test OPTIONS method is exempt from CSRF."""
         csrf.init_app(app)
-        assert 'OPTIONS' in csrf.exempt_methods
+        assert "OPTIONS" in csrf.exempt_methods
 
     def test_post_method_not_exempt(self, app, csrf):
         """Test POST method is not exempt from CSRF."""
         csrf.init_app(app)
-        assert 'POST' not in csrf.exempt_methods
+        assert "POST" not in csrf.exempt_methods
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

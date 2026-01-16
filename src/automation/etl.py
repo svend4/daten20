@@ -9,15 +9,16 @@ Provides data pipeline capabilities:
 - Error handling and logging
 """
 
-from typing import Optional, List, Dict, Any, Callable
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import uuid
+from typing import Any, Callable, Dict, List, Optional
 
 
 class DataSource(str, Enum):
     """Data source types"""
+
     DATABASE = "database"
     CSV_FILE = "csv_file"
     JSON_FILE = "json_file"
@@ -29,6 +30,7 @@ class DataSource(str, Enum):
 
 class TransformationType(str, Enum):
     """Transformation types"""
+
     MAP_FIELDS = "map_fields"
     FILTER_ROWS = "filter_rows"
     AGGREGATE = "aggregate"
@@ -40,6 +42,7 @@ class TransformationType(str, Enum):
 
 class PipelineStatus(str, Enum):
     """Pipeline execution status"""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -50,6 +53,7 @@ class PipelineStatus(str, Enum):
 @dataclass
 class ExtractConfig:
     """Extraction configuration"""
+
     source_type: DataSource
     connection_string: str
     query: Optional[str] = None
@@ -61,6 +65,7 @@ class ExtractConfig:
 @dataclass
 class TransformStep:
     """Transformation step"""
+
     id: str
     type: TransformationType
     config: Dict[str, Any]
@@ -70,6 +75,7 @@ class TransformStep:
 @dataclass
 class LoadConfig:
     """Load configuration"""
+
     target_type: DataSource
     connection_string: str
     table_name: Optional[str] = None
@@ -81,6 +87,7 @@ class LoadConfig:
 @dataclass
 class ETLPipeline:
     """ETL Pipeline definition"""
+
     id: str
     name: str
     description: str
@@ -95,6 +102,7 @@ class ETLPipeline:
 @dataclass
 class PipelineExecution:
     """Pipeline execution record"""
+
     id: str
     pipeline_id: str
     status: PipelineStatus
@@ -120,7 +128,7 @@ class ETLEngine:
         description: str,
         extract_config: ExtractConfig,
         transform_steps: List[TransformStep],
-        load_config: LoadConfig
+        load_config: LoadConfig,
     ) -> str:
         """Create ETL pipeline"""
         pipeline_id = str(uuid.uuid4())
@@ -131,7 +139,7 @@ class ETLEngine:
             description=description,
             extract_config=extract_config,
             transform_steps=transform_steps,
-            load_config=load_config
+            load_config=load_config,
         )
 
         self.pipelines[pipeline_id] = pipeline
@@ -146,10 +154,7 @@ class ETLEngine:
 
         execution_id = str(uuid.uuid4())
         execution = PipelineExecution(
-            id=execution_id,
-            pipeline_id=pipeline_id,
-            status=PipelineStatus.RUNNING,
-            started_at=datetime.now()
+            id=execution_id, pipeline_id=pipeline_id, status=PipelineStatus.RUNNING, started_at=datetime.now()
         )
 
         self.executions.append(execution)
@@ -185,24 +190,20 @@ class ETLEngine:
         print(f"[ETL] Extracting from {config.source_type}")
 
         # Simulated extraction
-        return [{'id': i, 'value': f'data_{i}'} for i in range(100)]
+        return [{"id": i, "value": f"data_{i}"} for i in range(100)]
 
-    def _transform_data(
-        self,
-        data: List[Dict[str, Any]],
-        step: TransformStep
-    ) -> List[Dict[str, Any]]:
+    def _transform_data(self, data: List[Dict[str, Any]], step: TransformStep) -> List[Dict[str, Any]]:
         """Transform data"""
         print(f"[ETL] Transforming with {step.type}")
 
         if step.type == TransformationType.FILTER_ROWS:
             # Filter rows based on condition
-            condition = step.config.get('condition', lambda x: True)
+            condition = step.config.get("condition", lambda x: True)
             return [row for row in data if condition(row)]
 
         elif step.type == TransformationType.MAP_FIELDS:
             # Map fields
-            mapping = step.config.get('mapping', {})
+            mapping = step.config.get("mapping", {})
             return [{mapping.get(k, k): v for k, v in row.items()} for row in data]
 
         return data
@@ -220,10 +221,10 @@ class ETLEngine:
         successful = len([e for e in self.executions if e.status == PipelineStatus.COMPLETED])
 
         return {
-            'total_pipelines': len(self.pipelines),
-            'total_executions': total_executions,
-            'successful_executions': successful,
-            'failed_executions': total_executions - successful
+            "total_pipelines": len(self.pipelines),
+            "total_executions": total_executions,
+            "successful_executions": successful,
+            "failed_executions": total_executions - successful,
         }
 
 

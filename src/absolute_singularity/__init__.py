@@ -8,13 +8,13 @@ from .absolute_services import (
     get_absolute_service,
 )
 
-__version__ = '29.0.0'
-__status__ = 'ABSOLUTE_PERFECTION'
+__version__ = "29.0.0"
+__status__ = "ABSOLUTE_PERFECTION"
 
 __all__ = [
-    'AbsoluteSingularityService',
-    'AbsoluteState',
-    'get_absolute_service',
-    '__version__',
-    '__status__',
+    "AbsoluteSingularityService",
+    "AbsoluteState",
+    "get_absolute_service",
+    "__version__",
+    "__status__",
 ]

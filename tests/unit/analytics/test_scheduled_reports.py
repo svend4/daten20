@@ -9,23 +9,23 @@ Tests the scheduled report functionality including:
 - Email delivery simulation
 """
 
+import os
+import sys
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
-import sys
-import os
+from unittest.mock import MagicMock, Mock, patch
 
 # Add parent directory to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
 from src.analytics.bi_dashboard import (
+    KPI,
     BIDashboard,
-    ReportScheduler,
-    ScheduledReport,
     Report,
     ReportFormat,
     ReportFrequency,
-    KPI
+    ReportScheduler,
+    ScheduledReport,
 )
 
 
@@ -42,20 +42,12 @@ class TestScheduledReports(unittest.TestCase):
             id="test_report",
             name="Test Report",
             description="Test report for scheduling",
-            kpis=[
-                KPI(
-                    name="Test KPI",
-                    value="100",
-                    unit="units",
-                    change_percentage=5.0,
-                    trend="up"
-                )
-            ],
+            kpis=[KPI(name="Test KPI", value="100", unit="units", change_percentage=5.0, trend="up")],
             charts=[],
             filters={},
             created_at=datetime.now(),
             created_by="test@example.com",
-            format=ReportFormat.PDF
+            format=ReportFormat.PDF,
         )
         self.dashboard.reports[self.sample_report.id] = self.sample_report
 
@@ -68,7 +60,7 @@ class TestScheduledReports(unittest.TestCase):
             frequency=ReportFrequency.DAILY,
             recipients=["test@example.com"],
             format=ReportFormat.PDF,
-            filters={}
+            filters={},
         )
 
         self.assertEqual(scheduled.report_id, self.sample_report.id)
@@ -79,62 +71,34 @@ class TestScheduledReports(unittest.TestCase):
     def test_calculate_next_run_daily(self):
         """Test daily frequency calculation"""
         now = datetime.now()
-        next_run = self.scheduler._calculate_next_run(
-            ReportFrequency.DAILY,
-            from_time=now
-        )
+        next_run = self.scheduler._calculate_next_run(ReportFrequency.DAILY, from_time=now)
 
         expected = now + timedelta(days=1)
-        self.assertAlmostEqual(
-            next_run.timestamp(),
-            expected.timestamp(),
-            delta=1  # 1 second tolerance
-        )
+        self.assertAlmostEqual(next_run.timestamp(), expected.timestamp(), delta=1)  # 1 second tolerance
 
     def test_calculate_next_run_weekly(self):
         """Test weekly frequency calculation"""
         now = datetime.now()
-        next_run = self.scheduler._calculate_next_run(
-            ReportFrequency.WEEKLY,
-            from_time=now
-        )
+        next_run = self.scheduler._calculate_next_run(ReportFrequency.WEEKLY, from_time=now)
 
         expected = now + timedelta(weeks=1)
-        self.assertAlmostEqual(
-            next_run.timestamp(),
-            expected.timestamp(),
-            delta=1
-        )
+        self.assertAlmostEqual(next_run.timestamp(), expected.timestamp(), delta=1)
 
     def test_calculate_next_run_monthly(self):
         """Test monthly frequency calculation"""
         now = datetime.now()
-        next_run = self.scheduler._calculate_next_run(
-            ReportFrequency.MONTHLY,
-            from_time=now
-        )
+        next_run = self.scheduler._calculate_next_run(ReportFrequency.MONTHLY, from_time=now)
 
         expected = now + timedelta(days=30)
-        self.assertAlmostEqual(
-            next_run.timestamp(),
-            expected.timestamp(),
-            delta=1
-        )
+        self.assertAlmostEqual(next_run.timestamp(), expected.timestamp(), delta=1)
 
     def test_calculate_next_run_quarterly(self):
         """Test quarterly frequency calculation"""
         now = datetime.now()
-        next_run = self.scheduler._calculate_next_run(
-            ReportFrequency.QUARTERLY,
-            from_time=now
-        )
+        next_run = self.scheduler._calculate_next_run(ReportFrequency.QUARTERLY, from_time=now)
 
         expected = now + timedelta(days=90)
-        self.assertAlmostEqual(
-            next_run.timestamp(),
-            expected.timestamp(),
-            delta=1
-        )
+        self.assertAlmostEqual(next_run.timestamp(), expected.timestamp(), delta=1)
 
     def test_schedule_report(self):
         """Test scheduling a report"""
@@ -145,7 +109,7 @@ class TestScheduledReports(unittest.TestCase):
             frequency=ReportFrequency.DAILY,
             recipients=["user@example.com"],
             format=ReportFormat.PDF,
-            filters={}
+            filters={},
         )
 
         self.scheduler.schedule_report(scheduled)
@@ -162,7 +126,7 @@ class TestScheduledReports(unittest.TestCase):
             frequency=ReportFrequency.DAILY,
             recipients=["user@example.com"],
             format=ReportFormat.PDF,
-            filters={}
+            filters={},
         )
 
         self.scheduler.schedule_report(scheduled)
@@ -184,11 +148,7 @@ class TestScheduledReports(unittest.TestCase):
 
     def test_multiple_scheduled_reports(self):
         """Test scheduling multiple reports"""
-        frequencies = [
-            ReportFrequency.DAILY,
-            ReportFrequency.WEEKLY,
-            ReportFrequency.MONTHLY
-        ]
+        frequencies = [ReportFrequency.DAILY, ReportFrequency.WEEKLY, ReportFrequency.MONTHLY]
 
         for i, freq in enumerate(frequencies):
             scheduled = ScheduledReport(
@@ -198,7 +158,7 @@ class TestScheduledReports(unittest.TestCase):
                 frequency=freq,
                 recipients=[f"user{i}@example.com"],
                 format=ReportFormat.PDF,
-                filters={}
+                filters={},
             )
             self.scheduler.schedule_report(scheduled)
 
@@ -206,10 +166,7 @@ class TestScheduledReports(unittest.TestCase):
 
     def test_scheduled_report_with_filters(self):
         """Test scheduled report with custom filters"""
-        filters = {
-            "region": "North America",
-            "product": "Enterprise"
-        }
+        filters = {"region": "North America", "product": "Enterprise"}
 
         scheduled = ScheduledReport(
             id="filtered_schedule",
@@ -218,7 +175,7 @@ class TestScheduledReports(unittest.TestCase):
             frequency=ReportFrequency.WEEKLY,
             recipients=["analyst@example.com"],
             format=ReportFormat.EXCEL,
-            filters=filters
+            filters=filters,
         )
 
         self.assertEqual(scheduled.filters, filters)
@@ -236,7 +193,7 @@ class TestScheduledReports(unittest.TestCase):
             frequency=ReportFrequency.DAILY,
             recipients=["test@example.com"],
             format=ReportFormat.PDF,
-            filters={}
+            filters={},
         )
         scheduled.next_run = datetime.now() - timedelta(minutes=1)  # Set to past
 
@@ -255,7 +212,7 @@ class TestScheduledReports(unittest.TestCase):
             name="Dashboard Integration Test",
             frequency=ReportFrequency.WEEKLY,
             recipients=["integration@example.com"],
-            format=ReportFormat.PDF
+            format=ReportFormat.PDF,
         )
 
         self.assertIsNotNone(scheduled)
@@ -272,14 +229,14 @@ class TestScheduledReports(unittest.TestCase):
                 name=f"Test {fmt.value} Report",
                 frequency=ReportFrequency.MONTHLY,
                 recipients=[f"{fmt.value}@example.com"],
-                format=fmt
+                format=fmt,
             )
             self.assertEqual(scheduled.format, fmt)
 
         # All 3 should be scheduled
         self.assertEqual(len(self.dashboard.report_scheduler.scheduled_reports), 3)
 
-    @patch('src.analytics.bi_dashboard.ReportGenerator')
+    @patch("src.analytics.bi_dashboard.ReportGenerator")
     def test_report_generation_called(self, mock_generator):
         """Test that report generation is called during execution"""
         # This is a simplified test - full integration would need email mocking
@@ -290,7 +247,7 @@ class TestScheduledReports(unittest.TestCase):
             frequency=ReportFrequency.DAILY,
             recipients=["test@example.com"],
             format=ReportFormat.PDF,
-            filters={}
+            filters={},
         )
 
         # Execute the scheduled report
@@ -315,15 +272,12 @@ class TestScheduledReportIntegration(unittest.TestCase):
             id="integration_report",
             name="Integration Test Report",
             description="E2E test report",
-            kpis=[
-                KPI(name="Revenue", value="$50,000", unit="USD",
-                    change_percentage=10.0, trend="up")
-            ],
+            kpis=[KPI(name="Revenue", value="$50,000", unit="USD", change_percentage=10.0, trend="up")],
             charts=[],
             filters={},
             created_at=datetime.now(),
             created_by="test@example.com",
-            format=ReportFormat.PDF
+            format=ReportFormat.PDF,
         )
         self.dashboard.reports[report.id] = report
 
@@ -333,7 +287,7 @@ class TestScheduledReportIntegration(unittest.TestCase):
             name="E2E Scheduled Report",
             frequency=ReportFrequency.WEEKLY,
             recipients=["recipient@example.com"],
-            format=ReportFormat.PDF
+            format=ReportFormat.PDF,
         )
 
         # 3. Verify scheduling
@@ -365,6 +319,6 @@ def run_tests():
     return result.wasSuccessful()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     success = run_tests()
     sys.exit(0 if success else 1)

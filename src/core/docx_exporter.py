@@ -5,18 +5,19 @@ Professional DOCX generation with custom branding, logos, and styling.
 Supports headers, footers, tables, images, and multi-level formatting.
 """
 
-from docx import Document
-from docx.shared import Pt, Inches, RGBColor, Cm
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.style import WD_STYLE_TYPE
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
+import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Union
-import logging
+from typing import Any, Dict, List, Optional, Union
 
-logger = logging.getLogger('dms.docx')
+from docx import Document
+from docx.enum.style import WD_STYLE_TYPE
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Inches, Pt, RGBColor
+
+logger = logging.getLogger("dms.docx")
 
 
 class BrandingConfig:
@@ -29,8 +30,8 @@ class BrandingConfig:
         self.primary_color = RGBColor(13, 110, 253)  # Blue
         self.secondary_color = RGBColor(108, 117, 125)  # Gray
         self.accent_color = RGBColor(25, 135, 84)  # Green
-        self.header_font = 'Calibri'
-        self.body_font = 'Calibri'
+        self.header_font = "Calibri"
+        self.body_font = "Calibri"
         self.font_size_title = 24
         self.font_size_heading1 = 18
         self.font_size_heading2 = 14
@@ -75,9 +76,9 @@ class DOCXExporter:
 
         # Custom Title style
         try:
-            title_style = styles['Custom Title']
+            title_style = styles["Custom Title"]
         except KeyError:
-            title_style = styles.add_style('Custom Title', WD_STYLE_TYPE.PARAGRAPH)
+            title_style = styles.add_style("Custom Title", WD_STYLE_TYPE.PARAGRAPH)
 
         title_font = title_style.font
         title_font.name = self.branding.header_font
@@ -89,9 +90,9 @@ class DOCXExporter:
 
         # Custom Heading 1
         try:
-            h1_style = styles['Custom Heading 1']
+            h1_style = styles["Custom Heading 1"]
         except KeyError:
-            h1_style = styles.add_style('Custom Heading 1', WD_STYLE_TYPE.PARAGRAPH)
+            h1_style = styles.add_style("Custom Heading 1", WD_STYLE_TYPE.PARAGRAPH)
 
         h1_font = h1_style.font
         h1_font.name = self.branding.header_font
@@ -103,9 +104,9 @@ class DOCXExporter:
 
         # Custom Heading 2
         try:
-            h2_style = styles['Custom Heading 2']
+            h2_style = styles["Custom Heading 2"]
         except KeyError:
-            h2_style = styles.add_style('Custom Heading 2', WD_STYLE_TYPE.PARAGRAPH)
+            h2_style = styles.add_style("Custom Heading 2", WD_STYLE_TYPE.PARAGRAPH)
 
         h2_font = h2_style.font
         h2_font.name = self.branding.header_font
@@ -117,9 +118,9 @@ class DOCXExporter:
 
         # Custom Body
         try:
-            body_style = styles['Custom Body']
+            body_style = styles["Custom Body"]
         except KeyError:
-            body_style = styles.add_style('Custom Body', WD_STYLE_TYPE.PARAGRAPH)
+            body_style = styles.add_style("Custom Body", WD_STYLE_TYPE.PARAGRAPH)
 
         body_font = body_style.font
         body_font.name = self.branding.body_font
@@ -155,9 +156,7 @@ class DOCXExporter:
             footer_para = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
 
             # Footer text
-            run = footer_para.add_run(
-                f"{self.branding.footer_text} | {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-            )
+            run = footer_para.add_run(f"{self.branding.footer_text} | {datetime.now().strftime('%Y-%m-%d %H:%M')}")
             run.font.size = Pt(8)
             run.font.color.rgb = self.branding.secondary_color
 
@@ -169,15 +168,15 @@ class DOCXExporter:
 
     def _add_page_number(self, run):
         """Add page number field to run."""
-        fldChar1 = OxmlElement('w:fldChar')
-        fldChar1.set(qn('w:fldCharType'), 'begin')
+        fldChar1 = OxmlElement("w:fldChar")
+        fldChar1.set(qn("w:fldCharType"), "begin")
 
-        instrText = OxmlElement('w:instrText')
-        instrText.set(qn('xml:space'), 'preserve')
+        instrText = OxmlElement("w:instrText")
+        instrText.set(qn("xml:space"), "preserve")
         instrText.text = "PAGE"
 
-        fldChar2 = OxmlElement('w:fldChar')
-        fldChar2.set(qn('w:fldCharType'), 'end')
+        fldChar2 = OxmlElement("w:fldChar")
+        fldChar2.set(qn("w:fldCharType"), "end")
 
         run._r.append(fldChar1)
         run._r.append(instrText)
@@ -190,7 +189,7 @@ class DOCXExporter:
         Args:
             text: Title text
         """
-        para = self.doc.add_paragraph(text, style='Custom Title')
+        para = self.doc.add_paragraph(text, style="Custom Title")
         return para
 
     def add_heading(self, text: str, level: int = 1):
@@ -202,12 +201,12 @@ class DOCXExporter:
             level: Heading level (1 or 2)
         """
         if level == 1:
-            para = self.doc.add_paragraph(text, style='Custom Heading 1')
+            para = self.doc.add_paragraph(text, style="Custom Heading 1")
         else:
-            para = self.doc.add_paragraph(text, style='Custom Heading 2')
+            para = self.doc.add_paragraph(text, style="Custom Heading 2")
         return para
 
-    def add_paragraph(self, text: str, style: str = 'Custom Body'):
+    def add_paragraph(self, text: str, style: str = "Custom Body"):
         """
         Add paragraph.
 
@@ -226,7 +225,7 @@ class DOCXExporter:
             items: List items
         """
         for item in items:
-            para = self.doc.add_paragraph(item, style='List Bullet')
+            para = self.doc.add_paragraph(item, style="List Bullet")
             para.paragraph_format.left_indent = Inches(0.25)
 
     def add_numbered_list(self, items: List[str]):
@@ -237,11 +236,10 @@ class DOCXExporter:
             items: List items
         """
         for item in items:
-            para = self.doc.add_paragraph(item, style='List Number')
+            para = self.doc.add_paragraph(item, style="List Number")
             para.paragraph_format.left_indent = Inches(0.25)
 
-    def add_table(self, data: List[List[str]], headers: Optional[List[str]] = None,
-                  style: str = 'Light Grid Accent 1'):
+    def add_table(self, data: List[List[str]], headers: Optional[List[str]] = None, style: str = "Light Grid Accent 1"):
         """
         Add table.
 
@@ -342,17 +340,17 @@ class DOCXExporter:
             self.add_title(title)
 
             # Process content line by line
-            for line in content.split('\n'):
+            for line in content.split("\n"):
                 line = line.strip()
                 if not line:
                     continue
 
                 # Detect headings
-                if line.startswith('#'):
-                    level = line.count('#', 0, 3)
-                    text = line.lstrip('#').strip()
+                if line.startswith("#"):
+                    level = line.count("#", 0, 3)
+                    text = line.lstrip("#").strip()
                     self.add_heading(text, min(level, 2))
-                elif line.startswith('- ') or line.startswith('* '):
+                elif line.startswith("- ") or line.startswith("* "):
                     text = line[2:].strip()
                     self.add_bullet_list([text])
                 else:
@@ -366,8 +364,7 @@ class DOCXExporter:
             logger.error(f"DOCX export failed: {e}")
             return False
 
-    def export_structured(self, data: Dict[str, Any], output_path: str,
-                          title: str = "Document") -> bool:
+    def export_structured(self, data: Dict[str, Any], output_path: str, title: str = "Document") -> bool:
         """
         Export structured data to DOCX.
 
@@ -387,12 +384,12 @@ class DOCXExporter:
 
             # Process data
             for key, value in data.items():
-                self.add_heading(str(key).replace('_', ' ').title(), level=1)
+                self.add_heading(str(key).replace("_", " ").title(), level=1)
 
                 if isinstance(value, dict):
                     # Nested dictionary
                     for sub_key, sub_value in value.items():
-                        self.add_heading(str(sub_key).replace('_', ' ').title(), level=2)
+                        self.add_heading(str(sub_key).replace("_", " ").title(), level=2)
                         self.add_paragraph(str(sub_value))
 
                 elif isinstance(value, list):
@@ -400,7 +397,7 @@ class DOCXExporter:
                     if value and isinstance(value[0], dict):
                         # List of dictionaries - create table
                         headers = list(value[0].keys())
-                        rows = [[str(item.get(h, '')) for h in headers] for item in value]
+                        rows = [[str(item.get(h, "")) for h in headers] for item in value]
                         self.add_table(rows, headers)
                     else:
                         # Simple list
@@ -432,62 +429,62 @@ class DOCXExporter:
         try:
             Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-            title = report_data.get('title', 'Report')
+            title = report_data.get("title", "Report")
             self.create_document(title)
             self.add_title(title)
 
             # Subtitle/Date
-            subtitle = report_data.get('subtitle')
+            subtitle = report_data.get("subtitle")
             if subtitle:
                 para = self.doc.add_paragraph(subtitle)
                 para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 para.paragraph_format.space_after = Pt(12)
 
-            date = report_data.get('date', datetime.now().strftime('%Y-%m-%d'))
+            date = report_data.get("date", datetime.now().strftime("%Y-%m-%d"))
             para = self.doc.add_paragraph(f"Date: {date}")
             para.alignment = WD_ALIGN_PARAGRAPH.CENTER
             para.paragraph_format.space_after = Pt(24)
 
             # Executive Summary
-            if 'summary' in report_data:
+            if "summary" in report_data:
                 self.add_heading("Executive Summary", level=1)
-                self.add_paragraph(report_data['summary'])
+                self.add_paragraph(report_data["summary"])
 
             # Sections
-            sections = report_data.get('sections', [])
+            sections = report_data.get("sections", [])
             for section in sections:
-                section_title = section.get('title', 'Section')
+                section_title = section.get("title", "Section")
                 self.add_heading(section_title, level=1)
 
-                content = section.get('content', '')
+                content = section.get("content", "")
                 if content:
                     self.add_paragraph(content)
 
                 # Subsections
-                subsections = section.get('subsections', [])
+                subsections = section.get("subsections", [])
                 for subsection in subsections:
-                    subsection_title = subsection.get('title', 'Subsection')
+                    subsection_title = subsection.get("title", "Subsection")
                     self.add_heading(subsection_title, level=2)
 
-                    subsection_content = subsection.get('content', '')
+                    subsection_content = subsection.get("content", "")
                     if subsection_content:
                         self.add_paragraph(subsection_content)
 
                     # Tables
-                    if 'table' in subsection:
-                        table_data = subsection['table']
-                        headers = table_data.get('headers')
-                        rows = table_data.get('rows', [])
+                    if "table" in subsection:
+                        table_data = subsection["table"]
+                        headers = table_data.get("headers")
+                        rows = table_data.get("rows", [])
                         self.add_table(rows, headers)
 
                     # Lists
-                    if 'list' in subsection:
-                        self.add_bullet_list(subsection['list'])
+                    if "list" in subsection:
+                        self.add_bullet_list(subsection["list"])
 
             # Conclusion
-            if 'conclusion' in report_data:
+            if "conclusion" in report_data:
                 self.add_heading("Conclusion", level=1)
-                self.add_paragraph(report_data['conclusion'])
+                self.add_paragraph(report_data["conclusion"])
 
             self.doc.save(output_path)
             logger.info(f"Report exported successfully: {output_path}")
@@ -499,8 +496,9 @@ class DOCXExporter:
 
 
 # Convenience function
-def export_to_docx(content: Union[str, Dict], output_path: str,
-                   title: str = "Document", branding: Optional[BrandingConfig] = None) -> bool:
+def export_to_docx(
+    content: Union[str, Dict], output_path: str, title: str = "Document", branding: Optional[BrandingConfig] = None
+) -> bool:
     """
     Quick export function.
 

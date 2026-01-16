@@ -40,28 +40,29 @@ Version: 1.0.0
 
 import argparse
 import json
-import sys
-import os
-from pathlib import Path
-from typing import List, Dict, Any, Optional
-from datetime import datetime
 import logging
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from src.core.database import DocumentDatabase
+from src.core.excel_export import ExcelExporter
+from src.core.exporter import DocumentExporter
+from src.core.logging_config import setup_logging
 
 # Import core modules
 from src.core.parser import DocumentParser
-from src.core.validator import DocumentValidator
-from src.core.database import DocumentDatabase
-from src.core.exporter import DocumentExporter
-from src.core.excel_export import ExcelExporter
 from src.core.pdf_exporter import PDFReportExporter
-from src.core.logging_config import setup_logging
+from src.core.validator import DocumentValidator
+from src.ml.classifier import DocumentCategory, TfidfSVMClassifier
+from src.ml.knowledge_graph import GraphFormat, KnowledgeGraphBuilder
 
 # Import ML modules
-from src.ml.ner import NEREngine, EntityType
-from src.ml.classifier import TfidfSVMClassifier, DocumentCategory
-from src.ml.tagging import TopicModeler
+from src.ml.ner import EntityType, NEREngine
 from src.ml.relation_extractor import RelationExtractor, RelationType
-from src.ml.knowledge_graph import KnowledgeGraphBuilder, GraphFormat
+from src.ml.tagging import TopicModeler
 
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
@@ -128,59 +129,42 @@ class DocumentProcessorCLI:
             "validation": {
                 "is_valid": validation.is_valid,
                 "errors": validation.errors,
-                "warnings": validation.warnings
+                "warnings": validation.warnings,
             },
             "metadata": metadata,
             "statistics": {
                 "text_length": len(text),
                 "word_count": len(text.split()),
                 "entity_count": len(entities),
-                "relation_count": len(relations)
+                "relation_count": len(relations),
             },
             "classification": {
-                "category": classification.category.value if hasattr(classification, 'category') else "UNKNOWN",
-                "confidence": getattr(classification, 'confidence', 0.0)
+                "category": classification.category.value if hasattr(classification, "category") else "UNKNOWN",
+                "confidence": getattr(classification, "confidence", 0.0),
             },
-            "entities": [
-                {
-                    "text": e.text,
-                    "type": e.type.value,
-                    "confidence": e.confidence
-                }
-                for e in entities
-            ],
-            "topics": [
-                {
-                    "tag": t.tag,
-                    "score": t.score,
-                    "keywords": t.keywords[:5]
-                }
-                for t in topics[:5]
-            ],
+            "entities": [{"text": e.text, "type": e.type.value, "confidence": e.confidence} for e in entities],
+            "topics": [{"tag": t.tag, "score": t.score, "keywords": t.keywords[:5]} for t in topics[:5]],
             "relations": [
                 {
                     "source": r.source_entity,
                     "relation": r.relation_type.value,
                     "target": r.target_entity,
-                    "confidence": r.confidence
+                    "confidence": r.confidence,
                 }
                 for r in relations
-            ]
+            ],
         }
 
         # Save to output if specified
         if output:
-            with open(output, 'w', encoding='utf-8') as f:
+            with open(output, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, ensure_ascii=False)
             logger.info(f"Results saved to: {output}")
 
         return results
 
     def extract_entities(
-        self,
-        file_path: str,
-        entity_types: Optional[List[str]] = None,
-        output: Optional[str] = None
+        self, file_path: str, entity_types: Optional[List[str]] = None, output: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Extract named entities from document.
@@ -214,19 +198,13 @@ class DocumentProcessorCLI:
 
         # Build results
         results = [
-            {
-                "text": e.text,
-                "type": e.type.value,
-                "start": e.start,
-                "end": e.end,
-                "confidence": e.confidence
-            }
+            {"text": e.text, "type": e.type.value, "start": e.start, "end": e.end, "confidence": e.confidence}
             for e in entities
         ]
 
         # Save to output if specified
         if output:
-            with open(output, 'w', encoding='utf-8') as f:
+            with open(output, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, ensure_ascii=False)
             logger.info(f"Entities saved to: {output}")
 
@@ -253,18 +231,15 @@ class DocumentProcessorCLI:
 
         result = {
             "file_path": file_path,
-            "category": classification.category.value if hasattr(classification, 'category') else "UNKNOWN",
-            "confidence": getattr(classification, 'confidence', 0.0),
-            "probabilities": getattr(classification, 'probabilities', {})
+            "category": classification.category.value if hasattr(classification, "category") else "UNKNOWN",
+            "confidence": getattr(classification, "confidence", 0.0),
+            "probabilities": getattr(classification, "probabilities", {}),
         }
 
         return result
 
     def extract_relations(
-        self,
-        file_path: str,
-        build_graph: bool = False,
-        graph_output: Optional[str] = None
+        self, file_path: str, build_graph: bool = False, graph_output: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Extract relations and optionally build knowledge graph.
@@ -296,10 +271,10 @@ class DocumentProcessorCLI:
                     "relation": r.relation_type.value,
                     "target": r.target_entity,
                     "target_type": r.target_type.value,
-                    "confidence": r.confidence
+                    "confidence": r.confidence,
                 }
                 for r in relations
-            ]
+            ],
         }
 
         # Build knowledge graph if requested
@@ -311,18 +286,13 @@ class DocumentProcessorCLI:
 
             # Save graph if output specified
             if graph_output:
-                with open(graph_output, 'w', encoding='utf-8') as f:
+                with open(graph_output, "w", encoding="utf-8") as f:
                     json.dump(graph_data, f, indent=2, ensure_ascii=False)
                 logger.info(f"Knowledge graph saved to: {graph_output}")
 
         return results
 
-    def batch_process(
-        self,
-        input_dir: str,
-        output_dir: str,
-        file_pattern: str = "*.*"
-    ) -> Dict[str, Any]:
+    def batch_process(self, input_dir: str, output_dir: str, file_pattern: str = "*.*") -> Dict[str, Any]:
         """
         Process multiple documents in batch.
 
@@ -350,7 +320,7 @@ class DocumentProcessorCLI:
             "total_files": len(files),
             "processed": 0,
             "failed": 0,
-            "files": []
+            "files": [],
         }
 
         # Process each file
@@ -359,25 +329,17 @@ class DocumentProcessorCLI:
                 output_file = Path(output_dir) / f"{file_path.stem}_results.json"
                 file_results = self.process_document(str(file_path), str(output_file))
 
-                results["files"].append({
-                    "file": str(file_path),
-                    "status": "success",
-                    "output": str(output_file)
-                })
+                results["files"].append({"file": str(file_path), "status": "success", "output": str(output_file)})
                 results["processed"] += 1
 
             except Exception as e:
                 logger.error(f"Failed to process {file_path}: {e}")
-                results["files"].append({
-                    "file": str(file_path),
-                    "status": "failed",
-                    "error": str(e)
-                })
+                results["files"].append({"file": str(file_path), "status": "failed", "error": str(e)})
                 results["failed"] += 1
 
         # Save summary
         summary_file = Path(output_dir) / "batch_summary.json"
-        with open(summary_file, 'w', encoding='utf-8') as f:
+        with open(summary_file, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
 
         logger.info(f"Batch processing complete. Processed: {results['processed']}, Failed: {results['failed']}")
@@ -385,10 +347,7 @@ class DocumentProcessorCLI:
         return results
 
     def full_analysis(
-        self,
-        file_path: str,
-        export_format: str = "json",
-        output: Optional[str] = None
+        self, file_path: str, export_format: str = "json", output: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Run full document analysis with all features.
@@ -416,7 +375,7 @@ class DocumentProcessorCLI:
         # Export in requested format
         if output:
             if export_format == "json":
-                with open(output, 'w', encoding='utf-8') as f:
+                with open(output, "w", encoding="utf-8") as f:
                     json.dump(results, f, indent=2, ensure_ascii=False)
 
             elif export_format == "excel":
@@ -456,7 +415,7 @@ Examples:
 
   # Full analysis with Excel export
   python doc-processor.py analyze document.pdf --full --export excel --output report.xlsx
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -519,11 +478,7 @@ Examples:
             print(json.dumps(results, indent=2, ensure_ascii=False))
 
         elif args.command == "relations":
-            results = cli.extract_relations(
-                args.file,
-                build_graph=bool(args.graph),
-                graph_output=args.graph
-            )
+            results = cli.extract_relations(args.file, build_graph=bool(args.graph), graph_output=args.graph)
             print(json.dumps(results, indent=2, ensure_ascii=False))
 
         elif args.command == "batch":

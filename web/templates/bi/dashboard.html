@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+
+{% block title %}Business Intelligence Dashboard - DMS Analytics{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bi/dashboard.css') }}">
+<style>
+.kpi-card {
+    background: var(--card-bg, #fff);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 24px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.kpi-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 12px 0;
+    color: var(--primary-color, #2563eb);
+}
+
+.kpi-label {
+    font-size: 0.875rem;
+    color: var(--text-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.kpi-change {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.kpi-change.positive {
+    color: #10b981;
+}
+
+.kpi-change.negative {
+    color: #ef4444;
+}
+
+.kpi-change.neutral {
+    color: #6b7280;
+}
+
+.chart-container {
+    background: var(--card-bg, #fff);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 24px;
+    min-height: 400px;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border-color, #e5e7eb);
+}
+
+.chart-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+}
+
+.chart-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-panel {
+    background: var(--card-bg, #fff);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.filter-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    margin-bottom: 6px;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.full-width-chart {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-value {
+        font-size: 2rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">📊 Business Intelligence Dashboard</h1>
+            <p class="text-muted mb-0">Executive KPIs & Analytics</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" id="refreshDashboard">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                <i class="bi bi-download"></i> Export
+            </button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#customizeModal">
+                <i class="bi bi-gear"></i> Customize
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="filter-panel">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="filter-label" for="dateRange">Date Range</label>
+                <select class="form-select" id="dateRange">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="180">Last 6 Months</option>
+                    <option value="365">Last Year</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label" for="tenantFilter">Tenant</label>
+                <select class="form-select" id="tenantFilter">
+                    <option value="all">All Tenants</option>
+                    <!-- Dynamic tenant options -->
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label" for="comparisonPeriod">Compare To</label>
+                <select class="form-select" id="comparisonPeriod">
+                    <option value="previous">Previous Period</option>
+                    <option value="year_ago">Same Period Last Year</option>
+                    <option value="none">No Comparison</option>
+                </select>
+            </div>
+
+            <div class="filter-group" style="flex: 0;">
+                <button class="btn btn-primary" id="applyFilters">
+                    <i class="bi bi-funnel"></i> Apply
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="dashboard-grid" id="kpiGrid">
+        <!-- MRR -->
+        <div class="kpi-card" data-kpi="mrr">
+            <div class="kpi-label">Monthly Recurring Revenue</div>
+            <div class="kpi-value" id="mrr-value">
+                <span class="spinner-border spinner-border-sm"></span>
+            </div>
+            <div class="kpi-change" id="mrr-change">
+                Loading...
+            </div>
+        </div>
+
+        <!-- ARR -->
+        <div class="kpi-card" data-kpi="arr">
+            <div class="kpi-label">Annual Recurring Revenue</div>
+            <div class="kpi-value" id="arr-value">
+                <span class="spinner-border spinner-border-sm"></span>
+            </div>
+            <div class="kpi-change" id="arr-change">
+                Loading...
+            </div>
+        </div>
+
+        <!-- Churn Rate -->
+        <div class="kpi-card" data-kpi="churn">
+            <div class="kpi-label">Churn Rate</div>
+            <div class="kpi-value" id="churn-value">
+                <span class="spinner-border spinner-border-sm"></span>
+            </div>
+            <div class="kpi-change" id="churn-change">
+                Loading...
+            </div>
+        </div>
+
+        <!-- CLV -->
+        <div class="kpi-card" data-kpi="clv">
+            <div class="kpi-label">Customer Lifetime Value</div>
+            <div class="kpi-value" id="clv-value">
+                <span class="spinner-border spinner-border-sm"></span>
+            </div>
+            <div class="kpi-change" id="clv-change">
+                Loading...
+            </div>
+        </div>
+
+        <!-- NRR -->
+        <div class="kpi-card" data-kpi="nrr">
+            <div class="kpi-label">Net Revenue Retention</div>
+            <div class="kpi-value" id="nrr-value">
+                <span class="spinner-border spinner-border-sm"></span>
+            </div>
+            <div class="kpi-change" id="nrr-change">
+                Loading...
+            </div>
+        </div>
+
+        <!-- CAC -->
+        <div class="kpi-card" data-kpi="cac">
+            <div class="kpi-label">Customer Acquisition Cost</div>
+            <div class="kpi-value" id="cac-value">
+                <span class="spinner-border spinner-border-sm"></span>
+            </div>
+            <div class="kpi-change" id="cac-change">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Revenue Trend</h3>
+                    <div class="chart-actions">
+                        <button class="btn btn-sm btn-outline-secondary" data-chart="revenue" data-action="fullscreen">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" data-chart="revenue" data-action="download">
+                            <i class="bi bi-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <canvas id="revenueTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Revenue Breakdown</h3>
+                    <div class="chart-actions">
+                        <button class="btn btn-sm btn-outline-secondary" data-chart="breakdown" data-action="fullscreen">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </button>
+                    </div>
+                </div>
+                <canvas id="revenueBreakdownChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Customer Growth</h3>
+                    <div class="chart-actions">
+                        <button class="btn btn-sm btn-outline-secondary" data-chart="customers" data-action="download">
+                            <i class="bi bi-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <canvas id="customerGrowthChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Churn Analysis</h3>
+                    <div class="chart-actions">
+                        <button class="btn btn-sm btn-outline-secondary" data-chart="churn" data-action="download">
+                            <i class="bi bi-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <canvas id="churnAnalysisChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Width Chart -->
+    <div class="chart-container full-width-chart">
+        <div class="chart-header">
+            <h3 class="chart-title">Cohort Analysis</h3>
+            <div class="chart-actions">
+                <select class="form-select form-select-sm" id="cohortMetric" style="width: auto;">
+                    <option value="retention">Retention</option>
+                    <option value="revenue">Revenue</option>
+                    <option value="engagement">Engagement</option>
+                </select>
+                <button class="btn btn-sm btn-outline-secondary" data-chart="cohort" data-action="download">
+                    <i class="bi bi-download"></i>
+                </button>
+            </div>
+        </div>
+        <canvas id="cohortAnalysisChart"></canvas>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Dashboard</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Export Format</label>
+                    <select class="form-select" id="exportFormat">
+                        <option value="pdf">PDF Report</option>
+                        <option value="excel">Excel Spreadsheet</option>
+                        <option value="powerpoint">PowerPoint Presentation</option>
+                        <option value="json">JSON Data</option>
+                        <option value="csv">CSV Data</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Include</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeKPIs" checked>
+                        <label class="form-check-label" for="includeKPIs">KPI Metrics</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeCharts" checked>
+                        <label class="form-check-label" for="includeCharts">Charts</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeRawData">
+                        <label class="form-check-label" for="includeRawData">Raw Data</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="executeExport">
+                    <i class="bi bi-download"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customize Modal -->
+<div class="modal fade" id="customizeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Customize Dashboard</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Drag and drop to reorder widgets. Toggle visibility for each metric.</p>
+                <div id="customizeKPIList" class="list-group">
+                    <!-- Dynamic KPI list for customization -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveCustomization">
+                    <i class="bi bi-check-lg"></i> Save Layout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/bi/bi-charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bi/dashboard.js') }}"></script>
+{% endblock %}

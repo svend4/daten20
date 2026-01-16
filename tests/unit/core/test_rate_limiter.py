@@ -2,14 +2,11 @@
 Tests for rate limiter module.
 """
 
-import pytest
 import time
-from src.core.rate_limiter import (
-    RateLimiter,
-    TokenBucketRateLimiter,
-    RateLimitExceeded,
-    GlobalRateLimiters
-)
+
+import pytest
+
+from src.core.rate_limiter import GlobalRateLimiters, RateLimiter, RateLimitExceeded, TokenBucketRateLimiter
 
 
 class TestRateLimiter:
@@ -226,5 +223,5 @@ class TestRateLimiterThreadSafety:
         assert sum(results) == 100
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

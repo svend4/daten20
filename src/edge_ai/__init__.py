@@ -39,75 +39,65 @@ Example Usage:
     )
 """
 
-from .edge_ai_services import (
-    # Enums
-    DeviceTier,
-    TrainingMode,
+from .edge_ai_services import (  # Enums; Data Classes; Service Classes; Singleton Getters
+    CompressedModel,
     CompressionType,
+    DeviceMetrics,
+    DeviceTier,
+    DistributedEdgeTraining,
+    EdgeAnalyticsPipeline,
+    EdgeCloudSynchronization,
+    EdgeDevice,
+    EdgeDeviceManager,
+    EdgeInferenceOptimizer,
+    EdgeOrchestrationSystem,
+    ModelCompressionEngine,
     OptimizationTarget,
     PlacementStrategy,
-    SyncStrategy,
-
-    # Data Classes
-    EdgeDevice,
-    DeviceMetrics,
-    TrainingJob,
-    CompressedModel,
-    WorkloadPlacement,
     SyncOperation,
-
-    # Service Classes
-    EdgeDeviceManager,
-    DistributedEdgeTraining,
-    EdgeInferenceOptimizer,
-    ModelCompressionEngine,
-    EdgeOrchestrationSystem,
-    EdgeCloudSynchronization,
-    EdgeAnalyticsPipeline,
-
-    # Singleton Getters
-    get_edge_device_manager,
+    SyncStrategy,
+    TrainingJob,
+    TrainingMode,
+    WorkloadPlacement,
     get_distributed_edge_training,
-    get_edge_inference_optimizer,
-    get_model_compression_engine,
-    get_edge_orchestration_system,
-    get_edge_cloud_synchronization,
     get_edge_analytics_pipeline,
+    get_edge_cloud_synchronization,
+    get_edge_device_manager,
+    get_edge_inference_optimizer,
+    get_edge_orchestration_system,
+    get_model_compression_engine,
 )
 
-__version__ = '16.0.0'
+__version__ = "16.0.0"
 __all__ = [
     # Enums
-    'DeviceTier',
-    'TrainingMode',
-    'CompressionType',
-    'OptimizationTarget',
-    'PlacementStrategy',
-    'SyncStrategy',
-
+    "DeviceTier",
+    "TrainingMode",
+    "CompressionType",
+    "OptimizationTarget",
+    "PlacementStrategy",
+    "SyncStrategy",
     # Data Classes
-    'EdgeDevice',
-    'DeviceMetrics',
-    'TrainingJob',
-    'CompressedModel',
-    'WorkloadPlacement',
-    'SyncOperation',
-
+    "EdgeDevice",
+    "DeviceMetrics",
+    "TrainingJob",
+    "CompressedModel",
+    "WorkloadPlacement",
+    "SyncOperation",
     # Service Classes
-    'EdgeDeviceManager',
-    'DistributedEdgeTraining',
-    'EdgeInferenceOptimizer',
-    'ModelCompressionEngine',
-    'EdgeOrchestrationSystem',
-    'EdgeCloudSynchronization',
-    'EdgeAnalyticsPipeline',
-
+    "EdgeDeviceManager",
+    "DistributedEdgeTraining",
+    "EdgeInferenceOptimizer",
+    "ModelCompressionEngine",
+    "EdgeOrchestrationSystem",
+    "EdgeCloudSynchronization",
+    "EdgeAnalyticsPipeline",
     # Singleton Getters
-    'get_edge_device_manager',
-    'get_distributed_edge_training',
-    'get_edge_inference_optimizer',
-    'get_model_compression_engine',
-    'get_edge_orchestration_system',
-    'get_edge_cloud_synchronization',
-    'get_edge_analytics_pipeline',
+    "get_edge_device_manager",
+    "get_distributed_edge_training",
+    "get_edge_inference_optimizer",
+    "get_model_compression_engine",
+    "get_edge_orchestration_system",
+    "get_edge_cloud_synchronization",
+    "get_edge_analytics_pipeline",
 ]

@@ -16,19 +16,20 @@ Security best practices:
 - Type checking
 """
 
-import re
 import html
 import json
-from typing import Any, Optional, List, Dict, Union
+import logging
+import re
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-import logging
+from typing import Any, Dict, List, Optional, Union
 
-logger = logging.getLogger('dms.validation')
+logger = logging.getLogger("dms.validation")
 
 
 class ValidationError(Exception):
     """Custom validation error."""
+
     pass
 
 
@@ -37,44 +38,46 @@ class InputValidator:
 
     # Common regex patterns
     PATTERNS = {
-        'email': re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'),
-        'username': re.compile(r'^[a-zA-Z0-9_-]{3,32}$'),
-        'alphanumeric': re.compile(r'^[a-zA-Z0-9]+$'),
-        'alpha': re.compile(r'^[a-zA-Z]+$'),
-        'numeric': re.compile(r'^[0-9]+$'),
-        'phone': re.compile(r'^\+?[0-9\s\-\(\)]{10,20}$'),
-        'url': re.compile(
-            r'^https?://'  # http:// or https://
-            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain
-            r'localhost|'  # localhost
-            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # or ip
-            r'(?::\d+)?'  # optional port
-            r'(?:/?|[/?]\S+)$', re.IGNORECASE
+        "email": re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"),
+        "username": re.compile(r"^[a-zA-Z0-9_-]{3,32}$"),
+        "alphanumeric": re.compile(r"^[a-zA-Z0-9]+$"),
+        "alpha": re.compile(r"^[a-zA-Z]+$"),
+        "numeric": re.compile(r"^[0-9]+$"),
+        "phone": re.compile(r"^\+?[0-9\s\-\(\)]{10,20}$"),
+        "url": re.compile(
+            r"^https?://"  # http:// or https://
+            r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|"  # domain
+            r"localhost|"  # localhost
+            r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # or ip
+            r"(?::\d+)?"  # optional port
+            r"(?:/?|[/?]\S+)$",
+            re.IGNORECASE,
         ),
-        'uuid': re.compile(
-            r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-            re.IGNORECASE
-        ),
-        'slug': re.compile(r'^[a-z0-9-]+$'),
-        'hex_color': re.compile(r'^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$'),
+        "uuid": re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE),
+        "slug": re.compile(r"^[a-z0-9-]+$"),
+        "hex_color": re.compile(r"^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"),
     }
 
     # Dangerous patterns to block
     DANGEROUS_PATTERNS = {
-        'sql_keywords': re.compile(
-            r'(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|SCRIPT)\b)',
-            re.IGNORECASE
+        "sql_keywords": re.compile(
+            r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|SCRIPT)\b)", re.IGNORECASE
         ),
-        'script_tags': re.compile(r'<script[^>]*>.*?</script>', re.IGNORECASE | re.DOTALL),
-        'event_handlers': re.compile(r'\bon\w+\s*=', re.IGNORECASE),
-        'javascript': re.compile(r'javascript:', re.IGNORECASE),
-        'path_traversal': re.compile(r'\.\./|\.\.\\'),
-        'command_injection': re.compile(r'[;&|`$\n]'),
+        "script_tags": re.compile(r"<script[^>]*>.*?</script>", re.IGNORECASE | re.DOTALL),
+        "event_handlers": re.compile(r"\bon\w+\s*=", re.IGNORECASE),
+        "javascript": re.compile(r"javascript:", re.IGNORECASE),
+        "path_traversal": re.compile(r"\.\./|\.\.\\"),
+        "command_injection": re.compile(r"[;&|`$\n]"),
     }
 
     @staticmethod
-    def validate_string(value: Any, min_length: int = 0, max_length: int = 10000,
-                       pattern: Optional[str] = None, allow_empty: bool = True) -> str:
+    def validate_string(
+        value: Any,
+        min_length: int = 0,
+        max_length: int = 10000,
+        pattern: Optional[str] = None,
+        allow_empty: bool = True,
+    ) -> str:
         """
         Validate and sanitize string input.
 
@@ -121,8 +124,7 @@ class InputValidator:
         return value
 
     @staticmethod
-    def validate_integer(value: Any, min_value: Optional[int] = None,
-                        max_value: Optional[int] = None) -> int:
+    def validate_integer(value: Any, min_value: Optional[int] = None, max_value: Optional[int] = None) -> int:
         """
         Validate integer input.
 
@@ -151,8 +153,12 @@ class InputValidator:
         return value
 
     @staticmethod
-    def validate_float(value: Any, min_value: Optional[float] = None,
-                      max_value: Optional[float] = None, precision: Optional[int] = None) -> float:
+    def validate_float(
+        value: Any,
+        min_value: Optional[float] = None,
+        max_value: Optional[float] = None,
+        precision: Optional[int] = None,
+    ) -> float:
         """
         Validate float input.
 
@@ -185,8 +191,9 @@ class InputValidator:
         return value
 
     @staticmethod
-    def validate_decimal(value: Any, min_value: Optional[Decimal] = None,
-                        max_value: Optional[Decimal] = None) -> Decimal:
+    def validate_decimal(
+        value: Any, min_value: Optional[Decimal] = None, max_value: Optional[Decimal] = None
+    ) -> Decimal:
         """
         Validate Decimal input (for financial calculations).
 
@@ -203,7 +210,7 @@ class InputValidator:
         """
         try:
             if isinstance(value, str):
-                value = value.replace(',', '')  # Remove thousand separators
+                value = value.replace(",", "")  # Remove thousand separators
             value = Decimal(str(value))
         except (InvalidOperation, ValueError, TypeError):
             raise ValidationError(f"Invalid decimal: {value}")
@@ -232,13 +239,13 @@ class InputValidator:
         """
         email = InputValidator.validate_string(email, max_length=254)
 
-        if not InputValidator.PATTERNS['email'].match(email):
+        if not InputValidator.PATTERNS["email"].match(email):
             raise ValidationError(f"Invalid email format: {email}")
 
         return email.lower()
 
     @staticmethod
-    def validate_url(url: str, allowed_schemes: List[str] = ['http', 'https']) -> str:
+    def validate_url(url: str, allowed_schemes: List[str] = ["http", "https"]) -> str:
         """
         Validate URL.
 
@@ -254,19 +261,18 @@ class InputValidator:
         """
         url = InputValidator.validate_string(url, max_length=2048)
 
-        if not InputValidator.PATTERNS['url'].match(url):
+        if not InputValidator.PATTERNS["url"].match(url):
             raise ValidationError(f"Invalid URL format: {url}")
 
         # Check scheme
-        scheme = url.split('://')[0] if '://' in url else ''
+        scheme = url.split("://")[0] if "://" in url else ""
         if scheme and scheme not in allowed_schemes:
             raise ValidationError(f"URL scheme not allowed: {scheme}")
 
         return url
 
     @staticmethod
-    def validate_enum(value: str, allowed_values: List[str],
-                     case_sensitive: bool = False) -> str:
+    def validate_enum(value: str, allowed_values: List[str], case_sensitive: bool = False) -> str:
         """
         Validate enum value.
 
@@ -291,9 +297,7 @@ class InputValidator:
             check_value = value.lower()
 
         if check_value not in check_values:
-            raise ValidationError(
-                f"Value '{value}' not in allowed values: {', '.join(allowed_values)}"
-            )
+            raise ValidationError(f"Value '{value}' not in allowed values: {', '.join(allowed_values)}")
 
         return value
 
@@ -312,19 +316,20 @@ class InputValidator:
         text = html.escape(text)
 
         # Remove script tags
-        text = InputValidator.DANGEROUS_PATTERNS['script_tags'].sub('', text)
+        text = InputValidator.DANGEROUS_PATTERNS["script_tags"].sub("", text)
 
         # Remove event handlers
-        text = InputValidator.DANGEROUS_PATTERNS['event_handlers'].sub('', text)
+        text = InputValidator.DANGEROUS_PATTERNS["event_handlers"].sub("", text)
 
         # Remove javascript: URLs
-        text = InputValidator.DANGEROUS_PATTERNS['javascript'].sub('', text)
+        text = InputValidator.DANGEROUS_PATTERNS["javascript"].sub("", text)
 
         return text
 
     @staticmethod
-    def validate_file_path(path: str, allowed_extensions: Optional[List[str]] = None,
-                          base_dir: Optional[str] = None) -> Path:
+    def validate_file_path(
+        path: str, allowed_extensions: Optional[List[str]] = None, base_dir: Optional[str] = None
+    ) -> Path:
         """
         Validate file path to prevent path traversal.
 
@@ -340,7 +345,7 @@ class InputValidator:
             ValidationError: If invalid or unsafe
         """
         # Check for path traversal attempts
-        if InputValidator.DANGEROUS_PATTERNS['path_traversal'].search(path):
+        if InputValidator.DANGEROUS_PATTERNS["path_traversal"].search(path):
             raise ValidationError(f"Path traversal detected: {path}")
 
         try:
@@ -360,9 +365,7 @@ class InputValidator:
         if allowed_extensions:
             ext = file_path.suffix.lower()
             if ext not in allowed_extensions:
-                raise ValidationError(
-                    f"File extension not allowed: {ext}. Allowed: {', '.join(allowed_extensions)}"
-                )
+                raise ValidationError(f"File extension not allowed: {ext}. Allowed: {', '.join(allowed_extensions)}")
 
         return file_path
 
@@ -412,7 +415,7 @@ class InputValidator:
         Returns:
             True if suspicious patterns found
         """
-        return bool(InputValidator.DANGEROUS_PATTERNS['sql_keywords'].search(text))
+        return bool(InputValidator.DANGEROUS_PATTERNS["sql_keywords"].search(text))
 
     @staticmethod
     def check_command_injection(text: str) -> bool:
@@ -425,7 +428,7 @@ class InputValidator:
         Returns:
             True if suspicious patterns found
         """
-        return bool(InputValidator.DANGEROUS_PATTERNS['command_injection'].search(text))
+        return bool(InputValidator.DANGEROUS_PATTERNS["command_injection"].search(text))
 
 
 # Flask request validator
@@ -461,7 +464,7 @@ class FlaskRequestValidator:
 
         for field, rules in schema.items():
             # Check required
-            if rules.get('required', False) and field not in form_data:
+            if rules.get("required", False) and field not in form_data:
                 raise ValidationError(f"Required field missing: {field}")
 
             # Skip if not present and not required
@@ -469,38 +472,31 @@ class FlaskRequestValidator:
                 continue
 
             value = form_data[field]
-            field_type = rules.get('type', 'string')
+            field_type = rules.get("type", "string")
 
             # Validate based on type
             try:
-                if field_type == 'string':
+                if field_type == "string":
                     validated[field] = validator.validate_string(
                         value,
-                        min_length=rules.get('min', 0),
-                        max_length=rules.get('max', 10000),
-                        pattern=rules.get('pattern')
+                        min_length=rules.get("min", 0),
+                        max_length=rules.get("max", 10000),
+                        pattern=rules.get("pattern"),
                     )
-                elif field_type == 'integer':
+                elif field_type == "integer":
                     validated[field] = validator.validate_integer(
-                        value,
-                        min_value=rules.get('min'),
-                        max_value=rules.get('max')
+                        value, min_value=rules.get("min"), max_value=rules.get("max")
                     )
-                elif field_type == 'float':
+                elif field_type == "float":
                     validated[field] = validator.validate_float(
-                        value,
-                        min_value=rules.get('min'),
-                        max_value=rules.get('max')
+                        value, min_value=rules.get("min"), max_value=rules.get("max")
                     )
-                elif field_type == 'email':
+                elif field_type == "email":
                     validated[field] = validator.validate_email(value)
-                elif field_type == 'url':
+                elif field_type == "url":
                     validated[field] = validator.validate_url(value)
-                elif field_type == 'enum':
-                    validated[field] = validator.validate_enum(
-                        value,
-                        rules.get('enum', [])
-                    )
+                elif field_type == "enum":
+                    validated[field] = validator.validate_enum(value, rules.get("enum", []))
                 else:
                     validated[field] = value
 
@@ -530,7 +526,7 @@ if __name__ == "__main__":
 
     # Test decimal validation
     try:
-        amount = validator.validate_decimal("123.45", min_value=Decimal('0'))
+        amount = validator.validate_decimal("123.45", min_value=Decimal("0"))
         print(f"✅ Valid amount: {amount}")
     except ValidationError as e:
         print(f"❌ Invalid amount: {e}")

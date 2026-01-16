@@ -15,41 +15,34 @@ Modules:
 Version: 3.4.0
 """
 
-__version__ = '3.4.0'
+__version__ = "3.4.0"
 
-from .blockchain_core import (
-    Block,
-    Blockchain,
-    BlockValidator,
-    GenesisBlock,
-    get_blockchain
-)
-
+from .blockchain_core import Block, Blockchain, BlockValidator, GenesisBlock, get_blockchain
 from .document_registry import (
     BlockchainDocumentRegistry,
-    DocumentHasher,
-    SmartContractInterface,
-    DocumentHash,
+    BlockchainNetwork,
     BlockchainTransaction,
+    DocumentEventType,
+    DocumentHash,
+    DocumentHasher,
     DocumentRegistryEntry,
     ProofOfExistence,
-    BlockchainNetwork,
-    DocumentEventType
+    SmartContractInterface,
 )
 
 __all__ = [
-    'Block',
-    'Blockchain',
-    'BlockValidator',
-    'GenesisBlock',
-    'get_blockchain',
-    'BlockchainDocumentRegistry',
-    'DocumentHasher',
-    'SmartContractInterface',
-    'DocumentHash',
-    'BlockchainTransaction',
-    'DocumentRegistryEntry',
-    'ProofOfExistence',
-    'BlockchainNetwork',
-    'DocumentEventType',
+    "Block",
+    "Blockchain",
+    "BlockValidator",
+    "GenesisBlock",
+    "get_blockchain",
+    "BlockchainDocumentRegistry",
+    "DocumentHasher",
+    "SmartContractInterface",
+    "DocumentHash",
+    "BlockchainTransaction",
+    "DocumentRegistryEntry",
+    "ProofOfExistence",
+    "BlockchainNetwork",
+    "DocumentEventType",
 ]

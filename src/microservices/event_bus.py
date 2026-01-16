@@ -18,22 +18,23 @@ Dependencies:
 - None (pure Python implementation)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable, Set
-from enum import Enum
-from datetime import datetime
-from uuid import uuid4
-import threading
 import json
 import logging
-from collections import defaultdict
+import threading
 from abc import ABC, abstractmethod
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Set
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
 
 class EventPriority(str, Enum):
     """Event priority levels"""
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -42,6 +43,7 @@ class EventPriority(str, Enum):
 
 class CommandStatus(str, Enum):
     """Command execution status"""
+
     PENDING = "pending"
     EXECUTING = "executing"
     COMPLETED = "completed"
@@ -52,6 +54,7 @@ class CommandStatus(str, Enum):
 @dataclass
 class Event:
     """Domain event"""
+
     event_id: str = field(default_factory=lambda: str(uuid4()))
     event_type: str = ""
     aggregate_id: str = ""
@@ -77,11 +80,11 @@ class Event:
             "version": self.version,
             "priority": self.priority.value,
             "correlation_id": self.correlation_id,
-            "causation_id": self.causation_id
+            "causation_id": self.causation_id,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Event':
+    def from_dict(cls, data: Dict[str, Any]) -> "Event":
         """Deserialize event from dictionary"""
         return cls(
             event_id=data["event_id"],
@@ -94,13 +97,14 @@ class Event:
             version=data.get("version", 1),
             priority=EventPriority(data.get("priority", "normal")),
             correlation_id=data.get("correlation_id"),
-            causation_id=data.get("causation_id")
+            causation_id=data.get("causation_id"),
         )
 
 
 @dataclass
 class Command:
     """CQRS Command"""
+
     command_id: str = field(default_factory=lambda: str(uuid4()))
     command_type: str = ""
     aggregate_id: str = ""
@@ -115,6 +119,7 @@ class Command:
 @dataclass
 class Query:
     """CQRS Query"""
+
     query_id: str = field(default_factory=lambda: str(uuid4()))
     query_type: str = ""
     parameters: Dict[str, Any] = field(default_factory=dict)
@@ -155,12 +160,7 @@ class EventStore:
 
             logger.info(f"Event appended: {event.event_type} for {stream_key}")
 
-    def get_events(
-        self,
-        aggregate_type: str,
-        aggregate_id: str,
-        from_version: int = 0
-    ) -> List[Event]:
+    def get_events(self, aggregate_type: str, aggregate_id: str, from_version: int = 0) -> List[Event]:
         """
         Get events for aggregate
 
@@ -183,9 +183,7 @@ class EventStore:
             return events.copy()
 
     def get_all_events(
-        self,
-        event_type: Optional[str] = None,
-        from_timestamp: Optional[datetime] = None
+        self, event_type: Optional[str] = None, from_timestamp: Optional[datetime] = None
     ) -> List[Event]:
         """
         Get all events, optionally filtered
@@ -208,13 +206,7 @@ class EventStore:
 
             return events
 
-    def save_snapshot(
-        self,
-        aggregate_type: str,
-        aggregate_id: str,
-        version: int,
-        state: Dict[str, Any]
-    ):
+    def save_snapshot(self, aggregate_type: str, aggregate_id: str, version: int, state: Dict[str, Any]):
         """
         Save aggregate snapshot
 
@@ -229,11 +221,7 @@ class EventStore:
             self._snapshots[key] = (version, state)
             logger.info(f"Snapshot saved: {key} at version {version}")
 
-    def get_snapshot(
-        self,
-        aggregate_type: str,
-        aggregate_id: str
-    ) -> Optional[tuple[int, Dict[str, Any]]]:
+    def get_snapshot(self, aggregate_type: str, aggregate_id: str) -> Optional[tuple[int, Dict[str, Any]]]:
         """
         Get aggregate snapshot
 
@@ -539,12 +527,7 @@ class EventSourcingRepository:
     def __init__(self, event_store: EventStore):
         self.event_store = event_store
 
-    def load(
-        self,
-        aggregate_type: str,
-        aggregate_id: str,
-        aggregate_class: type
-    ) -> Any:
+    def load(self, aggregate_type: str, aggregate_id: str, aggregate_class: type) -> Any:
         """
         Load aggregate from event store
 
@@ -647,7 +630,7 @@ if __name__ == "__main__":
         event_type="UserCreated",
         aggregate_type="User",
         aggregate_id="user-123",
-        data={"email": "user@example.com", "name": "John Doe"}
+        data={"email": "user@example.com", "name": "John Doe"},
     )
 
     event_store.append(event)
@@ -670,10 +653,7 @@ if __name__ == "__main__":
     command_bus.register_handler("CreateUser", handle_create_user)
 
     # Dispatch command
-    command = Command(
-        command_type="CreateUser",
-        data={"email": "newuser@example.com"}
-    )
+    command = Command(command_type="CreateUser", data={"email": "newuser@example.com"})
 
     user_id = command_bus.dispatch(command)
     print(f"Command result: {user_id}")

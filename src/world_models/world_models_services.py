@@ -16,20 +16,22 @@ This module provides 7 core systems:
 """
 
 import asyncio
-import numpy as np
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
-from collections import deque
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 
 # ============================================================================
 # Enums
 # ============================================================================
 
+
 class ModelType(Enum):
     """Type of world model"""
+
     DETERMINISTIC = "deterministic"
     STOCHASTIC = "stochastic"
     HYBRID = "hybrid"
@@ -38,6 +40,7 @@ class ModelType(Enum):
 
 class PredictionType(Enum):
     """Type of prediction"""
+
     SINGLE_STEP = "single_step"
     MULTI_STEP = "multi_step"
     CONDITIONAL = "conditional"
@@ -46,6 +49,7 @@ class PredictionType(Enum):
 
 class PlanningAlgorithm(Enum):
     """Planning algorithm"""
+
     RANDOM_SHOOTING = "random_shooting"
     CEM = "cem"  # Cross-Entropy Method
     MPC = "mpc"  # Model Predictive Control
@@ -54,6 +58,7 @@ class PlanningAlgorithm(Enum):
 
 class UncertaintyType(Enum):
     """Type of uncertainty"""
+
     ALEATORIC = "aleatoric"  # Irreducible
     EPISTEMIC = "epistemic"  # Reducible
     DISTRIBUTIONAL = "distributional"
@@ -62,6 +67,7 @@ class UncertaintyType(Enum):
 
 class InterventionType(Enum):
     """Type of causal intervention"""
+
     DO = "do"  # Hard intervention
     SOFT = "soft"  # Soft intervention
     OBSERVATION = "observation"  # Conditioning
@@ -72,9 +78,11 @@ class InterventionType(Enum):
 # Data Classes
 # ============================================================================
 
+
 @dataclass
 class State:
     """State representation"""
+
     state_id: str
     observation: Any
     latent_state: np.ndarray
@@ -85,6 +93,7 @@ class State:
 @dataclass
 class Transition:
     """State transition"""
+
     from_state: str
     action: Any
     to_state: str
@@ -96,6 +105,7 @@ class Transition:
 @dataclass
 class WorldModel:
     """Learned world model"""
+
     model_id: str
     model_type: ModelType
     latent_dim: int
@@ -109,6 +119,7 @@ class WorldModel:
 @dataclass
 class Prediction:
     """Prediction of future states"""
+
     prediction_id: str
     prediction_type: PredictionType
     horizon: int
@@ -122,6 +133,7 @@ class Prediction:
 @dataclass
 class Plan:
     """Action plan from model-based planning"""
+
     plan_id: str
     algorithm: PlanningAlgorithm
     action_sequence: List[Any]
@@ -134,6 +146,7 @@ class Plan:
 @dataclass
 class ImaginedTrajectory:
     """Trajectory generated through imagination"""
+
     trajectory_id: str
     states: List[State]
     actions: List[Any]
@@ -145,6 +158,7 @@ class ImaginedTrajectory:
 @dataclass
 class CausalGraph:
     """Causal graph structure"""
+
     graph_id: str
     nodes: List[str]
     edges: List[Tuple[str, str]]  # (cause, effect)
@@ -156,6 +170,7 @@ class CausalGraph:
 @dataclass
 class UncertaintyEstimate:
     """Uncertainty estimate for prediction"""
+
     mean_prediction: Any
     aleatoric_uncertainty: float
     epistemic_uncertainty: float
@@ -167,6 +182,7 @@ class UncertaintyEstimate:
 # ============================================================================
 # 1. World Model Learning & Representation
 # ============================================================================
+
 
 class WorldModelLearning:
     """
@@ -186,10 +202,7 @@ class WorldModelLearning:
         self.state_encoder_params: Dict[str, Any] = {}
 
     async def learn_world_model(
-        self,
-        experiences: List[Transition],
-        model_type: ModelType = ModelType.STOCHASTIC,
-        num_epochs: int = 10
+        self, experiences: List[Transition], model_type: ModelType = ModelType.STOCHASTIC, num_epochs: int = 10
     ) -> WorldModel:
         """
         Learn world model from experiences.
@@ -216,14 +229,11 @@ class WorldModelLearning:
         transition_params = {
             "accuracy": np.random.uniform(0.85, 0.92),
             "latent_dim": self.latent_dim,
-            "architecture": "recurrent_state_space_model"
+            "architecture": "recurrent_state_space_model",
         }
 
         # Learn reward model: r_t = g(s_t, a_t)
-        reward_params = {
-            "accuracy": np.random.uniform(0.80, 0.90),
-            "architecture": "mlp"
-        }
+        reward_params = {"accuracy": np.random.uniform(0.80, 0.90), "architecture": "mlp"}
 
         model = WorldModel(
             model_id=f"model_{datetime.now().timestamp()}",
@@ -232,17 +242,14 @@ class WorldModelLearning:
             transition_params=transition_params,
             reward_params=reward_params,
             created_at=datetime.now(),
-            validation_accuracy=transition_params["accuracy"]
+            validation_accuracy=transition_params["accuracy"],
         )
 
         self.models[model.model_id] = model
 
         return model
 
-    async def encode_state(
-        self,
-        observation: Any
-    ) -> np.ndarray:
+    async def encode_state(self, observation: Any) -> np.ndarray:
         """
         Encode high-dimensional observation into latent state.
 
@@ -262,10 +269,7 @@ class WorldModelLearning:
         return latent
 
     async def predict_next_state(
-        self,
-        current_state: np.ndarray,
-        action: Any,
-        model_id: str
+        self, current_state: np.ndarray, action: Any, model_id: str
     ) -> Tuple[np.ndarray, float]:
         """
         Predict next latent state given current state and action.
@@ -317,6 +321,7 @@ class WorldModelLearning:
 # 2. Predictive Learning & Forecasting
 # ============================================================================
 
+
 class PredictiveLearning:
     """
     Predicts future states using world models.
@@ -337,7 +342,7 @@ class PredictiveLearning:
         initial_state: np.ndarray,
         action_sequence: Optional[List[Any]] = None,
         horizon: int = 10,
-        model_id: str = None
+        model_id: str = None,
     ) -> Prediction:
         """
         Predict trajectory of states.
@@ -366,9 +371,7 @@ class PredictiveLearning:
                 action = None  # Default/random action
 
             # Predict next state
-            next_state, reward = await self.world_model_service.predict_next_state(
-                current_state, action, model_id
-            )
+            next_state, reward = await self.world_model_service.predict_next_state(current_state, action, model_id)
 
             predicted_states.append(next_state)
             predicted_rewards.append(reward)
@@ -397,7 +400,7 @@ class PredictiveLearning:
             predicted_rewards=predicted_rewards,
             confidence=confidence,
             uncertainty=uncertainty,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
         self.predictions.append(prediction)
@@ -405,10 +408,7 @@ class PredictiveLearning:
         return prediction
 
     async def forecast_distribution(
-        self,
-        initial_state: np.ndarray,
-        horizon: int,
-        num_samples: int = 100
+        self, initial_state: np.ndarray, horizon: int, num_samples: int = 100
     ) -> Dict[str, Any]:
         """
         Forecast distribution of future states (stochastic prediction).
@@ -443,16 +443,12 @@ class PredictiveLearning:
             "std": std_trajectory,
             "lower_90": lower_quantile,
             "upper_90": upper_quantile,
-            "num_samples": num_samples
+            "num_samples": num_samples,
         }
 
         return distribution
 
-    async def evaluate_prediction_accuracy(
-        self,
-        prediction: Prediction,
-        actual_trajectory: List[np.ndarray]
-    ) -> float:
+    async def evaluate_prediction_accuracy(self, prediction: Prediction, actual_trajectory: List[np.ndarray]) -> float:
         """
         Evaluate prediction accuracy against actual trajectory.
 
@@ -484,6 +480,7 @@ class PredictiveLearning:
 # 3. Model-Based Planning & Simulation
 # ============================================================================
 
+
 class ModelBasedPlanning:
     """
     Plans action sequences using world model simulation.
@@ -495,11 +492,7 @@ class ModelBasedPlanning:
     - Hybrid model-based/model-free planning
     """
 
-    def __init__(
-        self,
-        world_model_service: WorldModelLearning,
-        predictive_service: PredictiveLearning
-    ):
+    def __init__(self, world_model_service: WorldModelLearning, predictive_service: PredictiveLearning):
         self.world_model_service = world_model_service
         self.predictive_service = predictive_service
         self.plans: List[Plan] = []
@@ -510,7 +503,7 @@ class ModelBasedPlanning:
         goal_state: Optional[np.ndarray],
         algorithm: PlanningAlgorithm = PlanningAlgorithm.CEM,
         horizon: int = 10,
-        num_simulations: int = 100
+        num_simulations: int = 100,
     ) -> Plan:
         """
         Plan action sequence to achieve goal.
@@ -544,17 +537,13 @@ class ModelBasedPlanning:
         return plan
 
     async def _random_shooting(
-        self,
-        current_state: np.ndarray,
-        goal_state: Optional[np.ndarray],
-        horizon: int,
-        num_simulations: int
+        self, current_state: np.ndarray, goal_state: Optional[np.ndarray], horizon: int, num_simulations: int
     ) -> Plan:
         """Random shooting planning algorithm"""
         # Simulate random action sequences
         await asyncio.sleep(0.0001)  # Mental simulation is fast
 
-        best_value = -float('inf')
+        best_value = -float("inf")
         best_actions = []
         best_trajectory = []
 
@@ -563,9 +552,7 @@ class ModelBasedPlanning:
             actions = [np.random.randn(4) for _ in range(horizon)]  # Example: 4D action space
 
             # Rollout using world model
-            trajectory = await self.predictive_service.predict_trajectory(
-                current_state, actions, horizon
-            )
+            trajectory = await self.predictive_service.predict_trajectory(current_state, actions, horizon)
 
             # Evaluate value
             if goal_state is not None:
@@ -588,7 +575,7 @@ class ModelBasedPlanning:
             predicted_trajectory=[],  # Simplified
             expected_value=best_value,
             planning_time_ms=0.0,  # Will be set by caller
-            num_simulations=num_simulations
+            num_simulations=num_simulations,
         )
 
         return plan
@@ -599,7 +586,7 @@ class ModelBasedPlanning:
         goal_state: Optional[np.ndarray],
         horizon: int,
         num_simulations: int,
-        num_iterations: int = 5
+        num_iterations: int = 5,
     ) -> Plan:
         """Cross-Entropy Method planning"""
         # Iteratively refine action distribution
@@ -622,9 +609,7 @@ class ModelBasedPlanning:
                     actions.append(action)
 
                 # Evaluate
-                trajectory = await self.predictive_service.predict_trajectory(
-                    current_state, actions, horizon
-                )
+                trajectory = await self.predictive_service.predict_trajectory(current_state, actions, horizon)
 
                 if goal_state is not None:
                     final_state = trajectory.predicted_states[-1]
@@ -636,7 +621,7 @@ class ModelBasedPlanning:
                 values.append(value)
 
             # Select elite samples (top 20%)
-            elite_indices = np.argsort(values)[-int(len(values) * 0.2):]
+            elite_indices = np.argsort(values)[-int(len(values) * 0.2) :]
             elite_sequences = [sampled_sequences[i] for i in elite_indices]
 
             # Update distribution
@@ -655,16 +640,13 @@ class ModelBasedPlanning:
             predicted_trajectory=[],
             expected_value=best_value,
             planning_time_ms=0.0,
-            num_simulations=num_simulations
+            num_simulations=num_simulations,
         )
 
         return plan
 
     async def _model_predictive_control(
-        self,
-        current_state: np.ndarray,
-        goal_state: Optional[np.ndarray],
-        horizon: int
+        self, current_state: np.ndarray, goal_state: Optional[np.ndarray], horizon: int
     ) -> Plan:
         """Model Predictive Control (receding horizon)"""
         # Simplified MPC: similar to CEM but replan at each step
@@ -677,10 +659,7 @@ class ModelBasedPlanning:
         return plan
 
     async def _monte_carlo_tree_search(
-        self,
-        current_state: np.ndarray,
-        goal_state: Optional[np.ndarray],
-        num_simulations: int
+        self, current_state: np.ndarray, goal_state: Optional[np.ndarray], num_simulations: int
     ) -> Plan:
         """Monte Carlo Tree Search"""
         # Simplified MCTS
@@ -697,7 +676,7 @@ class ModelBasedPlanning:
             predicted_trajectory=[],
             expected_value=best_value,
             planning_time_ms=0.0,
-            num_simulations=num_simulations
+            num_simulations=num_simulations,
         )
 
         return plan
@@ -718,6 +697,7 @@ class ModelBasedPlanning:
 # 4. Imagination-Based Learning
 # ============================================================================
 
+
 class ImaginationLearning:
     """
     Learns through imagined experiences generated by world model.
@@ -729,20 +709,13 @@ class ImaginationLearning:
     - Policy training on imagined data
     """
 
-    def __init__(
-        self,
-        world_model_service: WorldModelLearning,
-        predictive_service: PredictiveLearning
-    ):
+    def __init__(self, world_model_service: WorldModelLearning, predictive_service: PredictiveLearning):
         self.world_model_service = world_model_service
         self.predictive_service = predictive_service
         self.imagined_trajectories: List[ImaginedTrajectory] = []
 
     async def dream(
-        self,
-        num_trajectories: int = 100,
-        horizon: int = 10,
-        purpose: str = "exploration"
+        self, num_trajectories: int = 100, horizon: int = 10, purpose: str = "exploration"
     ) -> List[ImaginedTrajectory]:
         """
         Generate imagined trajectories for learning.
@@ -775,9 +748,7 @@ class ImaginationLearning:
             else:
                 actions = [np.random.randn(4) for _ in range(horizon)]
 
-            prediction = await self.predictive_service.predict_trajectory(
-                initial_state, actions, horizon
-            )
+            prediction = await self.predictive_service.predict_trajectory(initial_state, actions, horizon)
 
             # Assess plausibility
             # In practice: check against learned world model consistency
@@ -789,7 +760,7 @@ class ImaginationLearning:
                 actions=actions,
                 rewards=prediction.predicted_rewards,
                 plausibility=plausibility,
-                purpose=purpose
+                purpose=purpose,
             )
 
             trajectories.append(trajectory)
@@ -799,9 +770,7 @@ class ImaginationLearning:
         return trajectories
 
     async def train_on_imagination(
-        self,
-        imagined_trajectories: List[ImaginedTrajectory],
-        policy_params: Optional[Dict[str, Any]] = None
+        self, imagined_trajectories: List[ImaginedTrajectory], policy_params: Optional[Dict[str, Any]] = None
     ) -> Dict[str, float]:
         """
         Train policy using imagined experiences.
@@ -827,16 +796,13 @@ class ImaginationLearning:
             "sample_efficiency_gain": sample_efficiency_gain,
             "imagined_performance": imagined_performance,
             "num_trajectories": len(imagined_trajectories),
-            "training_speedup": np.random.uniform(2, 5)
+            "training_speedup": np.random.uniform(2, 5),
         }
 
         return stats
 
     async def generate_counterfactual(
-        self,
-        actual_trajectory: List[State],
-        alternative_action: Any,
-        time_step: int
+        self, actual_trajectory: List[State], alternative_action: Any, time_step: int
     ) -> ImaginedTrajectory:
         """
         Generate counterfactual "what if" trajectory.
@@ -860,9 +826,7 @@ class ImaginationLearning:
 
             # Imagine what would happen with alternative action
             prediction = await self.predictive_service.predict_trajectory(
-                state_at_t,
-                [alternative_action],
-                horizon=len(actual_trajectory) - time_step
+                state_at_t, [alternative_action], horizon=len(actual_trajectory) - time_step
             )
 
             counterfactual = ImaginedTrajectory(
@@ -871,7 +835,7 @@ class ImaginationLearning:
                 actions=[alternative_action],
                 rewards=prediction.predicted_rewards,
                 plausibility=0.85,
-                purpose="counterfactual"
+                purpose="counterfactual",
             )
         else:
             # Invalid time step
@@ -895,6 +859,7 @@ class ImaginationLearning:
 # 5. Causal Reasoning & Intervention
 # ============================================================================
 
+
 class CausalReasoning:
     """
     Performs causal reasoning and intervention analysis.
@@ -911,9 +876,7 @@ class CausalReasoning:
         self.interventions: List[Dict[str, Any]] = []
 
     async def discover_causal_graph(
-        self,
-        variables: List[str],
-        observational_data: List[Dict[str, float]]
+        self, variables: List[str], observational_data: List[Dict[str, float]]
     ) -> CausalGraph:
         """
         Discover causal relationships from observational data.
@@ -950,7 +913,7 @@ class CausalReasoning:
             edges=edges,
             edge_weights=edge_weights,
             confidence=confidence,
-            learned_from_data=True
+            learned_from_data=True,
         )
 
         self.causal_graphs[graph.graph_id] = graph
@@ -958,11 +921,7 @@ class CausalReasoning:
         return graph
 
     async def do_intervention(
-        self,
-        graph_id: str,
-        variable: str,
-        value: float,
-        world_model_id: str
+        self, graph_id: str, variable: str, value: float, world_model_id: str
     ) -> Dict[str, float]:
         """
         Perform do-intervention: do(X=x) and predict outcomes.
@@ -998,22 +957,20 @@ class CausalReasoning:
                 outcomes[node] = effect
 
         # Record intervention
-        self.interventions.append({
-            "graph_id": graph_id,
-            "variable": variable,
-            "value": value,
-            "outcomes": outcomes,
-            "timestamp": datetime.now()
-        })
+        self.interventions.append(
+            {
+                "graph_id": graph_id,
+                "variable": variable,
+                "value": value,
+                "outcomes": outcomes,
+                "timestamp": datetime.now(),
+            }
+        )
 
         return outcomes
 
     async def counterfactual_query(
-        self,
-        graph_id: str,
-        observed_values: Dict[str, float],
-        intervention: Tuple[str, float],
-        query_variable: str
+        self, graph_id: str, observed_values: Dict[str, float], intervention: Tuple[str, float], query_variable: str
     ) -> float:
         """
         Answer counterfactual query: "What if X had been x, what would Y be?"
@@ -1048,10 +1005,7 @@ class CausalReasoning:
             graph = self.causal_graphs[graph_id]
 
             # Check causal path
-            has_path = any(
-                edge[0] == intervention_var and edge[1] == query_variable
-                for edge in graph.edges
-            )
+            has_path = any(edge[0] == intervention_var and edge[1] == query_variable for edge in graph.edges)
 
             if has_path:
                 # Apply causal effect
@@ -1064,12 +1018,7 @@ class CausalReasoning:
 
         return counterfactual_value
 
-    async def estimate_causal_effect(
-        self,
-        cause: str,
-        effect: str,
-        graph_id: str
-    ) -> float:
+    async def estimate_causal_effect(self, cause: str, effect: str, graph_id: str) -> float:
         """
         Estimate average causal effect of cause on effect.
 
@@ -1099,6 +1048,7 @@ class CausalReasoning:
 # 6. Uncertainty-Aware Prediction
 # ============================================================================
 
+
 class UncertaintyAwarePrediction:
     """
     Provides uncertainty-aware predictions with confidence intervals.
@@ -1115,11 +1065,7 @@ class UncertaintyAwarePrediction:
         self.ensemble_models: List[str] = []
         self.calibration_history: List[Dict[str, float]] = []
 
-    async def predict_with_uncertainty(
-        self,
-        prediction: Prediction,
-        num_samples: int = 100
-    ) -> UncertaintyEstimate:
+    async def predict_with_uncertainty(self, prediction: Prediction, num_samples: int = 100) -> UncertaintyEstimate:
         """
         Generate prediction with uncertainty quantification.
 
@@ -1158,16 +1104,13 @@ class UncertaintyAwarePrediction:
             epistemic_uncertainty=epistemic,
             prediction_interval_lower=lower_bound,
             prediction_interval_upper=upper_bound,
-            confidence_level=confidence_level
+            confidence_level=confidence_level,
         )
 
         return estimate
 
     async def ensemble_predict(
-        self,
-        initial_state: np.ndarray,
-        horizon: int,
-        predictive_service: PredictiveLearning
+        self, initial_state: np.ndarray, horizon: int, predictive_service: PredictiveLearning
     ) -> Tuple[Prediction, float]:
         """
         Predict using ensemble of models for uncertainty estimation.
@@ -1184,9 +1127,7 @@ class UncertaintyAwarePrediction:
         predictions = []
 
         for _ in range(self.num_ensemble):
-            pred = await predictive_service.predict_trajectory(
-                initial_state, horizon=horizon
-            )
+            pred = await predictive_service.predict_trajectory(initial_state, horizon=horizon)
             predictions.append(pred)
 
         # Aggregate predictions
@@ -1206,15 +1147,13 @@ class UncertaintyAwarePrediction:
             predicted_rewards=[0.0] * horizon,  # Simplified
             confidence=1.0 - disagreement,
             uncertainty=disagreement,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
         return ensemble_pred, disagreement
 
     async def detect_out_of_distribution(
-        self,
-        state: np.ndarray,
-        training_states: List[np.ndarray]
+        self, state: np.ndarray, training_states: List[np.ndarray]
     ) -> Tuple[bool, float]:
         """
         Detect if state is out-of-distribution.
@@ -1245,9 +1184,7 @@ class UncertaintyAwarePrediction:
         return is_ood, ood_score
 
     async def calibrate_predictions(
-        self,
-        predictions: List[Prediction],
-        actual_outcomes: List[Any]
+        self, predictions: List[Prediction], actual_outcomes: List[Any]
     ) -> Dict[str, float]:
         """
         Assess and improve prediction calibration.
@@ -1271,11 +1208,7 @@ class UncertaintyAwarePrediction:
         # Coverage: % of outcomes within prediction intervals
         coverage = np.random.uniform(0.85, 0.92)  # ~90% for 90% intervals
 
-        metrics = {
-            "calibration_error": calibration_error,
-            "coverage": coverage,
-            "num_predictions": len(predictions)
-        }
+        metrics = {"calibration_error": calibration_error, "coverage": coverage, "num_predictions": len(predictions)}
 
         self.calibration_history.append(metrics)
 
@@ -1285,6 +1218,7 @@ class UncertaintyAwarePrediction:
 # ============================================================================
 # 7. Continuous Model Refinement
 # ============================================================================
+
 
 class ContinuousModelRefinement:
     """
@@ -1302,11 +1236,7 @@ class ContinuousModelRefinement:
         self.validation_history: List[Dict[str, float]] = []
         self.error_analysis: List[Dict[str, Any]] = []
 
-    async def validate_model(
-        self,
-        model_id: str,
-        validation_data: List[Transition]
-    ) -> Dict[str, float]:
+    async def validate_model(self, model_id: str, validation_data: List[Transition]) -> Dict[str, float]:
         """
         Validate world model on held-out data.
 
@@ -1335,7 +1265,7 @@ class ContinuousModelRefinement:
             "mean_accuracy": np.mean(accuracies),
             "std_accuracy": np.std(accuracies),
             "num_samples": len(validation_data),
-            "timestamp": datetime.now().timestamp()
+            "timestamp": datetime.now().timestamp(),
         }
 
         self.validation_history.append(metrics)
@@ -1343,9 +1273,7 @@ class ContinuousModelRefinement:
         return metrics
 
     async def analyze_errors(
-        self,
-        model_id: str,
-        errors: List[Tuple[State, State, float]]  # (predicted, actual, error)
+        self, model_id: str, errors: List[Tuple[State, State, float]]  # (predicted, actual, error)
     ) -> Dict[str, Any]:
         """
         Analyze model prediction errors.
@@ -1375,18 +1303,14 @@ class ContinuousModelRefinement:
             "max_error": np.max(error_values),
             "high_error_count": high_error_count,
             "has_systematic_bias": has_bias,
-            "error_std": np.std(error_values)
+            "error_std": np.std(error_values),
         }
 
         self.error_analysis.append(analysis)
 
         return analysis
 
-    async def update_model_online(
-        self,
-        model_id: str,
-        new_experiences: List[Transition]
-    ) -> Dict[str, Any]:
+    async def update_model_online(self, model_id: str, new_experiences: List[Transition]) -> Dict[str, Any]:
         """
         Update model online with new experiences.
 
@@ -1420,15 +1344,12 @@ class ContinuousModelRefinement:
             "accuracy_before": accuracy_before,
             "accuracy_after": accuracy_after,
             "improvement": accuracy_after - accuracy_before,
-            "num_updates": model.num_updates
+            "num_updates": model.num_updates,
         }
 
         return stats
 
-    async def estimate_improvement(
-        self,
-        model_id: str
-    ) -> float:
+    async def estimate_improvement(self, model_id: str) -> float:
         """
         Estimate model improvement over time.
 
@@ -1451,10 +1372,7 @@ class ContinuousModelRefinement:
         return improvement_pct
 
     async def adapt_to_new_environment(
-        self,
-        model_id: str,
-        adaptation_data: List[Transition],
-        num_epochs: int = 10
+        self, model_id: str, adaptation_data: List[Transition], num_epochs: int = 10
     ) -> Dict[str, Any]:
         """
         Adapt model to new environment.
@@ -1478,7 +1396,7 @@ class ContinuousModelRefinement:
             "episodes_needed": episodes_needed,
             "final_accuracy": final_accuracy,
             "num_epochs": num_epochs,
-            "adapted": True
+            "adapted": True,
         }
 
         return stats

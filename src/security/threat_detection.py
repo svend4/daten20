@@ -22,21 +22,22 @@ Dependencies:
 - numpy (for numerical operations)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Set
-from enum import Enum
-from datetime import datetime, timedelta
-from collections import defaultdict, deque
 import hashlib
-import logging
 import json
+import logging
 import re
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
 class ThreatLevel(str, Enum):
     """Threat severity levels"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -45,6 +46,7 @@ class ThreatLevel(str, Enum):
 
 class ThreatType(str, Enum):
     """Types of security threats"""
+
     BRUTE_FORCE = "brute_force"
     SQL_INJECTION = "sql_injection"
     XSS = "xss"
@@ -61,6 +63,7 @@ class ThreatType(str, Enum):
 
 class AlertStatus(str, Enum):
     """Alert statuses"""
+
     NEW = "new"
     INVESTIGATING = "investigating"
     CONFIRMED = "confirmed"
@@ -71,6 +74,7 @@ class AlertStatus(str, Enum):
 @dataclass
 class SecurityEvent:
     """Security event"""
+
     event_id: str
     event_type: ThreatType
     severity: ThreatLevel
@@ -84,6 +88,7 @@ class SecurityEvent:
 @dataclass
 class ThreatAlert:
     """Threat alert"""
+
     alert_id: str
     threat_type: ThreatType
     severity: ThreatLevel
@@ -98,6 +103,7 @@ class ThreatAlert:
 @dataclass
 class UserBehaviorProfile:
     """User behavior profile for anomaly detection"""
+
     user_id: str
     normal_login_times: List[int]  # Hours of day
     normal_locations: Set[str]  # IP ranges or countries
@@ -109,6 +115,7 @@ class UserBehaviorProfile:
 @dataclass
 class IPReputation:
     """IP address reputation"""
+
     ip_address: str
     reputation_score: float  # 0-100, higher is better
     is_tor: bool = False
@@ -136,11 +143,7 @@ class AnomalyDetector:
         self._user_profiles: Dict[str, UserBehaviorProfile] = {}
         self._baseline_metrics: Dict[str, List[float]] = defaultdict(list)
 
-    def build_user_profile(
-        self,
-        user_id: str,
-        historical_events: List[SecurityEvent]
-    ) -> UserBehaviorProfile:
+    def build_user_profile(self, user_id: str, historical_events: List[SecurityEvent]) -> UserBehaviorProfile:
         """
         Build behavioral profile for user
 
@@ -161,23 +164,20 @@ class AnomalyDetector:
                 # Extract features
                 login_times.append(event.timestamp.hour)
                 if event.source_ip:
-                    locations.add(event.source_ip.split('.')[0])  # Simplified
+                    locations.add(event.source_ip.split(".")[0])  # Simplified
 
-                if 'session_duration' in event.details:
-                    session_durations.append(event.details['session_duration'])
+                if "session_duration" in event.details:
+                    session_durations.append(event.details["session_duration"])
 
-                if 'action' in event.details:
-                    actions[event.details['action']] += 1
+                if "action" in event.details:
+                    actions[event.details["action"]] += 1
 
         profile = UserBehaviorProfile(
             user_id=user_id,
             normal_login_times=login_times,
             normal_locations=locations,
-            average_session_duration=(
-                sum(session_durations) / len(session_durations)
-                if session_durations else 0
-            ),
-            typical_actions=dict(actions)
+            average_session_duration=(sum(session_durations) / len(session_durations) if session_durations else 0),
+            typical_actions=dict(actions),
         )
 
         self._user_profiles[user_id] = profile
@@ -185,11 +185,7 @@ class AnomalyDetector:
 
         return profile
 
-    def detect_anomaly(
-        self,
-        user_id: str,
-        current_event: SecurityEvent
-    ) -> Optional[ThreatAlert]:
+    def detect_anomaly(self, user_id: str, current_event: SecurityEvent) -> Optional[ThreatAlert]:
         """
         Detect anomalies in user behavior
 
@@ -214,14 +210,14 @@ class AnomalyDetector:
             indicators["login_hour"] = current_hour
 
         # Check location anomaly
-        ip_prefix = current_event.source_ip.split('.')[0]
+        ip_prefix = current_event.source_ip.split(".")[0]
         if ip_prefix not in profile.normal_locations:
             anomalies.append("unusual_location")
             indicators["source_ip"] = current_event.source_ip
 
         # Check action pattern
-        if 'action' in current_event.details:
-            action = current_event.details['action']
+        if "action" in current_event.details:
+            action = current_event.details["action"]
             if action not in profile.typical_actions:
                 anomalies.append("unusual_action")
                 indicators["action"] = action
@@ -229,16 +225,14 @@ class AnomalyDetector:
         # Generate alert if anomalies detected
         if len(anomalies) >= 2:  # Multiple anomalies increase confidence
             alert = ThreatAlert(
-                alert_id=hashlib.sha256(
-                    f"{user_id}{current_event.timestamp}".encode()
-                ).hexdigest()[:16],
+                alert_id=hashlib.sha256(f"{user_id}{current_event.timestamp}".encode()).hexdigest()[:16],
                 threat_type=ThreatType.ANOMALY,
                 severity=ThreatLevel.MEDIUM,
                 description=f"Behavioral anomalies detected: {', '.join(anomalies)}",
                 affected_assets=[user_id],
                 indicators=indicators,
                 timestamp=datetime.now(),
-                false_positive_probability=0.3
+                false_positive_probability=0.3,
             )
 
             logger.warning(f"Anomaly detected for user {user_id}: {anomalies}")
@@ -254,11 +248,7 @@ class BruteForceDetector:
     Detects brute force login attempts.
     """
 
-    def __init__(
-        self,
-        max_attempts: int = 5,
-        time_window: int = 300  # 5 minutes
-    ):
+    def __init__(self, max_attempts: int = 5, time_window: int = 300):  # 5 minutes
         """
         Initialize brute force detector
 
@@ -270,11 +260,7 @@ class BruteForceDetector:
         self.time_window = time_window
         self._failed_attempts: Dict[str, deque] = defaultdict(lambda: deque())
 
-    def check_brute_force(
-        self,
-        identifier: str,
-        success: bool
-    ) -> Optional[ThreatAlert]:
+    def check_brute_force(self, identifier: str, success: bool) -> Optional[ThreatAlert]:
         """
         Check for brute force attack
 
@@ -293,8 +279,7 @@ class BruteForceDetector:
 
         # Clean old attempts outside time window
         cutoff = now - timedelta(seconds=self.time_window)
-        while (self._failed_attempts[identifier] and
-               self._failed_attempts[identifier][0] < cutoff):
+        while self._failed_attempts[identifier] and self._failed_attempts[identifier][0] < cutoff:
             self._failed_attempts[identifier].popleft()
 
         # Check if threshold exceeded
@@ -302,18 +287,13 @@ class BruteForceDetector:
 
         if attempt_count >= self.max_attempts:
             alert = ThreatAlert(
-                alert_id=hashlib.sha256(
-                    f"brute_force_{identifier}_{now}".encode()
-                ).hexdigest()[:16],
+                alert_id=hashlib.sha256(f"brute_force_{identifier}_{now}".encode()).hexdigest()[:16],
                 threat_type=ThreatType.BRUTE_FORCE,
                 severity=ThreatLevel.HIGH,
                 description=f"Brute force attack detected: {attempt_count} failed attempts",
                 affected_assets=[identifier],
-                indicators={
-                    "failed_attempts": attempt_count,
-                    "time_window": self.time_window
-                },
-                timestamp=now
+                indicators={"failed_attempts": attempt_count, "time_window": self.time_window},
+                timestamp=now,
             )
 
             logger.error(f"Brute force detected: {identifier} ({attempt_count} attempts)")
@@ -367,18 +347,13 @@ class InjectionDetector:
         for pattern in cls.SQL_PATTERNS:
             if re.search(pattern, input_lower, re.IGNORECASE):
                 alert = ThreatAlert(
-                    alert_id=hashlib.sha256(
-                        f"sqli_{input_string}_{datetime.now()}".encode()
-                    ).hexdigest()[:16],
+                    alert_id=hashlib.sha256(f"sqli_{input_string}_{datetime.now()}".encode()).hexdigest()[:16],
                     threat_type=ThreatType.SQL_INJECTION,
                     severity=ThreatLevel.CRITICAL,
                     description="SQL injection attempt detected",
                     affected_assets=["database"],
-                    indicators={
-                        "pattern_matched": pattern,
-                        "input_sample": input_string[:100]
-                    },
-                    timestamp=datetime.now()
+                    indicators={"pattern_matched": pattern, "input_sample": input_string[:100]},
+                    timestamp=datetime.now(),
                 )
 
                 logger.critical(f"SQL injection detected: {pattern}")
@@ -400,18 +375,13 @@ class InjectionDetector:
         for pattern in cls.XSS_PATTERNS:
             if re.search(pattern, input_string, re.IGNORECASE):
                 alert = ThreatAlert(
-                    alert_id=hashlib.sha256(
-                        f"xss_{input_string}_{datetime.now()}".encode()
-                    ).hexdigest()[:16],
+                    alert_id=hashlib.sha256(f"xss_{input_string}_{datetime.now()}".encode()).hexdigest()[:16],
                     threat_type=ThreatType.XSS,
                     severity=ThreatLevel.HIGH,
                     description="Cross-site scripting (XSS) attempt detected",
                     affected_assets=["web_application"],
-                    indicators={
-                        "pattern_matched": pattern,
-                        "input_sample": input_string[:100]
-                    },
-                    timestamp=datetime.now()
+                    indicators={"pattern_matched": pattern, "input_sample": input_string[:100]},
+                    timestamp=datetime.now(),
                 )
 
                 logger.error(f"XSS detected: {pattern}")
@@ -427,11 +397,7 @@ class DDoSProtection:
     Rate limiting and traffic analysis to prevent DDoS attacks.
     """
 
-    def __init__(
-        self,
-        requests_per_second: int = 100,
-        requests_per_minute: int = 1000
-    ):
+    def __init__(self, requests_per_second: int = 100, requests_per_minute: int = 1000):
         """
         Initialize DDoS protection
 
@@ -458,25 +424,18 @@ class DDoSProtection:
 
         # Clean old requests
         one_minute_ago = now - timedelta(minutes=1)
-        while (self._request_log[ip_address] and
-               self._request_log[ip_address][0] < one_minute_ago):
+        while self._request_log[ip_address] and self._request_log[ip_address][0] < one_minute_ago:
             self._request_log[ip_address].popleft()
 
         # Check rate limits
         recent_requests = list(self._request_log[ip_address])
-        requests_last_second = sum(
-            1 for t in recent_requests
-            if (now - t).total_seconds() < 1
-        )
+        requests_last_second = sum(1 for t in recent_requests if (now - t).total_seconds() < 1)
         requests_last_minute = len(recent_requests)
 
-        if (requests_last_second > self.requests_per_second or
-            requests_last_minute > self.requests_per_minute):
+        if requests_last_second > self.requests_per_second or requests_last_minute > self.requests_per_minute:
 
             alert = ThreatAlert(
-                alert_id=hashlib.sha256(
-                    f"ddos_{ip_address}_{now}".encode()
-                ).hexdigest()[:16],
+                alert_id=hashlib.sha256(f"ddos_{ip_address}_{now}".encode()).hexdigest()[:16],
                 threat_type=ThreatType.DDoS,
                 severity=ThreatLevel.CRITICAL,
                 description="Potential DDoS attack: rate limit exceeded",
@@ -484,9 +443,9 @@ class DDoSProtection:
                 indicators={
                     "requests_per_second": requests_last_second,
                     "requests_per_minute": requests_last_minute,
-                    "source_ip": ip_address
+                    "source_ip": ip_address,
                 },
-                timestamp=now
+                timestamp=now,
             )
 
             logger.critical(f"DDoS attack suspected from {ip_address}")
@@ -503,17 +462,10 @@ class BotDetector:
     """
 
     # Known bot user agents
-    BOT_USER_AGENTS = [
-        "bot", "crawler", "spider", "scraper", "curl", "wget",
-        "python-requests", "scrapy"
-    ]
+    BOT_USER_AGENTS = ["bot", "crawler", "spider", "scraper", "curl", "wget", "python-requests", "scrapy"]
 
     @classmethod
-    def is_bot(
-        cls,
-        user_agent: str,
-        request_pattern: Optional[Dict[str, Any]] = None
-    ) -> bool:
+    def is_bot(cls, user_agent: str, request_pattern: Optional[Dict[str, Any]] = None) -> bool:
         """
         Check if request is from a bot
 
@@ -534,21 +486,17 @@ class BotDetector:
         # Check request patterns (if provided)
         if request_pattern:
             # Check for suspiciously fast requests
-            if request_pattern.get('requests_per_second', 0) > 10:
+            if request_pattern.get("requests_per_second", 0) > 10:
                 return True
 
             # Check for missing typical browser headers
-            if not request_pattern.get('has_accept_language'):
+            if not request_pattern.get("has_accept_language"):
                 return True
 
         return False
 
     @classmethod
-    def detect_bot_activity(
-        cls,
-        user_agent: str,
-        ip_address: str
-    ) -> Optional[ThreatAlert]:
+    def detect_bot_activity(cls, user_agent: str, ip_address: str) -> Optional[ThreatAlert]:
         """
         Detect bot activity and create alert
 
@@ -561,18 +509,13 @@ class BotDetector:
         """
         if cls.is_bot(user_agent):
             alert = ThreatAlert(
-                alert_id=hashlib.sha256(
-                    f"bot_{ip_address}_{datetime.now()}".encode()
-                ).hexdigest()[:16],
+                alert_id=hashlib.sha256(f"bot_{ip_address}_{datetime.now()}".encode()).hexdigest()[:16],
                 threat_type=ThreatType.BOT_ACTIVITY,
                 severity=ThreatLevel.MEDIUM,
                 description="Automated bot activity detected",
                 affected_assets=["web_application"],
-                indicators={
-                    "user_agent": user_agent,
-                    "source_ip": ip_address
-                },
-                timestamp=datetime.now()
+                indicators={"user_agent": user_agent, "source_ip": ip_address},
+                timestamp=datetime.now(),
             )
 
             logger.warning(f"Bot detected: {user_agent} from {ip_address}")
@@ -636,7 +579,7 @@ class ThreatIntelligence:
             reputation_score=100.0 if not self.is_malicious_ip(ip_address) else 0.0,
             is_tor=False,
             is_vpn=False,
-            is_proxy=False
+            is_proxy=False,
         )
 
         self._ip_reputation_cache[ip_address] = reputation
@@ -675,10 +618,7 @@ class SIEM:
 
         # Run detectors
         if event.user_id:
-            anomaly_alert = self.anomaly_detector.detect_anomaly(
-                event.user_id,
-                event
-            )
+            anomaly_alert = self.anomaly_detector.detect_anomaly(event.user_id, event)
             if anomaly_alert:
                 alerts.append(anomaly_alert)
 
@@ -689,17 +629,17 @@ class SIEM:
 
         # Check IP reputation
         if self.threat_intelligence.is_malicious_ip(event.source_ip):
-            alerts.append(ThreatAlert(
-                alert_id=hashlib.sha256(
-                    f"malicious_ip_{event.event_id}".encode()
-                ).hexdigest()[:16],
-                threat_type=ThreatType.ANOMALY,
-                severity=ThreatLevel.CRITICAL,
-                description="Request from known malicious IP",
-                affected_assets=[event.target],
-                indicators={"source_ip": event.source_ip},
-                timestamp=datetime.now()
-            ))
+            alerts.append(
+                ThreatAlert(
+                    alert_id=hashlib.sha256(f"malicious_ip_{event.event_id}".encode()).hexdigest()[:16],
+                    threat_type=ThreatType.ANOMALY,
+                    severity=ThreatLevel.CRITICAL,
+                    description="Request from known malicious IP",
+                    affected_assets=[event.target],
+                    indicators={"source_ip": event.source_ip},
+                    timestamp=datetime.now(),
+                )
+            )
 
         # Store alerts
         self._alerts.extend(alerts)
@@ -707,9 +647,7 @@ class SIEM:
         return alerts
 
     def get_alerts(
-        self,
-        severity: Optional[ThreatLevel] = None,
-        status: Optional[AlertStatus] = None
+        self, severity: Optional[ThreatLevel] = None, status: Optional[AlertStatus] = None
     ) -> List[ThreatAlert]:
         """
         Get alerts with optional filters

@@ -5,30 +5,32 @@ Provides automated offsite backups to cloud storage providers (S3, Google Cloud 
 with encryption, compression, and retention management.
 """
 
-import os
 import gzip
-import shutil
-from pathlib import Path
-from typing import Optional, Dict, List, Tuple
-from datetime import datetime, timedelta
-import logging
 import hashlib
 import json
+import logging
+import os
+import shutil
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
-logger = logging.getLogger('dms.offsite_backup')
+logger = logging.getLogger("dms.offsite_backup")
 
 # Try to import cloud storage libraries
 try:
     import boto3
-    from botocore.exceptions import ClientError, BotoCoreError
+    from botocore.exceptions import BotoCoreError, ClientError
+
     S3_AVAILABLE = True
 except ImportError:
     logger.warning("AWS S3 support not available (boto3 not installed)")
     S3_AVAILABLE = False
 
 try:
-    from google.cloud import storage as gcs_storage
     from google.api_core import exceptions as gcs_exceptions
+    from google.cloud import storage as gcs_storage
+
     GCS_AVAILABLE = True
 except ImportError:
     logger.warning("Google Cloud Storage support not available (google-cloud-storage not installed)")
@@ -36,11 +38,13 @@ except ImportError:
 
 # Try to import encryption support
 try:
-    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
-    from cryptography.hazmat.backends import default_backend
     import secrets
+
+    from cryptography.hazmat.backends import default_backend
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+
     ENCRYPTION_AVAILABLE = True
 except ImportError:
     logger.warning("Encryption support not available (cryptography not installed)")
@@ -67,14 +71,8 @@ class OffsiteBackupEncryption:
             self.key = key
         elif password:
             # Derive key from password
-            salt = b'dms_offsite_backup_salt_v1'  # In production, use random salt
-            kdf = PBKDF2(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=salt,
-                iterations=100000,
-                backend=default_backend()
-            )
+            salt = b"dms_offsite_backup_salt_v1"  # In production, use random salt
+            kdf = PBKDF2(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000, backend=default_backend())
             self.key = kdf.derive(password.encode())
         else:
             raise ValueError("Either password or key must be provided")
@@ -94,7 +92,7 @@ class OffsiteBackupEncryption:
         """
         logger.info(f"Encrypting file: {input_path}")
 
-        with open(input_path, 'rb') as f:
+        with open(input_path, "rb") as f:
             plaintext = f.read()
 
         # Generate nonce
@@ -108,16 +106,16 @@ class OffsiteBackupEncryption:
         ciphertext_hash = hashlib.sha256(ciphertext).hexdigest()
 
         # Write encrypted file with nonce prepended
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             f.write(nonce + ciphertext)
 
         logger.info(f"File encrypted: {output_path}")
 
         return {
-            'plaintext_hash': plaintext_hash,
-            'ciphertext_hash': ciphertext_hash,
-            'encrypted_size': len(nonce) + len(ciphertext),
-            'original_size': len(plaintext)
+            "plaintext_hash": plaintext_hash,
+            "ciphertext_hash": ciphertext_hash,
+            "encrypted_size": len(nonce) + len(ciphertext),
+            "original_size": len(plaintext),
         }
 
     def decrypt_file(self, input_path: str, output_path: str) -> Dict[str, str]:
@@ -133,7 +131,7 @@ class OffsiteBackupEncryption:
         """
         logger.info(f"Decrypting file: {input_path}")
 
-        with open(input_path, 'rb') as f:
+        with open(input_path, "rb") as f:
             data = f.read()
 
         # Extract nonce and ciphertext
@@ -151,15 +149,12 @@ class OffsiteBackupEncryption:
         plaintext_hash = hashlib.sha256(plaintext).hexdigest()
 
         # Write decrypted file
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             f.write(plaintext)
 
         logger.info(f"File decrypted: {output_path}")
 
-        return {
-            'plaintext_hash': plaintext_hash,
-            'decrypted_size': len(plaintext)
-        }
+        return {"plaintext_hash": plaintext_hash, "decrypted_size": len(plaintext)}
 
 
 class S3BackupProvider:
@@ -170,8 +165,8 @@ class S3BackupProvider:
         bucket_name: str,
         aws_access_key_id: Optional[str] = None,
         aws_secret_access_key: Optional[str] = None,
-        region_name: str = 'us-east-1',
-        endpoint_url: Optional[str] = None
+        region_name: str = "us-east-1",
+        endpoint_url: Optional[str] = None,
     ):
         """
         Initialize S3 backup provider.
@@ -192,16 +187,11 @@ class S3BackupProvider:
         # Initialize S3 client
         session_kwargs = {}
         if aws_access_key_id:
-            session_kwargs['aws_access_key_id'] = aws_access_key_id
+            session_kwargs["aws_access_key_id"] = aws_access_key_id
         if aws_secret_access_key:
-            session_kwargs['aws_secret_access_key'] = aws_secret_access_key
+            session_kwargs["aws_secret_access_key"] = aws_secret_access_key
 
-        self.s3_client = boto3.client(
-            's3',
-            region_name=region_name,
-            endpoint_url=endpoint_url,
-            **session_kwargs
-        )
+        self.s3_client = boto3.client("s3", region_name=region_name, endpoint_url=endpoint_url, **session_kwargs)
 
         logger.info(f"S3 backup provider initialized: bucket={bucket_name}, region={region_name}")
 
@@ -222,16 +212,11 @@ class S3BackupProvider:
 
             extra_args = {}
             if metadata:
-                extra_args['Metadata'] = {k: str(v) for k, v in metadata.items()}
+                extra_args["Metadata"] = {k: str(v) for k, v in metadata.items()}
 
             # Upload with progress
             file_size = os.path.getsize(local_path)
-            self.s3_client.upload_file(
-                local_path,
-                self.bucket_name,
-                remote_key,
-                ExtraArgs=extra_args
-            )
+            self.s3_client.upload_file(local_path, self.bucket_name, remote_key, ExtraArgs=extra_args)
 
             logger.info(f"Upload successful: {file_size} bytes")
             return True
@@ -257,11 +242,7 @@ class S3BackupProvider:
             # Ensure directory exists
             Path(local_path).parent.mkdir(parents=True, exist_ok=True)
 
-            self.s3_client.download_file(
-                self.bucket_name,
-                remote_key,
-                local_path
-            )
+            self.s3_client.download_file(self.bucket_name, remote_key, local_path)
 
             logger.info("Download successful")
             return True
@@ -270,7 +251,7 @@ class S3BackupProvider:
             logger.error(f"S3 download failed: {e}")
             return False
 
-    def list_backups(self, prefix: str = '') -> List[Dict]:
+    def list_backups(self, prefix: str = "") -> List[Dict]:
         """
         List backups in S3.
 
@@ -281,19 +262,18 @@ class S3BackupProvider:
             List of backup metadata
         """
         try:
-            response = self.s3_client.list_objects_v2(
-                Bucket=self.bucket_name,
-                Prefix=prefix
-            )
+            response = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
 
             backups = []
-            for obj in response.get('Contents', []):
-                backups.append({
-                    'key': obj['Key'],
-                    'size': obj['Size'],
-                    'last_modified': obj['LastModified'].isoformat(),
-                    'storage_class': obj.get('StorageClass', 'STANDARD')
-                })
+            for obj in response.get("Contents", []):
+                backups.append(
+                    {
+                        "key": obj["Key"],
+                        "size": obj["Size"],
+                        "last_modified": obj["LastModified"].isoformat(),
+                        "storage_class": obj.get("StorageClass", "STANDARD"),
+                    }
+                )
 
             return backups
 
@@ -312,10 +292,7 @@ class S3BackupProvider:
             True if successful
         """
         try:
-            self.s3_client.delete_object(
-                Bucket=self.bucket_name,
-                Key=remote_key
-            )
+            self.s3_client.delete_object(Bucket=self.bucket_name, Key=remote_key)
             logger.info(f"Deleted from S3: {remote_key}")
             return True
 
@@ -334,18 +311,15 @@ class S3BackupProvider:
             Dictionary with metadata or None if not found
         """
         try:
-            response = self.s3_client.head_object(
-                Bucket=self.bucket_name,
-                Key=remote_key
-            )
+            response = self.s3_client.head_object(Bucket=self.bucket_name, Key=remote_key)
 
-            metadata = response.get('Metadata', {})
+            metadata = response.get("Metadata", {})
             return {
-                'size': response['ContentLength'],
-                'last_modified': response['LastModified'].isoformat(),
-                'etag': response['ETag'],
-                'sha256': metadata.get('sha256'),
-                **metadata
+                "size": response["ContentLength"],
+                "last_modified": response["LastModified"].isoformat(),
+                "etag": response["ETag"],
+                "sha256": metadata.get("sha256"),
+                **metadata,
             }
 
         except (ClientError, BotoCoreError) as e:
@@ -356,12 +330,7 @@ class S3BackupProvider:
 class GCSBackupProvider:
     """Google Cloud Storage backup provider."""
 
-    def __init__(
-        self,
-        bucket_name: str,
-        credentials_path: Optional[str] = None,
-        project_id: Optional[str] = None
-    ):
+    def __init__(self, bucket_name: str, credentials_path: Optional[str] = None, project_id: Optional[str] = None):
         """
         Initialize GCS backup provider.
 
@@ -377,10 +346,7 @@ class GCSBackupProvider:
 
         # Initialize GCS client
         if credentials_path:
-            self.storage_client = gcs_storage.Client.from_service_account_json(
-                credentials_path,
-                project=project_id
-            )
+            self.storage_client = gcs_storage.Client.from_service_account_json(credentials_path, project=project_id)
         else:
             self.storage_client = gcs_storage.Client(project=project_id)
 
@@ -445,7 +411,7 @@ class GCSBackupProvider:
             logger.error(f"GCS download failed: {e}")
             return False
 
-    def list_backups(self, prefix: str = '') -> List[Dict]:
+    def list_backups(self, prefix: str = "") -> List[Dict]:
         """
         List backups in GCS.
 
@@ -460,12 +426,14 @@ class GCSBackupProvider:
 
             backups = []
             for blob in blobs:
-                backups.append({
-                    'key': blob.name,
-                    'size': blob.size,
-                    'last_modified': blob.updated.isoformat() if blob.updated else None,
-                    'storage_class': blob.storage_class
-                })
+                backups.append(
+                    {
+                        "key": blob.name,
+                        "size": blob.size,
+                        "last_modified": blob.updated.isoformat() if blob.updated else None,
+                        "storage_class": blob.storage_class,
+                    }
+                )
 
             return backups
 
@@ -508,10 +476,10 @@ class GCSBackupProvider:
             blob.reload()  # Load metadata from GCS
 
             metadata = {
-                'size': blob.size,
-                'last_modified': blob.updated.isoformat() if blob.updated else None,
-                'md5_hash': blob.md5_hash,
-                'crc32c': blob.crc32c,
+                "size": blob.size,
+                "last_modified": blob.updated.isoformat() if blob.updated else None,
+                "md5_hash": blob.md5_hash,
+                "crc32c": blob.crc32c,
             }
 
             # Add custom metadata
@@ -535,7 +503,7 @@ class OffsiteBackupManager:
         encryption_password: Optional[str] = None,
         encryption_key: Optional[bytes] = None,
         retention_days: int = 90,
-        backup_prefix: str = 'dms_backups/'
+        backup_prefix: str = "dms_backups/",
     ):
         """
         Initialize offsite backup manager.
@@ -550,21 +518,18 @@ class OffsiteBackupManager:
         """
         self.provider_type = provider_type
         self.retention_days = retention_days
-        self.backup_prefix = backup_prefix.rstrip('/') + '/'
+        self.backup_prefix = backup_prefix.rstrip("/") + "/"
 
         # Initialize encryption
         self.encryptor = None
         if encryption_password or encryption_key:
-            self.encryptor = OffsiteBackupEncryption(
-                password=encryption_password,
-                key=encryption_key
-            )
+            self.encryptor = OffsiteBackupEncryption(password=encryption_password, key=encryption_key)
             logger.info("Offsite backup encryption enabled")
 
         # Initialize cloud provider
-        if provider_type == 's3':
+        if provider_type == "s3":
             self.provider = S3BackupProvider(**provider_config)
-        elif provider_type == 'gcs':
+        elif provider_type == "gcs":
             self.provider = GCSBackupProvider(**provider_config)
         else:
             raise ValueError(f"Unsupported provider type: {provider_type}")
@@ -572,11 +537,7 @@ class OffsiteBackupManager:
         logger.info(f"Offsite backup manager initialized: provider={provider_type}")
 
     def upload_backup(
-        self,
-        local_backup_path: str,
-        backup_name: Optional[str] = None,
-        encrypt: bool = True,
-        compress: bool = True
+        self, local_backup_path: str, backup_name: Optional[str] = None, encrypt: bool = True, compress: bool = True
     ) -> Tuple[bool, str]:
         """
         Upload backup to cloud storage.
@@ -596,7 +557,7 @@ class OffsiteBackupManager:
 
         # Generate backup name
         if not backup_name:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_name = f"backup_{timestamp}.tar.gz"
 
         remote_key = self.backup_prefix + backup_name
@@ -607,40 +568,40 @@ class OffsiteBackupManager:
 
         try:
             # Compress if requested and not already compressed
-            if compress and not local_backup_path.endswith(('.gz', '.bz2', '.xz')):
-                compressed_path = local_backup_path + '.gz'
+            if compress and not local_backup_path.endswith((".gz", ".bz2", ".xz")):
+                compressed_path = local_backup_path + ".gz"
                 logger.info(f"Compressing backup: {local_backup_path}")
-                with open(local_backup_path, 'rb') as f_in:
-                    with gzip.open(compressed_path, 'wb', compresslevel=6) as f_out:
+                with open(local_backup_path, "rb") as f_in:
+                    with gzip.open(compressed_path, "wb", compresslevel=6) as f_out:
                         shutil.copyfileobj(f_in, f_out)
                 upload_path = compressed_path
                 temp_files.append(compressed_path)
-                remote_key += '.gz' if not backup_name.endswith('.gz') else ''
+                remote_key += ".gz" if not backup_name.endswith(".gz") else ""
 
             # Encrypt if requested
             encryption_metadata = {}
             if encrypt and self.encryptor:
-                encrypted_path = upload_path + '.encrypted'
+                encrypted_path = upload_path + ".encrypted"
                 logger.info(f"Encrypting backup: {upload_path}")
                 encryption_metadata = self.encryptor.encrypt_file(upload_path, encrypted_path)
                 upload_path = encrypted_path
                 temp_files.append(encrypted_path)
-                remote_key += '.encrypted'
+                remote_key += ".encrypted"
 
             # Prepare metadata
             metadata = {
-                'original_name': Path(local_backup_path).name,
-                'upload_timestamp': datetime.utcnow().isoformat(),
-                'encrypted': str(encrypt and self.encryptor is not None),
-                'compressed': str(compress),
-                'dms_version': '4.2',  # Update with actual version
+                "original_name": Path(local_backup_path).name,
+                "upload_timestamp": datetime.utcnow().isoformat(),
+                "encrypted": str(encrypt and self.encryptor is not None),
+                "compressed": str(compress),
+                "dms_version": "4.2",  # Update with actual version
             }
             metadata.update(encryption_metadata)
 
             # Calculate checksum
-            with open(upload_path, 'rb') as f:
+            with open(upload_path, "rb") as f:
                 file_hash = hashlib.sha256(f.read()).hexdigest()
-            metadata['sha256'] = file_hash
+            metadata["sha256"] = file_hash
 
             # Upload to cloud
             success = self.provider.upload_backup(upload_path, remote_key, metadata)
@@ -665,11 +626,7 @@ class OffsiteBackupManager:
                     logger.warning(f"Failed to delete temp file {temp_file}: {e}")
 
     def download_backup(
-        self,
-        remote_key: str,
-        local_path: str,
-        decrypt: bool = True,
-        decompress: bool = True
+        self, remote_key: str, local_path: str, decrypt: bool = True, decompress: bool = True
     ) -> Tuple[bool, str]:
         """
         Download backup from cloud storage.
@@ -696,7 +653,7 @@ class OffsiteBackupManager:
                 return False, ""
 
             # Decrypt if needed
-            if decrypt and remote_key.endswith('.encrypted'):
+            if decrypt and remote_key.endswith(".encrypted"):
                 if not self.encryptor:
                     raise RuntimeError("Backup is encrypted but no encryption key provided")
 
@@ -707,11 +664,11 @@ class OffsiteBackupManager:
                 download_path = decrypted_path
 
             # Decompress if needed
-            if decompress and download_path.endswith('.gz'):
+            if decompress and download_path.endswith(".gz"):
                 decompressed_path = download_path[:-3]  # Remove .gz
                 logger.info("Decompressing backup...")
-                with gzip.open(download_path, 'rb') as f_in:
-                    with open(decompressed_path, 'wb') as f_out:
+                with gzip.open(download_path, "rb") as f_in:
+                    with open(decompressed_path, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
                 temp_files.append(download_path)
                 download_path = decompressed_path
@@ -754,11 +711,11 @@ class OffsiteBackupManager:
 
         deleted_count = 0
         for backup in backups:
-            backup_date = datetime.fromisoformat(backup['last_modified'].replace('Z', '+00:00'))
+            backup_date = datetime.fromisoformat(backup["last_modified"].replace("Z", "+00:00"))
 
             if backup_date < cutoff_date:
                 logger.info(f"Deleting old backup: {backup['key']}")
-                if self.provider.delete_backup(backup['key']):
+                if self.provider.delete_backup(backup["key"]):
                     deleted_count += 1
 
         logger.info(f"Cleanup complete: {deleted_count} backups deleted")
@@ -789,7 +746,7 @@ class OffsiteBackupManager:
             logger.error(f"Backup not found: {remote_key}")
             return False
 
-        stored_checksum = metadata.get('sha256')
+        stored_checksum = metadata.get("sha256")
         if not stored_checksum:
             logger.warning(f"No checksum found in metadata for {remote_key}")
             logger.warning("Backup exists but cannot verify integrity (no stored checksum)")
@@ -801,8 +758,9 @@ class OffsiteBackupManager:
 
         # Step 2: Download backup to temporary location
         import tempfile
-        temp_dir = tempfile.mkdtemp(prefix='dms_verify_')
-        temp_file = os.path.join(temp_dir, 'backup_verify.tmp')
+
+        temp_dir = tempfile.mkdtemp(prefix="dms_verify_")
+        temp_file = os.path.join(temp_dir, "backup_verify.tmp")
 
         try:
             logger.info(f"Downloading backup to temporary location: {temp_file}")
@@ -854,9 +812,9 @@ class OffsiteBackupManager:
         """
         sha256_hash = hashlib.sha256()
 
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             # Read in chunks to handle large files
-            for chunk in iter(lambda: f.read(8192), b''):
+            for chunk in iter(lambda: f.read(8192), b""):
                 sha256_hash.update(chunk)
 
         return sha256_hash.hexdigest()
@@ -873,7 +831,7 @@ class OffsiteBackupManager:
         """
         backups = self.list_backups()
         for backup in backups:
-            if backup['key'] == remote_key:
+            if backup["key"] == remote_key:
                 logger.info(f"Backup found: {backup['key']} ({backup['size']} bytes)")
                 return True
 
@@ -883,10 +841,7 @@ class OffsiteBackupManager:
 
 # Factory function
 def create_offsite_backup_manager(
-    provider_type: str,
-    provider_config: Dict,
-    encryption_password: Optional[str] = None,
-    retention_days: int = 90
+    provider_type: str, provider_config: Dict, encryption_password: Optional[str] = None, retention_days: int = 90
 ) -> OffsiteBackupManager:
     """
     Create offsite backup manager instance.
@@ -904,5 +859,5 @@ def create_offsite_backup_manager(
         provider_type=provider_type,
         provider_config=provider_config,
         encryption_password=encryption_password,
-        retention_days=retention_days
+        retention_days=retention_days,
     )

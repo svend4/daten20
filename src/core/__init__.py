@@ -63,7 +63,7 @@ except ImportError as e:
     print(f"Warning: AuditService not available: {e}")
     AuditService = None
 
-from .logger import setup_logger, get_logger
+from .logger import get_logger, setup_logger
 
 __all__ = [
     # Database

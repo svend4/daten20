@@ -9,22 +9,24 @@ Version: 4.5.0
 """
 
 import asyncio
-import numpy as np
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime
 import threading
 import time
 from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 
 # ============================================================================
 # 1. MULTI-MODAL REASONING ENGINE (~220 lines)
 # ============================================================================
 
+
 class ModalityType(Enum):
     """Input modality types"""
+
     TEXT = "text"
     VISION = "vision"
     AUDIO = "audio"
@@ -35,6 +37,7 @@ class ModalityType(Enum):
 @dataclass
 class MultiModalInput:
     """Multi-modal input data"""
+
     modality: ModalityType
     data: Any
     embedding: Optional[np.ndarray] = None
@@ -44,6 +47,7 @@ class MultiModalInput:
 @dataclass
 class ReasoningStep:
     """Single reasoning step"""
+
     step_id: int
     input_modalities: List[ModalityType]
     reasoning_type: str  # deductive, inductive, abductive, analogical
@@ -55,7 +59,7 @@ class ReasoningStep:
 class MultiModalReasoner:
     """Multi-modal reasoning engine"""
 
-    def __init__(self, model_size: str = 'large', embedding_dim: int = 768):
+    def __init__(self, model_size: str = "large", embedding_dim: int = 768):
         self.model_size = model_size
         self.embedding_dim = embedding_dim
         self.reasoning_history = []
@@ -71,7 +75,7 @@ class MultiModalReasoner:
             ModalityType.VISION: lambda x: np.random.randn(self.embedding_dim),
             ModalityType.AUDIO: lambda x: np.random.randn(self.embedding_dim),
             ModalityType.STRUCTURED: lambda x: np.random.randn(self.embedding_dim),
-            ModalityType.SENSOR: lambda x: np.random.randn(self.embedding_dim)
+            ModalityType.SENSOR: lambda x: np.random.randn(self.embedding_dim),
         }
 
     async def fuse_modalities(self, inputs: List[MultiModalInput]) -> np.ndarray:
@@ -104,8 +108,9 @@ class MultiModalReasoner:
 
         return fused
 
-    async def reason(self, query: str, context: List[MultiModalInput],
-                    reasoning_type: str = 'deductive') -> ReasoningStep:
+    async def reason(
+        self, query: str, context: List[MultiModalInput], reasoning_type: str = "deductive"
+    ) -> ReasoningStep:
         """Perform single reasoning step"""
         # Fuse context
         fused_context = await self.fuse_modalities(context)
@@ -130,7 +135,7 @@ class MultiModalReasoner:
             reasoning_type=reasoning_type,
             conclusion=conclusion,
             confidence=confidence,
-            explanation=explanation
+            explanation=explanation,
         )
 
         with self._lock:
@@ -138,18 +143,14 @@ class MultiModalReasoner:
 
         return step
 
-    async def multi_step_reasoning(self, query: str,
-                                   max_steps: int = 5) -> List[ReasoningStep]:
+    async def multi_step_reasoning(self, query: str, max_steps: int = 5) -> List[ReasoningStep]:
         """Multi-step reasoning chain"""
         steps = []
         current_context = []
 
         for step_num in range(max_steps):
             # Create mock context for this step
-            context_input = MultiModalInput(
-                modality=ModalityType.TEXT,
-                data=f"Step {step_num} context"
-            )
+            context_input = MultiModalInput(modality=ModalityType.TEXT, data=f"Step {step_num} context")
             current_context.append(context_input)
 
             # Reason
@@ -165,32 +166,26 @@ class MultiModalReasoner:
     def extract_concepts(self, data: MultiModalInput) -> List[str]:
         """Extract abstract concepts from data"""
         # Simplified concept extraction
-        concepts = [
-            f"concept_{i}" for i in range(5)
-        ]
+        concepts = [f"concept_{i}" for i in range(5)]
         return concepts
 
     def analogical_mapping(self, source: str, target: str) -> Dict[str, Any]:
         """Find analogical mapping between domains"""
         # Simplified analogical reasoning
         return {
-            'source': source,
-            'target': target,
-            'mappings': [
-                {'source_element': 'A', 'target_element': 'X', 'confidence': 0.8},
-                {'source_element': 'B', 'target_element': 'Y', 'confidence': 0.7}
+            "source": source,
+            "target": target,
+            "mappings": [
+                {"source_element": "A", "target_element": "X", "confidence": 0.8},
+                {"source_element": "B", "target_element": "Y", "confidence": 0.7},
             ],
-            'similarity_score': 0.75
+            "similarity_score": 0.75,
         }
 
     def get_reasoning_chain(self, query: str) -> List[Dict[str, Any]]:
         """Get complete reasoning chain for query"""
         relevant_steps = [
-            {
-                'step': step.step_id,
-                'conclusion': step.conclusion,
-                'confidence': step.confidence
-            }
+            {"step": step.step_id, "conclusion": step.conclusion, "confidence": step.confidence}
             for step in self.reasoning_history
             if query[:20] in step.conclusion
         ]
@@ -202,8 +197,7 @@ _multi_modal_reasoner_instance = None
 _multi_modal_reasoner_lock = threading.Lock()
 
 
-def get_multi_modal_reasoner(model_size: str = 'large',
-                             embedding_dim: int = 768) -> MultiModalReasoner:
+def get_multi_modal_reasoner(model_size: str = "large", embedding_dim: int = 768) -> MultiModalReasoner:
     """Get multi-modal reasoner singleton"""
     global _multi_modal_reasoner_instance
 
@@ -218,8 +212,10 @@ def get_multi_modal_reasoner(model_size: str = 'large',
 # 2. CONTINUAL LEARNING SYSTEM (~215 lines)
 # ============================================================================
 
+
 class LearningStrategy(Enum):
     """Continual learning strategies"""
+
     EXPERIENCE_REPLAY = "experience_replay"
     ELASTIC_WEIGHT = "elastic_weight"
     PROGRESSIVE = "progressive"
@@ -230,6 +226,7 @@ class LearningStrategy(Enum):
 @dataclass
 class LearningTask:
     """Learning task definition"""
+
     task_id: str
     task_type: str
     data: List[Any]
@@ -240,6 +237,7 @@ class LearningTask:
 @dataclass
 class LearningMetrics:
     """Learning performance metrics"""
+
     task_id: str
     accuracy: float
     forgetting_rate: float
@@ -250,8 +248,7 @@ class LearningMetrics:
 class ContinualLearner:
     """Continual learning system"""
 
-    def __init__(self, strategy: LearningStrategy = LearningStrategy.ELASTIC_WEIGHT,
-                 replay_buffer_size: int = 1000):
+    def __init__(self, strategy: LearningStrategy = LearningStrategy.ELASTIC_WEIGHT, replay_buffer_size: int = 1000):
         self.strategy = strategy
         self.replay_buffer_size = replay_buffer_size
         self.replay_buffer = deque(maxlen=replay_buffer_size)
@@ -290,7 +287,7 @@ class ContinualLearner:
             accuracy=accuracy,
             forgetting_rate=forgetting_rate,
             transfer_score=0.0,  # Computed separately
-            training_time=training_time
+            training_time=training_time,
         )
 
         with self._lock:
@@ -367,7 +364,7 @@ class ContinualLearner:
         """Expand network capacity for new task"""
         # Simplified: just record expansion
         with self._lock:
-            if 'expansions' not in self.__dict__:
+            if "expansions" not in self.__dict__:
                 self.expansions = []
             self.expansions.append(new_task.task_id)
 
@@ -387,11 +384,9 @@ class ContinualLearner:
     def get_forgetting_metrics(self) -> Dict[str, float]:
         """Get forgetting metrics for all tasks"""
         return {
-            'average_forgetting': self._compute_forgetting_rate(
-                asyncio.run(self.evaluate_all_tasks())
-            ),
-            'n_tasks': len(self.task_history),
-            'buffer_utilization': len(self.replay_buffer) / self.replay_buffer_size
+            "average_forgetting": self._compute_forgetting_rate(asyncio.run(self.evaluate_all_tasks())),
+            "n_tasks": len(self.task_history),
+            "buffer_utilization": len(self.replay_buffer) / self.replay_buffer_size,
         }
 
 
@@ -400,8 +395,9 @@ _continual_learner_instance = None
 _continual_learner_lock = threading.Lock()
 
 
-def get_continual_learner(strategy: LearningStrategy = LearningStrategy.ELASTIC_WEIGHT,
-                         replay_buffer_size: int = 1000) -> ContinualLearner:
+def get_continual_learner(
+    strategy: LearningStrategy = LearningStrategy.ELASTIC_WEIGHT, replay_buffer_size: int = 1000
+) -> ContinualLearner:
     """Get continual learner singleton"""
     global _continual_learner_instance
 
@@ -416,8 +412,10 @@ def get_continual_learner(strategy: LearningStrategy = LearningStrategy.ELASTIC_
 # 3. META-LEARNING SYSTEM (~210 lines)
 # ============================================================================
 
+
 class MetaLearningAlgorithm(Enum):
     """Meta-learning algorithms"""
+
     MAML = "maml"
     REPTILE = "reptile"
     PROTOTYPICAL = "prototypical"
@@ -428,6 +426,7 @@ class MetaLearningAlgorithm(Enum):
 @dataclass
 class FewShotTask:
     """Few-shot learning task"""
+
     task_name: str
     support_set: List[Tuple[Any, Any]]  # (input, label)
     query_set: List[Tuple[Any, Any]]
@@ -438,6 +437,7 @@ class FewShotTask:
 @dataclass
 class AdaptationResult:
     """Task adaptation result"""
+
     task_name: str
     pre_adaptation_accuracy: float
     post_adaptation_accuracy: float
@@ -448,8 +448,12 @@ class AdaptationResult:
 class MetaLearningSystem:
     """Meta-learning system"""
 
-    def __init__(self, algorithm: MetaLearningAlgorithm = MetaLearningAlgorithm.MAML,
-                 inner_lr: float = 0.01, outer_lr: float = 0.001):
+    def __init__(
+        self,
+        algorithm: MetaLearningAlgorithm = MetaLearningAlgorithm.MAML,
+        inner_lr: float = 0.01,
+        outer_lr: float = 0.001,
+    ):
         self.algorithm = algorithm
         self.inner_lr = inner_lr
         self.outer_lr = outer_lr
@@ -463,10 +467,7 @@ class MetaLearningSystem:
     def _init_meta_parameters(self):
         """Initialize meta-learnable parameters"""
         # Simplified: random parameters
-        self.meta_parameters = {
-            'weights': np.random.randn(100, 100) * 0.01,
-            'bias': np.zeros(100)
-        }
+        self.meta_parameters = {"weights": np.random.randn(100, 100) * 0.01, "bias": np.zeros(100)}
 
     async def meta_train(self, tasks: List[FewShotTask], epochs: int = 100) -> Dict[str, Any]:
         """Meta-train on multiple tasks"""
@@ -488,18 +489,14 @@ class MetaLearningSystem:
             await self._outer_loop_update({})
 
         with self._lock:
-            self.training_history.append({
-                'epochs': epochs,
-                'n_tasks': len(tasks),
-                'final_loss': meta_losses[-1]
-            })
+            self.training_history.append({"epochs": epochs, "n_tasks": len(tasks), "final_loss": meta_losses[-1]})
 
         return {
-            'success': True,
-            'epochs': epochs,
-            'n_tasks': len(tasks),
-            'final_loss': meta_losses[-1],
-            'meta_losses': meta_losses
+            "success": True,
+            "epochs": epochs,
+            "n_tasks": len(tasks),
+            "final_loss": meta_losses[-1],
+            "meta_losses": meta_losses,
         }
 
     async def _inner_loop(self, task: FewShotTask) -> float:
@@ -533,16 +530,13 @@ class MetaLearningSystem:
             pre_adaptation_accuracy=pre_accuracy,
             post_adaptation_accuracy=post_accuracy,
             adaptation_steps=n_steps,
-            adaptation_time=adaptation_time
+            adaptation_time=adaptation_time,
         )
 
     def compute_meta_gradients(self, task: FewShotTask) -> Dict[str, np.ndarray]:
         """Compute meta-gradients"""
         # Simplified: random gradients
-        gradients = {
-            'weights': np.random.randn(100, 100) * 0.001,
-            'bias': np.random.randn(100) * 0.001
-        }
+        gradients = {"weights": np.random.randn(100, 100) * 0.001, "bias": np.random.randn(100) * 0.001}
         return gradients
 
     def inner_loop_update(self, task: FewShotTask) -> None:
@@ -575,8 +569,8 @@ class MetaLearningSystem:
     def get_meta_learning_curve(self) -> Dict[str, List[float]]:
         """Get meta-learning training curve"""
         return {
-            'epochs': list(range(len(self.training_history))),
-            'losses': [h.get('final_loss', 0.0) for h in self.training_history]
+            "epochs": list(range(len(self.training_history))),
+            "losses": [h.get("final_loss", 0.0) for h in self.training_history],
         }
 
 
@@ -586,9 +580,7 @@ _meta_learning_lock = threading.Lock()
 
 
 def get_meta_learning_system(
-    algorithm: MetaLearningAlgorithm = MetaLearningAlgorithm.MAML,
-    inner_lr: float = 0.01,
-    outer_lr: float = 0.001
+    algorithm: MetaLearningAlgorithm = MetaLearningAlgorithm.MAML, inner_lr: float = 0.01, outer_lr: float = 0.001
 ) -> MetaLearningSystem:
     """Get meta-learning system singleton"""
     global _meta_learning_instance
@@ -604,9 +596,11 @@ def get_meta_learning_system(
 # 4. KNOWLEDGE GRAPH ENGINE (~220 lines)
 # ============================================================================
 
+
 @dataclass
 class Entity:
     """Knowledge graph entity"""
+
     entity_id: str
     entity_type: str
     properties: Dict[str, Any]
@@ -616,6 +610,7 @@ class Entity:
 @dataclass
 class Relation:
     """Knowledge graph relation"""
+
     relation_id: str
     relation_type: str
     source: str
@@ -626,6 +621,7 @@ class Relation:
 @dataclass
 class Triple:
     """Knowledge graph triple (SPO)"""
+
     subject: str
     predicate: str
     object: str
@@ -634,6 +630,7 @@ class Triple:
 
 class InferenceType(Enum):
     """Inference types"""
+
     DEDUCTIVE = "deductive"
     INDUCTIVE = "inductive"
     ABDUCTIVE = "abductive"
@@ -671,10 +668,7 @@ class KnowledgeGraphEngine:
 
             # Create triple
             triple = Triple(
-                subject=relation.source,
-                predicate=relation.relation_type,
-                object=relation.target,
-                confidence=1.0
+                subject=relation.source, predicate=relation.relation_type, object=relation.target, confidence=1.0
             )
             self.triples.append(triple)
 
@@ -689,12 +683,14 @@ class KnowledgeGraphEngine:
         results = []
         for i in range(min(10, len(self.triples))):
             triple = self.triples[i]
-            results.append({
-                'subject': triple.subject,
-                'predicate': triple.predicate,
-                'object': triple.object,
-                'confidence': triple.confidence
-            })
+            results.append(
+                {
+                    "subject": triple.subject,
+                    "predicate": triple.predicate,
+                    "object": triple.object,
+                    "confidence": triple.confidence,
+                }
+            )
         return results
 
     async def infer(self, query: str, inference_type: InferenceType) -> List[Triple]:
@@ -773,8 +769,7 @@ class KnowledgeGraphEngine:
         """Compute knowledge graph embeddings"""
         # Use TransE-style embeddings
         for triple in self.triples:
-            if triple.subject in self.entity_embeddings and \
-               triple.object in self.entity_embeddings:
+            if triple.subject in self.entity_embeddings and triple.object in self.entity_embeddings:
                 # TransE: h + r ≈ t
                 h = self.entity_embeddings[triple.subject]
                 t = self.entity_embeddings[triple.object]
@@ -796,11 +791,7 @@ class KnowledgeGraphEngine:
 
     def get_subgraph(self, entity: str, depth: int = 2) -> Dict[str, Any]:
         """Extract subgraph around entity"""
-        subgraph = {
-            'entities': set(),
-            'relations': [],
-            'triples': []
-        }
+        subgraph = {"entities": set(), "relations": [], "triples": []}
 
         # BFS to depth
         queue = [(entity, 0)]
@@ -812,19 +803,16 @@ class KnowledgeGraphEngine:
             if d >= depth:
                 continue
 
-            subgraph['entities'].add(node)
+            subgraph["entities"].add(node)
 
             for triple in self.triples:
                 if triple.subject == node:
-                    subgraph['triples'].append(triple)
+                    subgraph["triples"].append(triple)
                     if triple.object not in visited:
                         visited.add(triple.object)
                         queue.append((triple.object, d + 1))
 
-        return {
-            'entities': list(subgraph['entities']),
-            'triples': subgraph['triples']
-        }
+        return {"entities": list(subgraph["entities"]), "triples": subgraph["triples"]}
 
 
 # Singleton instance
@@ -847,8 +835,10 @@ def get_knowledge_graph(embedding_dim: int = 512) -> KnowledgeGraphEngine:
 # 5. COGNITIVE ARCHITECTURE (~225 lines)
 # ============================================================================
 
+
 class MemoryType(Enum):
     """Memory system types"""
+
     WORKING = "working"
     EPISODIC = "episodic"
     SEMANTIC = "semantic"
@@ -858,6 +848,7 @@ class MemoryType(Enum):
 @dataclass
 class MemoryItem:
     """Memory item"""
+
     item_id: str
     memory_type: MemoryType
     content: Any
@@ -869,6 +860,7 @@ class MemoryItem:
 @dataclass
 class Goal:
     """Goal representation"""
+
     goal_id: str
     description: str
     priority: float
@@ -880,6 +872,7 @@ class Goal:
 @dataclass
 class AttentionState:
     """Attention state"""
+
     focus: List[str]
     focus_strength: float
     distractors: List[str]
@@ -892,11 +885,7 @@ class CognitiveArchitecture:
     def __init__(self, working_memory_capacity: int = 7):
         self.working_memory_capacity = working_memory_capacity
         self.working_memory = []
-        self.long_term_memory = {
-            MemoryType.EPISODIC: [],
-            MemoryType.SEMANTIC: [],
-            MemoryType.PROCEDURAL: []
-        }
+        self.long_term_memory = {MemoryType.EPISODIC: [], MemoryType.SEMANTIC: [], MemoryType.PROCEDURAL: []}
         self.goals = {}
         self.attention = None
         self._lock = threading.Lock()
@@ -907,7 +896,7 @@ class CognitiveArchitecture:
             item_id=f"mem_{int(time.time() * 1000)}",
             memory_type=MemoryType.WORKING,
             content=stimulus,
-            encoding_time=time.time()
+            encoding_time=time.time(),
         )
 
         # Add to working memory
@@ -945,7 +934,7 @@ class CognitiveArchitecture:
             focus=focus,
             focus_strength=float(np.mean([relevances[i] for i in top_indices])),
             distractors=distractors,
-            cognitive_load=cognitive_load
+            cognitive_load=cognitive_load,
         )
 
         return self.attention
@@ -955,8 +944,7 @@ class CognitiveArchitecture:
         with self._lock:
             self.long_term_memory[memory_type].append(item)
 
-    async def retrieve_memory(self, query: str,
-                             memory_type: MemoryType) -> List[MemoryItem]:
+    async def retrieve_memory(self, query: str, memory_type: MemoryType) -> List[MemoryItem]:
         """Retrieve memories matching query"""
         memories = self.long_term_memory.get(memory_type, [])
 
@@ -982,25 +970,21 @@ class CognitiveArchitecture:
 
         # Create action sequence
         for i, subgoal in enumerate(goal.subgoals):
-            plan.append({
-                'step': i + 1,
-                'subgoal': subgoal,
-                'action': f"action_for_{subgoal}",
-                'expected_duration': np.random.rand() * 10
-            })
+            plan.append(
+                {
+                    "step": i + 1,
+                    "subgoal": subgoal,
+                    "action": f"action_for_{subgoal}",
+                    "expected_duration": np.random.rand() * 10,
+                }
+            )
 
         return plan
 
-    async def execute_action(self, action: str,
-                            params: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_action(self, action: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute action"""
         # Simplified action execution
-        return {
-            'action': action,
-            'status': 'completed',
-            'result': f"Executed {action}",
-            'timestamp': time.time()
-        }
+        return {"action": action, "status": "completed", "result": f"Executed {action}", "timestamp": time.time()}
 
     def monitor_progress(self, goal: Goal) -> float:
         """Monitor goal progress"""
@@ -1008,7 +992,7 @@ class CognitiveArchitecture:
             return 0.0
 
         # Count completed subgoals
-        completed = sum(1 for sg in goal.subgoals if 'completed' in sg)
+        completed = sum(1 for sg in goal.subgoals if "completed" in sg)
         progress = completed / len(goal.subgoals)
 
         return float(progress)
@@ -1026,12 +1010,7 @@ class CognitiveArchitecture:
         simulation = []
 
         for t in range(5):
-            state = {
-                'time': t,
-                'scenario': scenario,
-                'predicted_state': f"state_{t}",
-                'probability': np.random.rand()
-            }
+            state = {"time": t, "scenario": scenario, "predicted_state": f"state_{t}", "probability": np.random.rand()}
             simulation.append(state)
 
         return simulation
@@ -1039,12 +1018,12 @@ class CognitiveArchitecture:
     def get_cognitive_state(self) -> Dict[str, Any]:
         """Get current cognitive state"""
         return {
-            'working_memory_load': len(self.working_memory) / self.working_memory_capacity,
-            'episodic_memories': len(self.long_term_memory[MemoryType.EPISODIC]),
-            'semantic_memories': len(self.long_term_memory[MemoryType.SEMANTIC]),
-            'active_goals': len([g for g in self.goals.values() if g.status == 'active']),
-            'attention_focus': self.attention.focus if self.attention else [],
-            'cognitive_load': self.attention.cognitive_load if self.attention else 0.0
+            "working_memory_load": len(self.working_memory) / self.working_memory_capacity,
+            "episodic_memories": len(self.long_term_memory[MemoryType.EPISODIC]),
+            "semantic_memories": len(self.long_term_memory[MemoryType.SEMANTIC]),
+            "active_goals": len([g for g in self.goals.values() if g.status == "active"]),
+            "attention_focus": self.attention.focus if self.attention else [],
+            "cognitive_load": self.attention.cognitive_load if self.attention else 0.0,
         }
 
 
@@ -1068,8 +1047,10 @@ def get_cognitive_architecture(working_memory_capacity: int = 7) -> CognitiveArc
 # 6. TRANSFER LEARNING HUB (~210 lines)
 # ============================================================================
 
+
 class TransferMethod(Enum):
     """Transfer learning methods"""
+
     FINE_TUNING = "fine_tuning"
     DOMAIN_ADAPTATION = "domain_adaptation"
     ZERO_SHOT = "zero_shot"
@@ -1080,6 +1061,7 @@ class TransferMethod(Enum):
 @dataclass
 class Domain:
     """Domain specification"""
+
     domain_id: str
     domain_name: str
     data_distribution: str
@@ -1090,6 +1072,7 @@ class Domain:
 @dataclass
 class TransferTask:
     """Transfer learning task"""
+
     source_domain: Domain
     target_domain: Domain
     transfer_method: TransferMethod
@@ -1099,6 +1082,7 @@ class TransferTask:
 @dataclass
 class TransferResult:
     """Transfer learning result"""
+
     source_performance: float
     target_performance: float
     transfer_gain: float
@@ -1108,7 +1092,7 @@ class TransferResult:
 class TransferLearningHub:
     """Transfer learning hub"""
 
-    def __init__(self, base_model: str = 'transformer'):
+    def __init__(self, base_model: str = "transformer"):
         self.base_model = base_model
         self.domains = {}
         self.transfer_history = []
@@ -1126,7 +1110,7 @@ class TransferLearningHub:
             target_perf = await self.fine_tune(task.target_domain, task.adaptation_data, epochs=10)
         elif task.transfer_method == TransferMethod.DOMAIN_ADAPTATION:
             adapt_result = await self.domain_adapt(task.source_domain, task.target_domain)
-            target_perf = adapt_result.get('target_accuracy', 0.7)
+            target_perf = adapt_result.get("target_accuracy", 0.7)
         elif task.transfer_method == TransferMethod.ZERO_SHOT:
             target_perf = await self.zero_shot_transfer("task", task.target_domain)
         else:
@@ -1143,7 +1127,7 @@ class TransferLearningHub:
             source_performance=source_perf,
             target_performance=target_perf,
             transfer_gain=transfer_gain,
-            adaptation_time=adaptation_time
+            adaptation_time=adaptation_time,
         )
 
         with self._lock:
@@ -1169,10 +1153,10 @@ class TransferLearningHub:
         target_accuracy = 0.85 - (distance * 0.3)
 
         return {
-            'source_domain': source.domain_id,
-            'target_domain': target.domain_id,
-            'domain_distance': distance,
-            'target_accuracy': float(max(0.5, target_accuracy))
+            "source_domain": source.domain_id,
+            "target_domain": target.domain_id,
+            "domain_distance": distance,
+            "target_accuracy": float(max(0.5, target_accuracy)),
         }
 
     async def zero_shot_transfer(self, task_description: str, target_domain: Domain) -> float:
@@ -1219,7 +1203,7 @@ _transfer_hub_instance = None
 _transfer_hub_lock = threading.Lock()
 
 
-def get_transfer_hub(base_model: str = 'transformer') -> TransferLearningHub:
+def get_transfer_hub(base_model: str = "transformer") -> TransferLearningHub:
     """Get transfer learning hub singleton"""
     global _transfer_hub_instance
 
@@ -1234,8 +1218,10 @@ def get_transfer_hub(base_model: str = 'transformer') -> TransferLearningHub:
 # 7. ETHICAL AI FRAMEWORK (~200 lines)
 # ============================================================================
 
+
 class EthicalPrinciple(Enum):
     """Ethical principles"""
+
     BENEFICENCE = "beneficence"
     NON_MALEFICENCE = "non_maleficence"
     AUTONOMY = "autonomy"
@@ -1246,6 +1232,7 @@ class EthicalPrinciple(Enum):
 @dataclass
 class EthicalConstraint:
     """Ethical constraint"""
+
     constraint_id: str
     principle: EthicalPrinciple
     rule: str
@@ -1256,6 +1243,7 @@ class EthicalConstraint:
 @dataclass
 class BiasReport:
     """Bias detection report"""
+
     bias_type: str  # gender, race, age, etc.
     affected_groups: List[str]
     bias_magnitude: float
@@ -1265,6 +1253,7 @@ class BiasReport:
 @dataclass
 class ExplanationResult:
     """Model explanation"""
+
     prediction: Any
     confidence: float
     feature_importance: Dict[str, float]
@@ -1291,22 +1280,22 @@ class EthicalAIFramework:
                 principle=EthicalPrinciple.NON_MALEFICENCE,
                 rule="Do not cause harm to humans",
                 severity="critical",
-                enforcement="hard"
+                enforcement="hard",
             ),
             EthicalConstraint(
                 constraint_id="fairness",
                 principle=EthicalPrinciple.JUSTICE,
                 rule="Treat all groups fairly",
                 severity="high",
-                enforcement="hard"
+                enforcement="hard",
             ),
             EthicalConstraint(
                 constraint_id="transparency",
                 principle=EthicalPrinciple.TRANSPARENCY,
                 rule="Provide explanations for decisions",
                 severity="medium",
-                enforcement="soft"
-            )
+                enforcement="soft",
+            ),
         ]
 
     async def verify_alignment(self, action: str, context: Dict[str, Any]) -> bool:
@@ -1319,16 +1308,11 @@ class EthicalAIFramework:
                     return False
 
         # Log decision
-        self.audit_log.append({
-            'action': action,
-            'verified': True,
-            'timestamp': time.time()
-        })
+        self.audit_log.append({"action": action, "verified": True, "timestamp": time.time()})
 
         return True
 
-    async def detect_bias(self, model_outputs: List[Any],
-                         sensitive_attributes: List[str]) -> BiasReport:
+    async def detect_bias(self, model_outputs: List[Any], sensitive_attributes: List[str]) -> BiasReport:
         """Detect bias in model outputs"""
         # Simplified bias detection
         # In real implementation, would compute fairness metrics
@@ -1339,7 +1323,7 @@ class EthicalAIFramework:
             bias_type="demographic",
             affected_groups=sensitive_attributes,
             bias_magnitude=float(bias_magnitude),
-            mitigation_strategy="Re-weighting samples" if bias_magnitude > 0.1 else "None"
+            mitigation_strategy="Re-weighting samples" if bias_magnitude > 0.1 else "None",
         )
 
         return report
@@ -1351,38 +1335,33 @@ class EthicalAIFramework:
 
         return model  # Return modified model
 
-    async def explain_decision(self, input_data: Any,
-                              prediction: Any) -> ExplanationResult:
+    async def explain_decision(self, input_data: Any, prediction: Any) -> ExplanationResult:
         """Explain model decision"""
         # Simplified SHAP-like explanation
-        feature_importance = {
-            f'feature_{i}': np.random.rand()
-            for i in range(5)
-        }
+        feature_importance = {f"feature_{i}": np.random.rand() for i in range(5)}
 
         # Normalize importances
         total = sum(feature_importance.values())
-        feature_importance = {
-            k: v/total for k, v in feature_importance.items()
-        }
+        feature_importance = {k: v / total for k, v in feature_importance.items()}
 
         # Generate counterfactuals
         counterfactuals = [
             "If feature_0 was X, prediction would be Y",
-            "If feature_1 was increased by 10%, prediction would change to Z"
+            "If feature_1 was increased by 10%, prediction would change to Z",
         ]
 
         # Generate explanation text
         top_feature = max(feature_importance, key=feature_importance.get)
-        explanation_text = f"Prediction primarily based on {top_feature} " \
-                         f"with importance {feature_importance[top_feature]:.2f}"
+        explanation_text = (
+            f"Prediction primarily based on {top_feature} " f"with importance {feature_importance[top_feature]:.2f}"
+        )
 
         return ExplanationResult(
             prediction=prediction,
             confidence=0.85,
             feature_importance=feature_importance,
             counterfactuals=counterfactuals,
-            explanation_text=explanation_text
+            explanation_text=explanation_text,
         )
 
     def apply_safety_constraints(self, action: str) -> bool:
@@ -1397,16 +1376,16 @@ class EthicalAIFramework:
 
         return True
 
-    def compute_fairness_metrics(self, predictions: List[Any],
-                                 labels: List[Any],
-                                 groups: List[str]) -> Dict[str, float]:
+    def compute_fairness_metrics(
+        self, predictions: List[Any], labels: List[Any], groups: List[str]
+    ) -> Dict[str, float]:
         """Compute fairness metrics"""
         # Simplified fairness metrics
         metrics = {
-            'demographic_parity': 0.95,
-            'equal_opportunity': 0.92,
-            'equalized_odds': 0.90,
-            'disparate_impact': 0.88
+            "demographic_parity": 0.95,
+            "equal_opportunity": 0.92,
+            "equalized_odds": 0.90,
+            "disparate_impact": 0.88,
         }
 
         return metrics
@@ -1414,11 +1393,11 @@ class EthicalAIFramework:
     def generate_audit_trail(self, decision: str) -> Dict[str, Any]:
         """Generate audit trail for decision"""
         trail = {
-            'decision': decision,
-            'timestamp': time.time(),
-            'constraints_checked': [c.constraint_id for c in self.constraints],
-            'verification_passed': True,
-            'explanation_available': True
+            "decision": decision,
+            "timestamp": time.time(),
+            "constraints_checked": [c.constraint_id for c in self.constraints],
+            "verification_passed": True,
+            "explanation_available": True,
         }
 
         with self._lock:

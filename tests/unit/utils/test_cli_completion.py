@@ -5,11 +5,12 @@ Unit tests for CLI Auto-Completion
 Tests the CLI completion functionality.
 """
 
-import pytest
-import sys
 import os
+import sys
 from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
@@ -45,7 +46,7 @@ class TestCLICompletion:
             "doc-api-server",
             "doc-batch-processor",
             "doc-merger",
-            "doc-splitter"
+            "doc-splitter",
         ]
 
         for tool in expected_tools:
@@ -139,25 +140,25 @@ class TestCLICompletion:
 
     def test_detect_shell_bash(self, completion):
         """Test shell detection for Bash."""
-        with patch.dict(os.environ, {'SHELL': '/bin/bash'}):
+        with patch.dict(os.environ, {"SHELL": "/bin/bash"}):
             shell = completion.detect_shell()
-            assert shell == 'bash'
+            assert shell == "bash"
 
     def test_detect_shell_zsh(self, completion):
         """Test shell detection for Zsh."""
-        with patch.dict(os.environ, {'SHELL': '/usr/bin/zsh'}):
+        with patch.dict(os.environ, {"SHELL": "/usr/bin/zsh"}):
             shell = completion.detect_shell()
-            assert shell == 'zsh'
+            assert shell == "zsh"
 
     def test_detect_shell_fish(self, completion):
         """Test shell detection for Fish."""
-        with patch.dict(os.environ, {'SHELL': '/usr/local/bin/fish'}):
+        with patch.dict(os.environ, {"SHELL": "/usr/local/bin/fish"}):
             shell = completion.detect_shell()
-            assert shell == 'fish'
+            assert shell == "fish"
 
     def test_detect_shell_unknown(self, completion):
         """Test shell detection with unknown shell."""
-        with patch.dict(os.environ, {'SHELL': '/bin/csh'}):
+        with patch.dict(os.environ, {"SHELL": "/bin/csh"}):
             shell = completion.detect_shell()
             assert shell is None
 
@@ -167,51 +168,51 @@ class TestCLICompletion:
             shell = completion.detect_shell()
             assert shell is None
 
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('pathlib.Path.mkdir')
-    @patch('builtins.print')
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("pathlib.Path.mkdir")
+    @patch("builtins.print")
     def test_install_completion_bash(self, mock_print, mock_mkdir, mock_file, completion):
         """Test installing Bash completion."""
-        result = completion.install_completion('bash')
+        result = completion.install_completion("bash")
 
         assert result is True
         mock_mkdir.assert_called_once()
         mock_file.assert_called_once()
         assert mock_print.called
 
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('pathlib.Path.mkdir')
-    @patch('builtins.print')
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("pathlib.Path.mkdir")
+    @patch("builtins.print")
     def test_install_completion_zsh(self, mock_print, mock_mkdir, mock_file, completion):
         """Test installing Zsh completion."""
-        result = completion.install_completion('zsh')
+        result = completion.install_completion("zsh")
 
         assert result is True
         mock_mkdir.assert_called()
         mock_file.assert_called_once()
         assert mock_print.called
 
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('pathlib.Path.mkdir')
-    @patch('builtins.print')
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("pathlib.Path.mkdir")
+    @patch("builtins.print")
     def test_install_completion_fish(self, mock_print, mock_mkdir, mock_file, completion):
         """Test installing Fish completion."""
-        result = completion.install_completion('fish')
+        result = completion.install_completion("fish")
 
         assert result is True
         mock_mkdir.assert_called()
         mock_file.assert_called_once()
         assert mock_print.called
 
-    @patch('builtins.print')
+    @patch("builtins.print")
     def test_install_completion_unsupported(self, mock_print, completion):
         """Test installing completion for unsupported shell."""
-        result = completion.install_completion('csh')
+        result = completion.install_completion("csh")
 
         assert result is False
         assert mock_print.called
 
-    @patch('builtins.print')
+    @patch("builtins.print")
     @patch.dict(os.environ, {}, clear=True)
     def test_install_completion_no_shell(self, mock_print, completion):
         """Test installing completion without shell detection."""
@@ -220,7 +221,7 @@ class TestCLICompletion:
         assert result is False
         assert mock_print.called
 
-    @patch('builtins.print')
+    @patch("builtins.print")
     def test_list_tools(self, mock_print, completion):
         """Test listing available tools."""
         completion.list_tools()
@@ -304,10 +305,10 @@ class TestCLICompletionIntegration:
 
     def test_shell_detection_workflow(self, completion):
         """Test complete shell detection workflow."""
-        shells = ['bash', 'zsh', 'fish']
+        shells = ["bash", "zsh", "fish"]
 
         for shell in shells:
-            with patch.dict(os.environ, {'SHELL': f'/bin/{shell}'}):
+            with patch.dict(os.environ, {"SHELL": f"/bin/{shell}"}):
                 detected = completion.detect_shell()
                 assert detected == shell
 

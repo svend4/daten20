@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class HoldStatus(Enum):
     """Legal hold status."""
+
     ACTIVE = "active"
     RELEASED = "released"
     EXPIRED = "expired"
@@ -28,6 +29,7 @@ class HoldStatus(Enum):
 
 class ExportFormat(Enum):
     """Export formats for legal review."""
+
     PST = "pst"
     EDRM_XML = "edrm_xml"
     PDF = "pdf"
@@ -38,6 +40,7 @@ class ExportFormat(Enum):
 @dataclass
 class Custodian:
     """Data custodian (person who has relevant data)."""
+
     custodian_id: str
     name: str
     email: str
@@ -54,6 +57,7 @@ class Custodian:
 @dataclass
 class LegalHold:
     """Legal hold/litigation hold."""
+
     hold_id: str
     case_name: str
     case_number: str
@@ -75,6 +79,7 @@ class LegalHold:
 @dataclass
 class SearchQuery:
     """eDiscovery search query."""
+
     query_id: str
     legal_hold_id: str
     query_text: str
@@ -90,6 +95,7 @@ class SearchQuery:
 @dataclass
 class CollectedDocument:
     """Document collected for eDiscovery."""
+
     document_id: str
     source_path: str
     hash_md5: str
@@ -109,6 +115,7 @@ class CollectedDocument:
 @dataclass
 class Collection:
     """Collection of documents for legal matter."""
+
     collection_id: str
     legal_hold_id: str
     search_query_id: Optional[str] = None
@@ -125,6 +132,7 @@ class Collection:
 @dataclass
 class ExportPackage:
     """Export package for legal review."""
+
     export_id: str
     collection_id: str
     format: ExportFormat
@@ -142,6 +150,7 @@ class ExportPackage:
 @dataclass
 class ChainOfCustodyEntry:
     """Chain of custody log entry."""
+
     entry_id: str
     document_id: str
     action: str  # collected, reviewed, exported, transferred
@@ -159,12 +168,7 @@ class CustodianManager:
         self.custodians: Dict[str, Custodian] = {}
 
     async def add_custodian(
-        self,
-        name: str,
-        email: str,
-        department: str,
-        data_sources: Optional[List[str]] = None,
-        **kwargs
+        self, name: str, email: str, department: str, data_sources: Optional[List[str]] = None, **kwargs
     ) -> Custodian:
         """Add custodian to matter."""
         await asyncio.sleep(0.05)
@@ -175,7 +179,7 @@ class CustodianManager:
             email=email,
             department=department,
             data_sources=data_sources or ["email", "documents"],
-            **kwargs
+            **kwargs,
         )
 
         self.custodians[custodian.custodian_id] = custodian
@@ -220,18 +224,14 @@ class CustodianManager:
             "total_custodians": total,
             "acknowledged": acknowledged,
             "pending": total - acknowledged,
-            "acknowledgment_rate": (acknowledged / total * 100) if total > 0 else 100.0
+            "acknowledgment_rate": (acknowledged / total * 100) if total > 0 else 100.0,
         }
 
 
 class SearchEngine:
     """eDiscovery search engine."""
 
-    async def search(
-        self,
-        query: SearchQuery,
-        repositories: Optional[List[str]] = None
-    ) -> List[CollectedDocument]:
+    async def search(self, query: SearchQuery, repositories: Optional[List[str]] = None) -> List[CollectedDocument]:
         """Execute search query."""
         await asyncio.sleep(0.3)
 
@@ -250,17 +250,14 @@ class SearchEngine:
                 author=f"user{i}@company.com",
                 created_date=datetime.now(),
                 custodian_id=query.custodians[0] if query.custodians else None,
-                content_preview=f"Email content matching query: {query.query_text}"
+                content_preview=f"Email content matching query: {query.query_text}",
             )
             documents.append(doc)
 
         logger.info(f"Search found {len(documents)} documents")
         return documents
 
-    async def deduplicate(
-        self,
-        documents: List[CollectedDocument]
-    ) -> List[CollectedDocument]:
+    async def deduplicate(self, documents: List[CollectedDocument]) -> List[CollectedDocument]:
         """Deduplicate documents by hash."""
         await asyncio.sleep(0.2)
 
@@ -288,7 +285,7 @@ class ChainOfCustody:
         action: str,
         performed_by: str,
         details: Optional[str] = None,
-        hash_value: Optional[str] = None
+        hash_value: Optional[str] = None,
     ) -> ChainOfCustodyEntry:
         """Log chain of custody action."""
         await asyncio.sleep(0.02)
@@ -299,7 +296,7 @@ class ChainOfCustody:
             action=action,
             performed_by=performed_by,
             details=details,
-            hash_verification=hash_value
+            hash_verification=hash_value,
         )
 
         self.entries.append(entry)
@@ -313,11 +310,7 @@ class ChainOfCustody:
 
         return [e for e in self.entries if e.document_id == document_id]
 
-    async def verify_integrity(
-        self,
-        document_id: str,
-        current_hash: str
-    ) -> bool:
+    async def verify_integrity(self, document_id: str, current_hash: str) -> bool:
         """Verify document integrity via chain of custody."""
         await asyncio.sleep(0.05)
 
@@ -352,7 +345,7 @@ class eDiscoveryManager:
         custodians: List[str],
         keywords: Optional[List[str]] = None,
         start_date: Optional[datetime] = None,
-        **kwargs
+        **kwargs,
     ) -> LegalHold:
         """Create legal hold."""
         await asyncio.sleep(0.1)
@@ -366,7 +359,7 @@ class eDiscoveryManager:
             end_date=None,
             custodians=custodians,
             keywords=keywords or [],
-            **kwargs
+            **kwargs,
         )
 
         self.legal_holds[hold.hold_id] = hold
@@ -398,7 +391,7 @@ class eDiscoveryManager:
         query: str,
         custodians: Optional[List[str]] = None,
         date_range: Optional[tuple] = None,
-        **kwargs
+        **kwargs,
     ) -> Collection:
         """Search for documents matching criteria."""
         await asyncio.sleep(0.2)
@@ -413,7 +406,7 @@ class eDiscoveryManager:
             custodians=custodians or [],
             date_range_start=date_range[0] if date_range else None,
             date_range_end=date_range[1] if date_range else None,
-            created_by=kwargs.get("created_by", "system")
+            created_by=kwargs.get("created_by", "system"),
         )
 
         # Execute search
@@ -428,7 +421,7 @@ class eDiscoveryManager:
             documents=documents,
             total_documents=len(documents),
             total_size_bytes=sum(d.file_size for d in documents),
-            created_by=kwargs.get("created_by", "system")
+            created_by=kwargs.get("created_by", "system"),
         )
 
         self.collections[collection.collection_id] = collection
@@ -440,19 +433,14 @@ class eDiscoveryManager:
                 action="collected",
                 performed_by=kwargs.get("created_by", "system"),
                 details=f"Collected for case {legal_hold_id}",
-                hash_value=doc.hash_sha256
+                hash_value=doc.hash_sha256,
             )
 
         logger.info(f"Created collection with {len(documents)} documents")
         return collection
 
     async def export_collection(
-        self,
-        collection_id: str,
-        format: str = "pst",
-        include_metadata: bool = True,
-        deduplicate: bool = True,
-        **kwargs
+        self, collection_id: str, format: str = "pst", include_metadata: bool = True, deduplicate: bool = True, **kwargs
     ) -> ExportPackage:
         """Export collection for legal review."""
         await asyncio.sleep(0.3)
@@ -481,7 +469,7 @@ class eDiscoveryManager:
             deduplicate=deduplicate,
             total_documents=len(documents),
             total_size_bytes=sum(d.file_size for d in documents),
-            exported_by=kwargs.get("exported_by", "system")
+            exported_by=kwargs.get("exported_by", "system"),
         )
 
         self.exports[export.export_id] = export
@@ -493,16 +481,13 @@ class eDiscoveryManager:
                 action="exported",
                 performed_by=export.exported_by,
                 details=f"Exported as {format}",
-                hash_value=doc.hash_sha256
+                hash_value=doc.hash_sha256,
             )
 
         logger.info(f"Exported collection {collection_id} to {output_path}")
         return export
 
-    async def get_hold_status(
-        self,
-        hold_id: str
-    ) -> Dict[str, Any]:
+    async def get_hold_status(self, hold_id: str) -> Dict[str, Any]:
         """Get legal hold status summary."""
         await asyncio.sleep(0.05)
 
@@ -528,7 +513,7 @@ class eDiscoveryManager:
             "total_documents": sum(c.total_documents for c in collections),
             "keywords": hold.keywords,
             "start_date": hold.start_date.isoformat(),
-            "end_date": hold.end_date.isoformat() if hold.end_date else None
+            "end_date": hold.end_date.isoformat() if hold.end_date else None,
         }
 
 

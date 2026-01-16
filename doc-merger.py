@@ -44,33 +44,36 @@ Version: 1.0.0
 """
 
 import argparse
-import sys
-import os
+import hashlib
 import json
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass, field, asdict
+import os
+import re
+import sys
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-import hashlib
-import re
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 # Setup logging
 from src.core.logging_config import setup_logging
+
 logger = setup_logging(__name__, log_level="INFO")
 
 
 class MergeMode(str, Enum):
     """Document merge modes"""
+
     CONCATENATE = "concatenate"  # Simple sequential join
-    INTERLEAVE = "interleave"    # Alternate between docs
-    SMART = "smart"              # Intelligent merge with dedup
-    CHAPTERS = "chapters"        # Each doc = chapter
-    SECTIONS = "sections"        # Organize by sections
+    INTERLEAVE = "interleave"  # Alternate between docs
+    SMART = "smart"  # Intelligent merge with dedup
+    CHAPTERS = "chapters"  # Each doc = chapter
+    SECTIONS = "sections"  # Organize by sections
 
 
 class ConflictResolution(str, Enum):
     """Conflict resolution strategies"""
+
     KEEP_FIRST = "keep_first"
     KEEP_LAST = "keep_last"
     KEEP_ALL = "keep_all"
@@ -80,6 +83,7 @@ class ConflictResolution(str, Enum):
 @dataclass
 class DocumentMetadata:
     """Metadata for a document"""
+
     file_path: str
     file_name: str
     file_size: int
@@ -95,6 +99,7 @@ class DocumentMetadata:
 @dataclass
 class MergeResult:
     """Result of document merge operation"""
+
     output_file: str
     merge_mode: str
     input_files: List[str]
@@ -111,6 +116,7 @@ class MergeResult:
 @dataclass
 class MergeConfig:
     """Configuration for merge operation"""
+
     mode: MergeMode = MergeMode.CONCATENATE
     separator: str = "\n\n"
     add_toc: bool = False
@@ -138,12 +144,7 @@ class DocumentMerger:
         self.config = config or MergeConfig()
         logger.info(f"DocumentMerger initialized with mode: {self.config.mode}")
 
-    def merge(
-        self,
-        input_files: List[str],
-        output_file: str,
-        titles: Optional[List[str]] = None
-    ) -> MergeResult:
+    def merge(self, input_files: List[str], output_file: str, titles: Optional[List[str]] = None) -> MergeResult:
         """
         Merge multiple documents into one
 
@@ -167,8 +168,7 @@ class DocumentMerger:
         documents = self._read_documents(valid_files)
 
         # Extract metadata
-        metadata_list = [self._extract_metadata(doc, path)
-                        for doc, path in zip(documents, valid_files)]
+        metadata_list = [self._extract_metadata(doc, path) for doc, path in zip(documents, valid_files)]
 
         # Generate titles if not provided
         if not titles:
@@ -208,7 +208,7 @@ class DocumentMerger:
         end_time = datetime.now()
         execution_time = (end_time - start_time).total_seconds()
 
-        lines = merged_content.count('\n') + 1
+        lines = merged_content.count("\n") + 1
         words = len(merged_content.split())
         chars = len(merged_content)
 
@@ -221,10 +221,7 @@ class DocumentMerger:
             total_chars=chars,
             execution_time=execution_time,
             has_toc=self.config.add_toc,
-            metadata={
-                "input_metadata": [asdict(m) for m in metadata_list],
-                "merge_config": asdict(self.config)
-            }
+            metadata={"input_metadata": [asdict(m) for m in metadata_list], "merge_config": asdict(self.config)},
         )
 
         logger.info(f"Merge completed: {lines} lines, {words} words, {chars} chars")
@@ -252,7 +249,7 @@ class DocumentMerger:
         documents = []
         for path in file_paths:
             try:
-                with open(path, 'r', encoding='utf-8') as f:
+                with open(path, "r", encoding="utf-8") as f:
                     content = f.read()
                     documents.append(content)
                 logger.debug(f"Read {len(content)} chars from {path}")
@@ -273,12 +270,12 @@ class DocumentMerger:
             file_path=file_path,
             file_name=path.name,
             file_size=stat.st_size,
-            line_count=content.count('\n') + 1,
+            line_count=content.count("\n") + 1,
             word_count=len(content.split()),
             char_count=len(content),
             checksum=checksum,
             created_at=datetime.fromtimestamp(stat.st_ctime),
-            modified_at=datetime.fromtimestamp(stat.st_mtime)
+            modified_at=datetime.fromtimestamp(stat.st_mtime),
         )
 
     def _merge_concatenate(self, documents: List[str], titles: List[str]) -> str:
@@ -300,7 +297,7 @@ class DocumentMerger:
     def _merge_interleave(self, documents: List[str], titles: List[str]) -> str:
         """Interleave lines from documents"""
         # Split into lines
-        doc_lines = [doc.split('\n') for doc in documents]
+        doc_lines = [doc.split("\n") for doc in documents]
         max_lines = max(len(lines) for lines in doc_lines)
 
         result_lines = []
@@ -312,7 +309,7 @@ class DocumentMerger:
                         result_lines.append(f"[{titles[doc_idx]}]")
                     result_lines.append(lines[line_idx])
 
-        return '\n'.join(result_lines)
+        return "\n".join(result_lines)
 
     def _merge_smart(self, documents: List[str], titles: List[str]) -> str:
         """Smart merge with deduplication"""
@@ -325,7 +322,7 @@ class DocumentMerger:
 
         # Additional smart processing
         # Remove excessive blank lines
-        merged = re.sub(r'\n{3,}', '\n\n', merged)
+        merged = re.sub(r"\n{3,}", "\n\n", merged)
 
         return merged
 
@@ -369,7 +366,7 @@ class DocumentMerger:
             f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             "",
             "-" * 70,
-            ""
+            "",
         ]
 
         for idx, (title, meta) in enumerate(zip(titles, metadata), 1):
@@ -401,7 +398,7 @@ class DocumentMerger:
     def _normalize_whitespace(self, content: str) -> str:
         """Normalize whitespace in content"""
         # Remove trailing whitespace from lines
-        lines = [line.rstrip() for line in content.split('\n')]
+        lines = [line.rstrip() for line in content.split("\n")]
 
         # Remove multiple consecutive blank lines (max 2)
         normalized_lines = []
@@ -416,7 +413,7 @@ class DocumentMerger:
                 blank_count = 0
                 normalized_lines.append(line)
 
-        return '\n'.join(normalized_lines).rstrip() + '\n'
+        return "\n".join(normalized_lines).rstrip() + "\n"
 
     def _create_backup(self, file_path: str) -> None:
         """Create backup of existing file"""
@@ -424,11 +421,12 @@ class DocumentMerger:
         if not path.exists():
             return
 
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_path = path.parent / f"{path.stem}_{timestamp}{path.suffix}.bak"
 
         try:
             import shutil
+
             shutil.copy2(file_path, backup_path)
             logger.info(f"Created backup: {backup_path}")
         except Exception as e:
@@ -439,7 +437,7 @@ class DocumentMerger:
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             f.write(content)
 
         logger.info(f"Wrote {len(content)} chars to {output_file}")
@@ -452,8 +450,7 @@ class DocumentMerger:
         """
         valid_files = self._validate_files(file_paths)
         documents = self._read_documents(valid_files)
-        metadata_list = [self._extract_metadata(doc, path)
-                        for doc, path in zip(documents, valid_files)]
+        metadata_list = [self._extract_metadata(doc, path) for doc, path in zip(documents, valid_files)]
 
         total_size = sum(m.file_size for m in metadata_list)
         total_lines = sum(m.line_count for m in metadata_list)
@@ -469,7 +466,7 @@ class DocumentMerger:
             "total_lines": total_lines,
             "total_words": total_words,
             "duplicate_count": duplicates,
-            "documents": [asdict(m) for m in metadata_list]
+            "documents": [asdict(m) for m in metadata_list],
         }
 
 
@@ -501,7 +498,7 @@ Merge Modes:
   smart        - Intelligent merging with deduplication
   chapters     - Each document becomes a chapter
   sections     - Organize by sections
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -510,16 +507,13 @@ Merge Modes:
     merge_parser = subparsers.add_parser("merge", help="Merge documents")
     merge_parser.add_argument("files", nargs="+", help="Input files to merge")
     merge_parser.add_argument("-o", "--output", required=True, help="Output file")
-    merge_parser.add_argument("--mode", choices=[m.value for m in MergeMode],
-                             default="concatenate", help="Merge mode")
+    merge_parser.add_argument("--mode", choices=[m.value for m in MergeMode], default="concatenate", help="Merge mode")
     merge_parser.add_argument("--toc", action="store_true", help="Add table of contents")
     merge_parser.add_argument("--no-headers", action="store_true", help="Don't add document headers")
     merge_parser.add_argument("--separator", default="\n\n", help="Separator between documents")
     merge_parser.add_argument("--titles", nargs="+", help="Custom titles for documents")
-    merge_parser.add_argument("--remove-duplicates", action="store_true",
-                             help="Remove duplicate documents")
-    merge_parser.add_argument("--backup", action="store_true",
-                             help="Create backup if output exists")
+    merge_parser.add_argument("--remove-duplicates", action="store_true", help="Remove duplicate documents")
+    merge_parser.add_argument("--backup", action="store_true", help="Create backup if output exists")
 
     # Analyze command
     analyze_parser = subparsers.add_parser("analyze", help="Analyze documents before merge")
@@ -541,7 +535,7 @@ Merge Modes:
                 add_toc=args.toc,
                 add_headers=not args.no_headers,
                 remove_duplicates=args.remove_duplicates,
-                create_backup=args.backup
+                create_backup=args.backup,
             )
 
             merger = DocumentMerger(config)
@@ -578,7 +572,7 @@ Merge Modes:
             print(f"Duplicates found: {analysis['duplicate_count']}")
             print(f"\nDocuments:")
 
-            for idx, doc in enumerate(analysis['documents'], 1):
+            for idx, doc in enumerate(analysis["documents"], 1):
                 print(f"\n{idx}. {doc['file_name']}")
                 print(f"   Size: {doc['file_size']:,} bytes")
                 print(f"   Lines: {doc['line_count']:,} | Words: {doc['word_count']:,}")
@@ -586,7 +580,7 @@ Merge Modes:
 
             # Save to JSON if requested
             if args.output:
-                with open(args.output, 'w') as f:
+                with open(args.output, "w") as f:
                     json.dump(analysis, f, indent=2, default=str)
                 print(f"\n💾 Analysis saved to: {args.output}")
 

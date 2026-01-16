@@ -5,17 +5,18 @@ Provides secure email verification and password reset functionality
 with time-limited tokens and comprehensive logging.
 """
 
+import logging
 import secrets
 import sqlite3
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, Tuple
-import logging
-import jwt
 from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
+
+import jwt
 
 from .email_notifier import EmailNotifier
 
-logger = logging.getLogger('dms.email_verification')
+logger = logging.getLogger("dms.email_verification")
 
 
 class EmailVerificationManager:
@@ -23,9 +24,9 @@ class EmailVerificationManager:
 
     def __init__(
         self,
-        db_path: str = 'data/db/users.db',
+        db_path: str = "data/db/users.db",
         email_notifier: Optional[EmailNotifier] = None,
-        base_url: str = 'http://localhost:5000'
+        base_url: str = "http://localhost:5000",
     ):
         """
         Initialize email verification manager.
@@ -37,7 +38,7 @@ class EmailVerificationManager:
         """
         self.db_path = db_path
         self.email_notifier = email_notifier
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self._init_database()
 
     def _init_database(self):
@@ -50,14 +51,15 @@ class EmailVerificationManager:
 
         # Add email_verified column to users table if not exists
         try:
-            cursor.execute('ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0')
+            cursor.execute("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0")
             logger.info("Added email_verified column to users table")
         except sqlite3.OperationalError:
             # Column already exists
             pass
 
         # Create email verification tokens table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS email_verification_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -68,10 +70,12 @@ class EmailVerificationManager:
                 ip_address TEXT,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             )
-        ''')
+        """
+        )
 
         # Create password reset tokens table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS password_reset_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -82,36 +86,41 @@ class EmailVerificationManager:
                 ip_address TEXT,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             )
-        ''')
+        """
+        )
 
         # Create indexes for faster lookups
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_email_verification_user_id
             ON email_verification_tokens(user_id)
-        ''')
-        cursor.execute('''
+        """
+        )
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_email_verification_token
             ON email_verification_tokens(token)
-        ''')
-        cursor.execute('''
+        """
+        )
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_password_reset_user_id
             ON password_reset_tokens(user_id)
-        ''')
-        cursor.execute('''
+        """
+        )
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_password_reset_token
             ON password_reset_tokens(token)
-        ''')
+        """
+        )
 
         conn.commit()
         conn.close()
         logger.info("Email verification database initialized")
 
     def generate_verification_token(
-        self,
-        user_id: int,
-        email: str,
-        expires_in: int = 86400,  # 24 hours
-        ip_address: Optional[str] = None
+        self, user_id: int, email: str, expires_in: int = 86400, ip_address: Optional[str] = None  # 24 hours
     ) -> str:
         """
         Generate email verification token.
@@ -133,17 +142,23 @@ class EmailVerificationManager:
         cursor = conn.cursor()
 
         # Invalidate any existing tokens for this user
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE email_verification_tokens
             SET expires_at = CURRENT_TIMESTAMP
             WHERE user_id = ? AND verified_at IS NULL
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         # Insert new token
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO email_verification_tokens (user_id, token, expires_at, ip_address)
             VALUES (?, ?, ?, ?)
-        ''', (user_id, token, expires_at.isoformat(), ip_address))
+        """,
+            (user_id, token, expires_at.isoformat(), ip_address),
+        )
 
         conn.commit()
         conn.close()
@@ -152,11 +167,7 @@ class EmailVerificationManager:
         return token
 
     def send_verification_email(
-        self,
-        user_id: int,
-        email: str,
-        username: str,
-        ip_address: Optional[str] = None
+        self, user_id: int, email: str, username: str, ip_address: Optional[str] = None
     ) -> Tuple[bool, str]:
         """
         Send email verification email.
@@ -257,12 +268,7 @@ class EmailVerificationManager:
         """
 
         # Send email
-        success = self.email_notifier.send_email(
-            to_emails=[email],
-            subject=subject,
-            body=html_body,
-            html=True
-        )
+        success = self.email_notifier.send_email(to_emails=[email], subject=subject, body=html_body, html=True)
 
         if success:
             logger.info(f"Verification email sent to {email}")
@@ -287,11 +293,14 @@ class EmailVerificationManager:
 
         try:
             # Find token
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT user_id, expires_at, verified_at
                 FROM email_verification_tokens
                 WHERE token = ?
-            ''', (token,))
+            """,
+                (token,),
+            )
 
             row = cursor.fetchone()
 
@@ -312,18 +321,24 @@ class EmailVerificationManager:
                 return False, "Verification token has expired", None
 
             # Mark as verified
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE email_verification_tokens
                 SET verified_at = CURRENT_TIMESTAMP
                 WHERE token = ?
-            ''', (token,))
+            """,
+                (token,),
+            )
 
             # Update user email_verified status
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE users
                 SET email_verified = 1
                 WHERE id = ?
-            ''', (user_id,))
+            """,
+                (user_id,),
+            )
 
             conn.commit()
             logger.info(f"Email verified successfully for user {user_id}")
@@ -337,11 +352,7 @@ class EmailVerificationManager:
             conn.close()
 
     def generate_password_reset_token(
-        self,
-        user_id: int,
-        email: str,
-        expires_in: int = 3600,  # 1 hour
-        ip_address: Optional[str] = None
+        self, user_id: int, email: str, expires_in: int = 3600, ip_address: Optional[str] = None  # 1 hour
     ) -> str:
         """
         Generate password reset token.
@@ -363,17 +374,23 @@ class EmailVerificationManager:
         cursor = conn.cursor()
 
         # Invalidate any existing tokens for this user
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE password_reset_tokens
             SET expires_at = CURRENT_TIMESTAMP
             WHERE user_id = ? AND used_at IS NULL
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         # Insert new token
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO password_reset_tokens (user_id, token, expires_at, ip_address)
             VALUES (?, ?, ?, ?)
-        ''', (user_id, token, expires_at.isoformat(), ip_address))
+        """,
+            (user_id, token, expires_at.isoformat(), ip_address),
+        )
 
         conn.commit()
         conn.close()
@@ -381,11 +398,7 @@ class EmailVerificationManager:
         logger.info(f"Generated password reset token for user {user_id}")
         return token
 
-    def send_password_reset_email(
-        self,
-        email: str,
-        ip_address: Optional[str] = None
-    ) -> Tuple[bool, str]:
+    def send_password_reset_email(self, email: str, ip_address: Optional[str] = None) -> Tuple[bool, str]:
         """
         Send password reset email.
 
@@ -400,11 +413,14 @@ class EmailVerificationManager:
         cursor = conn.cursor()
 
         # Find user by email
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT id, username, email
             FROM users
             WHERE email = ? AND is_active = 1
-        ''', (email,))
+        """,
+            (email,),
+        )
 
         row = cursor.fetchone()
         conn.close()
@@ -517,12 +533,7 @@ class EmailVerificationManager:
         """
 
         # Send email
-        success = self.email_notifier.send_email(
-            to_emails=[user_email],
-            subject=subject,
-            body=html_body,
-            html=True
-        )
+        success = self.email_notifier.send_email(to_emails=[user_email], subject=subject, body=html_body, html=True)
 
         if success:
             logger.info(f"Password reset email sent to {user_email}")
@@ -547,11 +558,14 @@ class EmailVerificationManager:
 
         try:
             # Find token
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT user_id, expires_at, used_at
                 FROM password_reset_tokens
                 WHERE token = ?
-            ''', (token,))
+            """,
+                (token,),
+            )
 
             row = cursor.fetchone()
 
@@ -581,11 +595,7 @@ class EmailVerificationManager:
             conn.close()
 
     def reset_password(
-        self,
-        token: str,
-        new_password: str,
-        bcrypt_instance,
-        ip_address: Optional[str] = None
+        self, token: str, new_password: str, bcrypt_instance, ip_address: Optional[str] = None
     ) -> Tuple[bool, str]:
         """
         Reset password using token.
@@ -606,24 +616,30 @@ class EmailVerificationManager:
 
         try:
             # Hash new password
-            password_hash = bcrypt_instance.generate_password_hash(new_password).decode('utf-8')
+            password_hash = bcrypt_instance.generate_password_hash(new_password).decode("utf-8")
 
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
             # Update password
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE users
                 SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            ''', (password_hash, user_id))
+            """,
+                (password_hash, user_id),
+            )
 
             # Mark token as used
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE password_reset_tokens
                 SET used_at = CURRENT_TIMESTAMP
                 WHERE token = ?
-            ''', (token,))
+            """,
+                (token,),
+            )
 
             conn.commit()
             conn.close()
@@ -648,11 +664,14 @@ class EmailVerificationManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT email_verified
             FROM users
             WHERE id = ?
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         row = cursor.fetchone()
         conn.close()
@@ -673,35 +692,34 @@ class EmailVerificationManager:
 
         try:
             # Delete expired verification tokens
-            cursor.execute('''
+            cursor.execute(
+                """
                 DELETE FROM email_verification_tokens
                 WHERE expires_at < ? AND verified_at IS NULL
-            ''', (datetime.utcnow().isoformat(),))
+            """,
+                (datetime.utcnow().isoformat(),),
+            )
             verification_deleted = cursor.rowcount
 
             # Delete expired reset tokens
-            cursor.execute('''
+            cursor.execute(
+                """
                 DELETE FROM password_reset_tokens
                 WHERE expires_at < ? AND used_at IS NULL
-            ''', (datetime.utcnow().isoformat(),))
+            """,
+                (datetime.utcnow().isoformat(),),
+            )
             reset_deleted = cursor.rowcount
 
             conn.commit()
 
             logger.info(f"Cleaned up {verification_deleted} verification tokens and {reset_deleted} reset tokens")
 
-            return {
-                'verification_tokens_deleted': verification_deleted,
-                'reset_tokens_deleted': reset_deleted
-            }
+            return {"verification_tokens_deleted": verification_deleted, "reset_tokens_deleted": reset_deleted}
 
         except Exception as e:
             logger.error(f"Error cleaning up tokens: {e}")
-            return {
-                'verification_tokens_deleted': 0,
-                'reset_tokens_deleted': 0,
-                'error': str(e)
-            }
+            return {"verification_tokens_deleted": 0, "reset_tokens_deleted": 0, "error": str(e)}
 
         finally:
             conn.close()
@@ -712,16 +730,14 @@ _email_verification_manager: Optional[EmailVerificationManager] = None
 
 
 def get_email_verification_manager(
-    db_path: str = 'data/db/users.db',
+    db_path: str = "data/db/users.db",
     email_notifier: Optional[EmailNotifier] = None,
-    base_url: str = 'http://localhost:5000'
+    base_url: str = "http://localhost:5000",
 ) -> EmailVerificationManager:
     """Get or create email verification manager instance."""
     global _email_verification_manager
     if _email_verification_manager is None:
         _email_verification_manager = EmailVerificationManager(
-            db_path=db_path,
-            email_notifier=email_notifier,
-            base_url=base_url
+            db_path=db_path, email_notifier=email_notifier, base_url=base_url
         )
     return _email_verification_manager

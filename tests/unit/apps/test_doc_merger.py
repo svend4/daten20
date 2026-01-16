@@ -12,27 +12,26 @@ Tests all major functionality of DocumentMerger:
 - Configuration options
 """
 
-import pytest
-import sys
 import os
-from pathlib import Path
-import tempfile
 import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the merger module
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("doc_merger", "doc-merger.py")
 doc_merger = importlib.util.module_from_spec(spec)
-sys.modules['doc_merger'] = doc_merger
+sys.modules["doc_merger"] = doc_merger
 spec.loader.exec_module(doc_merger)
 
-from doc_merger import (
-    DocumentMerger, MergeMode, ConflictResolution,
-    MergeConfig, MergeResult, DocumentMetadata
-)
+from doc_merger import ConflictResolution, DocumentMerger, DocumentMetadata, MergeConfig, MergeMode, MergeResult
 
 
 # Fixtures
@@ -52,17 +51,17 @@ def sample_files(temp_dir):
     # File 1: Simple text
     file1 = temp_dir / "doc1.txt"
     file1.write_text("This is document one.\nIt has multiple lines.\nAnd some content.")
-    files['doc1'] = str(file1)
+    files["doc1"] = str(file1)
 
     # File 2: Another text
     file2 = temp_dir / "doc2.txt"
     file2.write_text("This is document two.\nWith different content.\nMore lines here.")
-    files['doc2'] = str(file2)
+    files["doc2"] = str(file2)
 
     # File 3: With duplicates
     file3 = temp_dir / "doc3.txt"
     file3.write_text("This is document one.\nIt has multiple lines.\nNew unique content.")
-    files['doc3'] = str(file3)
+    files["doc3"] = str(file3)
 
     return files
 
@@ -93,11 +92,7 @@ class TestDocumentMerger:
 
     def test_merger_custom_config(self):
         """Test merger with custom configuration"""
-        config = MergeConfig(
-            mode=MergeMode.CHAPTERS,
-            add_toc=True,
-            remove_duplicates=True
-        )
+        config = MergeConfig(mode=MergeMode.CHAPTERS, add_toc=True, remove_duplicates=True)
         merger = DocumentMerger(config)
         assert merger.config.mode == MergeMode.CHAPTERS
         assert merger.config.add_toc is True
@@ -105,22 +100,22 @@ class TestDocumentMerger:
 
     def test_merge_modes_enum(self):
         """Test that all merge modes are available"""
-        assert hasattr(MergeMode, 'CONCATENATE')
-        assert hasattr(MergeMode, 'INTERLEAVE')
-        assert hasattr(MergeMode, 'SMART')
-        assert hasattr(MergeMode, 'CHAPTERS')
-        assert hasattr(MergeMode, 'SECTIONS')
+        assert hasattr(MergeMode, "CONCATENATE")
+        assert hasattr(MergeMode, "INTERLEAVE")
+        assert hasattr(MergeMode, "SMART")
+        assert hasattr(MergeMode, "CHAPTERS")
+        assert hasattr(MergeMode, "SECTIONS")
 
     def test_conflict_resolution_enum(self):
         """Test that all conflict resolution strategies are available"""
-        assert hasattr(ConflictResolution, 'KEEP_FIRST')
-        assert hasattr(ConflictResolution, 'KEEP_LAST')
-        assert hasattr(ConflictResolution, 'KEEP_ALL')
-        assert hasattr(ConflictResolution, 'MANUAL')
+        assert hasattr(ConflictResolution, "KEEP_FIRST")
+        assert hasattr(ConflictResolution, "KEEP_LAST")
+        assert hasattr(ConflictResolution, "KEEP_ALL")
+        assert hasattr(ConflictResolution, "MANUAL")
 
     def test_validate_files(self, merger, sample_files):
         """Test file validation"""
-        valid_files = merger._validate_files([sample_files['doc1'], sample_files['doc2']])
+        valid_files = merger._validate_files([sample_files["doc1"], sample_files["doc2"]])
         assert len(valid_files) == 2
 
     def test_validate_files_nonexistent(self, merger):
@@ -131,15 +126,15 @@ class TestDocumentMerger:
 
     def test_read_documents(self, merger, sample_files):
         """Test reading documents"""
-        docs = merger._read_documents([sample_files['doc1'], sample_files['doc2']])
+        docs = merger._read_documents([sample_files["doc1"], sample_files["doc2"]])
         assert len(docs) == 2
         assert "document one" in docs[0]
         assert "document two" in docs[1]
 
     def test_extract_metadata(self, merger, sample_files):
         """Test metadata extraction"""
-        content = Path(sample_files['doc1']).read_text()
-        metadata = merger._extract_metadata(content, sample_files['doc1'])
+        content = Path(sample_files["doc1"]).read_text()
+        metadata = merger._extract_metadata(content, sample_files["doc1"])
 
         assert isinstance(metadata, DocumentMetadata)
         assert metadata.file_name == "doc1.txt"
@@ -154,10 +149,7 @@ class TestDocumentMerger:
         merger = DocumentMerger(config)
 
         output_file = temp_dir / "merged_concat.txt"
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         assert result.merge_mode == "concatenate"
         assert len(result.input_files) == 2
@@ -175,10 +167,7 @@ class TestDocumentMerger:
         merger = DocumentMerger(config)
 
         output_file = temp_dir / "merged_interleave.txt"
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         assert result.merge_mode == "interleave"
         assert output_file.exists()
@@ -190,8 +179,7 @@ class TestDocumentMerger:
 
         output_file = temp_dir / "merged_smart.txt"
         result = merger.merge(
-            [sample_files['doc1'], sample_files['doc3']],  # doc3 has duplicates from doc1
-            output_file=str(output_file)
+            [sample_files["doc1"], sample_files["doc3"]], output_file=str(output_file)  # doc3 has duplicates from doc1
         )
 
         assert result.merge_mode == "smart"
@@ -203,10 +191,7 @@ class TestDocumentMerger:
         merger = DocumentMerger(config)
 
         output_file = temp_dir / "merged_chapters.txt"
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         assert result.merge_mode == "chapters"
         assert output_file.exists()
@@ -221,10 +206,7 @@ class TestDocumentMerger:
         merger = DocumentMerger(config)
 
         output_file = temp_dir / "merged_sections.txt"
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         assert result.merge_mode == "sections"
         assert output_file.exists()
@@ -235,10 +217,7 @@ class TestDocumentMerger:
         merger = DocumentMerger(config)
 
         output_file = temp_dir / "merged_with_toc.txt"
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         assert result.has_toc is True
         assert output_file.exists()
@@ -249,11 +228,7 @@ class TestDocumentMerger:
 
     def test_remove_duplicate_content(self, merger):
         """Test duplicate content removal"""
-        docs = [
-            "Line 1\nLine 2\nLine 3",
-            "Line 2\nLine 3\nLine 4",  # Lines 2&3 are duplicates
-            "Line 5\nLine 6"
-        ]
+        docs = ["Line 1\nLine 2\nLine 3", "Line 2\nLine 3\nLine 4", "Line 5\nLine 6"]  # Lines 2&3 are duplicates
 
         cleaned = merger._remove_duplicate_content(docs)
         assert len(cleaned) <= len(docs)
@@ -273,7 +248,7 @@ class TestDocumentMerger:
 
         # Create metadata
         metadata_list = []
-        for file_path in [sample_files['doc1'], sample_files['doc2']]:
+        for file_path in [sample_files["doc1"], sample_files["doc2"]]:
             content = Path(file_path).read_text()
             metadata = merger._extract_metadata(content, file_path)
             metadata_list.append(metadata)
@@ -314,49 +289,43 @@ class TestDocumentMerger:
 
     def test_analyze_documents(self, merger, sample_files):
         """Test document analysis"""
-        analysis = merger.analyze_documents([sample_files['doc1'], sample_files['doc2']])
+        analysis = merger.analyze_documents([sample_files["doc1"], sample_files["doc2"]])
 
         # Actual implementation uses 'total_documents' not 'document_count'
-        assert 'total_documents' in analysis or 'document_count' in analysis
-        doc_count = analysis.get('total_documents', analysis.get('document_count', 0))
+        assert "total_documents" in analysis or "document_count" in analysis
+        doc_count = analysis.get("total_documents", analysis.get("document_count", 0))
         assert doc_count == 2
-        assert 'total_size' in analysis
-        assert 'documents' in analysis
-        assert len(analysis['documents']) == 2
+        assert "total_size" in analysis
+        assert "documents" in analysis
+        assert len(analysis["documents"]) == 2
 
     def test_merge_result_structure(self, temp_dir, sample_files):
         """Test that MergeResult has all expected fields"""
         merger = DocumentMerger()
         output_file = temp_dir / "result.txt"
 
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         assert isinstance(result, MergeResult)
-        assert hasattr(result, 'output_file')
-        assert hasattr(result, 'merge_mode')
-        assert hasattr(result, 'input_files')
-        assert hasattr(result, 'total_lines')
-        assert hasattr(result, 'total_words')
-        assert hasattr(result, 'total_chars')
-        assert hasattr(result, 'execution_time')
-        assert hasattr(result, 'has_toc')
-        assert hasattr(result, 'metadata')
-        assert hasattr(result, 'warnings')
-        assert hasattr(result, 'errors')
+        assert hasattr(result, "output_file")
+        assert hasattr(result, "merge_mode")
+        assert hasattr(result, "input_files")
+        assert hasattr(result, "total_lines")
+        assert hasattr(result, "total_words")
+        assert hasattr(result, "total_chars")
+        assert hasattr(result, "execution_time")
+        assert hasattr(result, "has_toc")
+        assert hasattr(result, "metadata")
+        assert hasattr(result, "warnings")
+        assert hasattr(result, "errors")
 
     def test_merge_with_custom_separator(self, temp_dir, sample_files):
         """Test merge with custom separator"""
-        config = MergeConfig(separator="\n" + "="*50 + "\n")
+        config = MergeConfig(separator="\n" + "=" * 50 + "\n")
         merger = DocumentMerger(config)
 
         output_file = temp_dir / "custom_sep.txt"
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         assert output_file.exists()
         content = output_file.read_text()
@@ -372,10 +341,7 @@ class TestDocumentMerger:
     def test_merge_single_file(self, merger, temp_dir, sample_files):
         """Test merge with single file"""
         output_file = temp_dir / "single.txt"
-        result = merger.merge(
-            [sample_files['doc1']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"]], output_file=str(output_file))
 
         assert result.merge_mode == "concatenate"
         assert len(result.input_files) == 1
@@ -387,14 +353,11 @@ class TestDocumentMerger:
         merger = DocumentMerger(config)
 
         output_file = temp_dir / "with_metadata.txt"
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         # Actual implementation uses 'input_metadata' not nested 'metadata'
-        assert 'input_metadata' in result.metadata or 'metadata' in result.metadata
-        metadata_list = result.metadata.get('input_metadata', result.metadata.get('metadata', []))
+        assert "input_metadata" in result.metadata or "metadata" in result.metadata
+        metadata_list = result.metadata.get("input_metadata", result.metadata.get("metadata", []))
         assert len(metadata_list) == 2
 
     def test_config_defaults(self):
@@ -432,10 +395,7 @@ class TestDocumentMerger:
     def test_merge_result_timing(self, merger, temp_dir, sample_files):
         """Test that execution time is recorded"""
         output_file = temp_dir / "timing.txt"
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         assert result.execution_time > 0
         assert result.execution_time < 10  # Should be fast
@@ -443,10 +403,7 @@ class TestDocumentMerger:
     def test_warnings_and_errors_lists(self, merger, temp_dir, sample_files):
         """Test that warnings and errors are tracked"""
         output_file = temp_dir / "tracked.txt"
-        result = merger.merge(
-            [sample_files['doc1'], sample_files['doc2']],
-            output_file=str(output_file)
-        )
+        result = merger.merge([sample_files["doc1"], sample_files["doc2"]], output_file=str(output_file))
 
         assert isinstance(result.warnings, list)
         assert isinstance(result.errors, list)
@@ -495,7 +452,7 @@ class TestDocumentMergerIntegration:
             add_headers=True,
             remove_duplicates=True,
             normalize_whitespace=True,
-            preserve_metadata=True
+            preserve_metadata=True,
         )
 
         merger = DocumentMerger(config)

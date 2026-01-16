@@ -10,15 +10,16 @@ Features:
 - Automatic cleanup of expired tokens
 """
 
-import sqlite3
-import jwt
-import secrets
 import logging
+import secrets
+import sqlite3
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, Tuple
 from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
-logger = logging.getLogger('dms.auth_enhanced')
+import jwt
+
+logger = logging.getLogger("dms.auth_enhanced")
 
 
 class TokenBlacklist:
@@ -28,7 +29,7 @@ class TokenBlacklist:
     Maintains a list of revoked tokens to prevent their use.
     """
 
-    def __init__(self, db_path: str = 'data/db/users.db'):
+    def __init__(self, db_path: str = "data/db/users.db"):
         """
         Initialize token blacklist.
 
@@ -46,7 +47,8 @@ class TokenBlacklist:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS token_blacklist (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 token TEXT UNIQUE NOT NULL,
@@ -55,24 +57,28 @@ class TokenBlacklist:
                 expires_at TIMESTAMP NOT NULL,
                 reason TEXT
             )
-        ''')
+        """
+        )
 
         # Index for fast lookup
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_blacklist_token
             ON token_blacklist(token)
-        ''')
+        """
+        )
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_blacklist_expires
             ON token_blacklist(expires_at)
-        ''')
+        """
+        )
 
         conn.commit()
         conn.close()
 
-    def add_token(self, token: str, user_id: int, expires_at: datetime,
-                  reason: str = "logout"):
+    def add_token(self, token: str, user_id: int, expires_at: datetime, reason: str = "logout"):
         """
         Add token to blacklist.
 
@@ -86,11 +92,14 @@ class TokenBlacklist:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT OR IGNORE INTO token_blacklist
                 (token, user_id, expires_at, reason)
                 VALUES (?, ?, ?, ?)
-            ''', (token, user_id, expires_at.isoformat(), reason))
+            """,
+                (token, user_id, expires_at.isoformat(), reason),
+            )
 
             conn.commit()
             conn.close()
@@ -113,10 +122,13 @@ class TokenBlacklist:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT COUNT(*) FROM token_blacklist
             WHERE token = ? AND expires_at > datetime('now')
-        ''', (token,))
+        """,
+            (token,),
+        )
 
         count = cursor.fetchone()[0]
         conn.close()
@@ -140,10 +152,12 @@ class TokenBlacklist:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 DELETE FROM token_blacklist
                 WHERE expires_at < datetime('now')
-            ''')
+            """
+            )
 
             deleted = cursor.rowcount
             conn.commit()
@@ -164,7 +178,7 @@ class RefreshTokenManager:
     re-authenticating.
     """
 
-    def __init__(self, db_path: str = 'data/db/users.db'):
+    def __init__(self, db_path: str = "data/db/users.db"):
         """
         Initialize refresh token manager.
 
@@ -182,7 +196,8 @@ class RefreshTokenManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS refresh_tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 token TEXT UNIQUE NOT NULL,
@@ -195,17 +210,22 @@ class RefreshTokenManager:
                 user_agent TEXT,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
-        ''')
+        """
+        )
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_refresh_token
             ON refresh_tokens(token)
-        ''')
+        """
+        )
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_refresh_user
             ON refresh_tokens(user_id)
-        ''')
+        """
+        )
 
         conn.commit()
         conn.close()
@@ -215,7 +235,7 @@ class RefreshTokenManager:
         user_id: int,
         expires_in_days: int = 30,
         ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
     ) -> str:
         """
         Create a new refresh token.
@@ -237,11 +257,14 @@ class RefreshTokenManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO refresh_tokens
             (token, user_id, expires_at, ip_address, user_agent)
             VALUES (?, ?, ?, ?, ?)
-        ''', (token, user_id, expires_at.isoformat(), ip_address, user_agent))
+        """,
+            (token, user_id, expires_at.isoformat(), ip_address, user_agent),
+        )
 
         conn.commit()
         conn.close()
@@ -263,11 +286,14 @@ class RefreshTokenManager:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT user_id, expires_at, is_active
             FROM refresh_tokens
             WHERE token = ?
-        ''', (token,))
+        """,
+            (token,),
+        )
 
         row = cursor.fetchone()
 
@@ -277,26 +303,29 @@ class RefreshTokenManager:
             return None
 
         # Check if active
-        if not row['is_active']:
+        if not row["is_active"]:
             conn.close()
             logger.warning("Refresh token is inactive")
             return None
 
         # Check expiration
-        expires_at = datetime.fromisoformat(row['expires_at'])
+        expires_at = datetime.fromisoformat(row["expires_at"])
         if expires_at < datetime.now():
             conn.close()
             logger.warning("Refresh token expired")
             return None
 
-        user_id = row['user_id']
+        user_id = row["user_id"]
 
         # Update last used timestamp
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE refresh_tokens
             SET last_used_at = datetime('now')
             WHERE token = ?
-        ''', (token,))
+        """,
+            (token,),
+        )
 
         conn.commit()
         conn.close()
@@ -314,11 +343,14 @@ class RefreshTokenManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE refresh_tokens
             SET is_active = 0
             WHERE token = ?
-        ''', (token,))
+        """,
+            (token,),
+        )
 
         conn.commit()
         conn.close()
@@ -335,11 +367,14 @@ class RefreshTokenManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE refresh_tokens
             SET is_active = 0
             WHERE user_id = ?
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         count = cursor.rowcount
         conn.commit()
@@ -353,10 +388,12 @@ class RefreshTokenManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 DELETE FROM refresh_tokens
                 WHERE expires_at < datetime('now')
-            ''')
+            """
+            )
 
             deleted = cursor.rowcount
             conn.commit()
@@ -382,12 +419,15 @@ class RefreshTokenManager:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT token, created_at, last_used_at, expires_at, ip_address, user_agent
             FROM refresh_tokens
             WHERE user_id = ? AND is_active = 1
             ORDER BY created_at DESC
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         tokens = [dict(row) for row in cursor.fetchall()]
         conn.close()
@@ -400,8 +440,7 @@ class EnhancedAuthManager:
     Enhanced authentication manager with refresh tokens and blacklist.
     """
 
-    def __init__(self, auth_manager, secret_key: str,
-                 db_path: str = 'data/db/users.db'):
+    def __init__(self, auth_manager, secret_key: str, db_path: str = "data/db/users.db"):
         """
         Initialize enhanced auth manager.
 
@@ -422,7 +461,7 @@ class EnhancedAuthManager:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         access_token_ttl: int = 3600,  # 1 hour
-        refresh_token_ttl: int = 30    # 30 days
+        refresh_token_ttl: int = 30,  # 30 days
     ) -> Optional[Tuple[str, str]]:
         """
         Login user and get access + refresh tokens.
@@ -445,16 +484,11 @@ class EnhancedAuthManager:
             return None
 
         # Generate access token
-        access_token = self.auth_manager.generate_token(
-            user, self.secret_key, expires_in=access_token_ttl
-        )
+        access_token = self.auth_manager.generate_token(user, self.secret_key, expires_in=access_token_ttl)
 
         # Generate refresh token
         refresh_token = self.refresh_manager.create_refresh_token(
-            user.id,
-            expires_in_days=refresh_token_ttl,
-            ip_address=ip_address,
-            user_agent=user_agent
+            user.id, expires_in_days=refresh_token_ttl, ip_address=ip_address, user_agent=user_agent
         )
 
         logger.info(f"User logged in: {username}")
@@ -499,11 +533,9 @@ class EnhancedAuthManager:
         """
         # Decode access token to get user_id and expiration
         try:
-            payload = jwt.decode(
-                access_token, self.secret_key, algorithms=['HS256']
-            )
-            user_id = payload.get('user_id')
-            exp = datetime.fromtimestamp(payload.get('exp'))
+            payload = jwt.decode(access_token, self.secret_key, algorithms=["HS256"])
+            user_id = payload.get("user_id")
+            exp = datetime.fromtimestamp(payload.get("exp"))
 
             # Blacklist access token
             self.blacklist.add_token(access_token, user_id, exp, reason="logout")
@@ -554,8 +586,7 @@ class EnhancedAuthManager:
 
 
 # Background cleanup task
-def start_token_cleanup_task(enhanced_auth: EnhancedAuthManager,
-                            interval: int = 3600):
+def start_token_cleanup_task(enhanced_auth: EnhancedAuthManager, interval: int = 3600):
     """
     Start background task to cleanup expired tokens.
 

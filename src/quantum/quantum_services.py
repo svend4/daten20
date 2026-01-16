@@ -14,24 +14,26 @@ Version: 4.1.0
 """
 
 import asyncio
+import hashlib
 import math
-import numpy as np
+import threading
+import uuid
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Any, Tuple, Callable, Union
-import threading
-import uuid
-import hashlib
-from collections import defaultdict
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 
 # ============================================================================
 # QUANTUM CIRCUIT ENGINE
 # ============================================================================
 
+
 class GateType(Enum):
     """Quantum gate types"""
+
     # Single-qubit gates
     H = "hadamard"  # Hadamard
     X = "pauli_x"  # NOT gate
@@ -63,6 +65,7 @@ class GateType(Enum):
 @dataclass
 class QuantumGate:
     """Quantum gate definition"""
+
     gate_type: GateType
     target_qubits: List[int]
     control_qubits: Optional[List[int]] = None
@@ -79,6 +82,7 @@ class QuantumGate:
 @dataclass
 class QuantumState:
     """Quantum state representation"""
+
     statevector: np.ndarray
     num_qubits: int
     probabilities: Optional[Dict[str, float]] = None
@@ -91,7 +95,7 @@ class QuantumState:
         """Compute measurement probabilities"""
         probs = {}
         for i, amplitude in enumerate(self.statevector):
-            bitstring = format(i, f'0{self.num_qubits}b')
+            bitstring = format(i, f"0{self.num_qubits}b")
             prob = abs(amplitude) ** 2
             if prob > 1e-10:  # Filter out negligible probabilities
                 probs[bitstring] = prob
@@ -101,6 +105,7 @@ class QuantumState:
 @dataclass
 class NoiseModel:
     """Quantum noise model for realistic simulation"""
+
     depolarizing_error: float = 0.001  # 0.1% depolarizing error
     amplitude_damping: float = 0.0005  # 0.05% amplitude damping
     phase_flip: float = 0.0005  # 0.05% phase flip
@@ -121,10 +126,7 @@ class NoiseModel:
         if norm > 0:
             noisy_statevector /= norm
 
-        return QuantumState(
-            statevector=noisy_statevector,
-            num_qubits=state.num_qubits
-        )
+        return QuantumState(statevector=noisy_statevector, num_qubits=state.num_qubits)
 
 
 class QuantumCircuit:
@@ -140,85 +142,85 @@ class QuantumCircuit:
 
     def _initialize_state(self) -> np.ndarray:
         """Initialize quantum state to |0...0>"""
-        state = np.zeros(2 ** self.num_qubits, dtype=complex)
+        state = np.zeros(2**self.num_qubits, dtype=complex)
         state[0] = 1.0 + 0.0j
         return state
 
     # Single-qubit gates
-    def h(self, qubit: int) -> 'QuantumCircuit':
+    def h(self, qubit: int) -> "QuantumCircuit":
         """Apply Hadamard gate"""
         self.gates.append(QuantumGate(GateType.H, [qubit]))
         return self
 
-    def x(self, qubit: int) -> 'QuantumCircuit':
+    def x(self, qubit: int) -> "QuantumCircuit":
         """Apply Pauli-X (NOT) gate"""
         self.gates.append(QuantumGate(GateType.X, [qubit]))
         return self
 
-    def y(self, qubit: int) -> 'QuantumCircuit':
+    def y(self, qubit: int) -> "QuantumCircuit":
         """Apply Pauli-Y gate"""
         self.gates.append(QuantumGate(GateType.Y, [qubit]))
         return self
 
-    def z(self, qubit: int) -> 'QuantumCircuit':
+    def z(self, qubit: int) -> "QuantumCircuit":
         """Apply Pauli-Z gate"""
         self.gates.append(QuantumGate(GateType.Z, [qubit]))
         return self
 
-    def s(self, qubit: int) -> 'QuantumCircuit':
+    def s(self, qubit: int) -> "QuantumCircuit":
         """Apply S (phase) gate"""
         self.gates.append(QuantumGate(GateType.S, [qubit]))
         return self
 
-    def t(self, qubit: int) -> 'QuantumCircuit':
+    def t(self, qubit: int) -> "QuantumCircuit":
         """Apply T gate"""
         self.gates.append(QuantumGate(GateType.T, [qubit]))
         return self
 
-    def rx(self, qubit: int, angle: float) -> 'QuantumCircuit':
+    def rx(self, qubit: int, angle: float) -> "QuantumCircuit":
         """Apply rotation around X axis"""
         self.gates.append(QuantumGate(GateType.RX, [qubit], parameters=[angle]))
         return self
 
-    def ry(self, qubit: int, angle: float) -> 'QuantumCircuit':
+    def ry(self, qubit: int, angle: float) -> "QuantumCircuit":
         """Apply rotation around Y axis"""
         self.gates.append(QuantumGate(GateType.RY, [qubit], parameters=[angle]))
         return self
 
-    def rz(self, qubit: int, angle: float) -> 'QuantumCircuit':
+    def rz(self, qubit: int, angle: float) -> "QuantumCircuit":
         """Apply rotation around Z axis"""
         self.gates.append(QuantumGate(GateType.RZ, [qubit], parameters=[angle]))
         return self
 
     # Two-qubit gates
-    def cnot(self, control: int, target: int) -> 'QuantumCircuit':
+    def cnot(self, control: int, target: int) -> "QuantumCircuit":
         """Apply CNOT gate"""
         self.gates.append(QuantumGate(GateType.CNOT, [target], [control]))
         return self
 
-    def cz(self, control: int, target: int) -> 'QuantumCircuit':
+    def cz(self, control: int, target: int) -> "QuantumCircuit":
         """Apply controlled-Z gate"""
         self.gates.append(QuantumGate(GateType.CZ, [target], [control]))
         return self
 
-    def swap(self, qubit1: int, qubit2: int) -> 'QuantumCircuit':
+    def swap(self, qubit1: int, qubit2: int) -> "QuantumCircuit":
         """Apply SWAP gate"""
         self.gates.append(QuantumGate(GateType.SWAP, [qubit1, qubit2]))
         return self
 
-    def cphase(self, control: int, target: int, angle: float) -> 'QuantumCircuit':
+    def cphase(self, control: int, target: int, angle: float) -> "QuantumCircuit":
         """Apply controlled phase rotation"""
         self.gates.append(QuantumGate(GateType.CRZ, [target], [control], [angle]))
         return self
 
     # Multi-qubit gates
-    def toffoli(self, control1: int, control2: int, target: int) -> 'QuantumCircuit':
+    def toffoli(self, control1: int, control2: int, target: int) -> "QuantumCircuit":
         """Apply Toffoli (CCNOT) gate"""
         self.gates.append(QuantumGate(GateType.TOFFOLI, [target], [control1, control2]))
         return self
 
     # Measurement
-    def measure(self, qubit: int, classical_bit: Optional[int] = None) -> 'QuantumCircuit':
+    def measure(self, qubit: int, classical_bit: Optional[int] = None) -> "QuantumCircuit":
         """Measure a qubit"""
         if classical_bit is None:
             classical_bit = qubit
@@ -226,7 +228,7 @@ class QuantumCircuit:
         self.measurements[qubit] = classical_bit
         return self
 
-    def measure_all(self) -> 'QuantumCircuit':
+    def measure_all(self) -> "QuantumCircuit":
         """Measure all qubits"""
         for i in range(self.num_qubits):
             self.measure(i, i)
@@ -239,7 +241,7 @@ class QuantumCircuit:
             # Hadamard gate
             qubit = gate.target_qubits[0]
             new_state = state.copy()
-            for i in range(2 ** self.num_qubits):
+            for i in range(2**self.num_qubits):
                 if (i >> qubit) & 1 == 0:
                     j = i | (1 << qubit)
                     a, b = state[i], state[j]
@@ -251,7 +253,7 @@ class QuantumCircuit:
             # Pauli-X gate
             qubit = gate.target_qubits[0]
             new_state = state.copy()
-            for i in range(2 ** self.num_qubits):
+            for i in range(2**self.num_qubits):
                 j = i ^ (1 << qubit)
                 if i < j:
                     new_state[i], new_state[j] = state[j], state[i]
@@ -261,7 +263,7 @@ class QuantumCircuit:
             # Pauli-Z gate
             qubit = gate.target_qubits[0]
             new_state = state.copy()
-            for i in range(2 ** self.num_qubits):
+            for i in range(2**self.num_qubits):
                 if (i >> qubit) & 1:
                     new_state[i] = -state[i]
             return new_state
@@ -271,7 +273,7 @@ class QuantumCircuit:
             control = gate.control_qubits[0]
             target = gate.target_qubits[0]
             new_state = state.copy()
-            for i in range(2 ** self.num_qubits):
+            for i in range(2**self.num_qubits):
                 if (i >> control) & 1:  # If control is 1
                     j = i ^ (1 << target)  # Flip target
                     if i < j:
@@ -285,7 +287,7 @@ class QuantumCircuit:
             new_state = state.copy()
             cos_half = np.cos(angle / 2)
             sin_half = np.sin(angle / 2)
-            for i in range(2 ** self.num_qubits):
+            for i in range(2**self.num_qubits):
                 if (i >> qubit) & 1 == 0:
                     j = i | (1 << qubit)
                     a, b = state[i], state[j]
@@ -315,7 +317,7 @@ class QuantumCircuit:
         # Compute probabilities
         probabilities = {}
         for i, amplitude in enumerate(state):
-            bitstring = format(i, f'0{self.num_qubits}b')
+            bitstring = format(i, f"0{self.num_qubits}b")
             prob = abs(amplitude) ** 2
             if prob > 1e-10:
                 probabilities[bitstring] = prob
@@ -344,7 +346,7 @@ class QuantumCircuit:
         """Return circuit depth"""
         return len(self.gates)
 
-    def optimize(self, level: int = 1) -> 'QuantumCircuit':
+    def optimize(self, level: int = 1) -> "QuantumCircuit":
         """Optimize the circuit"""
         optimizer = get_circuit_optimizer()
         return optimizer.optimize(self, level)
@@ -408,9 +410,11 @@ class CircuitOptimizer:
             if i + 1 < len(gates):
                 gate1, gate2 = gates[i], gates[i + 1]
                 # Check if gates are inverses
-                if (gate1.target_qubits == gate2.target_qubits and
-                    gate1.control_qubits == gate2.control_qubits and
-                    self._are_inverses(gate1.gate_type, gate2.gate_type)):
+                if (
+                    gate1.target_qubits == gate2.target_qubits
+                    and gate1.control_qubits == gate2.control_qubits
+                    and self._are_inverses(gate1.gate_type, gate2.gate_type)
+                ):
                     i += 2  # Skip both gates
                     continue
             optimized.append(gates[i])
@@ -458,8 +462,10 @@ def get_circuit_optimizer() -> CircuitOptimizer:
 # QUANTUM ALGORITHMS
 # ============================================================================
 
+
 class AlgorithmType(Enum):
     """Quantum algorithm types"""
+
     GROVER = "grover_search"
     SHOR = "shor_factorization"
     VQE = "variational_quantum_eigensolver"
@@ -471,6 +477,7 @@ class AlgorithmType(Enum):
 @dataclass
 class QuantumAlgorithm:
     """Base class for quantum algorithms"""
+
     algorithm_type: AlgorithmType
     num_qubits: int
     parameters: Dict[str, Any] = field(default_factory=dict)
@@ -492,10 +499,10 @@ class GroverSearch:
         # Simplified oracle: flip phase of target states
         for target in self.target_items:
             # Mark target state with phase flip
-            binary = format(target, f'0{self.num_qubits}b')
+            binary = format(target, f"0{self.num_qubits}b")
             # Apply multi-controlled Z gate (simplified)
             for i, bit in enumerate(binary):
-                if bit == '0':
+                if bit == "0":
                     circuit.x(i)
 
             # Multi-controlled Z
@@ -504,7 +511,7 @@ class GroverSearch:
 
             # Undo X gates
             for i, bit in enumerate(binary):
-                if bit == '0':
+                if bit == "0":
                     circuit.x(i)
 
     def _create_diffusion(self, circuit: QuantumCircuit):
@@ -551,7 +558,7 @@ class GroverSearch:
         # Extract most likely results
         sorted_results = sorted(counts.items(), key=lambda x: x[1], reverse=True)
         found_items = []
-        for bitstring, count in sorted_results[:len(self.target_items)]:
+        for bitstring, count in sorted_results[: len(self.target_items)]:
             item = int(bitstring, 2)
             if item < self.database_size:
                 found_items.append(item)
@@ -599,7 +606,7 @@ class VQE:
         circuit = QuantumCircuit(self.num_qubits, "vqe_ansatz")
 
         # Hardware-efficient ansatz
-        for i, param in enumerate(params[:self.num_qubits]):
+        for i, param in enumerate(params[: self.num_qubits]):
             circuit.ry(i, param)
 
         # Entangling layer
@@ -608,7 +615,7 @@ class VQE:
 
         # Second rotation layer
         if len(params) > self.num_qubits:
-            for i, param in enumerate(params[self.num_qubits:self.num_qubits * 2]):
+            for i, param in enumerate(params[self.num_qubits : self.num_qubits * 2]):
                 circuit.ry(i, param)
 
         return circuit
@@ -627,17 +634,17 @@ class VQE:
             # Measure expectation value (simplified)
             counts = await circuit.simulate(shots=1000)
             # Compute energy expectation
-            energy = sum(self.hamiltonian[i, i] * (counts.get(format(i, f'0{self.num_qubits}b'), 0) / 1000)
-                        for i in range(2 ** self.num_qubits))
+            energy = sum(
+                self.hamiltonian[i, i] * (counts.get(format(i, f"0{self.num_qubits}b"), 0) / 1000)
+                for i in range(2**self.num_qubits)
+            )
             return energy
 
         result = await executor.optimize(
-            cost_function=cost_function,
-            initial_params=params,
-            max_iterations=max_iterations
+            cost_function=cost_function, initial_params=params, max_iterations=max_iterations
         )
 
-        return result['optimal_value']
+        return result["optimal_value"]
 
 
 class QAOA:
@@ -649,8 +656,7 @@ class QAOA:
         self.graph: Dict[Tuple[int, int], float] = {}
         self.num_qubits = 0
 
-    async def optimize(self, graph: Dict[Tuple[int, int], float],
-                      shots: int = 1000) -> Dict[str, Any]:
+    async def optimize(self, graph: Dict[Tuple[int, int], float], shots: int = 1000) -> Dict[str, Any]:
         """
         Solve optimization problem using QAOA
 
@@ -678,22 +684,18 @@ class QAOA:
             # Compute expectation value
             return self._compute_expectation(counts)
 
-        result = await executor.optimize(
-            cost_function=cost_function,
-            initial_params=params,
-            max_iterations=50
-        )
+        result = await executor.optimize(cost_function=cost_function, initial_params=params, max_iterations=50)
 
         # Get best solution
-        best_circuit = self._create_qaoa_circuit(result['optimal_params'])
+        best_circuit = self._create_qaoa_circuit(result["optimal_params"])
         counts = await best_circuit.simulate(shots)
         best_bitstring = max(counts.items(), key=lambda x: x[1])[0]
 
         return {
-            'solution': best_bitstring,
-            'value': self._evaluate_solution(best_bitstring),
-            'partition': [i for i, bit in enumerate(best_bitstring) if bit == '1'],
-            'optimal_params': result['optimal_params']
+            "solution": best_bitstring,
+            "value": self._evaluate_solution(best_bitstring),
+            "partition": [i for i, bit in enumerate(best_bitstring) if bit == "1"],
+            "optimal_params": result["optimal_params"],
         }
 
     def _create_qaoa_circuit(self, params: np.ndarray) -> QuantumCircuit:
@@ -758,9 +760,9 @@ class QuantumWalk:
         circuit = QuantumCircuit(self.num_qubits, "quantum_walk")
 
         # Initialize at start node
-        start_binary = format(start_node, f'0{self.num_qubits}b')
+        start_binary = format(start_node, f"0{self.num_qubits}b")
         for i, bit in enumerate(start_binary):
-            if bit == '1':
+            if bit == "1":
                 circuit.x(i)
 
         # Apply walk steps
@@ -827,8 +829,10 @@ def get_algorithm_library() -> AlgorithmLibrary:
 # QUANTUM HARDWARE ACCESS
 # ============================================================================
 
+
 class QuantumProvider(Enum):
     """Quantum hardware providers"""
+
     IBM_QUANTUM = "ibm"
     AWS_BRAKET = "aws"
     AZURE_QUANTUM = "azure"
@@ -840,6 +844,7 @@ class QuantumProvider(Enum):
 
 class JobStatus(Enum):
     """Quantum job status"""
+
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -850,6 +855,7 @@ class JobStatus(Enum):
 @dataclass
 class QuantumBackend:
     """Quantum hardware backend"""
+
     provider: QuantumProvider
     name: str
     num_qubits: int
@@ -857,13 +863,14 @@ class QuantumBackend:
     max_shots: int = 10000
     max_experiments: int = 300
     coupling_map: Optional[List[Tuple[int, int]]] = None
-    basis_gates: List[str] = field(default_factory=lambda: ['h', 'x', 'cx'])
-    calibration: Optional['HardwareCalibration'] = None
+    basis_gates: List[str] = field(default_factory=lambda: ["h", "x", "cx"])
+    calibration: Optional["HardwareCalibration"] = None
 
 
 @dataclass
 class HardwareCalibration:
     """Hardware calibration data"""
+
     t1_times: Dict[int, float] = field(default_factory=dict)  # Relaxation time (μs)
     t2_times: Dict[int, float] = field(default_factory=dict)  # Dephasing time (μs)
     gate_errors: Dict[str, float] = field(default_factory=dict)  # Gate error rates
@@ -874,6 +881,7 @@ class HardwareCalibration:
 @dataclass
 class QuantumJob:
     """Quantum hardware job"""
+
     job_id: str
     backend: QuantumBackend
     circuit: QuantumCircuit
@@ -906,7 +914,7 @@ class QuantumCloud:
             name="local_simulator",
             num_qubits=32,
             is_simulator=True,
-            max_shots=100000
+            max_shots=100000,
         )
         self._backends["local_simulator"] = simulator
 
@@ -918,45 +926,32 @@ class QuantumCloud:
             # Add provider backends (mock implementations)
             if provider == QuantumProvider.IBM_QUANTUM:
                 self._backends["ibm_qasm_simulator"] = QuantumBackend(
-                    provider=provider,
-                    name="ibm_qasm_simulator",
-                    num_qubits=32,
-                    is_simulator=True
+                    provider=provider, name="ibm_qasm_simulator", num_qubits=32, is_simulator=True
                 )
                 self._backends["ibmq_manila"] = QuantumBackend(
-                    provider=provider,
-                    name="ibmq_manila",
-                    num_qubits=5,
-                    is_simulator=False
+                    provider=provider, name="ibmq_manila", num_qubits=5, is_simulator=False
                 )
 
             elif provider == QuantumProvider.AWS_BRAKET:
-                self._backends["sv1"] = QuantumBackend(
-                    provider=provider,
-                    name="sv1",
-                    num_qubits=34,
-                    is_simulator=True
-                )
+                self._backends["sv1"] = QuantumBackend(provider=provider, name="sv1", num_qubits=34, is_simulator=True)
                 self._backends["ionq_harmony"] = QuantumBackend(
-                    provider=provider,
-                    name="IonQ Harmony",
-                    num_qubits=11,
-                    is_simulator=False
+                    provider=provider, name="IonQ Harmony", num_qubits=11, is_simulator=False
                 )
 
             elif provider == QuantumProvider.AZURE_QUANTUM:
                 self._backends["ionq_simulator"] = QuantumBackend(
-                    provider=provider,
-                    name="ionq.simulator",
-                    num_qubits=29,
-                    is_simulator=True
+                    provider=provider, name="ionq.simulator", num_qubits=29, is_simulator=True
                 )
 
-    async def execute(self, circuit: QuantumCircuit, shots: int = 1000,
-                     backend_name: Optional[str] = None,
-                     prefer_provider: Optional[QuantumProvider] = None,
-                     max_cost: float = 100.0,
-                     optimize: bool = True) -> QuantumJob:
+    async def execute(
+        self,
+        circuit: QuantumCircuit,
+        shots: int = 1000,
+        backend_name: Optional[str] = None,
+        prefer_provider: Optional[QuantumProvider] = None,
+        max_cost: float = 100.0,
+        optimize: bool = True,
+    ) -> QuantumJob:
         """
         Execute circuit on optimal backend
 
@@ -975,9 +970,7 @@ class QuantumCloud:
                 if not backend:
                     raise ValueError(f"Backend not found: {backend_name}")
             else:
-                backend = self._select_optimal_backend(
-                    circuit, prefer_provider, max_cost
-                )
+                backend = self._select_optimal_backend(circuit, prefer_provider, max_cost)
 
             # Optimize circuit if requested
             if optimize:
@@ -990,13 +983,7 @@ class QuantumCloud:
 
             # Create job
             job_id = f"job_{uuid.uuid4().hex[:16]}"
-            job = QuantumJob(
-                job_id=job_id,
-                backend=backend,
-                circuit=circuit,
-                shots=shots,
-                cost=cost
-            )
+            job = QuantumJob(job_id=job_id, backend=backend, circuit=circuit, shots=shots, cost=cost)
 
             self._jobs[job_id] = job
             self._total_cost += cost
@@ -1006,9 +993,9 @@ class QuantumCloud:
 
             return job
 
-    def _select_optimal_backend(self, circuit: QuantumCircuit,
-                               prefer_provider: Optional[QuantumProvider],
-                               max_cost: float) -> QuantumBackend:
+    def _select_optimal_backend(
+        self, circuit: QuantumCircuit, prefer_provider: Optional[QuantumProvider], max_cost: float
+    ) -> QuantumBackend:
         """Select optimal backend for circuit"""
         suitable_backends = []
 
@@ -1069,8 +1056,9 @@ class QuantumCloud:
                 raise ValueError(f"Job not found: {job_id}")
             return self._jobs[job_id]
 
-    async def get_results(self, job_id: str, error_mitigation: bool = False,
-                         mitigation_method: str = "readout_correction") -> Dict[str, int]:
+    async def get_results(
+        self, job_id: str, error_mitigation: bool = False, mitigation_method: str = "readout_correction"
+    ) -> Dict[str, int]:
         """Get job results with optional error mitigation"""
         job = await self.get_job_status(job_id)
 
@@ -1090,8 +1078,7 @@ class QuantumCloud:
 
         return result
 
-    def _apply_error_mitigation(self, result: Dict[str, int],
-                               method: str) -> Dict[str, int]:
+    def _apply_error_mitigation(self, result: Dict[str, int], method: str) -> Dict[str, int]:
         """Apply error mitigation to results"""
         # Simplified error mitigation
         if method == "readout_correction":
@@ -1106,14 +1093,13 @@ class QuantumCloud:
         """Get usage and cost summary"""
         with self._lock:
             total_jobs = len(self._jobs)
-            completed_jobs = sum(1 for job in self._jobs.values()
-                               if job.status == JobStatus.COMPLETED)
+            completed_jobs = sum(1 for job in self._jobs.values() if job.status == JobStatus.COMPLETED)
 
             return {
-                'total_jobs': total_jobs,
-                'completed_jobs': completed_jobs,
-                'total_cost': self._total_cost,
-                'period': period
+                "total_jobs": total_jobs,
+                "completed_jobs": completed_jobs,
+                "total_cost": self._total_cost,
+                "period": period,
             }
 
     def list_backends(self, provider: Optional[QuantumProvider] = None) -> List[QuantumBackend]:
@@ -1144,8 +1130,10 @@ def get_quantum_cloud() -> QuantumCloud:
 # HYBRID QUANTUM-CLASSICAL COMPUTING
 # ============================================================================
 
+
 class OptimizerType(Enum):
     """Classical optimizer types"""
+
     COBYLA = "cobyla"
     SPSA = "spsa"
     ADAM = "adam"
@@ -1157,6 +1145,7 @@ class OptimizerType(Enum):
 @dataclass
 class ClassicalOptimizer:
     """Classical optimization algorithms"""
+
     optimizer_type: OptimizerType
     learning_rate: float = 0.01
     max_iterations: int = 100
@@ -1166,6 +1155,7 @@ class ClassicalOptimizer:
 @dataclass
 class ParameterizedCircuit:
     """Parameterized quantum circuit"""
+
     num_qubits: int
     num_parameters: int
     circuit_generator: Callable[[np.ndarray], QuantumCircuit]
@@ -1175,19 +1165,18 @@ class ParameterizedCircuit:
 class VariationalAlgorithm:
     """Base class for variational quantum algorithms"""
 
-    def __init__(self, cost_function: Callable, num_parameters: int,
-                 optimizer: OptimizerType = OptimizerType.COBYLA):
+    def __init__(self, cost_function: Callable, num_parameters: int, optimizer: OptimizerType = OptimizerType.COBYLA):
         self.cost_function = cost_function
         self.num_parameters = num_parameters
         self.optimizer_type = optimizer
         self.history: List[float] = []
 
-    async def optimize(self, initial_params: np.ndarray,
-                      max_iterations: int = 100,
-                      convergence_threshold: float = 1e-6) -> Dict[str, Any]:
+    async def optimize(
+        self, initial_params: np.ndarray, max_iterations: int = 100, convergence_threshold: float = 1e-6
+    ) -> Dict[str, Any]:
         """Run variational optimization"""
         params = initial_params.copy()
-        best_value = float('inf')
+        best_value = float("inf")
         best_params = params.copy()
 
         for iteration in range(max_iterations):
@@ -1209,14 +1198,13 @@ class VariationalAlgorithm:
             params = self._update_parameters(params, value, iteration)
 
         return {
-            'optimal_params': best_params,
-            'optimal_value': best_value,
-            'num_iterations': iteration + 1,
-            'history': self.history
+            "optimal_params": best_params,
+            "optimal_value": best_value,
+            "num_iterations": iteration + 1,
+            "history": self.history,
         }
 
-    def _update_parameters(self, params: np.ndarray, value: float,
-                          iteration: int) -> np.ndarray:
+    def _update_parameters(self, params: np.ndarray, value: float, iteration: int) -> np.ndarray:
         """Update parameters using optimizer"""
         learning_rate = 0.01
 
@@ -1235,8 +1223,7 @@ class VariationalAlgorithm:
             # Random perturbation (simplified)
             return params + np.random.randn(len(params)) * 0.1
 
-    def _estimate_gradient(self, params: np.ndarray,
-                          delta: Optional[np.ndarray] = None) -> np.ndarray:
+    def _estimate_gradient(self, params: np.ndarray, delta: Optional[np.ndarray] = None) -> np.ndarray:
         """Estimate gradient using finite differences"""
         epsilon = 0.01
         gradient = np.zeros_like(params)
@@ -1257,10 +1244,13 @@ class HybridExecutor:
         self._lock = threading.Lock()
         self._execution_history: List[Dict[str, Any]] = []
 
-    async def optimize(self, cost_function: Callable,
-                      initial_params: np.ndarray,
-                      optimizer_type: OptimizerType = OptimizerType.COBYLA,
-                      max_iterations: int = 100) -> Dict[str, Any]:
+    async def optimize(
+        self,
+        cost_function: Callable,
+        initial_params: np.ndarray,
+        optimizer_type: OptimizerType = OptimizerType.COBYLA,
+        max_iterations: int = 100,
+    ) -> Dict[str, Any]:
         """
         Execute hybrid quantum-classical optimization
 
@@ -1271,23 +1261,20 @@ class HybridExecutor:
             max_iterations: Maximum iterations
         """
         algorithm = VariationalAlgorithm(
-            cost_function=cost_function,
-            num_parameters=len(initial_params),
-            optimizer=optimizer_type
+            cost_function=cost_function, num_parameters=len(initial_params), optimizer=optimizer_type
         )
 
-        result = await algorithm.optimize(
-            initial_params=initial_params,
-            max_iterations=max_iterations
-        )
+        result = await algorithm.optimize(initial_params=initial_params, max_iterations=max_iterations)
 
         with self._lock:
-            self._execution_history.append({
-                'timestamp': datetime.now(),
-                'optimizer': optimizer_type.value,
-                'iterations': result['num_iterations'],
-                'final_value': result['optimal_value']
-            })
+            self._execution_history.append(
+                {
+                    "timestamp": datetime.now(),
+                    "optimizer": optimizer_type.value,
+                    "iterations": result["num_iterations"],
+                    "final_value": result["optimal_value"],
+                }
+            )
 
         return result
 
@@ -1316,8 +1303,10 @@ def get_hybrid_executor() -> HybridExecutor:
 # QUANTUM MACHINE LEARNING
 # ============================================================================
 
+
 class FeatureMapType(Enum):
     """Quantum feature map types"""
+
     AMPLITUDE = "amplitude"
     ANGLE = "angle"
     BASIS = "basis"
@@ -1328,6 +1317,7 @@ class FeatureMapType(Enum):
 @dataclass
 class QuantumFeatureMap:
     """Quantum feature encoding"""
+
     feature_map_type: FeatureMapType
     num_qubits: int
     num_features: int
@@ -1337,9 +1327,13 @@ class QuantumFeatureMap:
 class QuantumNeuralNetwork:
     """Variational quantum neural network"""
 
-    def __init__(self, num_qubits: int, num_layers: int = 3,
-                 feature_map: FeatureMapType = FeatureMapType.ANGLE,
-                 entanglement: str = "full"):
+    def __init__(
+        self,
+        num_qubits: int,
+        num_layers: int = 3,
+        feature_map: FeatureMapType = FeatureMapType.ANGLE,
+        entanglement: str = "full",
+    ):
         self.num_qubits = num_qubits
         self.num_layers = num_layers
         self.feature_map_type = feature_map
@@ -1358,7 +1352,7 @@ class QuantumNeuralNetwork:
         """Encode classical features into quantum state"""
         if self.feature_map_type == FeatureMapType.ANGLE:
             # Angle encoding
-            for i, feature in enumerate(features[:self.num_qubits]):
+            for i, feature in enumerate(features[: self.num_qubits]):
                 circuit.ry(i, feature)
 
         elif self.feature_map_type == FeatureMapType.AMPLITUDE:
@@ -1409,7 +1403,7 @@ class QuantumNeuralNetwork:
             total_shots = sum(counts.values())
             for bitstring, count in counts.items():
                 # Count 1s in bitstring
-                num_ones = bitstring.count('1')
+                num_ones = bitstring.count("1")
                 parity = 1 if num_ones % 2 == 0 else -1
                 expectation += parity * (count / total_shots)
 
@@ -1421,8 +1415,9 @@ class QuantumNeuralNetwork:
 class QuantumSVM:
     """Quantum Support Vector Machine"""
 
-    def __init__(self, kernel: str = "quantum", num_qubits: int = 4,
-                 feature_map: FeatureMapType = FeatureMapType.ZZ_FEATURE_MAP):
+    def __init__(
+        self, kernel: str = "quantum", num_qubits: int = 4, feature_map: FeatureMapType = FeatureMapType.ZZ_FEATURE_MAP
+    ):
         self.kernel = kernel
         self.num_qubits = num_qubits
         self.feature_map_type = feature_map
@@ -1468,7 +1463,7 @@ class QuantumSVM:
 
             # Measure overlap
             counts = await circuit.simulate(shots=1000)
-            zero_state = '0' * self.num_qubits
+            zero_state = "0" * self.num_qubits
             overlap = counts.get(zero_state, 0) / 1000
 
             return overlap
@@ -1569,19 +1564,22 @@ class QuantumClassifier:
 class QMLTrainer:
     """Quantum ML training framework"""
 
-    def __init__(self, model: Union[QuantumNeuralNetwork, QuantumSVM],
-                 optimizer: str = "adam", learning_rate: float = 0.01):
+    def __init__(
+        self, model: Union[QuantumNeuralNetwork, QuantumSVM], optimizer: str = "adam", learning_rate: float = 0.01
+    ):
         self.model = model
         self.optimizer = optimizer
         self.learning_rate = learning_rate
-        self.history: Dict[str, List[float]] = {
-            'loss': [],
-            'accuracy': []
-        }
+        self.history: Dict[str, List[float]] = {"loss": [], "accuracy": []}
 
-    async def fit(self, X_train: np.ndarray, y_train: np.ndarray,
-                 epochs: int = 10, batch_size: int = 32,
-                 validation_split: float = 0.2) -> Dict[str, List[float]]:
+    async def fit(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        epochs: int = 10,
+        batch_size: int = 32,
+        validation_split: float = 0.2,
+    ) -> Dict[str, List[float]]:
         """
         Train quantum ML model
 
@@ -1622,8 +1620,8 @@ class QMLTrainer:
             val_predictions = await self.model.predict(X_val)
             val_accuracy = np.mean((val_predictions > 0) == (y_val > 0))
 
-            self.history['loss'].append(loss)
-            self.history['accuracy'].append(val_accuracy)
+            self.history["loss"].append(loss)
+            self.history["accuracy"].append(val_accuracy)
 
         return self.history
 
@@ -1644,8 +1642,10 @@ def get_qml_trainer() -> QMLTrainer:
 # QUANTUM OPTIMIZATION
 # ============================================================================
 
+
 class ProblemType(Enum):
     """Optimization problem types"""
+
     MAXCUT = "maxcut"
     TSP = "traveling_salesman"
     PORTFOLIO = "portfolio"
@@ -1656,6 +1656,7 @@ class ProblemType(Enum):
 @dataclass
 class OptimizationProblem:
     """Optimization problem definition"""
+
     problem_type: ProblemType
     data: Dict[str, Any]
     objective: str  # "maximize" or "minimize"
@@ -1680,11 +1681,7 @@ class MaxCutSolver:
         qaoa = QAOA(problem_type="maxcut", num_layers=self.layers)
         result = await qaoa.optimize(self.graph)
 
-        return {
-            'value': result['value'],
-            'partition': result['partition'],
-            'solution': result['solution']
-        }
+        return {"value": result["value"], "partition": result["partition"], "solution": result["solution"]}
 
 
 class TSPSolver:
@@ -1702,8 +1699,9 @@ class TSPSolver:
 
         for i in range(n):
             for j in range(i + 1, n):
-                dist = np.sqrt((self.cities[i][0] - self.cities[j][0]) ** 2 +
-                             (self.cities[i][1] - self.cities[j][1]) ** 2)
+                dist = np.sqrt(
+                    (self.cities[i][0] - self.cities[j][0]) ** 2 + (self.cities[i][1] - self.cities[j][1]) ** 2
+                )
                 distances[i, j] = dist
                 distances[j, i] = dist
 
@@ -1726,22 +1724,23 @@ class TSPSolver:
             unvisited.remove(nearest)
 
         # Compute total distance
-        total_distance = sum(distances[route[i], route[i + 1]]
-                           for i in range(len(route) - 1))
+        total_distance = sum(distances[route[i], route[i + 1]] for i in range(len(route) - 1))
         total_distance += distances[route[-1], route[0]]  # Return to start
 
-        return {
-            'path': route,
-            'distance': total_distance
-        }
+        return {"path": route, "distance": total_distance}
 
 
 class PortfolioOptimizer:
     """Financial portfolio optimizer"""
 
-    def __init__(self, assets: List[str], expected_returns: List[float],
-                 covariance_matrix: np.ndarray, budget: float,
-                 risk_tolerance: float = 0.5):
+    def __init__(
+        self,
+        assets: List[str],
+        expected_returns: List[float],
+        covariance_matrix: np.ndarray,
+        budget: float,
+        risk_tolerance: float = 0.5,
+    ):
         self.assets = assets
         self.expected_returns = np.array(expected_returns)
         self.covariance_matrix = covariance_matrix
@@ -1768,11 +1767,11 @@ class PortfolioOptimizer:
         allocation = weights * self.budget
 
         return {
-            'weights': weights.tolist(),
-            'allocation': {asset: alloc for asset, alloc in zip(self.assets, allocation)},
-            'expected_return': expected_return,
-            'risk': portfolio_risk,
-            'sharpe_ratio': expected_return / portfolio_risk if portfolio_risk > 0 else 0
+            "weights": weights.tolist(),
+            "allocation": {asset: alloc for asset, alloc in zip(self.assets, allocation)},
+            "expected_return": expected_return,
+            "risk": portfolio_risk,
+            "sharpe_ratio": expected_return / portfolio_risk if portfolio_risk > 0 else 0,
         }
 
 
@@ -1790,27 +1789,21 @@ class SchedulingSolver:
         current_time = 0
 
         # Sort by duration (shortest first)
-        sorted_jobs = sorted(self.jobs, key=lambda j: j.get('duration', 1))
+        sorted_jobs = sorted(self.jobs, key=lambda j: j.get("duration", 1))
 
         for job in sorted_jobs:
-            schedule.append({
-                'job_id': job['id'],
-                'start_time': current_time,
-                'end_time': current_time + job.get('duration', 1)
-            })
-            current_time += job.get('duration', 1)
+            schedule.append(
+                {"job_id": job["id"], "start_time": current_time, "end_time": current_time + job.get("duration", 1)}
+            )
+            current_time += job.get("duration", 1)
 
-        return {
-            'schedule': schedule,
-            'makespan': current_time
-        }
+        return {"schedule": schedule, "makespan": current_time}
 
 
 class GraphOptimizer:
     """General graph optimization"""
 
-    def __init__(self, graph: Dict[Tuple[int, int], float],
-                 problem_type: str = "maxcut"):
+    def __init__(self, graph: Dict[Tuple[int, int], float], problem_type: str = "maxcut"):
         self.graph = graph
         self.problem_type = problem_type
 

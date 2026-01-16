@@ -42,23 +42,25 @@ Version: 1.0.0
 
 import argparse
 import json
-import sys
 import os
-import subprocess
-from pathlib import Path
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, asdict
-from datetime import datetime
 import platform
+import subprocess
+import sys
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Setup logging
 from src.core.logging_config import setup_logging
+
 logger = setup_logging(__name__, log_level="INFO")
 
 
 @dataclass
 class ServiceInfo:
     """Information about a service/application."""
+
     name: str
     script: str
     description: str
@@ -70,6 +72,7 @@ class ServiceInfo:
 @dataclass
 class PipelineStep:
     """Single step in processing pipeline."""
+
     tool: str
     action: str
     params: Dict[str, Any]
@@ -78,6 +81,7 @@ class PipelineStep:
 @dataclass
 class PipelineResult:
     """Result of pipeline execution."""
+
     pipeline_name: str
     executed_at: str
     total_steps: int
@@ -103,51 +107,47 @@ class MasterControlPanel:
                 name="Document Processor",
                 script="doc-processor.py",
                 description="Single document processing with NER, classification, relations",
-                type="tool"
+                type="tool",
             ),
             "batch": ServiceInfo(
                 name="Batch Processor",
                 script="doc-batch-processor.py",
                 description="Multi-threaded batch document processing",
-                type="service"
+                type="service",
             ),
             "api": ServiceInfo(
-                name="API Server",
-                script="doc-api-server.py",
-                description="FastAPI REST API server",
-                type="daemon"
+                name="API Server", script="doc-api-server.py", description="FastAPI REST API server", type="daemon"
             ),
             "dashboard": ServiceInfo(
                 name="Web Dashboard",
                 script="doc-dashboard.py",
                 description="Interactive web dashboard with visualizations",
-                type="daemon"
+                type="daemon",
             ),
             "search": ServiceInfo(
                 name="Search Engine",
                 script="doc-search.py",
                 description="Full-text and semantic search engine",
-                type="service"
+                type="service",
             ),
-
             # Intelligence tools
             "comparator": ServiceInfo(
                 name="Document Comparator",
                 script="doc-comparator.py",
                 description="Advanced document comparison with similarity metrics",
-                type="tool"
+                type="tool",
             ),
             "anonymizer": ServiceInfo(
                 name="Document Anonymizer",
                 script="doc-anonymizer.py",
                 description="GDPR-compliant PII anonymization",
-                type="tool"
+                type="tool",
             ),
             "quality": ServiceInfo(
                 name="Quality Analyzer",
                 script="doc-quality.py",
                 description="Comprehensive document quality assessment",
-                type="tool"
+                type="tool",
             ),
         }
 
@@ -173,12 +173,7 @@ class MasterControlPanel:
             "platform": platform.system(),
             "python_version": platform.python_version(),
             "services": {},
-            "summary": {
-                "total": len(self.services),
-                "available": 0,
-                "running": 0,
-                "stopped": 0
-            }
+            "summary": {"total": len(self.services), "available": 0, "running": 0, "stopped": 0},
         }
 
         for key, service in self.services.items():
@@ -187,7 +182,7 @@ class MasterControlPanel:
                 "type": service.type,
                 "available": service.is_available,
                 "status": service.status,
-                "description": service.description
+                "description": service.description,
             }
 
             if service.is_available:
@@ -204,17 +199,10 @@ class MasterControlPanel:
         """
         logger.info("Performing health check")
 
-        health = {
-            "timestamp": datetime.now().isoformat(),
-            "overall_status": "healthy",
-            "checks": {}
-        }
+        health = {"timestamp": datetime.now().isoformat(), "overall_status": "healthy", "checks": {}}
 
         # Check Python environment
-        health["checks"]["python"] = {
-            "status": "ok",
-            "version": platform.python_version()
-        }
+        health["checks"]["python"] = {"status": "ok", "version": platform.python_version()}
 
         # Check required scripts
         required_scripts = ["doc-processor.py", "doc-comparator.py", "doc-anonymizer.py"]
@@ -223,16 +211,13 @@ class MasterControlPanel:
             if not Path(script).exists():
                 missing.append(script)
 
-        health["checks"]["scripts"] = {
-            "status": "ok" if not missing else "warning",
-            "missing": missing
-        }
+        health["checks"]["scripts"] = {"status": "ok" if not missing else "warning", "missing": missing}
 
         # Check src/ directory
         src_path = Path("src")
         health["checks"]["src_directory"] = {
             "status": "ok" if src_path.exists() else "error",
-            "exists": src_path.exists()
+            "exists": src_path.exists(),
         }
 
         # Check data/ directory
@@ -240,10 +225,7 @@ class MasterControlPanel:
         if not data_path.exists():
             data_path.mkdir(parents=True, exist_ok=True)
 
-        health["checks"]["data_directory"] = {
-            "status": "ok",
-            "exists": data_path.exists()
-        }
+        health["checks"]["data_directory"] = {"status": "ok", "exists": data_path.exists()}
 
         # Overall status
         if any(check["status"] == "error" for check in health["checks"].values()):
@@ -253,12 +235,7 @@ class MasterControlPanel:
 
         return health
 
-    def quick_process(
-        self,
-        file_path: str,
-        steps: List[str],
-        output_dir: str = "output"
-    ) -> PipelineResult:
+    def quick_process(self, file_path: str, steps: List[str], output_dir: str = "output") -> PipelineResult:
         """
         Quick process document with specified steps.
 
@@ -287,10 +264,9 @@ class MasterControlPanel:
         if "process" in steps or "all" in steps:
             try:
                 output_file = output_path / f"{base_name}_processed.json"
-                result = self._run_command([
-                    "python", "doc-processor.py", "process",
-                    file_path, "--output", str(output_file)
-                ])
+                result = self._run_command(
+                    ["python", "doc-processor.py", "process", file_path, "--output", str(output_file)]
+                )
                 results.append({"step": "process", "status": "success", "output": str(output_file)})
                 completed += 1
             except Exception as e:
@@ -301,10 +277,9 @@ class MasterControlPanel:
         if "anonymize" in steps or "all" in steps:
             try:
                 output_file = output_path / f"{base_name}_anonymized.txt"
-                result = self._run_command([
-                    "python", "doc-anonymizer.py", "anonymize",
-                    file_path, "--output", str(output_file)
-                ])
+                result = self._run_command(
+                    ["python", "doc-anonymizer.py", "anonymize", file_path, "--output", str(output_file)]
+                )
                 results.append({"step": "anonymize", "status": "success", "output": str(output_file)})
                 completed += 1
             except Exception as e:
@@ -315,10 +290,9 @@ class MasterControlPanel:
         if "quality" in steps or "all" in steps:
             try:
                 output_file = output_path / f"{base_name}_quality.json"
-                result = self._run_command([
-                    "python", "doc-quality.py", "analyze",
-                    file_path, "--output", str(output_file)
-                ])
+                result = self._run_command(
+                    ["python", "doc-quality.py", "analyze", file_path, "--output", str(output_file)]
+                )
                 results.append({"step": "quality", "status": "success", "output": str(output_file)})
                 completed += 1
             except Exception as e:
@@ -335,14 +309,11 @@ class MasterControlPanel:
             completed_steps=completed,
             failed_steps=failed,
             total_time_seconds=total_time,
-            results=results
+            results=results,
         )
 
     def run_pipeline(
-        self,
-        pipeline_name: str,
-        input_path: str,
-        params: Optional[Dict[str, Any]] = None
+        self, pipeline_name: str, input_path: str, params: Optional[Dict[str, Any]] = None
     ) -> PipelineResult:
         """
         Run predefined pipeline.
@@ -388,20 +359,11 @@ class MasterControlPanel:
                 # Execute step
                 logger.info(f"Executing step: {step['tool']}.{step['action']}")
                 # Simplified execution (in production, implement full pipeline logic)
-                results.append({
-                    "tool": step["tool"],
-                    "action": step["action"],
-                    "status": "success"
-                })
+                results.append({"tool": step["tool"], "action": step["action"], "status": "success"})
                 completed += 1
             except Exception as e:
                 logger.error(f"Step failed: {e}")
-                results.append({
-                    "tool": step["tool"],
-                    "action": step["action"],
-                    "status": "failed",
-                    "error": str(e)
-                })
+                results.append({"tool": step["tool"], "action": step["action"], "status": "failed", "error": str(e)})
                 failed += 1
 
         end_time = datetime.now()
@@ -414,7 +376,7 @@ class MasterControlPanel:
             completed_steps=completed,
             failed_steps=failed,
             total_time_seconds=total_time,
-            results=results
+            results=results,
         )
 
     def _run_command(self, command: List[str], timeout: int = 120) -> str:
@@ -429,13 +391,7 @@ class MasterControlPanel:
             Command output
         """
         try:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=True
-            )
+            result = subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=True)
             return result.stdout
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Command failed: {e.stderr}")
@@ -467,7 +423,7 @@ Examples:
 
   # List available pipelines
   python doc-master.py pipelines
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -481,20 +437,21 @@ Examples:
     # Quick process command
     quick_parser = subparsers.add_parser("quick-process", help="Quick process document")
     quick_parser.add_argument("file", help="Document to process")
-    quick_parser.add_argument("--steps", nargs="+",
-                             choices=["process", "anonymize", "quality", "all"],
-                             default=["process"],
-                             help="Processing steps")
-    quick_parser.add_argument("--output-dir", "-o", default="output",
-                             help="Output directory")
+    quick_parser.add_argument(
+        "--steps",
+        nargs="+",
+        choices=["process", "anonymize", "quality", "all"],
+        default=["process"],
+        help="Processing steps",
+    )
+    quick_parser.add_argument("--output-dir", "-o", default="output", help="Output directory")
 
     # Pipeline command
     pipeline_parser = subparsers.add_parser("pipeline", help="Run pipeline")
-    pipeline_parser.add_argument("name",
-                                choices=["gdpr-compliance", "quality-assurance", "full-analysis"],
-                                help="Pipeline name")
-    pipeline_parser.add_argument("--input", "-i", required=True,
-                                help="Input file or directory")
+    pipeline_parser.add_argument(
+        "name", choices=["gdpr-compliance", "quality-assurance", "full-analysis"], help="Pipeline name"
+    )
+    pipeline_parser.add_argument("--input", "-i", required=True, help="Input file or directory")
 
     # Pipelines list command
     pipelines_parser = subparsers.add_parser("pipelines", help="List available pipelines")
@@ -534,7 +491,9 @@ Examples:
             print(f"\nChecks:")
 
             for check_name, check_data in health["checks"].items():
-                status_icon = "✅" if check_data["status"] == "ok" else "⚠️" if check_data["status"] == "warning" else "❌"
+                status_icon = (
+                    "✅" if check_data["status"] == "ok" else "⚠️" if check_data["status"] == "warning" else "❌"
+                )
                 print(f"  {status_icon} {check_name:20s}: {check_data['status']}")
 
         elif args.command == "quick-process":

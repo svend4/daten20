@@ -19,22 +19,23 @@ Dependencies:
 - None (pure Python implementation)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable, Set
-from enum import Enum
-from datetime import datetime
-from uuid import uuid4
-import threading
+import copy
 import json
 import logging
-import copy
+import threading
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Set
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
 
 class Environment(str, Enum):
     """Deployment environments"""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -43,6 +44,7 @@ class Environment(str, Enum):
 
 class FeatureFlagType(str, Enum):
     """Feature flag types"""
+
     BOOLEAN = "boolean"
     ROLLOUT = "rollout"  # Percentage-based rollout
     TARGETING = "targeting"  # User/tenant targeting
@@ -50,6 +52,7 @@ class FeatureFlagType(str, Enum):
 
 class ConfigChangeType(str, Enum):
     """Configuration change types"""
+
     CREATED = "created"
     UPDATED = "updated"
     DELETED = "deleted"
@@ -58,6 +61,7 @@ class ConfigChangeType(str, Enum):
 @dataclass
 class FeatureFlag:
     """Feature flag configuration"""
+
     name: str
     flag_type: FeatureFlagType
     enabled: bool = False
@@ -107,6 +111,7 @@ class FeatureFlag:
 @dataclass
 class ConfigValue:
     """Configuration value with metadata"""
+
     key: str
     value: Any
     environment: Environment
@@ -124,13 +129,14 @@ class ConfigValue:
             "version": self.version,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
 @dataclass
 class ConfigChangeEvent:
     """Configuration change event"""
+
     event_id: str = field(default_factory=lambda: str(uuid4()))
     change_type: ConfigChangeType = ConfigChangeType.UPDATED
     key: str = ""
@@ -151,9 +157,7 @@ class ConfigStore:
     """
 
     def __init__(self):
-        self._configs: Dict[Environment, Dict[str, ConfigValue]] = {
-            env: {} for env in Environment
-        }
+        self._configs: Dict[Environment, Dict[str, ConfigValue]] = {env: {} for env in Environment}
         self._lock = threading.Lock()
 
     def set(self, key: str, value: Any, environment: Environment) -> ConfigValue:
@@ -177,11 +181,7 @@ class ConfigStore:
                 existing.updated_at = datetime.now()
                 config_value = existing
             else:
-                config_value = ConfigValue(
-                    key=key,
-                    value=value,
-                    environment=environment
-                )
+                config_value = ConfigValue(key=key, value=value, environment=environment)
                 self._configs[environment][key] = config_value
 
             return config_value
@@ -230,10 +230,7 @@ class ConfigStore:
             Dictionary of key-value pairs
         """
         with self._lock:
-            return {
-                key: config.value
-                for key, config in self._configs[environment].items()
-            }
+            return {key: config.value for key, config in self._configs[environment].items()}
 
     def export_to_file(self, environment: Environment, file_path: str):
         """
@@ -244,12 +241,9 @@ class ConfigStore:
             file_path: Output file path
         """
         with self._lock:
-            configs = {
-                key: config.to_dict()
-                for key, config in self._configs[environment].items()
-            }
+            configs = {key: config.to_dict() for key, config in self._configs[environment].items()}
 
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             json.dump(configs, f, indent=2)
 
         logger.info(f"Exported {environment.value} config to {file_path}")
@@ -262,7 +256,7 @@ class ConfigStore:
             environment: Target environment
             file_path: Input file path
         """
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             configs = json.load(f)
 
         with self._lock:
@@ -272,7 +266,7 @@ class ConfigStore:
                     value=config_data["value"],
                     environment=environment,
                     version=config_data.get("version", 1),
-                    metadata=config_data.get("metadata", {})
+                    metadata=config_data.get("metadata", {}),
                 )
                 self._configs[environment][key] = config_value
 
@@ -379,7 +373,7 @@ class ConfigServer:
             key=key,
             old_value=old_value,
             new_value=value,
-            environment=env
+            environment=env,
         )
         self._notify_listeners(event)
 
@@ -436,10 +430,7 @@ class ConfigServer:
 
             # Notify listeners
             event = ConfigChangeEvent(
-                change_type=ConfigChangeType.DELETED,
-                key=key,
-                old_value=old_value,
-                environment=env
+                change_type=ConfigChangeType.DELETED, key=key, old_value=old_value, environment=env
             )
             self._notify_listeners(event)
 
@@ -516,7 +507,7 @@ class ConfigServer:
                 "config_count": len(self.config_store.get_all(self.environment)),
                 "feature_flags_count": len(self.feature_flags.get_all_flags()),
                 "cache_size": len(self._cache),
-                "listeners_count": len(self._listeners)
+                "listeners_count": len(self._listeners),
             }
 
 
@@ -553,12 +544,7 @@ if __name__ == "__main__":
     print(f"Database: {db_host}:{db_port}")
 
     # Create feature flag
-    flag = FeatureFlag(
-        name="new_dashboard",
-        flag_type=FeatureFlagType.ROLLOUT,
-        enabled=True,
-        rollout_percentage=50.0
-    )
+    flag = FeatureFlag(name="new_dashboard", flag_type=FeatureFlagType.ROLLOUT, enabled=True, rollout_percentage=50.0)
     config_server.feature_flags.create_flag(flag)
 
     # Check feature flag

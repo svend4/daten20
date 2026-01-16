@@ -9,17 +9,18 @@ Provides document classification capabilities:
 - Auto-categorization
 """
 
-from typing import Optional, List, Dict, Any, Tuple
+import json
+import pickle
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import json
-import uuid
-import pickle
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class DocumentCategory(str, Enum):
     """Document categories"""
+
     INVOICE = "invoice"
     CONTRACT = "contract"
     REPORT = "report"
@@ -34,6 +35,7 @@ class DocumentCategory(str, Enum):
 
 class ModelType(str, Enum):
     """ML model types"""
+
     TFIDF_SVM = "tfidf_svm"
     NAIVE_BAYES = "naive_bayes"
     LOGISTIC_REGRESSION = "logistic_regression"
@@ -44,6 +46,7 @@ class ModelType(str, Enum):
 @dataclass
 class ClassificationResult:
     """Classification result"""
+
     category: DocumentCategory
     confidence: float
     probabilities: Dict[str, float] = field(default_factory=dict)
@@ -53,6 +56,7 @@ class ClassificationResult:
 @dataclass
 class TrainingData:
     """Training data sample"""
+
     id: str
     text: str
     category: DocumentCategory
@@ -62,6 +66,7 @@ class TrainingData:
 @dataclass
 class ModelMetrics:
     """Model evaluation metrics"""
+
     accuracy: float
     precision: float
     recall: float
@@ -81,11 +86,47 @@ class TextPreprocessor:
         # German and English stopwords
         return {
             # German
-            'der', 'die', 'das', 'und', 'oder', 'aber', 'ist', 'sind', 'ein', 'eine',
-            'von', 'zu', 'mit', 'im', 'für', 'auf', 'als', 'bei', 'nicht', 'auch',
+            "der",
+            "die",
+            "das",
+            "und",
+            "oder",
+            "aber",
+            "ist",
+            "sind",
+            "ein",
+            "eine",
+            "von",
+            "zu",
+            "mit",
+            "im",
+            "für",
+            "auf",
+            "als",
+            "bei",
+            "nicht",
+            "auch",
             # English
-            'the', 'and', 'or', 'but', 'is', 'are', 'a', 'an', 'of', 'to', 'in',
-            'for', 'on', 'with', 'as', 'at', 'by', 'from', 'not', 'also'
+            "the",
+            "and",
+            "or",
+            "but",
+            "is",
+            "are",
+            "a",
+            "an",
+            "of",
+            "to",
+            "in",
+            "for",
+            "on",
+            "with",
+            "as",
+            "at",
+            "by",
+            "from",
+            "not",
+            "also",
         }
 
     def preprocess(self, text: str) -> str:
@@ -95,28 +136,29 @@ class TextPreprocessor:
 
         # Remove special characters (keep alphanumeric and spaces)
         import re
-        text = re.sub(r'[^a-zA-Z0-9äöüßÄÖÜ\s]', ' ', text)
+
+        text = re.sub(r"[^a-zA-Z0-9äöüßÄÖÜ\s]", " ", text)
 
         # Remove extra spaces
-        text = ' '.join(text.split())
+        text = " ".join(text.split())
 
         # Remove stopwords
         words = text.split()
         words = [w for w in words if w not in self.stopwords]
 
-        return ' '.join(words)
+        return " ".join(words)
 
     def extract_features(self, text: str) -> Dict[str, Any]:
         """Extract text features"""
         words = text.split()
 
         return {
-            'word_count': len(words),
-            'char_count': len(text),
-            'avg_word_length': sum(len(w) for w in words) / len(words) if words else 0,
-            'unique_words': len(set(words)),
-            'has_numbers': any(c.isdigit() for c in text),
-            'has_currency': any(symbol in text for symbol in ['€', '$', 'EUR', 'USD'])
+            "word_count": len(words),
+            "char_count": len(text),
+            "avg_word_length": sum(len(w) for w in words) / len(words) if words else 0,
+            "unique_words": len(set(words)),
+            "has_numbers": any(c.isdigit() for c in text),
+            "has_currency": any(symbol in text for symbol in ["€", "$", "EUR", "USD"]),
         }
 
 
@@ -134,23 +176,18 @@ class TfidfSVMClassifier:
         """Train the model with real scikit-learn implementation"""
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer
-            from sklearn.svm import SVC
-            from sklearn.model_selection import train_test_split
             from sklearn.metrics import (
                 accuracy_score,
-                precision_recall_fscore_support,
                 classification_report,
-                confusion_matrix
+                confusion_matrix,
+                precision_recall_fscore_support,
             )
+            from sklearn.model_selection import train_test_split
+            from sklearn.svm import SVC
         except ImportError:
             # Fallback to simulated metrics if sklearn not available
             self.trained = True
-            return ModelMetrics(
-                accuracy=0.92,
-                precision=0.91,
-                recall=0.90,
-                f1_score=0.905
-            )
+            return ModelMetrics(accuracy=0.92, precision=0.91, recall=0.90, f1_score=0.905)
 
         # Extract texts and labels
         texts = [sample.text for sample in training_data]
@@ -168,8 +205,8 @@ class TfidfSVMClassifier:
             ngram_range=(1, 2),  # Unigrams and bigrams
             min_df=2,  # Minimum document frequency
             max_df=0.95,  # Maximum document frequency
-            strip_accents='unicode',
-            lowercase=True
+            strip_accents="unicode",
+            lowercase=True,
         )
 
         # Transform texts to TF-IDF features
@@ -177,19 +214,20 @@ class TfidfSVMClassifier:
 
         # Split data for evaluation
         X_train, X_test, y_train, y_test = train_test_split(
-            X, encoded_labels,
+            X,
+            encoded_labels,
             test_size=0.2,
             random_state=42,
-            stratify=encoded_labels if len(set(encoded_labels)) > 1 else None
+            stratify=encoded_labels if len(set(encoded_labels)) > 1 else None,
         )
 
         # Train SVM classifier
         self.classifier = SVC(
-            kernel='linear',
+            kernel="linear",
             probability=True,  # Enable probability estimates
             C=1.0,
-            class_weight='balanced',  # Handle class imbalance
-            random_state=42
+            class_weight="balanced",  # Handle class imbalance
+            random_state=42,
         )
         self.classifier.fit(X_train, y_train)
 
@@ -200,21 +238,18 @@ class TfidfSVMClassifier:
 
         # Calculate metrics
         accuracy = accuracy_score(y_test, y_pred)
-        precision, recall, f1, _ = precision_recall_fscore_support(
-            y_test, y_pred,
-            average='weighted',
-            zero_division=0
-        )
+        precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average="weighted", zero_division=0)
 
         # Confusion matrix
         cm = confusion_matrix(y_test, y_pred)
 
         # Classification report
         report = classification_report(
-            y_test, y_pred,
+            y_test,
+            y_pred,
             target_names=[self.reverse_label_encoder[i] for i in sorted(self.reverse_label_encoder.keys())],
             output_dict=True,
-            zero_division=0
+            zero_division=0,
         )
 
         return ModelMetrics(
@@ -223,7 +258,7 @@ class TfidfSVMClassifier:
             recall=float(recall),
             f1_score=float(f1),
             confusion_matrix=cm.tolist(),
-            classification_report=report
+            classification_report=report,
         )
 
     def predict(self, text: str) -> ClassificationResult:
@@ -233,7 +268,7 @@ class TfidfSVMClassifier:
             return ClassificationResult(
                 category=DocumentCategory.OTHER,
                 confidence=0.5,
-                probabilities={cat.value: 0.1 for cat in DocumentCategory}
+                probabilities={cat.value: 0.1 for cat in DocumentCategory},
             )
 
         try:
@@ -263,26 +298,22 @@ class TfidfSVMClassifier:
                 # Fallback if label doesn't match enum
                 category = DocumentCategory.OTHER
 
-            return ClassificationResult(
-                category=category,
-                confidence=confidence,
-                probabilities=probabilities
-            )
+            return ClassificationResult(category=category, confidence=confidence, probabilities=probabilities)
 
         except Exception as e:
             # Fallback to keyword-based prediction if error occurs
             text_lower = text.lower()
 
-            if any(word in text_lower for word in ['rechnung', 'invoice', 'betrag', 'zahlung']):
+            if any(word in text_lower for word in ["rechnung", "invoice", "betrag", "zahlung"]):
                 category = DocumentCategory.INVOICE
                 confidence = 0.95
-            elif any(word in text_lower for word in ['vertrag', 'contract', 'vereinbarung']):
+            elif any(word in text_lower for word in ["vertrag", "contract", "vereinbarung"]):
                 category = DocumentCategory.CONTRACT
                 confidence = 0.92
-            elif any(word in text_lower for word in ['bericht', 'report', 'zusammenfassung']):
+            elif any(word in text_lower for word in ["bericht", "report", "zusammenfassung"]):
                 category = DocumentCategory.REPORT
                 confidence = 0.88
-            elif any(word in text_lower for word in ['budget', 'finanzplan', 'kosten']):
+            elif any(word in text_lower for word in ["budget", "finanzplan", "kosten"]):
                 category = DocumentCategory.BUDGET_PLAN
                 confidence = 0.85
             else:
@@ -293,11 +324,7 @@ class TfidfSVMClassifier:
             probabilities = {cat.value: 0.05 for cat in DocumentCategory}
             probabilities[category.value] = confidence
 
-            return ClassificationResult(
-                category=category,
-                confidence=confidence,
-                probabilities=probabilities
-            )
+            return ClassificationResult(category=category, confidence=confidence, probabilities=probabilities)
 
     def save_model(self, path: str) -> bool:
         """Save trained model"""
@@ -358,20 +385,12 @@ class BERTClassifier:
 
         self.trained = True
 
-        return ModelMetrics(
-            accuracy=0.95,
-            precision=0.94,
-            recall=0.93,
-            f1_score=0.935
-        )
+        return ModelMetrics(accuracy=0.95, precision=0.94, recall=0.93, f1_score=0.935)
 
     def predict(self, text: str) -> ClassificationResult:
         """Predict with BERT"""
         if not self.trained:
-            return ClassificationResult(
-                category=DocumentCategory.OTHER,
-                confidence=0.5
-            )
+            return ClassificationResult(category=DocumentCategory.OTHER, confidence=0.5)
 
         # In production:
         # inputs = self.tokenizer(text, return_tensors="pt", truncation=True, padding=True)
@@ -383,7 +402,7 @@ class BERTClassifier:
         return ClassificationResult(
             category=DocumentCategory.SERVICE_PLAN,
             confidence=0.95,
-            probabilities={cat.value: 0.05 for cat in DocumentCategory}
+            probabilities={cat.value: 0.05 for cat in DocumentCategory},
         )
 
 
@@ -415,12 +434,14 @@ class DocumentClassifier:
         metrics = self.model.train(training_data)
 
         # Record training
-        self.training_history.append({
-            'timestamp': datetime.now(),
-            'model_type': self.model_type.value,
-            'training_samples': len(training_data),
-            'metrics': metrics
-        })
+        self.training_history.append(
+            {
+                "timestamp": datetime.now(),
+                "model_type": self.model_type.value,
+                "training_samples": len(training_data),
+                "metrics": metrics,
+            }
+        )
 
         return metrics
 
@@ -442,10 +463,7 @@ class DocumentClassifier:
         """Classify multiple documents"""
         return [self.classify(text) for text in texts]
 
-    def evaluate(
-        self,
-        test_data: List[TrainingData]
-    ) -> ModelMetrics:
+    def evaluate(self, test_data: List[TrainingData]) -> ModelMetrics:
         """Evaluate model on test data"""
         predictions = []
         true_labels = []
@@ -462,21 +480,16 @@ class DocumentClassifier:
         correct = sum(1 for p, t in zip(predictions, true_labels) if p == t)
         accuracy = correct / len(test_data)
 
-        return ModelMetrics(
-            accuracy=accuracy,
-            precision=accuracy,  # Simplified
-            recall=accuracy,
-            f1_score=accuracy
-        )
+        return ModelMetrics(accuracy=accuracy, precision=accuracy, recall=accuracy, f1_score=accuracy)  # Simplified
 
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information"""
         return {
-            'model_type': self.model_type.value,
-            'trained': self.model.trained,
-            'training_history': len(self.training_history),
-            'last_trained': self.training_history[-1]['timestamp'].isoformat() if self.training_history else None,
-            'categories': [cat.value for cat in DocumentCategory]
+            "model_type": self.model_type.value,
+            "trained": self.model.trained,
+            "training_history": len(self.training_history),
+            "last_trained": self.training_history[-1]["timestamp"].isoformat() if self.training_history else None,
+            "categories": [cat.value for cat in DocumentCategory],
         }
 
 
@@ -488,22 +501,21 @@ class AutoCategorizer:
         self.categorization_log: List[Dict[str, Any]] = []
 
     def categorize_document(
-        self,
-        document_id: str,
-        text: str,
-        confidence_threshold: float = 0.7
+        self, document_id: str, text: str, confidence_threshold: float = 0.7
     ) -> Optional[DocumentCategory]:
         """Categorize document automatically"""
         result = self.classifier.classify(text)
 
         # Log categorization
-        self.categorization_log.append({
-            'document_id': document_id,
-            'timestamp': datetime.now(),
-            'category': result.category.value,
-            'confidence': result.confidence,
-            'auto_applied': result.confidence >= confidence_threshold
-        })
+        self.categorization_log.append(
+            {
+                "document_id": document_id,
+                "timestamp": datetime.now(),
+                "category": result.category.value,
+                "confidence": result.confidence,
+                "auto_applied": result.confidence >= confidence_threshold,
+            }
+        )
 
         # Only auto-apply if confidence is high enough
         if result.confidence >= confidence_threshold:
@@ -511,20 +523,12 @@ class AutoCategorizer:
 
         return None
 
-    def get_suggestions(
-        self,
-        text: str,
-        top_k: int = 3
-    ) -> List[Tuple[DocumentCategory, float]]:
+    def get_suggestions(self, text: str, top_k: int = 3) -> List[Tuple[DocumentCategory, float]]:
         """Get top-k category suggestions"""
         result = self.classifier.classify(text)
 
         # Sort by probability
-        sorted_probs = sorted(
-            result.probabilities.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_probs = sorted(result.probabilities.items(), key=lambda x: x[1], reverse=True)
 
         suggestions = []
         for category_str, prob in sorted_probs[:top_k]:
@@ -538,9 +542,7 @@ class AutoCategorizer:
 _document_classifier: Optional[DocumentClassifier] = None
 
 
-def get_document_classifier(
-    model_type: ModelType = ModelType.TFIDF_SVM
-) -> DocumentClassifier:
+def get_document_classifier(model_type: ModelType = ModelType.TFIDF_SVM) -> DocumentClassifier:
     """Get global document classifier instance"""
     global _document_classifier
 

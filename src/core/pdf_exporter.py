@@ -5,29 +5,28 @@ Professional PDF generation with custom branding, logos, and styling.
 Supports both reportlab (programmatic) and weasyprint (HTML to PDF).
 """
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm, mm
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, Image, KeepTogether
-)
-from reportlab.pdfgen import canvas
+import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-import logging
+from typing import Any, Dict, List, Optional
+
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
+from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import cm, mm
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 try:
-    from weasyprint import HTML, CSS
+    from weasyprint import CSS, HTML
+
     WEASYPRINT_AVAILABLE = True
 except ImportError:
     WEASYPRINT_AVAILABLE = False
     logging.warning("WeasyPrint not available. HTML to PDF conversion disabled.")
 
-logger = logging.getLogger('dms.pdf')
+logger = logging.getLogger("dms.pdf")
 
 
 class BrandingConfig:
@@ -37,11 +36,11 @@ class BrandingConfig:
         self.company_name = "Document Management System"
         self.company_tagline = "Professional Service Management"
         self.logo_path = None  # Path to logo image
-        self.primary_color = colors.HexColor('#0d6efd')
-        self.secondary_color = colors.HexColor('#6c757d')
-        self.accent_color = colors.HexColor('#198754')
-        self.header_font = 'Helvetica-Bold'
-        self.body_font = 'Helvetica'
+        self.primary_color = colors.HexColor("#0d6efd")
+        self.secondary_color = colors.HexColor("#6c757d")
+        self.accent_color = colors.HexColor("#198754")
+        self.header_font = "Helvetica-Bold"
+        self.body_font = "Helvetica"
         self.font_size_title = 18
         self.font_size_heading = 14
         self.font_size_body = 10
@@ -68,47 +67,55 @@ class PDFExporter:
     def _setup_custom_styles(self):
         """Set up custom paragraph styles."""
         # Title style
-        self.styles.add(ParagraphStyle(
-            name='CustomTitle',
-            parent=self.styles['Heading1'],
-            fontSize=self.branding.font_size_title,
-            textColor=self.branding.primary_color,
-            spaceAfter=12,
-            alignment=TA_CENTER,
-            fontName=self.branding.header_font
-        ))
+        self.styles.add(
+            ParagraphStyle(
+                name="CustomTitle",
+                parent=self.styles["Heading1"],
+                fontSize=self.branding.font_size_title,
+                textColor=self.branding.primary_color,
+                spaceAfter=12,
+                alignment=TA_CENTER,
+                fontName=self.branding.header_font,
+            )
+        )
 
         # Heading style
-        self.styles.add(ParagraphStyle(
-            name='CustomHeading',
-            parent=self.styles['Heading2'],
-            fontSize=self.branding.font_size_heading,
-            textColor=self.branding.primary_color,
-            spaceBefore=10,
-            spaceAfter=6,
-            fontName=self.branding.header_font
-        ))
+        self.styles.add(
+            ParagraphStyle(
+                name="CustomHeading",
+                parent=self.styles["Heading2"],
+                fontSize=self.branding.font_size_heading,
+                textColor=self.branding.primary_color,
+                spaceBefore=10,
+                spaceAfter=6,
+                fontName=self.branding.header_font,
+            )
+        )
 
         # Body style
-        self.styles.add(ParagraphStyle(
-            name='CustomBody',
-            parent=self.styles['Normal'],
-            fontSize=self.branding.font_size_body,
-            alignment=TA_JUSTIFY,
-            fontName=self.branding.body_font
-        ))
+        self.styles.add(
+            ParagraphStyle(
+                name="CustomBody",
+                parent=self.styles["Normal"],
+                fontSize=self.branding.font_size_body,
+                alignment=TA_JUSTIFY,
+                fontName=self.branding.body_font,
+            )
+        )
 
         # Info box style
-        self.styles.add(ParagraphStyle(
-            name='InfoBox',
-            parent=self.styles['Normal'],
-            fontSize=self.branding.font_size_body,
-            textColor=colors.white,
-            backColor=self.branding.primary_color,
-            leftIndent=10,
-            rightIndent=10,
-            spaceAfter=10
-        ))
+        self.styles.add(
+            ParagraphStyle(
+                name="InfoBox",
+                parent=self.styles["Normal"],
+                fontSize=self.branding.font_size_body,
+                textColor=colors.white,
+                backColor=self.branding.primary_color,
+                leftIndent=10,
+                rightIndent=10,
+                spaceAfter=10,
+            )
+        )
 
     def _create_header_footer(self, canvas_obj, doc):
         """
@@ -125,18 +132,16 @@ class PDFExporter:
             canvas_obj.drawImage(
                 self.branding.logo_path,
                 doc.leftMargin,
-                doc.height + doc.topMargin - 2*cm,
-                width=3*cm,
-                height=1.5*cm,
-                preserveAspectRatio=True
+                doc.height + doc.topMargin - 2 * cm,
+                width=3 * cm,
+                height=1.5 * cm,
+                preserveAspectRatio=True,
             )
 
         canvas_obj.setFont(self.branding.header_font, 12)
         canvas_obj.setFillColor(self.branding.primary_color)
         canvas_obj.drawRightString(
-            doc.width + doc.leftMargin,
-            doc.height + doc.topMargin - 1*cm,
-            self.branding.company_name
+            doc.width + doc.leftMargin, doc.height + doc.topMargin - 1 * cm, self.branding.company_name
         )
 
         # Footer
@@ -144,14 +149,10 @@ class PDFExporter:
         canvas_obj.setFillColor(self.branding.secondary_color)
 
         footer_text = f"{self.branding.footer_text} | {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-        canvas_obj.drawString(doc.leftMargin, 1.5*cm, footer_text)
+        canvas_obj.drawString(doc.leftMargin, 1.5 * cm, footer_text)
 
         if self.branding.show_page_numbers:
-            canvas_obj.drawRightString(
-                doc.width + doc.leftMargin,
-                1.5*cm,
-                f"Page {doc.page}"
-            )
+            canvas_obj.drawRightString(doc.width + doc.leftMargin, 1.5 * cm, f"Page {doc.page}")
 
         # Watermark
         if self.branding.show_watermark:
@@ -160,17 +161,12 @@ class PDFExporter:
             canvas_obj.setFillColor(colors.lightgrey)
             canvas_obj.setFillAlpha(0.1)
             canvas_obj.rotate(45)
-            canvas_obj.drawCentredString(15*cm, 0, self.branding.watermark_text)
+            canvas_obj.drawCentredString(15 * cm, 0, self.branding.watermark_text)
             canvas_obj.restoreState()
 
         canvas_obj.restoreState()
 
-    def export_service_to_pdf(
-        self,
-        service: Any,
-        output_path: str,
-        include_cost_breakdown: bool = True
-    ) -> str:
+    def export_service_to_pdf(self, service: Any, output_path: str, include_cost_breakdown: bool = True) -> str:
         """
         Export service details to PDF.
 
@@ -184,24 +180,16 @@ class PDFExporter:
         """
         # Create document
         doc = SimpleDocTemplate(
-            output_path,
-            pagesize=A4,
-            rightMargin=2*cm,
-            leftMargin=2*cm,
-            topMargin=3*cm,
-            bottomMargin=2.5*cm
+            output_path, pagesize=A4, rightMargin=2 * cm, leftMargin=2 * cm, topMargin=3 * cm, bottomMargin=2.5 * cm
         )
 
         # Build content
         story = []
 
         # Title
-        title = Paragraph(
-            f"Service Report: {service.basic_info.service_name}",
-            self.styles['CustomTitle']
-        )
+        title = Paragraph(f"Service Report: {service.basic_info.service_name}", self.styles["CustomTitle"])
         story.append(title)
-        story.append(Spacer(1, 0.5*cm))
+        story.append(Spacer(1, 0.5 * cm))
 
         # Info box with key details
         info_text = f"""
@@ -209,72 +197,80 @@ class PDFExporter:
         <b>Target Group:</b> {service.basic_info.target_group} |
         <b>Rate:</b> €{service.financial.brutto_rate:.2f}/hour
         """
-        info_box = Paragraph(info_text, self.styles['CustomBody'])
+        info_box = Paragraph(info_text, self.styles["CustomBody"])
         story.append(info_box)
-        story.append(Spacer(1, 0.5*cm))
+        story.append(Spacer(1, 0.5 * cm))
 
         # Basic Information
-        story.append(Paragraph("Basic Information", self.styles['CustomHeading']))
+        story.append(Paragraph("Basic Information", self.styles["CustomHeading"]))
 
         basic_data = [
-            ['Field', 'Value'],
-            ['Service Name', service.basic_info.service_name],
-            ['Region', service.basic_info.region],
-            ['Target Group', service.basic_info.target_group],
-            ['Service Type', getattr(service.basic_info, 'service_type', 'N/A')],
+            ["Field", "Value"],
+            ["Service Name", service.basic_info.service_name],
+            ["Region", service.basic_info.region],
+            ["Target Group", service.basic_info.target_group],
+            ["Service Type", getattr(service.basic_info, "service_type", "N/A")],
         ]
 
-        basic_table = Table(basic_data, colWidths=[6*cm, 10*cm])
-        basic_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.branding.primary_color),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), self.branding.header_font),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('FONTNAME', (0, 1), (-1, -1), self.branding.body_font),
-            ('FONTSIZE', (0, 1), (-1, -1), self.branding.font_size_body),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-        ]))
+        basic_table = Table(basic_data, colWidths=[6 * cm, 10 * cm])
+        basic_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), self.branding.primary_color),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("FONTNAME", (0, 0), (-1, 0), self.branding.header_font),
+                    ("FONTSIZE", (0, 0), (-1, 0), 11),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                    ("FONTNAME", (0, 1), (-1, -1), self.branding.body_font),
+                    ("FONTSIZE", (0, 1), (-1, -1), self.branding.font_size_body),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+                ]
+            )
+        )
         story.append(basic_table)
-        story.append(Spacer(1, 0.5*cm))
+        story.append(Spacer(1, 0.5 * cm))
 
         # Financial Information
-        story.append(Paragraph("Financial Information", self.styles['CustomHeading']))
+        story.append(Paragraph("Financial Information", self.styles["CustomHeading"]))
 
         financial_data = [
-            ['Component', 'Value'],
-            ['Brutto Hourly Rate', f"€{service.financial.brutto_rate:.2f}"],
-            ['Netto Hourly Rate', f"€{getattr(service.financial, 'netto_rate', 0):.2f}"],
-            ['Base Salary', f"€{getattr(service.financial, 'base_salary', 0):.2f}"],
+            ["Component", "Value"],
+            ["Brutto Hourly Rate", f"€{service.financial.brutto_rate:.2f}"],
+            ["Netto Hourly Rate", f"€{getattr(service.financial, 'netto_rate', 0):.2f}"],
+            ["Base Salary", f"€{getattr(service.financial, 'base_salary', 0):.2f}"],
         ]
 
-        financial_table = Table(financial_data, colWidths=[8*cm, 8*cm])
-        financial_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.branding.accent_color),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('FONTNAME', (0, 0), (-1, 0), self.branding.header_font),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-        ]))
+        financial_table = Table(financial_data, colWidths=[8 * cm, 8 * cm])
+        financial_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), self.branding.accent_color),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+                    ("FONTNAME", (0, 0), (-1, 0), self.branding.header_font),
+                    ("FONTSIZE", (0, 0), (-1, 0), 11),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+                ]
+            )
+        )
         story.append(financial_table)
-        story.append(Spacer(1, 0.5*cm))
+        story.append(Spacer(1, 0.5 * cm))
 
         # Cost Breakdown (if requested)
         if include_cost_breakdown:
-            story.append(Paragraph("Cost Breakdown", self.styles['CustomHeading']))
+            story.append(Paragraph("Cost Breakdown", self.styles["CustomHeading"]))
 
             breakdown_text = """
             This section would contain detailed cost breakdown including:
             social insurance contributions, umlages, surcharges, and regional coefficients.
             """
-            story.append(Paragraph(breakdown_text, self.styles['CustomBody']))
+            story.append(Paragraph(breakdown_text, self.styles["CustomBody"]))
 
         # Build PDF
         doc.build(story, onFirstPage=self._create_header_footer, onLaterPages=self._create_header_footer)
@@ -283,10 +279,7 @@ class PDFExporter:
         return output_path
 
     def export_service_list_to_pdf(
-        self,
-        services: List[Any],
-        output_path: str,
-        title: str = "Service List Report"
+        self, services: List[Any], output_path: str, title: str = "Service List Report"
     ) -> str:
         """
         Export list of services to PDF.
@@ -301,55 +294,56 @@ class PDFExporter:
         """
         # Create document
         doc = SimpleDocTemplate(
-            output_path,
-            pagesize=A4,
-            rightMargin=1.5*cm,
-            leftMargin=1.5*cm,
-            topMargin=3*cm,
-            bottomMargin=2.5*cm
+            output_path, pagesize=A4, rightMargin=1.5 * cm, leftMargin=1.5 * cm, topMargin=3 * cm, bottomMargin=2.5 * cm
         )
 
         story = []
 
         # Title
-        story.append(Paragraph(title, self.styles['CustomTitle']))
-        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph(title, self.styles["CustomTitle"]))
+        story.append(Spacer(1, 0.5 * cm))
 
         # Summary
         summary_text = f"""
         Total Services: <b>{len(services)}</b> |
         Generated: <b>{datetime.now().strftime('%Y-%m-%d %H:%M')}</b>
         """
-        story.append(Paragraph(summary_text, self.styles['CustomBody']))
-        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph(summary_text, self.styles["CustomBody"]))
+        story.append(Spacer(1, 0.5 * cm))
 
         # Services table
-        table_data = [['#', 'Service Name', 'Region', 'Target Group', 'Rate (€/h)']]
+        table_data = [["#", "Service Name", "Region", "Target Group", "Rate (€/h)"]]
 
         for idx, service in enumerate(services, 1):
-            table_data.append([
-                str(idx),
-                service.basic_info.service_name[:40],
-                service.basic_info.region,
-                service.basic_info.target_group[:30],
-                f"{service.financial.brutto_rate:.2f}"
-            ])
+            table_data.append(
+                [
+                    str(idx),
+                    service.basic_info.service_name[:40],
+                    service.basic_info.region,
+                    service.basic_info.target_group[:30],
+                    f"{service.financial.brutto_rate:.2f}",
+                ]
+            )
 
-        services_table = Table(table_data, colWidths=[1*cm, 6*cm, 3*cm, 4*cm, 2.5*cm])
-        services_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.branding.primary_color),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
-            ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
-            ('FONTNAME', (0, 0), (-1, 0), self.branding.header_font),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ]))
+        services_table = Table(table_data, colWidths=[1 * cm, 6 * cm, 3 * cm, 4 * cm, 2.5 * cm])
+        services_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), self.branding.primary_color),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                    ("ALIGN", (-1, 0), (-1, -1), "RIGHT"),
+                    ("FONTNAME", (0, 0), (-1, 0), self.branding.header_font),
+                    ("FONTSIZE", (0, 0), (-1, 0), 9),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("FONTSIZE", (0, 1), (-1, -1), 8),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
         story.append(services_table)
 
         # Build PDF
@@ -359,11 +353,7 @@ class PDFExporter:
         return output_path
 
 
-def export_html_to_pdf(
-    html_content: str,
-    output_path: str,
-    css: Optional[str] = None
-) -> str:
+def export_html_to_pdf(html_content: str, output_path: str, css: Optional[str] = None) -> str:
     """
     Export HTML content to PDF using WeasyPrint.
 
@@ -423,10 +413,7 @@ def export_html_to_pdf(
     css_to_use = css or default_css
 
     # Generate PDF
-    HTML(string=html_content).write_pdf(
-        output_path,
-        stylesheets=[CSS(string=css_to_use)]
-    )
+    HTML(string=html_content).write_pdf(output_path, stylesheets=[CSS(string=css_to_use)])
 
     logger.info(f"Generated PDF from HTML: {output_path}")
     return output_path

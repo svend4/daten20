@@ -5,12 +5,13 @@ Tests the complete workflow of merging multiple documents into one
 and splitting documents into multiple parts.
 """
 
-import pytest
-import os
-import tempfile
-import shutil
-from pathlib import Path
 import json
+import os
+import shutil
+import tempfile
+from pathlib import Path
+
+import pytest
 
 
 class TestDocumentMergeSplitWorkflow:
@@ -33,7 +34,7 @@ class TestDocumentMergeSplitWorkflow:
     def create_test_document(self, filename: str, content: str) -> Path:
         """Create a test document"""
         doc_path = self.input_dir / filename
-        doc_path.write_text(content, encoding='utf-8')
+        doc_path.write_text(content, encoding="utf-8")
         return doc_path
 
     def test_simple_merge_workflow(self):
@@ -50,7 +51,7 @@ class TestDocumentMergeSplitWorkflow:
         documents = [
             ("chapter1.txt", "Chapter 1: Introduction\nThis is the first chapter."),
             ("chapter2.txt", "Chapter 2: Background\nThis is the second chapter."),
-            ("chapter3.txt", "Chapter 3: Conclusion\nThis is the final chapter.")
+            ("chapter3.txt", "Chapter 3: Conclusion\nThis is the final chapter."),
         ]
 
         doc_paths = []
@@ -69,7 +70,7 @@ class TestDocumentMergeSplitWorkflow:
 
         # Save merged document
         merged_path = self.output_dir / "merged_document.txt"
-        merged_path.write_text(merged_text, encoding='utf-8')
+        merged_path.write_text(merged_text, encoding="utf-8")
 
         # Step 3: Verify merged content
         assert merged_path.exists()
@@ -79,21 +80,21 @@ class TestDocumentMergeSplitWorkflow:
         for filename, _, original_content in doc_paths:
             assert filename in content
             # Check if original content is in merged doc (allowing for some formatting differences)
-            for line in original_content.split('\n'):
+            for line in original_content.split("\n"):
                 if line.strip():
                     assert line in content
 
         # Step 4: Generate merge report
         report = {
-            'source_documents': [filename for filename, _, _ in doc_paths],
-            'merged_document': str(merged_path.name),
-            'total_documents_merged': len(doc_paths),
-            'merged_size': len(merged_text),
-            'merge_date': '2026-01-14'
+            "source_documents": [filename for filename, _, _ in doc_paths],
+            "merged_document": str(merged_path.name),
+            "total_documents_merged": len(doc_paths),
+            "merged_size": len(merged_text),
+            "merge_date": "2026-01-14",
         }
 
         report_path = self.output_dir / "merge_report.json"
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
 
         assert report_path.exists()
@@ -130,7 +131,7 @@ class TestDocumentMergeSplitWorkflow:
         for i, section in enumerate(sections[1:], 1):  # Skip first empty part
             part_content = f"--- Section{section}"
             part_path = self.output_dir / f"part_{i}.txt"
-            part_path.write_text(part_content, encoding='utf-8')
+            part_path.write_text(part_content, encoding="utf-8")
             parts.append(part_path)
 
         # Step 3: Verify all parts
@@ -143,15 +144,15 @@ class TestDocumentMergeSplitWorkflow:
 
         # Step 4: Generate split report
         report = {
-            'original_document': 'large_document.txt',
-            'original_size': len(full_content),
-            'parts_created': len(parts),
-            'parts': [str(p.name) for p in parts],
-            'split_date': '2026-01-14'
+            "original_document": "large_document.txt",
+            "original_size": len(full_content),
+            "parts_created": len(parts),
+            "parts": [str(p.name) for p in parts],
+            "split_date": "2026-01-14",
         }
 
         report_path = self.output_dir / "split_report.json"
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
 
         assert report_path.exists()
@@ -175,7 +176,7 @@ class TestDocumentMergeSplitWorkflow:
         originals = [
             ("doc1.txt", "First document content"),
             ("doc2.txt", "Second document content"),
-            ("doc3.txt", "Third document content")
+            ("doc3.txt", "Third document content"),
         ]
 
         original_paths = []
@@ -193,17 +194,17 @@ class TestDocumentMergeSplitWorkflow:
 
         merged_content = "".join(merged_parts)
         merged_path = self.output_dir / "merged.txt"
-        merged_path.write_text(merged_content, encoding='utf-8')
+        merged_path.write_text(merged_content, encoding="utf-8")
 
         # Step 3: Split back
         split_parts = merged_content.split("###SPLIT_MARKER###")
         reconstructed = []
 
         for part in split_parts[1:]:  # Skip first empty part
-            lines = part.strip().split('\n')
-            if len(lines) >= 2 and lines[0].startswith('FILENAME:'):
-                filename = lines[0].replace('FILENAME:', '')
-                content = '\n'.join(lines[1:])
+            lines = part.strip().split("\n")
+            if len(lines) >= 2 and lines[0].startswith("FILENAME:"):
+                filename = lines[0].replace("FILENAME:", "")
+                content = "\n".join(lines[1:])
                 reconstructed.append((filename, content))
 
         # Step 4: Verify
@@ -231,73 +232,65 @@ class TestDocumentMergeSplitWorkflow:
         # Step 1: Create documents with metadata
         documents = [
             {
-                'filename': 'report1.txt',
-                'content': 'First quarterly report',
-                'metadata': {'author': 'Alice', 'date': '2026-01-01', 'version': 1}
+                "filename": "report1.txt",
+                "content": "First quarterly report",
+                "metadata": {"author": "Alice", "date": "2026-01-01", "version": 1},
             },
             {
-                'filename': 'report2.txt',
-                'content': 'Second quarterly report',
-                'metadata': {'author': 'Bob', 'date': '2026-04-01', 'version': 1}
-            }
+                "filename": "report2.txt",
+                "content": "Second quarterly report",
+                "metadata": {"author": "Bob", "date": "2026-04-01", "version": 1},
+            },
         ]
 
         # Create documents
         for doc in documents:
-            self.create_test_document(doc['filename'], doc['content'])
+            self.create_test_document(doc["filename"], doc["content"])
 
         # Step 2: Merge with metadata
-        merged_structure = {
-            'documents': [],
-            'merged_content': ''
-        }
+        merged_structure = {"documents": [], "merged_content": ""}
 
         merged_text_parts = []
         for doc in documents:
             # Add to structure
-            merged_structure['documents'].append({
-                'filename': doc['filename'],
-                'metadata': doc['metadata'],
-                'content_offset': len(merged_text_parts)
-            })
+            merged_structure["documents"].append(
+                {"filename": doc["filename"], "metadata": doc["metadata"], "content_offset": len(merged_text_parts)}
+            )
 
             # Add to merged content
-            merged_text_parts.append(doc['content'])
-            merged_text_parts.append('\n\n')
+            merged_text_parts.append(doc["content"])
+            merged_text_parts.append("\n\n")
 
-        merged_structure['merged_content'] = ''.join(merged_text_parts)
+        merged_structure["merged_content"] = "".join(merged_text_parts)
 
         # Save merged document
         merged_path = self.output_dir / "merged_with_metadata.txt"
-        merged_path.write_text(merged_structure['merged_content'], encoding='utf-8')
+        merged_path.write_text(merged_structure["merged_content"], encoding="utf-8")
 
         # Save metadata
         metadata_path = self.output_dir / "merged_metadata.json"
-        with open(metadata_path, 'w') as f:
+        with open(metadata_path, "w") as f:
             json.dump(merged_structure, f, indent=2)
 
         # Step 3: Verify metadata is accessible
-        with open(metadata_path, 'r') as f:
+        with open(metadata_path, "r") as f:
             loaded_metadata = json.load(f)
 
-        assert len(loaded_metadata['documents']) == len(documents)
-        assert 'Alice' in str(loaded_metadata)
-        assert 'Bob' in str(loaded_metadata)
+        assert len(loaded_metadata["documents"]) == len(documents)
+        assert "Alice" in str(loaded_metadata)
+        assert "Bob" in str(loaded_metadata)
 
         # Step 4: Generate comprehensive report
         report = {
-            'merge_type': 'smart_merge_with_metadata',
-            'total_documents': len(documents),
-            'total_authors': len(set(doc['metadata']['author'] for doc in documents)),
-            'metadata_preserved': True,
-            'output_files': {
-                'content': str(merged_path.name),
-                'metadata': str(metadata_path.name)
-            }
+            "merge_type": "smart_merge_with_metadata",
+            "total_documents": len(documents),
+            "total_authors": len(set(doc["metadata"]["author"] for doc in documents)),
+            "metadata_preserved": True,
+            "output_files": {"content": str(merged_path.name), "metadata": str(metadata_path.name)},
         }
 
         report_path = self.output_dir / "smart_merge_report.json"
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
 
         assert report_path.exists()
@@ -338,7 +331,7 @@ This is the third page."""
         saved_pages = []
         for i, page_content in enumerate(page_parts, 1):
             page_path = self.output_dir / f"page_{i}.txt"
-            page_path.write_text(page_content, encoding='utf-8')
+            page_path.write_text(page_content, encoding="utf-8")
             saved_pages.append(page_path)
 
         # Step 3: Validate
@@ -359,9 +352,9 @@ This is the third page."""
         chunks = []
 
         for i in range(0, len(words), chunk_size):
-            chunk = ' '.join(words[i:i + chunk_size])
+            chunk = " ".join(words[i : i + chunk_size])
             chunk_path = self.output_dir / f"chunk_{i//chunk_size + 1}.txt"
-            chunk_path.write_text(chunk, encoding='utf-8')
+            chunk_path.write_text(chunk, encoding="utf-8")
             chunks.append(chunk_path)
 
         assert len(chunks) == 5  # 1000 / 200 = 5
@@ -372,5 +365,5 @@ This is the third page."""
         print(f"   - All validations passed")
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '-s'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "-s"])

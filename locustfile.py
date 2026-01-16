@@ -5,9 +5,10 @@ Run with: locust -f locustfile.py --host=http://localhost:5000
 Web UI: http://localhost:8089
 """
 
-from locust import HttpUser, task, between, TaskSet
-import random
 import json
+import random
+
+from locust import HttpUser, TaskSet, between, task
 
 
 class ServiceManagementTasks(TaskSet):
@@ -16,14 +17,11 @@ class ServiceManagementTasks(TaskSet):
     def on_start(self):
         """Setup - runs once when user starts"""
         # Login
-        response = self.client.post("/api/v1/auth/login", json={
-            "username": "testuser",
-            "password": "testpass"
-        })
+        response = self.client.post("/api/v1/auth/login", json={"username": "testuser", "password": "testpass"})
 
         if response.status_code == 200:
             data = response.json()
-            self.token = data.get('token')
+            self.token = data.get("token")
         else:
             self.token = None
 
@@ -32,7 +30,7 @@ class ServiceManagementTasks(TaskSet):
         """List all services (most common operation)"""
         headers = {}
         if self.token:
-            headers['Authorization'] = f'Bearer {self.token}'
+            headers["Authorization"] = f"Bearer {self.token}"
 
         self.client.get("/api/v1/services", headers=headers)
 
@@ -41,7 +39,7 @@ class ServiceManagementTasks(TaskSet):
         """Get details of a specific service"""
         headers = {}
         if self.token:
-            headers['Authorization'] = f'Bearer {self.token}'
+            headers["Authorization"] = f"Bearer {self.token}"
 
         # Random service ID between 1-100
         service_id = random.randint(1, 100)
@@ -52,7 +50,7 @@ class ServiceManagementTasks(TaskSet):
         """Search services"""
         headers = {}
         if self.token:
-            headers['Authorization'] = f'Bearer {self.token}'
+            headers["Authorization"] = f"Bearer {self.token}"
 
         search_terms = ["Shopping", "Cleaning", "Transport", "Cooking", "Bavaria"]
         term = random.choice(search_terms)
@@ -62,15 +60,15 @@ class ServiceManagementTasks(TaskSet):
     @task(2)
     def create_service(self):
         """Create a new service"""
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
         if self.token:
-            headers['Authorization'] = f'Bearer {self.token}'
+            headers["Authorization"] = f"Bearer {self.token}"
 
         service_data = {
             "service_name": f"Load Test Service {random.randint(1, 10000)}",
             "region": random.choice(["Bavaria", "Berlin", "Hamburg", "Saxony"]),
             "brutto_rate": round(random.uniform(30.0, 60.0), 2),
-            "hours_per_month": random.choice([80, 120, 160, 200])
+            "hours_per_month": random.choice([80, 120, 160, 200]),
         }
 
         self.client.post("/api/v1/services", json=service_data, headers=headers)
@@ -78,14 +76,14 @@ class ServiceManagementTasks(TaskSet):
     @task(1)
     def update_service(self):
         """Update an existing service"""
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
         if self.token:
-            headers['Authorization'] = f'Bearer {self.token}'
+            headers["Authorization"] = f"Bearer {self.token}"
 
         service_id = random.randint(1, 100)
         update_data = {
             "brutto_rate": round(random.uniform(30.0, 60.0), 2),
-            "hours_per_month": random.choice([80, 120, 160, 200])
+            "hours_per_month": random.choice([80, 120, 160, 200]),
         }
 
         self.client.put(f"/api/v1/services/{service_id}", json=update_data, headers=headers)
@@ -101,7 +99,7 @@ class CalculatorTasks(TaskSet):
             "brutto_rate": round(random.uniform(30.0, 60.0), 2),
             "hours_per_month": random.choice([80, 120, 160, 200]),
             "region": random.choice(["Bavaria", "Berlin", "Hamburg", "Saxony"]),
-            "use_umlages": random.choice([True, False])
+            "use_umlages": random.choice([True, False]),
         }
 
         self.client.post("/api/v1/calculate", json=calc_data)
@@ -154,6 +152,7 @@ class WebUITasks(TaskSet):
 
 class APIUser(HttpUser):
     """API user behavior - focuses on API endpoints"""
+
     tasks = [ServiceManagementTasks, CalculatorTasks, StatisticsTasks]
     wait_time = between(1, 3)  # Wait 1-3 seconds between tasks
     weight = 3  # 3x more likely than WebUser
@@ -161,6 +160,7 @@ class APIUser(HttpUser):
 
 class WebUser(HttpUser):
     """Web UI user behavior - focuses on page loads"""
+
     tasks = [WebUITasks]
     wait_time = between(2, 5)  # Wait 2-5 seconds between tasks
     weight = 1
@@ -168,6 +168,7 @@ class WebUser(HttpUser):
 
 class MixedUser(HttpUser):
     """Mixed user behavior - uses both API and Web UI"""
+
     tasks = [ServiceManagementTasks, WebUITasks, CalculatorTasks]
     wait_time = between(1, 4)
     weight = 2
@@ -175,6 +176,7 @@ class MixedUser(HttpUser):
 
 # Custom load shapes
 from locust import LoadTestShape
+
 
 class StepLoadShape(LoadTestShape):
     """
@@ -184,8 +186,8 @@ class StepLoadShape(LoadTestShape):
     """
 
     step_time = 30  # Seconds per step
-    step_load = 10   # Users per step
-    spawn_rate = 2   # Users to spawn per second
+    step_load = 10  # Users per step
+    spawn_rate = 2  # Users to spawn per second
     time_limit = 600  # Total test time (10 minutes)
 
     def tick(self):
@@ -206,11 +208,11 @@ class SpikesLoadShape(LoadTestShape):
     """
 
     stages = [
-        {"duration": 60, "users": 10, "spawn_rate": 5},   # 1 min baseline
-        {"duration": 120, "users": 100, "spawn_rate": 20}, # 2 min spike
-        {"duration": 180, "users": 10, "spawn_rate": 5},   # 3 min cooldown
-        {"duration": 240, "users": 200, "spawn_rate": 50}, # 4 min big spike
-        {"duration": 300, "users": 10, "spawn_rate": 5},   # 5 min cooldown
+        {"duration": 60, "users": 10, "spawn_rate": 5},  # 1 min baseline
+        {"duration": 120, "users": 100, "spawn_rate": 20},  # 2 min spike
+        {"duration": 180, "users": 10, "spawn_rate": 5},  # 3 min cooldown
+        {"duration": 240, "users": 200, "spawn_rate": 50},  # 4 min big spike
+        {"duration": 300, "users": 10, "spawn_rate": 5},  # 5 min cooldown
     ]
 
     def tick(self):
@@ -225,6 +227,7 @@ class SpikesLoadShape(LoadTestShape):
 
 # Event hooks for custom metrics
 from locust import events
+
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):

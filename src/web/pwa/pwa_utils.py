@@ -18,17 +18,18 @@ Dependencies:
 - None (pure Python utilities)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
-from enum import Enum
 import json
 import logging
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class DisplayMode(str, Enum):
     """PWA display modes"""
+
     FULLSCREEN = "fullscreen"
     STANDALONE = "standalone"
     MINIMAL_UI = "minimal-ui"
@@ -37,6 +38,7 @@ class DisplayMode(str, Enum):
 
 class Orientation(str, Enum):
     """Screen orientation"""
+
     ANY = "any"
     NATURAL = "natural"
     LANDSCAPE = "landscape"
@@ -50,6 +52,7 @@ class Orientation(str, Enum):
 @dataclass
 class PWAIcon:
     """PWA icon specification"""
+
     src: str
     sizes: str
     type: str = "image/png"
@@ -59,6 +62,7 @@ class PWAIcon:
 @dataclass
 class PWAScreenshot:
     """PWA screenshot specification"""
+
     src: str
     sizes: str
     type: str = "image/png"
@@ -68,6 +72,7 @@ class PWAScreenshot:
 @dataclass
 class PWAShortcut:
     """PWA shortcut specification"""
+
     name: str
     short_name: str
     description: str
@@ -78,6 +83,7 @@ class PWAShortcut:
 @dataclass
 class ShareTarget:
     """Web Share Target configuration"""
+
     action: str
     method: str = "POST"
     enctype: str = "multipart/form-data"
@@ -87,6 +93,7 @@ class ShareTarget:
 @dataclass
 class PWAManifest:
     """PWA manifest configuration"""
+
     name: str
     short_name: str
     description: str
@@ -121,22 +128,11 @@ class PWAManifest:
             "dir": self.dir,
             "scope": self.scope,
             "icons": [
-                {
-                    "src": icon.src,
-                    "sizes": icon.sizes,
-                    "type": icon.type,
-                    "purpose": icon.purpose
-                }
+                {"src": icon.src, "sizes": icon.sizes, "type": icon.type, "purpose": icon.purpose}
                 for icon in self.icons
             ],
             "screenshots": [
-                {
-                    "src": ss.src,
-                    "sizes": ss.sizes,
-                    "type": ss.type,
-                    "label": ss.label
-                }
-                for ss in self.screenshots
+                {"src": ss.src, "sizes": ss.sizes, "type": ss.type, "label": ss.label} for ss in self.screenshots
             ],
             "shortcuts": [
                 {
@@ -144,19 +140,13 @@ class PWAManifest:
                     "short_name": sc.short_name,
                     "description": sc.description,
                     "url": sc.url,
-                    "icons": [
-                        {
-                            "src": icon.src,
-                            "sizes": icon.sizes
-                        }
-                        for icon in sc.icons
-                    ]
+                    "icons": [{"src": icon.src, "sizes": icon.sizes} for icon in sc.icons],
                 }
                 for sc in self.shortcuts
             ],
             "categories": self.categories,
             "related_applications": self.related_applications,
-            "prefer_related_applications": self.prefer_related_applications
+            "prefer_related_applications": self.prefer_related_applications,
         }
 
         if self.share_target:
@@ -164,7 +154,7 @@ class PWAManifest:
                 "action": self.share_target.action,
                 "method": self.share_target.method,
                 "enctype": self.share_target.enctype,
-                "params": self.share_target.params
+                "params": self.share_target.params,
             }
 
         return manifest
@@ -177,6 +167,7 @@ class PWAManifest:
 @dataclass
 class PushSubscription:
     """Push notification subscription"""
+
     endpoint: str
     keys: Dict[str, str]
     expiration_time: Optional[int] = None
@@ -202,11 +193,7 @@ class PWAManager:
         self._push_subscriptions: Dict[str, PushSubscription] = {}
 
     def create_manifest(
-        self,
-        description: str,
-        start_url: str = "/",
-        theme_color: str = "#2196f3",
-        **kwargs
+        self, description: str, start_url: str = "/", theme_color: str = "#2196f3", **kwargs
     ) -> PWAManifest:
         """
         Create PWA manifest
@@ -226,14 +213,14 @@ class PWAManager:
             description=description,
             start_url=start_url,
             theme_color=theme_color,
-            **kwargs
+            **kwargs,
         )
 
     def generate_service_worker(
         self,
         cache_name: str = "dms-cache-v1",
         static_assets: Optional[List[str]] = None,
-        cache_strategy: str = "network-first"
+        cache_strategy: str = "network-first",
     ) -> str:
         """
         Generate service worker JavaScript code
@@ -251,7 +238,7 @@ class PWAManager:
             "/index.html",
             "/manifest.json",
             "/static/css/main.css",
-            "/static/js/main.js"
+            "/static/js/main.js",
         ]
 
         return f"""
@@ -326,11 +313,7 @@ self.addEventListener('notificationclick', (event) => {{
 }});
 """
 
-    def subscribe_push(
-        self,
-        user_id: str,
-        subscription: PushSubscription
-    ):
+    def subscribe_push(self, user_id: str, subscription: PushSubscription):
         """
         Subscribe user to push notifications
 
@@ -514,22 +497,19 @@ window.addEventListener('appinstalled', () => {{
 # Example usage
 if __name__ == "__main__":
     # Create PWA manager
-    pwa = PWAManager(
-        app_name="Document Management System",
-        short_name="DMS"
-    )
+    pwa = PWAManager(app_name="Document Management System", short_name="DMS")
 
     # Create manifest
     manifest = pwa.create_manifest(
         description="Enterprise Document Management System",
         theme_color="#2196f3",
-        categories=["productivity", "business"]
+        categories=["productivity", "business"],
     )
 
     # Add icons
     manifest.icons = [
         PWAIcon(src="/static/images/icon-192.png", sizes="192x192"),
-        PWAIcon(src="/static/images/icon-512.png", sizes="512x512")
+        PWAIcon(src="/static/images/icon-512.png", sizes="512x512"),
     ]
 
     # Print manifest JSON
@@ -542,11 +522,7 @@ if __name__ == "__main__":
 
     # Subscribe to push notifications
     subscription = PushSubscription(
-        endpoint="https://fcm.googleapis.com/fcm/send/...",
-        keys={
-            "p256dh": "key1",
-            "auth": "key2"
-        }
+        endpoint="https://fcm.googleapis.com/fcm/send/...", keys={"p256dh": "key1", "auth": "key2"}
     )
     pwa.subscribe_push("user123", subscription)
 

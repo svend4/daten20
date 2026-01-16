@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
@@ -15,7 +16,7 @@ class TestTemplateParser:
 
     def setup_method(self):
         """Setup before each test"""
-        self.parser = TemplateParser('mSchablone')
+        self.parser = TemplateParser("mSchablone")
 
     def test_load_template(self):
         """Test template loading"""
@@ -71,7 +72,7 @@ class TestTemplateAnalyzer:
 
     def setup_method(self):
         """Setup before each test"""
-        self.analyzer = TemplateAnalyzer('mSchablone')
+        self.analyzer = TemplateAnalyzer("mSchablone")
 
     def test_analyze(self):
         """Test analysis execution"""
@@ -81,5 +82,5 @@ class TestTemplateAnalyzer:
         assert self.analyzer.structure.total_lines > 0
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

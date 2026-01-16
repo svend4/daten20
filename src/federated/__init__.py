@@ -9,76 +9,66 @@ federated analytics, and privacy-preserving training.
 Version: 11.0.0
 """
 
-from .federated_services import (
-    # Enums
-    FederationType,
+from .federated_services import (  # Enums; Data Classes; Services; Singleton Getters
     AggregationAlgorithm,
-    PrivacyMechanism,
     ByzantineDefense,
-
-    # Data Classes
-    FederatedClient,
-    GlobalModel,
-    TrainingRound,
-    PrivacyBudget,
+    ByzantineResilientAggregator,
     ClientUpdate,
     EdgeModel,
-    SecretShare,
-    FederatedQuery,
-
-    # Services
-    FederatedLearningOrchestrator,
-    PrivacyPreservingTraining,
-    ModelAggregationEngine,
-    SecureMultiPartyComputation,
     EdgeModelManager,
     FederatedAnalyticsSystem,
-    ByzantineResilientAggregator,
-
-    # Singleton Getters
-    get_fl_orchestrator,
-    get_privacy_trainer,
-    get_model_aggregator,
-    get_secure_mpc,
+    FederatedClient,
+    FederatedLearningOrchestrator,
+    FederatedQuery,
+    FederationType,
+    GlobalModel,
+    ModelAggregationEngine,
+    PrivacyBudget,
+    PrivacyMechanism,
+    PrivacyPreservingTraining,
+    SecretShare,
+    SecureMultiPartyComputation,
+    TrainingRound,
+    get_byzantine_aggregator,
     get_edge_model_manager,
     get_federated_analytics,
-    get_byzantine_aggregator,
+    get_fl_orchestrator,
+    get_model_aggregator,
+    get_privacy_trainer,
+    get_secure_mpc,
 )
 
 __all__ = [
     # Enums
-    'FederationType',
-    'AggregationAlgorithm',
-    'PrivacyMechanism',
-    'ByzantineDefense',
-
+    "FederationType",
+    "AggregationAlgorithm",
+    "PrivacyMechanism",
+    "ByzantineDefense",
     # Data Classes
-    'FederatedClient',
-    'GlobalModel',
-    'TrainingRound',
-    'PrivacyBudget',
-    'ClientUpdate',
-    'EdgeModel',
-    'SecretShare',
-    'FederatedQuery',
-
+    "FederatedClient",
+    "GlobalModel",
+    "TrainingRound",
+    "PrivacyBudget",
+    "ClientUpdate",
+    "EdgeModel",
+    "SecretShare",
+    "FederatedQuery",
     # Services
-    'FederatedLearningOrchestrator',
-    'PrivacyPreservingTraining',
-    'ModelAggregationEngine',
-    'SecureMultiPartyComputation',
-    'EdgeModelManager',
-    'FederatedAnalyticsSystem',
-    'ByzantineResilientAggregator',
-
+    "FederatedLearningOrchestrator",
+    "PrivacyPreservingTraining",
+    "ModelAggregationEngine",
+    "SecureMultiPartyComputation",
+    "EdgeModelManager",
+    "FederatedAnalyticsSystem",
+    "ByzantineResilientAggregator",
     # Singleton Getters
-    'get_fl_orchestrator',
-    'get_privacy_trainer',
-    'get_model_aggregator',
-    'get_secure_mpc',
-    'get_edge_model_manager',
-    'get_federated_analytics',
-    'get_byzantine_aggregator',
+    "get_fl_orchestrator",
+    "get_privacy_trainer",
+    "get_model_aggregator",
+    "get_secure_mpc",
+    "get_edge_model_manager",
+    "get_federated_analytics",
+    "get_byzantine_aggregator",
 ]
 
-__version__ = '11.0.0'
+__version__ = "11.0.0"

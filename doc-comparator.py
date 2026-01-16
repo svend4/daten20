@@ -36,23 +36,24 @@ Version: 1.0.0
 """
 
 import argparse
-import json
-import sys
-import os
-from pathlib import Path
-from typing import List, Dict, Any, Tuple, Set
-from datetime import datetime
-from dataclasses import dataclass, asdict
 import difflib
-from collections import Counter
+import json
+import os
 import re
+import sys
+from collections import Counter
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Set, Tuple
+
+from src.core.logging_config import setup_logging
 
 # Import core modules
 from src.core.parser import DocumentParser
-from src.core.logging_config import setup_logging
 
 # Import ML modules
-from src.ml.ner import NEREngine, Entity
+from src.ml.ner import Entity, NEREngine
 
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
@@ -61,6 +62,7 @@ logger = setup_logging(__name__, log_level="INFO")
 @dataclass
 class ComparisonResult:
     """Results of document comparison."""
+
     doc1_path: str
     doc2_path: str
     compared_at: str
@@ -109,11 +111,7 @@ class DocumentComparator:
         logger.info("DocumentComparator initialized")
 
     def compare(
-        self,
-        file1: str,
-        file2: str,
-        include_entities: bool = True,
-        include_diff: bool = True
+        self, file1: str, file2: str, include_entities: bool = True, include_diff: bool = True
     ) -> ComparisonResult:
         """
         Compare two documents comprehensively.
@@ -172,19 +170,19 @@ class DocumentComparator:
             levenshtein_similarity=lev_sim,
             length_ratio=length_ratio,
             word_count_ratio=word_count_ratio,
-            added_lines=diff_stats['added'],
-            removed_lines=diff_stats['removed'],
-            modified_lines=diff_stats['modified'],
-            unchanged_lines=diff_stats['unchanged'],
-            entities_doc1=entity_stats.get('doc1_count', 0),
-            entities_doc2=entity_stats.get('doc2_count', 0),
-            common_entities=entity_stats.get('common_count', 0),
-            unique_entities_doc1=entity_stats.get('unique_doc1', 0),
-            unique_entities_doc2=entity_stats.get('unique_doc2', 0),
-            entity_overlap=entity_stats.get('overlap', 0.0),
+            added_lines=diff_stats["added"],
+            removed_lines=diff_stats["removed"],
+            modified_lines=diff_stats["modified"],
+            unchanged_lines=diff_stats["unchanged"],
+            entities_doc1=entity_stats.get("doc1_count", 0),
+            entities_doc2=entity_stats.get("doc2_count", 0),
+            common_entities=entity_stats.get("common_count", 0),
+            unique_entities_doc1=entity_stats.get("unique_doc1", 0),
+            unique_entities_doc2=entity_stats.get("unique_doc2", 0),
+            entity_overlap=entity_stats.get("overlap", 0.0),
             diff_unified=diff_unified,
             diff_html=diff_html,
-            entity_changes=entity_stats.get('changes', {})
+            entity_changes=entity_stats.get("changes", {}),
         )
 
         logger.info(f"Comparison complete. Similarity: {cosine_sim:.2%}")
@@ -255,13 +253,11 @@ class DocumentComparator:
         # Fill matrix
         for i in range(1, m + 1):
             for j in range(1, n + 1):
-                if text1[i-1] == text2[j-1]:
-                    dp[i][j] = dp[i-1][j-1]
+                if text1[i - 1] == text2[j - 1]:
+                    dp[i][j] = dp[i - 1][j - 1]
                 else:
                     dp[i][j] = 1 + min(
-                        dp[i-1][j],      # deletion
-                        dp[i][j-1],      # insertion
-                        dp[i-1][j-1]     # substitution
+                        dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]  # deletion  # insertion  # substitution
                     )
 
         distance = dp[m][n]
@@ -275,18 +271,18 @@ class DocumentComparator:
         lines1 = text1.splitlines()
         lines2 = text2.splitlines()
 
-        diff = difflib.unified_diff(lines1, lines2, lineterm='')
+        diff = difflib.unified_diff(lines1, lines2, lineterm="")
 
         added = 0
         removed = 0
         unchanged = 0
 
         for line in diff:
-            if line.startswith('+') and not line.startswith('+++'):
+            if line.startswith("+") and not line.startswith("+++"):
                 added += 1
-            elif line.startswith('-') and not line.startswith('---'):
+            elif line.startswith("-") and not line.startswith("---"):
                 removed += 1
-            elif not line.startswith('@@'):
+            elif not line.startswith("@@"):
                 unchanged += 1
 
         # Modified lines = min(added, removed) approximation
@@ -294,12 +290,7 @@ class DocumentComparator:
         added = added - modified
         removed = removed - modified
 
-        return {
-            'added': added,
-            'removed': removed,
-            'modified': modified,
-            'unchanged': unchanged
-        }
+        return {"added": added, "removed": removed, "modified": modified, "unchanged": unchanged}
 
     def _compare_entities(self, text1: str, text2: str) -> Dict[str, Any]:
         """Compare entities between two texts."""
@@ -332,19 +323,19 @@ class DocumentComparator:
         grouped2 = group_by_type(entities2)
 
         return {
-            'doc1_count': len(entities1),
-            'doc2_count': len(entities2),
-            'common_count': len(common),
-            'unique_doc1': len(unique1),
-            'unique_doc2': len(unique2),
-            'overlap': overlap,
-            'changes': {
-                'added': list(unique2),
-                'removed': list(unique1),
-                'common': list(common),
-                'doc1_by_type': grouped1,
-                'doc2_by_type': grouped2
-            }
+            "doc1_count": len(entities1),
+            "doc2_count": len(entities2),
+            "common_count": len(common),
+            "unique_doc1": len(unique1),
+            "unique_doc2": len(unique2),
+            "overlap": overlap,
+            "changes": {
+                "added": list(unique2),
+                "removed": list(unique1),
+                "common": list(common),
+                "doc1_by_type": grouped1,
+                "doc2_by_type": grouped2,
+            },
         }
 
     def _generate_unified_diff(self, text1: str, text2: str, file1: str, file2: str) -> str:
@@ -352,15 +343,9 @@ class DocumentComparator:
         lines1 = text1.splitlines()
         lines2 = text2.splitlines()
 
-        diff = difflib.unified_diff(
-            lines1,
-            lines2,
-            fromfile=file1,
-            tofile=file2,
-            lineterm=''
-        )
+        diff = difflib.unified_diff(lines1, lines2, fromfile=file1, tofile=file2, lineterm="")
 
-        return '\n'.join(diff)
+        return "\n".join(diff)
 
     def _generate_html_diff(self, text1: str, text2: str) -> str:
         """Generate HTML diff with highlighting."""
@@ -368,21 +353,11 @@ class DocumentComparator:
         lines2 = text2.splitlines()
 
         diff = difflib.HtmlDiff()
-        html = diff.make_file(
-            lines1,
-            lines2,
-            fromdesc="Document 1",
-            todesc="Document 2"
-        )
+        html = diff.make_file(lines1, lines2, fromdesc="Document 1", todesc="Document 2")
 
         return html
 
-    def generate_report(
-        self,
-        result: ComparisonResult,
-        format: str = "html",
-        output_file: str = None
-    ) -> str:
+    def generate_report(self, result: ComparisonResult, format: str = "html", output_file: str = None) -> str:
         """
         Generate comparison report.
 
@@ -404,7 +379,7 @@ class DocumentComparator:
             raise ValueError(f"Unknown format: {format}")
 
         if output_file:
-            with open(output_file, 'w', encoding='utf-8') as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 f.write(report)
             logger.info(f"Report saved to: {output_file}")
 
@@ -628,26 +603,26 @@ class DocumentComparator:
 
         html = "<h3>Entity Changes</h3>"
 
-        if changes.get('added'):
+        if changes.get("added"):
             html += "<h4 style='color: #10b981;'>Added Entities</h4>"
             html += '<div class="entity-list">'
-            for entity in changes['added'][:20]:  # Limit to 20
+            for entity in changes["added"][:20]:  # Limit to 20
                 html += f'<span class="entity-tag added">{entity}</span>'
-            html += '</div>'
+            html += "</div>"
 
-        if changes.get('removed'):
+        if changes.get("removed"):
             html += "<h4 style='color: #ef4444;'>Removed Entities</h4>"
             html += '<div class="entity-list">'
-            for entity in changes['removed'][:20]:
+            for entity in changes["removed"][:20]:
                 html += f'<span class="entity-tag removed">{entity}</span>'
-            html += '</div>'
+            html += "</div>"
 
-        if changes.get('common'):
+        if changes.get("common"):
             html += "<h4 style='color: #3730a3;'>Common Entities</h4>"
             html += '<div class="entity-list">'
-            for entity in changes['common'][:20]:
+            for entity in changes["common"][:20]:
                 html += f'<span class="entity-tag common">{entity}</span>'
-            html += '</div>'
+            html += "</div>"
 
         return html
 
@@ -688,7 +663,7 @@ class DocumentComparator:
         report.append(f"Entity Overlap:       {result.entity_overlap:>6.1%}")
         report.append("")
 
-        return '\n'.join(report)
+        return "\n".join(report)
 
 
 def main():
@@ -709,7 +684,7 @@ Examples:
 
   # High threshold similarity check
   python doc-comparator.py compare doc1.pdf doc2.pdf --threshold 0.9
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -718,15 +693,11 @@ Examples:
     compare_parser = subparsers.add_parser("compare", help="Compare two documents")
     compare_parser.add_argument("file1", help="First document")
     compare_parser.add_argument("file2", help="Second document")
-    compare_parser.add_argument("--report", choices=["html", "json", "text"], default="text",
-                               help="Report format")
+    compare_parser.add_argument("--report", choices=["html", "json", "text"], default="text", help="Report format")
     compare_parser.add_argument("--output", "-o", help="Output file for report")
-    compare_parser.add_argument("--no-entities", action="store_true",
-                               help="Skip entity comparison")
-    compare_parser.add_argument("--no-diff", action="store_true",
-                               help="Skip detailed diff generation")
-    compare_parser.add_argument("--threshold", type=float,
-                               help="Similarity threshold (0.0-1.0)")
+    compare_parser.add_argument("--no-entities", action="store_true", help="Skip entity comparison")
+    compare_parser.add_argument("--no-diff", action="store_true", help="Skip detailed diff generation")
+    compare_parser.add_argument("--threshold", type=float, help="Similarity threshold (0.0-1.0)")
 
     args = parser.parse_args()
 
@@ -741,18 +712,13 @@ Examples:
         if args.command == "compare":
             # Perform comparison
             result = comparator.compare(
-                args.file1,
-                args.file2,
-                include_entities=not args.no_entities,
-                include_diff=not args.no_diff
+                args.file1, args.file2, include_entities=not args.no_entities, include_diff=not args.no_diff
             )
 
             # Check threshold if specified
             if args.threshold is not None:
                 if result.cosine_similarity < args.threshold:
-                    logger.warning(
-                        f"Similarity {result.cosine_similarity:.1%} is below threshold {args.threshold:.1%}"
-                    )
+                    logger.warning(f"Similarity {result.cosine_similarity:.1%} is below threshold {args.threshold:.1%}")
                     sys.exit(2)
 
             # Generate report

@@ -5,16 +5,18 @@ Provides integrations with Slack, Microsoft Teams, Discord, and Telegram
 for sending rich notifications and interactive messages.
 """
 
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime
 import json
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 import requests
 
 
 class IntegrationPlatform(str, Enum):
     """Notification platform types"""
+
     SLACK = "slack"
     TEAMS = "teams"
     DISCORD = "discord"
@@ -23,6 +25,7 @@ class IntegrationPlatform(str, Enum):
 
 class MessagePriority(str, Enum):
     """Message priority levels"""
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -32,6 +35,7 @@ class MessagePriority(str, Enum):
 @dataclass
 class MessageAttachment:
     """Message attachment (image, file, etc.)"""
+
     url: str
     title: Optional[str] = None
     description: Optional[str] = None
@@ -42,6 +46,7 @@ class MessageAttachment:
 @dataclass
 class MessageAction:
     """Interactive message action (button, link)"""
+
     type: str  # button, link, menu
     text: str
     url: Optional[str] = None
@@ -52,6 +57,7 @@ class MessageAction:
 @dataclass
 class NotificationMessage:
     """Generic notification message"""
+
     title: str
     text: str
     platform: IntegrationPlatform
@@ -79,7 +85,7 @@ class SlackIntegration:
         username: Optional[str] = "DMS Bot",
         icon_emoji: Optional[str] = ":robot_face:",
         attachments: Optional[List[Dict[str, Any]]] = None,
-        blocks: Optional[List[Dict[str, Any]]] = None
+        blocks: Optional[List[Dict[str, Any]]] = None,
     ) -> bool:
         """
         Send message to Slack
@@ -112,19 +118,13 @@ class SlackIntegration:
 
         try:
             response = requests.post(
-                self.webhook_url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=10
+                self.webhook_url, json=payload, headers={"Content-Type": "application/json"}, timeout=10
             )
             return response.status_code == 200
         except Exception:
             return False
 
-    def send_rich_message(
-        self,
-        message: NotificationMessage
-    ) -> bool:
+    def send_rich_message(self, message: NotificationMessage) -> bool:
         """
         Send rich formatted message to Slack
 
@@ -136,20 +136,8 @@ class SlackIntegration:
         """
         # Build Slack blocks
         blocks = [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": message.title
-                }
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": message.text
-                }
-            }
+            {"type": "header", "text": {"type": "plain_text", "text": message.title}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": message.text}},
         ]
 
         # Add actions if present
@@ -159,10 +147,7 @@ class SlackIntegration:
                 if action.type == "button":
                     element = {
                         "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": action.text
-                        },
+                        "text": {"type": "plain_text", "text": action.text},
                         "value": action.value or action.text,
                     }
                     if action.url:
@@ -172,42 +157,30 @@ class SlackIntegration:
                     action_elements.append(element)
 
             if action_elements:
-                blocks.append({
-                    "type": "actions",
-                    "elements": action_elements
-                })
+                blocks.append({"type": "actions", "elements": action_elements})
 
         # Add attachments as context
         if message.attachments:
             for attachment in message.attachments:
-                blocks.append({
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*{attachment.title or 'Attachment'}*"
-                    },
-                    "accessory": {
-                        "type": "image",
-                        "image_url": attachment.url,
-                        "alt_text": attachment.description or "attachment"
+                blocks.append(
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": f"*{attachment.title or 'Attachment'}*"},
+                        "accessory": {
+                            "type": "image",
+                            "image_url": attachment.url,
+                            "alt_text": attachment.description or "attachment",
+                        },
                     }
-                })
+                )
 
         # Add color via attachment
         attachments = None
         if message.color:
-            attachments = [{
-                "color": message.color,
-                "blocks": blocks
-            }]
+            attachments = [{"color": message.color, "blocks": blocks}]
             blocks = None
 
-        return self.send_message(
-            text=message.text,
-            channel=message.channel,
-            blocks=blocks,
-            attachments=attachments
-        )
+        return self.send_message(text=message.text, channel=message.channel, blocks=blocks, attachments=attachments)
 
 
 class TeamsIntegration:
@@ -222,7 +195,7 @@ class TeamsIntegration:
         text: str,
         color: Optional[str] = None,
         sections: Optional[List[Dict[str, Any]]] = None,
-        potential_actions: Optional[List[Dict[str, Any]]] = None
+        potential_actions: Optional[List[Dict[str, Any]]] = None,
     ) -> bool:
         """
         Send message to Microsoft Teams
@@ -255,19 +228,13 @@ class TeamsIntegration:
 
         try:
             response = requests.post(
-                self.webhook_url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=10
+                self.webhook_url, json=payload, headers={"Content-Type": "application/json"}, timeout=10
             )
             return response.status_code == 200
         except Exception:
             return False
 
-    def send_rich_message(
-        self,
-        message: NotificationMessage
-    ) -> bool:
+    def send_rich_message(self, message: NotificationMessage) -> bool:
         """
         Send rich formatted message to Teams
 
@@ -288,10 +255,7 @@ class TeamsIntegration:
         if message.metadata:
             facts = []
             for key, value in message.metadata.items():
-                facts.append({
-                    "name": key,
-                    "value": str(value)
-                })
+                facts.append({"name": key, "value": str(value)})
             main_section["facts"] = facts
 
         sections.append(main_section)
@@ -299,33 +263,23 @@ class TeamsIntegration:
         # Add attachments
         if message.attachments:
             for attachment in message.attachments:
-                sections.append({
-                    "title": attachment.title or "Attachment",
-                    "images": [{
-                        "image": attachment.url
-                    }]
-                })
+                sections.append({"title": attachment.title or "Attachment", "images": [{"image": attachment.url}]})
 
         # Add actions
         potential_actions = []
         if message.actions:
             for action in message.actions:
                 if action.type == "button" and action.url:
-                    potential_actions.append({
-                        "@type": "OpenUri",
-                        "name": action.text,
-                        "targets": [{
-                            "os": "default",
-                            "uri": action.url
-                        }]
-                    })
+                    potential_actions.append(
+                        {"@type": "OpenUri", "name": action.text, "targets": [{"os": "default", "uri": action.url}]}
+                    )
 
         return self.send_message(
             title=message.title,
             text=message.text,
             color=message.color,
             sections=sections,
-            potential_actions=potential_actions if potential_actions else None
+            potential_actions=potential_actions if potential_actions else None,
         )
 
 
@@ -341,7 +295,7 @@ class DiscordIntegration:
         username: Optional[str] = "DMS Bot",
         avatar_url: Optional[str] = None,
         embeds: Optional[List[Dict[str, Any]]] = None,
-        tts: bool = False
+        tts: bool = False,
     ) -> bool:
         """
         Send message to Discord
@@ -370,19 +324,13 @@ class DiscordIntegration:
 
         try:
             response = requests.post(
-                self.webhook_url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=10
+                self.webhook_url, json=payload, headers={"Content-Type": "application/json"}, timeout=10
             )
             return response.status_code in [200, 204]
         except Exception:
             return False
 
-    def send_rich_message(
-        self,
-        message: NotificationMessage
-    ) -> bool:
+    def send_rich_message(self, message: NotificationMessage) -> bool:
         """
         Send rich formatted message to Discord
 
@@ -407,11 +355,7 @@ class DiscordIntegration:
         if message.metadata:
             fields = []
             for key, value in message.metadata.items():
-                fields.append({
-                    "name": key,
-                    "value": str(value),
-                    "inline": True
-                })
+                fields.append({"name": key, "value": str(value), "inline": True})
             embed["fields"] = fields
 
         # Add first attachment as image
@@ -421,10 +365,7 @@ class DiscordIntegration:
             if first_attachment.title:
                 embed["footer"] = {"text": first_attachment.title}
 
-        return self.send_message(
-            content=f"**{message.title}**",
-            embeds=[embed]
-        )
+        return self.send_message(content=f"**{message.title}**", embeds=[embed])
 
 
 class TelegramIntegration:
@@ -442,7 +383,7 @@ class TelegramIntegration:
         parse_mode: str = "Markdown",
         disable_web_page_preview: bool = False,
         disable_notification: bool = False,
-        reply_markup: Optional[Dict[str, Any]] = None
+        reply_markup: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
         Send message to Telegram
@@ -474,21 +415,12 @@ class TelegramIntegration:
             payload["reply_markup"] = json.dumps(reply_markup)
 
         try:
-            response = requests.post(
-                f"{self.api_url}/sendMessage",
-                json=payload,
-                timeout=10
-            )
+            response = requests.post(f"{self.api_url}/sendMessage", json=payload, timeout=10)
             return response.status_code == 200 and response.json().get("ok", False)
         except Exception:
             return False
 
-    def send_photo(
-        self,
-        photo_url: str,
-        caption: Optional[str] = None,
-        chat_id: Optional[str] = None
-    ) -> bool:
+    def send_photo(self, photo_url: str, caption: Optional[str] = None, chat_id: Optional[str] = None) -> bool:
         """Send photo to Telegram"""
         target_chat = chat_id or self.default_chat_id
         if not target_chat:
@@ -503,19 +435,12 @@ class TelegramIntegration:
             payload["caption"] = caption
 
         try:
-            response = requests.post(
-                f"{self.api_url}/sendPhoto",
-                json=payload,
-                timeout=10
-            )
+            response = requests.post(f"{self.api_url}/sendPhoto", json=payload, timeout=10)
             return response.status_code == 200 and response.json().get("ok", False)
         except Exception:
             return False
 
-    def send_rich_message(
-        self,
-        message: NotificationMessage
-    ) -> bool:
+    def send_rich_message(self, message: NotificationMessage) -> bool:
         """
         Send rich formatted message to Telegram
 
@@ -542,20 +467,15 @@ class TelegramIntegration:
             buttons = []
             for action in message.actions:
                 if action.url:
-                    buttons.append({
-                        "text": action.text,
-                        "url": action.url
-                    })
+                    buttons.append({"text": action.text, "url": action.url})
             if buttons:
-                reply_markup = {
-                    "inline_keyboard": [buttons]
-                }
+                reply_markup = {"inline_keyboard": [buttons]}
 
         success = self.send_message(
             text=text,
             chat_id=message.channel or message.user,
             reply_markup=reply_markup,
-            disable_notification=(message.priority == MessagePriority.LOW)
+            disable_notification=(message.priority == MessagePriority.LOW),
         )
 
         # Send attachments as separate photos
@@ -564,7 +484,7 @@ class TelegramIntegration:
                 self.send_photo(
                     photo_url=attachment.url,
                     caption=attachment.title or attachment.description,
-                    chat_id=message.channel or message.user
+                    chat_id=message.channel or message.user,
                 )
 
         return success
@@ -576,16 +496,9 @@ class NotificationIntegrationManager:
     def __init__(self):
         self.integrations: Dict[IntegrationPlatform, Any] = {}
 
-    def register_slack(
-        self,
-        webhook_url: str,
-        default_channel: Optional[str] = None
-    ):
+    def register_slack(self, webhook_url: str, default_channel: Optional[str] = None):
         """Register Slack integration"""
-        self.integrations[IntegrationPlatform.SLACK] = SlackIntegration(
-            webhook_url,
-            default_channel
-        )
+        self.integrations[IntegrationPlatform.SLACK] = SlackIntegration(webhook_url, default_channel)
 
     def register_teams(self, webhook_url: str):
         """Register Microsoft Teams integration"""
@@ -595,21 +508,11 @@ class NotificationIntegrationManager:
         """Register Discord integration"""
         self.integrations[IntegrationPlatform.DISCORD] = DiscordIntegration(webhook_url)
 
-    def register_telegram(
-        self,
-        bot_token: str,
-        default_chat_id: Optional[str] = None
-    ):
+    def register_telegram(self, bot_token: str, default_chat_id: Optional[str] = None):
         """Register Telegram integration"""
-        self.integrations[IntegrationPlatform.TELEGRAM] = TelegramIntegration(
-            bot_token,
-            default_chat_id
-        )
+        self.integrations[IntegrationPlatform.TELEGRAM] = TelegramIntegration(bot_token, default_chat_id)
 
-    def send_notification(
-        self,
-        message: NotificationMessage
-    ) -> bool:
+    def send_notification(self, message: NotificationMessage) -> bool:
         """
         Send notification to specified platform
 
@@ -626,9 +529,7 @@ class NotificationIntegrationManager:
         return integration.send_rich_message(message)
 
     def broadcast(
-        self,
-        message: NotificationMessage,
-        platforms: Optional[List[IntegrationPlatform]] = None
+        self, message: NotificationMessage, platforms: Optional[List[IntegrationPlatform]] = None
     ) -> Dict[IntegrationPlatform, bool]:
         """
         Broadcast message to multiple platforms
@@ -656,7 +557,7 @@ class NotificationIntegrationManager:
                     attachments=message.attachments,
                     actions=message.actions,
                     metadata=message.metadata,
-                    timestamp=message.timestamp
+                    timestamp=message.timestamp,
                 )
                 results[platform] = self.send_notification(message_copy)
 

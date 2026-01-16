@@ -6,9 +6,9 @@ Automated setup and configuration for first-time installation.
 """
 
 import os
-import sys
 import secrets
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -35,12 +35,12 @@ def check_python_version():
 def create_directories():
     """Create necessary directories"""
     directories = [
-        'data',
-        'data/db',
-        'data/exports',
-        'data/templates',
-        'logs',
-        'backups',
+        "data",
+        "data/db",
+        "data/exports",
+        "data/templates",
+        "logs",
+        "backups",
     ]
 
     for dir_path in directories:
@@ -50,11 +50,11 @@ def create_directories():
 
 def create_env_file():
     """Create .env file from template"""
-    env_path = Path('.env')
+    env_path = Path(".env")
 
     if env_path.exists():
         response = input(".env file already exists. Overwrite? (y/N): ")
-        if response.lower() != 'y':
+        if response.lower() != "y":
             print("Keeping existing .env file")
             return
 
@@ -62,13 +62,10 @@ def create_env_file():
     secret_key = secrets.token_hex(32)
 
     # Read template
-    template = Path('.env.example').read_text()
+    template = Path(".env.example").read_text()
 
     # Replace SECRET_KEY
-    env_content = template.replace(
-        'SECRET_KEY=your-secret-key-here-change-in-production',
-        f'SECRET_KEY={secret_key}'
-    )
+    env_content = template.replace("SECRET_KEY=your-secret-key-here-change-in-production", f"SECRET_KEY={secret_key}")
 
     # Write .env
     env_path.write_text(env_content)
@@ -81,15 +78,9 @@ def install_dependencies():
     print("Installing dependencies (this may take a few minutes)...")
 
     try:
-        result = subprocess.run(
-            [sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'],
-            capture_output=True
-        )
+        result = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], capture_output=True)
 
-        result = subprocess.run(
-            [sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'],
-            check=True
-        )
+        result = subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], check=True)
         print("✓ Dependencies installed successfully")
     except subprocess.CalledProcessError as e:
         print(f"✗ Failed to install dependencies")
@@ -109,13 +100,14 @@ def initialize_database():
 
 def create_admin_user():
     """Create default admin user"""
-    from src.core.auth import get_auth_manager, Role
+    from src.core.auth import Role, get_auth_manager
 
     print("\nCreate admin user:")
     username = input("  Username [admin]: ") or "admin"
     email = input("  Email [admin@dms.local]: ") or "admin@dms.local"
 
     import getpass
+
     password = getpass.getpass("  Password: ")
     password_confirm = getpass.getpass("  Confirm password: ")
 
@@ -180,5 +172,5 @@ def main():
     print_summary()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

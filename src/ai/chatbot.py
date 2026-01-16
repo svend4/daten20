@@ -4,16 +4,17 @@ AI Chatbot Engine
 Provides intelligent conversational interface with NLP and LLM integration.
 """
 
-from typing import Optional, List, Dict, Any, Tuple
+import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import json
-import re
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class IntentType(str, Enum):
     """Chat intent types"""
+
     GREETING = "greeting"
     SEARCH_SERVICE = "search_service"
     CREATE_SERVICE = "create_service"
@@ -30,6 +31,7 @@ class IntentType(str, Enum):
 
 class EntityType(str, Enum):
     """Entity types for extraction"""
+
     SERVICE_NAME = "service_name"
     REGION = "region"
     RATE = "rate"
@@ -41,6 +43,7 @@ class EntityType(str, Enum):
 @dataclass
 class Entity:
     """Extracted entity"""
+
     type: EntityType
     value: Any
     confidence: float
@@ -51,6 +54,7 @@ class Entity:
 @dataclass
 class Intent:
     """Detected intent"""
+
     type: IntentType
     confidence: float
     entities: List[Entity] = field(default_factory=list)
@@ -59,6 +63,7 @@ class Intent:
 @dataclass
 class Message:
     """Chat message"""
+
     id: str
     content: str
     sender: str  # 'user' or 'bot'
@@ -70,6 +75,7 @@ class Message:
 @dataclass
 class Conversation:
     """Conversation context"""
+
     id: str
     user_id: int
     messages: List[Message] = field(default_factory=list)
@@ -85,41 +91,41 @@ class NLPEngine:
         # Intent patterns
         self.intent_patterns = {
             IntentType.GREETING: [
-                r'\b(hi|hello|hey|greetings)\b',
-                r'\b(good morning|good afternoon|good evening)\b',
+                r"\b(hi|hello|hey|greetings)\b",
+                r"\b(good morning|good afternoon|good evening)\b",
             ],
             IntentType.SEARCH_SERVICE: [
-                r'\b(find|search|look for|show me)\b.*\b(service|services)\b',
-                r'\b(what|which)\b.*\b(service|services)\b',
-                r'\blist.*\b(service|services)\b',
+                r"\b(find|search|look for|show me)\b.*\b(service|services)\b",
+                r"\b(what|which)\b.*\b(service|services)\b",
+                r"\blist.*\b(service|services)\b",
             ],
             IntentType.CREATE_SERVICE: [
-                r'\b(create|add|new)\b.*\b(service)\b',
-                r'\bregister.*\b(service)\b',
+                r"\b(create|add|new)\b.*\b(service)\b",
+                r"\bregister.*\b(service)\b",
             ],
             IntentType.CALCULATE_COST: [
-                r'\b(calculate|compute|estimate)\b.*\b(cost|price|rate)\b',
-                r'\bhow much\b',
+                r"\b(calculate|compute|estimate)\b.*\b(cost|price|rate)\b",
+                r"\bhow much\b",
             ],
             IntentType.GET_STATISTICS: [
-                r'\b(statistics|stats|analytics|metrics)\b',
-                r'\b(how many|count)\b.*\b(service|services)\b',
+                r"\b(statistics|stats|analytics|metrics)\b",
+                r"\b(how many|count)\b.*\b(service|services)\b",
             ],
             IntentType.HELP: [
-                r'\b(help|assist|support)\b',
-                r'\bwhat can you do\b',
+                r"\b(help|assist|support)\b",
+                r"\bwhat can you do\b",
             ],
             IntentType.GOODBYE: [
-                r'\b(bye|goodbye|see you|exit|quit)\b',
+                r"\b(bye|goodbye|see you|exit|quit)\b",
             ],
         }
 
         # Entity extraction patterns
         self.entity_patterns = {
-            EntityType.REGION: r'\b(Bavaria|Berlin|Hamburg|Saxony|Bremen|Brandenburg)\b',
-            EntityType.RATE: r'(\d+(?:\.\d+)?)\s*(?:€|EUR|euro)',
-            EntityType.HOURS: r'(\d+)\s*(?:hours?|hrs?)',
-            EntityType.NUMBER: r'\b(\d+)\b',
+            EntityType.REGION: r"\b(Bavaria|Berlin|Hamburg|Saxony|Bremen|Brandenburg)\b",
+            EntityType.RATE: r"(\d+(?:\.\d+)?)\s*(?:€|EUR|euro)",
+            EntityType.HOURS: r"(\d+)\s*(?:hours?|hrs?)",
+            EntityType.NUMBER: r"\b(\d+)\b",
         }
 
     def detect_intent(self, text: str) -> Intent:
@@ -146,13 +152,15 @@ class NLPEngine:
         for entity_type, pattern in self.entity_patterns.items():
             matches = re.finditer(pattern, text, re.IGNORECASE)
             for match in matches:
-                entities.append(Entity(
-                    type=entity_type,
-                    value=match.group(1) if match.groups() else match.group(0),
-                    confidence=0.9,
-                    start=match.start(),
-                    end=match.end()
-                ))
+                entities.append(
+                    Entity(
+                        type=entity_type,
+                        value=match.group(1) if match.groups() else match.group(0),
+                        confidence=0.9,
+                        start=match.start(),
+                        end=match.end(),
+                    )
+                )
 
         return entities
 
@@ -199,10 +207,7 @@ class ChatbotEngine:
         conv_id = f"conv_{user_id}"
 
         if conv_id not in self.conversations:
-            self.conversations[conv_id] = Conversation(
-                id=conv_id,
-                user_id=user_id
-            )
+            self.conversations[conv_id] = Conversation(id=conv_id, user_id=user_id)
 
         return self.conversations[conv_id]
 
@@ -213,10 +218,7 @@ class ChatbotEngine:
 
         # Create message
         user_message = Message(
-            id=f"msg_{len(conversation.messages)}",
-            content=message,
-            sender="user",
-            timestamp=datetime.now()
+            id=f"msg_{len(conversation.messages)}", content=message, sender="user", timestamp=datetime.now()
         )
 
         # Detect intent
@@ -232,10 +234,7 @@ class ChatbotEngine:
 
         # Create bot message
         bot_message = Message(
-            id=f"msg_{len(conversation.messages)}",
-            content=response,
-            sender="bot",
-            timestamp=datetime.now()
+            id=f"msg_{len(conversation.messages)}", content=response, sender="bot", timestamp=datetime.now()
         )
 
         conversation.messages.append(bot_message)
@@ -279,13 +278,10 @@ class ChatbotEngine:
 
         if region:
             cursor.execute(
-                "SELECT service_name, region, brutto_rate FROM services WHERE region LIKE ? LIMIT 5",
-                (f"%{region}%",)
+                "SELECT service_name, region, brutto_rate FROM services WHERE region LIKE ? LIMIT 5", (f"%{region}%",)
             )
         else:
-            cursor.execute(
-                "SELECT service_name, region, brutto_rate FROM services LIMIT 5"
-            )
+            cursor.execute("SELECT service_name, region, brutto_rate FROM services LIMIT 5")
 
         results = cursor.fetchall()
 
@@ -301,18 +297,18 @@ class ChatbotEngine:
     def _handle_create_service(self, conversation: Conversation, intent: Intent) -> str:
         """Handle service creation"""
         # Check if we have all required info
-        required = ['service_name', 'region', 'rate', 'hours']
+        required = ["service_name", "region", "rate", "hours"]
         missing = []
 
         # Extract entities
         extracted = {}
         for entity in intent.entities:
             if entity.type == EntityType.REGION:
-                extracted['region'] = entity.value
+                extracted["region"] = entity.value
             elif entity.type == EntityType.RATE:
-                extracted['rate'] = float(entity.value)
+                extracted["rate"] = float(entity.value)
             elif entity.type == EntityType.HOURS:
-                extracted['hours'] = int(entity.value)
+                extracted["hours"] = int(entity.value)
 
         # Check what's missing
         for req in required:
@@ -320,8 +316,8 @@ class ChatbotEngine:
                 missing.append(req)
 
         if missing:
-            conversation.context['pending_action'] = 'create_service'
-            conversation.context['extracted'] = extracted
+            conversation.context["pending_action"] = "create_service"
+            conversation.context["extracted"] = extracted
             return f"To create a service, I need: {', '.join(missing)}. Please provide them."
 
         # Create service
@@ -357,13 +353,15 @@ class ChatbotEngine:
         total = cursor.fetchone()[0]
 
         # Services by region
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT region, COUNT(*) as count
             FROM services
             GROUP BY region
             ORDER BY count DESC
             LIMIT 3
-        """)
+        """
+        )
         regions = cursor.fetchall()
 
         response = f"📊 System Statistics:\n\n"

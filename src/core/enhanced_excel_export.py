@@ -11,28 +11,26 @@ Professional Excel generation with:
 - Freeze panes, filters, and more
 """
 
-from typing import List, Dict, Any, Optional, Union, Tuple
-from datetime import datetime, date
+import logging
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
     from openpyxl import Workbook
-    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill, Protection
-    from openpyxl.chart import (
-        BarChart, LineChart, PieChart, AreaChart,
-        Reference, Series
-    )
+    from openpyxl.chart import AreaChart, BarChart, LineChart, PieChart, Reference, Series
+    from openpyxl.formatting.rule import CellIsRule, ColorScaleRule, FormulaRule
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Protection, Side
     from openpyxl.utils import get_column_letter
     from openpyxl.worksheet.datavalidation import DataValidation
-    from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, FormulaRule
+
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False
     logging.warning("openpyxl not available. Enhanced Excel export disabled.")
 
-logger = logging.getLogger('dms.excel')
+logger = logging.getLogger("dms.excel")
 
 
 class ExcelStyle:
@@ -47,36 +45,36 @@ class ExcelStyle:
     COLOR_DARK = "212529"  # Dark gray
 
     # Fonts
-    FONT_HEADER = Font(name='Calibri', size=14, bold=True, color="FFFFFF")
-    FONT_TITLE = Font(name='Calibri', size=16, bold=True, color="000000")
-    FONT_BODY = Font(name='Calibri', size=11, color="000000")
-    FONT_BOLD = Font(name='Calibri', size=11, bold=True, color="000000")
-    FONT_ITALIC = Font(name='Calibri', size=11, italic=True, color="666666")
+    FONT_HEADER = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
+    FONT_TITLE = Font(name="Calibri", size=16, bold=True, color="000000")
+    FONT_BODY = Font(name="Calibri", size=11, color="000000")
+    FONT_BOLD = Font(name="Calibri", size=11, bold=True, color="000000")
+    FONT_ITALIC = Font(name="Calibri", size=11, italic=True, color="666666")
 
     # Alignments
-    ALIGN_CENTER = Alignment(horizontal='center', vertical='center')
-    ALIGN_LEFT = Alignment(horizontal='left', vertical='center')
-    ALIGN_RIGHT = Alignment(horizontal='right', vertical='center')
-    ALIGN_JUSTIFY = Alignment(horizontal='justify', vertical='top', wrap_text=True)
+    ALIGN_CENTER = Alignment(horizontal="center", vertical="center")
+    ALIGN_LEFT = Alignment(horizontal="left", vertical="center")
+    ALIGN_RIGHT = Alignment(horizontal="right", vertical="center")
+    ALIGN_JUSTIFY = Alignment(horizontal="justify", vertical="top", wrap_text=True)
 
     # Borders
     BORDER_THIN = Border(
-        left=Side(style='thin', color='000000'),
-        right=Side(style='thin', color='000000'),
-        top=Side(style='thin', color='000000'),
-        bottom=Side(style='thin', color='000000')
+        left=Side(style="thin", color="000000"),
+        right=Side(style="thin", color="000000"),
+        top=Side(style="thin", color="000000"),
+        bottom=Side(style="thin", color="000000"),
     )
     BORDER_THICK = Border(
-        left=Side(style='thick', color='000000'),
-        right=Side(style='thick', color='000000'),
-        top=Side(style='thick', color='000000'),
-        bottom=Side(style='thick', color='000000')
+        left=Side(style="thick", color="000000"),
+        right=Side(style="thick", color="000000"),
+        top=Side(style="thick", color="000000"),
+        bottom=Side(style="thick", color="000000"),
     )
 
     # Fills
-    FILL_HEADER = PatternFill(start_color=COLOR_HEADER, end_color=COLOR_HEADER, fill_type='solid')
-    FILL_ACCENT = PatternFill(start_color=COLOR_ACCENT, end_color=COLOR_ACCENT, fill_type='solid')
-    FILL_LIGHT = PatternFill(start_color=COLOR_LIGHT, end_color=COLOR_LIGHT, fill_type='solid')
+    FILL_HEADER = PatternFill(start_color=COLOR_HEADER, end_color=COLOR_HEADER, fill_type="solid")
+    FILL_ACCENT = PatternFill(start_color=COLOR_ACCENT, end_color=COLOR_ACCENT, fill_type="solid")
+    FILL_LIGHT = PatternFill(start_color=COLOR_LIGHT, end_color=COLOR_LIGHT, fill_type="solid")
 
 
 class EnhancedExcelExporter:
@@ -86,8 +84,7 @@ class EnhancedExcelExporter:
         """Initialize enhanced Excel exporter."""
         if not OPENPYXL_AVAILABLE:
             raise ImportError(
-                "openpyxl is required for enhanced Excel export. "
-                "Install it with: pip install openpyxl"
+                "openpyxl is required for enhanced Excel export. " "Install it with: pip install openpyxl"
             )
         self.workbook = None
         self.sheets = {}
@@ -104,8 +101,8 @@ class EnhancedExcelExporter:
         """
         self.workbook = Workbook()
         # Remove default sheet
-        if 'Sheet' in self.workbook.sheetnames:
-            del self.workbook['Sheet']
+        if "Sheet" in self.workbook.sheetnames:
+            del self.workbook["Sheet"]
 
         # Set workbook properties
         self.workbook.properties.title = title
@@ -114,12 +111,16 @@ class EnhancedExcelExporter:
 
         return self.workbook
 
-    def add_sheet(self, name: str, data: List[Dict[str, Any]],
-                  headers: Optional[List[str]] = None,
-                  title: Optional[str] = None,
-                  style_header: bool = True,
-                  auto_filter: bool = True,
-                  freeze_panes: bool = True) -> Any:
+    def add_sheet(
+        self,
+        name: str,
+        data: List[Dict[str, Any]],
+        headers: Optional[List[str]] = None,
+        title: Optional[str] = None,
+        style_header: bool = True,
+        auto_filter: bool = True,
+        freeze_panes: bool = True,
+    ) -> Any:
         """
         Add a sheet with data and formatting.
 
@@ -145,8 +146,8 @@ class EnhancedExcelExporter:
         # Add title if provided
         start_row = 1
         if title:
-            ws.merge_cells(f'A1:{get_column_letter(len(headers or list(data[0].keys())))}1')
-            cell = ws['A1']
+            ws.merge_cells(f"A1:{get_column_letter(len(headers or list(data[0].keys())))}1")
+            cell = ws["A1"]
             cell.value = title
             cell.font = ExcelStyle.FONT_TITLE
             cell.alignment = ExcelStyle.ALIGN_CENTER
@@ -172,17 +173,17 @@ class EnhancedExcelExporter:
         for row_idx, row_data in enumerate(data, start=start_row + 1):
             for col_idx, header in enumerate(headers, start=1):
                 cell = ws.cell(row=row_idx, column=col_idx)
-                value = row_data.get(header, '')
+                value = row_data.get(header, "")
 
                 # Format values
                 if isinstance(value, (datetime, date)):
                     cell.value = value
-                    cell.number_format = 'YYYY-MM-DD HH:MM:SS' if isinstance(value, datetime) else 'YYYY-MM-DD'
+                    cell.number_format = "YYYY-MM-DD HH:MM:SS" if isinstance(value, datetime) else "YYYY-MM-DD"
                 elif isinstance(value, (int, float, Decimal)):
                     cell.value = float(value)
-                    cell.number_format = '#,##0.00' if isinstance(value, (float, Decimal)) else '#,##0'
+                    cell.number_format = "#,##0.00" if isinstance(value, (float, Decimal)) else "#,##0"
                 elif isinstance(value, bool):
-                    cell.value = 'Yes' if value else 'No'
+                    cell.value = "Yes" if value else "No"
                 else:
                     cell.value = str(value)
 
@@ -212,10 +213,16 @@ class EnhancedExcelExporter:
 
         return ws
 
-    def add_chart(self, sheet_name: str, chart_type: str,
-                  data_range: str, title: str,
-                  position: str = 'E2',
-                  width: int = 15, height: int = 10) -> None:
+    def add_chart(
+        self,
+        sheet_name: str,
+        chart_type: str,
+        data_range: str,
+        title: str,
+        position: str = "E2",
+        width: int = 15,
+        height: int = 10,
+    ) -> None:
         """
         Add a chart to a sheet.
 
@@ -235,12 +242,7 @@ class EnhancedExcelExporter:
         ws = self.sheets[sheet_name]
 
         # Create chart based on type
-        chart_map = {
-            'bar': BarChart,
-            'line': LineChart,
-            'pie': PieChart,
-            'area': AreaChart
-        }
+        chart_map = {"bar": BarChart, "line": LineChart, "pie": PieChart, "area": AreaChart}
 
         ChartClass = chart_map.get(chart_type.lower(), BarChart)
         chart = ChartClass()
@@ -258,10 +260,7 @@ class EnhancedExcelExporter:
 
         logger.info(f"Added {chart_type} chart '{title}' to sheet '{sheet_name}'")
 
-    def add_conditional_formatting(self, sheet_name: str,
-                                   range_: str,
-                                   rule_type: str,
-                                   **kwargs) -> None:
+    def add_conditional_formatting(self, sheet_name: str, range_: str, rule_type: str, **kwargs) -> None:
         """
         Add conditional formatting to a range.
 
@@ -277,24 +276,28 @@ class EnhancedExcelExporter:
 
         ws = self.sheets[sheet_name]
 
-        if rule_type == 'color_scale':
+        if rule_type == "color_scale":
             rule = ColorScaleRule(
-                start_type='min', start_color='FF0000',
-                mid_type='percentile', mid_value=50, mid_color='FFFF00',
-                end_type='max', end_color='00FF00'
+                start_type="min",
+                start_color="FF0000",
+                mid_type="percentile",
+                mid_value=50,
+                mid_color="FFFF00",
+                end_type="max",
+                end_color="00FF00",
             )
-        elif rule_type == 'cell_is':
-            operator = kwargs.get('operator', 'greaterThan')
-            formula = kwargs.get('formula', ['0'])
-            fill = PatternFill(start_color=kwargs.get('color', 'FF0000'),
-                             end_color=kwargs.get('color', 'FF0000'),
-                             fill_type='solid')
+        elif rule_type == "cell_is":
+            operator = kwargs.get("operator", "greaterThan")
+            formula = kwargs.get("formula", ["0"])
+            fill = PatternFill(
+                start_color=kwargs.get("color", "FF0000"), end_color=kwargs.get("color", "FF0000"), fill_type="solid"
+            )
             rule = CellIsRule(operator=operator, formula=formula, fill=fill)
-        elif rule_type == 'formula':
-            formula = kwargs.get('formula', ['TRUE'])
-            fill = PatternFill(start_color=kwargs.get('color', 'FF0000'),
-                             end_color=kwargs.get('color', 'FF0000'),
-                             fill_type='solid')
+        elif rule_type == "formula":
+            formula = kwargs.get("formula", ["TRUE"])
+            fill = PatternFill(
+                start_color=kwargs.get("color", "FF0000"), end_color=kwargs.get("color", "FF0000"), fill_type="solid"
+            )
             rule = FormulaRule(formula=formula, fill=fill)
         else:
             logger.error(f"Unknown rule type: {rule_type}")
@@ -303,10 +306,7 @@ class EnhancedExcelExporter:
         ws.conditional_formatting.add(range_, rule)
         logger.info(f"Added conditional formatting to '{range_}' in sheet '{sheet_name}'")
 
-    def add_data_validation(self, sheet_name: str,
-                           range_: str,
-                           validation_type: str,
-                           **kwargs) -> None:
+    def add_data_validation(self, sheet_name: str, range_: str, validation_type: str, **kwargs) -> None:
         """
         Add data validation to a range.
 
@@ -373,8 +373,7 @@ class EnhancedExcelExporter:
             logger.error(f"Error saving workbook: {e}")
             return False
 
-    def export_services_report(self, services: List[Dict[str, Any]],
-                               output_path: str) -> bool:
+    def export_services_report(self, services: List[Dict[str, Any]], output_path: str) -> bool:
         """
         Export services report with multiple sheets and charts.
 
@@ -395,44 +394,39 @@ class EnhancedExcelExporter:
                 title="Services Overview Report",
                 style_header=True,
                 auto_filter=True,
-                freeze_panes=True
+                freeze_panes=True,
             )
 
             # Sheet 2: Financial Summary
             if services:
                 financial_data = [
                     {
-                        'Service': s.get('service_name', 'N/A'),
-                        'Region': s.get('region', 'N/A'),
-                        'Rate': s.get('brutto_rate', 0),
-                        'Total Cost': s.get('total_cost', 0)
+                        "Service": s.get("service_name", "N/A"),
+                        "Region": s.get("region", "N/A"),
+                        "Rate": s.get("brutto_rate", 0),
+                        "Total Cost": s.get("total_cost", 0),
                     }
                     for s in services
                 ]
 
                 ws = self.add_sheet(
-                    name="Financial Summary",
-                    data=financial_data,
-                    title="Financial Summary",
-                    style_header=True
+                    name="Financial Summary", data=financial_data, title="Financial Summary", style_header=True
                 )
 
                 # Add totals row
                 last_row = len(financial_data) + 4
-                ws[f'C{last_row}'] = 'TOTAL:'
-                ws[f'C{last_row}'].font = ExcelStyle.FONT_BOLD
-                ws[f'D{last_row}'] = f'=SUM(D4:D{last_row-1})'
-                ws[f'D{last_row}'].font = ExcelStyle.FONT_BOLD
-                ws[f'D{last_row}'].number_format = '#,##0.00'
-                ws[f'E{last_row}'] = f'=SUM(E4:E{last_row-1})'
-                ws[f'E{last_row}'].font = ExcelStyle.FONT_BOLD
-                ws[f'E{last_row}'].number_format = '#,##0.00'
+                ws[f"C{last_row}"] = "TOTAL:"
+                ws[f"C{last_row}"].font = ExcelStyle.FONT_BOLD
+                ws[f"D{last_row}"] = f"=SUM(D4:D{last_row-1})"
+                ws[f"D{last_row}"].font = ExcelStyle.FONT_BOLD
+                ws[f"D{last_row}"].number_format = "#,##0.00"
+                ws[f"E{last_row}"] = f"=SUM(E4:E{last_row-1})"
+                ws[f"E{last_row}"].font = ExcelStyle.FONT_BOLD
+                ws[f"E{last_row}"].number_format = "#,##0.00"
 
                 # Add conditional formatting
                 self.add_conditional_formatting(
-                    sheet_name="Financial Summary",
-                    range_=f'D4:D{last_row-1}',
-                    rule_type='color_scale'
+                    sheet_name="Financial Summary", range_=f"D4:D{last_row-1}", rule_type="color_scale"
                 )
 
             # Save workbook
@@ -444,10 +438,9 @@ class EnhancedExcelExporter:
 
 
 # Convenience functions
-def export_to_excel(data: List[Dict[str, Any]],
-                   output_path: str,
-                   sheet_name: str = "Data",
-                   title: Optional[str] = None) -> bool:
+def export_to_excel(
+    data: List[Dict[str, Any]], output_path: str, sheet_name: str = "Data", title: Optional[str] = None
+) -> bool:
     """
     Quick export data to Excel.
 
@@ -466,9 +459,9 @@ def export_to_excel(data: List[Dict[str, Any]],
     return exporter.save(output_path)
 
 
-def export_with_charts(data: List[Dict[str, Any]],
-                      output_path: str,
-                      chart_config: Optional[Dict[str, Any]] = None) -> bool:
+def export_with_charts(
+    data: List[Dict[str, Any]], output_path: str, chart_config: Optional[Dict[str, Any]] = None
+) -> bool:
     """
     Export data with charts.
 
@@ -489,10 +482,10 @@ def export_with_charts(data: List[Dict[str, Any]],
     if chart_config:
         exporter.add_chart(
             sheet_name=sheet_name,
-            chart_type=chart_config.get('type', 'bar'),
-            data_range=chart_config.get('range', 'A1:B10'),
-            title=chart_config.get('title', 'Chart'),
-            position=chart_config.get('position', 'E2')
+            chart_type=chart_config.get("type", "bar"),
+            data_range=chart_config.get("range", "A1:B10"),
+            title=chart_config.get("title", "Chart"),
+            position=chart_config.get("position", "E2"),
         )
 
     return exporter.save(output_path)

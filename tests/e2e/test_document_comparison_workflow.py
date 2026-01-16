@@ -5,12 +5,13 @@ Tests the complete workflow of comparing documents, including
 similarity analysis, diff generation, and report creation.
 """
 
-import pytest
-import os
-import tempfile
-import shutil
-from pathlib import Path
 import json
+import os
+import shutil
+import tempfile
+from pathlib import Path
+
+import pytest
 
 
 class TestDocumentComparisonWorkflow:
@@ -33,7 +34,7 @@ class TestDocumentComparisonWorkflow:
     def create_test_document(self, filename: str, content: str) -> Path:
         """Create a test document"""
         doc_path = self.docs_dir / filename
-        doc_path.write_text(content, encoding='utf-8')
+        doc_path.write_text(content, encoding="utf-8")
         return doc_path
 
     def test_similar_documents_comparison(self):
@@ -86,19 +87,16 @@ class TestDocumentComparisonWorkflow:
 
         # Step 4: Generate comparison report
         report = {
-            'document1': str(doc1_path.name),
-            'document2': str(doc2_path.name),
-            'similarity_score': similarity,
-            'common_words': intersection,
-            'total_unique_words': union,
-            'differences': {
-                'doc1_only_words': len(words1 - words2),
-                'doc2_only_words': len(words2 - words1)
-            }
+            "document1": str(doc1_path.name),
+            "document2": str(doc2_path.name),
+            "similarity_score": similarity,
+            "common_words": intersection,
+            "total_unique_words": union,
+            "differences": {"doc1_only_words": len(words1 - words2), "doc2_only_words": len(words2 - words1)},
         }
 
         report_path = self.reports_dir / "comparison_report.json"
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
 
         assert report_path.exists()
@@ -156,7 +154,7 @@ class TestDocumentComparisonWorkflow:
         versions = [
             ("v1.txt", "Initial draft of the document."),
             ("v2.txt", "Initial draft of the document with minor edits."),
-            ("v3.txt", "Initial draft of the document with minor edits and new section.")
+            ("v3.txt", "Initial draft of the document with minor edits and new section."),
         ]
 
         version_paths = []
@@ -182,22 +180,21 @@ class TestDocumentComparisonWorkflow:
             added_words = words_next - words_curr
             removed_words = words_curr - words_next
 
-            changes.append({
-                'from_version': curr_name,
-                'to_version': next_name,
-                'words_added': len(added_words),
-                'words_removed': len(removed_words),
-                'total_changes': len(added_words) + len(removed_words)
-            })
+            changes.append(
+                {
+                    "from_version": curr_name,
+                    "to_version": next_name,
+                    "words_added": len(added_words),
+                    "words_removed": len(removed_words),
+                    "total_changes": len(added_words) + len(removed_words),
+                }
+            )
 
         # Step 4: Generate version history report
-        report = {
-            'total_versions': len(version_paths),
-            'version_history': changes
-        }
+        report = {"total_versions": len(version_paths), "version_history": changes}
 
         report_path = self.reports_dir / "version_history.json"
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
 
         assert report_path.exists()
@@ -223,7 +220,7 @@ class TestDocumentComparisonWorkflow:
             ("doc1.txt", "Python programming language for data science"),
             ("doc2.txt", "Python programming language for web development"),
             ("doc3.txt", "Java object-oriented programming language"),
-            ("doc4.txt", "JavaScript language for web browsers")
+            ("doc4.txt", "JavaScript language for web browsers"),
         ]
 
         doc_paths = []
@@ -266,16 +263,16 @@ class TestDocumentComparisonWorkflow:
 
         # Step 4: Generate report
         report = {
-            'total_documents': len(doc_paths),
-            'similarity_matrix': similarity_matrix,
-            'most_similar_pair': {
-                'documents': [doc_paths[most_similar_pair[0]][0], doc_paths[most_similar_pair[1]][0]],
-                'similarity': max_similarity
-            }
+            "total_documents": len(doc_paths),
+            "similarity_matrix": similarity_matrix,
+            "most_similar_pair": {
+                "documents": [doc_paths[most_similar_pair[0]][0], doc_paths[most_similar_pair[1]][0]],
+                "similarity": max_similarity,
+            },
         }
 
         report_path = self.reports_dir / "batch_comparison.json"
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
 
         assert report_path.exists()
@@ -286,5 +283,5 @@ class TestDocumentComparisonWorkflow:
         print(f"   - Similarity: {max_similarity:.2%}")
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '-s'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "-s"])

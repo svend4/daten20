@@ -10,16 +10,17 @@ Features:
 - Session security
 """
 
-import secrets
-import hmac
 import hashlib
+import hmac
 import logging
+import secrets
 from functools import wraps
-from typing import Optional, List
-from flask import Flask, request, session, abort, g
+from typing import List, Optional
+
+from flask import Flask, abort, g, request, session
 from werkzeug.security import safe_str_cmp
 
-logger = logging.getLogger('dms.security')
+logger = logging.getLogger("dms.security")
 
 
 class CSRFProtection:
@@ -55,7 +56,7 @@ class CSRFProtection:
 
         # Use app secret key if not provided
         if not self.secret_key:
-            self.secret_key = app.config.get('SECRET_KEY')
+            self.secret_key = app.config.get("SECRET_KEY")
 
         if not self.secret_key:
             raise ValueError("SECRET_KEY must be set for CSRF protection")
@@ -73,7 +74,7 @@ class CSRFProtection:
     def _csrf_protect(self):
         """Protect against CSRF attacks."""
         # Skip for GET, HEAD, OPTIONS, TRACE (safe methods)
-        if request.method in ['GET', 'HEAD', 'OPTIONS', 'TRACE']:
+        if request.method in ["GET", "HEAD", "OPTIONS", "TRACE"]:
             return
 
         # Skip for API endpoints with token authentication
@@ -98,16 +99,16 @@ class CSRFProtection:
 
     def _is_api_endpoint(self) -> bool:
         """Check if current endpoint is API endpoint."""
-        return request.path.startswith('/api/')
+        return request.path.startswith("/api/")
 
     def _get_csrf_token_from_request(self) -> Optional[str]:
         """Get CSRF token from request."""
         # Check form data
-        token = request.form.get('csrf_token')
+        token = request.form.get("csrf_token")
 
         # Check headers (for AJAX)
         if not token:
-            token = request.headers.get('X-CSRF-Token')
+            token = request.headers.get("X-CSRF-Token")
 
         return token
 
@@ -118,10 +119,10 @@ class CSRFProtection:
         Returns:
             CSRF token string
         """
-        if '_csrf_token' not in session:
-            session['_csrf_token'] = secrets.token_hex(32)
+        if "_csrf_token" not in session:
+            session["_csrf_token"] = secrets.token_hex(32)
 
-        return session['_csrf_token']
+        return session["_csrf_token"]
 
     def validate_csrf_token(self, token: str) -> bool:
         """
@@ -133,7 +134,7 @@ class CSRFProtection:
         Returns:
             True if valid
         """
-        session_token = session.get('_csrf_token')
+        session_token = session.get("_csrf_token")
 
         if not session_token:
             return False
@@ -196,7 +197,7 @@ class HTTPSRedirect:
         if not request.is_secure:
             from flask import redirect
 
-            url = request.url.replace('http://', 'https://', 1)
+            url = request.url.replace("http://", "https://", 1)
             code = 301 if self.permanent else 302
 
             logger.debug(f"Redirecting to HTTPS: {url}")
@@ -221,11 +222,11 @@ class SecurityHeaders:
 
         # Default headers
         self.headers = {
-            'X-Content-Type-Options': 'nosniff',
-            'X-Frame-Options': 'SAMEORIGIN',
-            'X-XSS-Protection': '1; mode=block',
-            'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-            'Content-Security-Policy': (
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "SAMEORIGIN",
+            "X-XSS-Protection": "1; mode=block",
+            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+            "Content-Security-Policy": (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
                 "style-src 'self' 'unsafe-inline'; "
@@ -233,10 +234,8 @@ class SecurityHeaders:
                 "font-src 'self' data:; "
                 "connect-src 'self'"
             ),
-            'Referrer-Policy': 'strict-origin-when-cross-origin',
-            'Permissions-Policy': (
-                'geolocation=(), microphone=(), camera=()'
-            )
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "Permissions-Policy": ("geolocation=(), microphone=(), camera=()"),
         }
 
         if app:
@@ -302,8 +301,8 @@ class SessionSecurity:
         app.config.update(
             SESSION_COOKIE_SECURE=True,  # Only send over HTTPS
             SESSION_COOKIE_HTTPONLY=True,  # Not accessible via JavaScript
-            SESSION_COOKIE_SAMESITE='Lax',  # CSRF protection
-            PERMANENT_SESSION_LIFETIME=3600  # 1 hour
+            SESSION_COOKIE_SAMESITE="Lax",  # CSRF protection
+            PERMANENT_SESSION_LIFETIME=3600,  # 1 hour
         )
 
         # Add session fingerprinting
@@ -314,17 +313,17 @@ class SessionSecurity:
 
     def _check_session_fingerprint(self):
         """Check session fingerprint to detect hijacking."""
-        if '_fingerprint' in session:
+        if "_fingerprint" in session:
             current_fingerprint = self._generate_fingerprint()
 
-            if not safe_str_cmp(session['_fingerprint'], current_fingerprint):
+            if not safe_str_cmp(session["_fingerprint"], current_fingerprint):
                 logger.warning("Session fingerprint mismatch - possible hijacking")
                 session.clear()
 
     def _set_session_fingerprint(self, response):
         """Set session fingerprint."""
-        if '_fingerprint' not in session:
-            session['_fingerprint'] = self._generate_fingerprint()
+        if "_fingerprint" not in session:
+            session["_fingerprint"] = self._generate_fingerprint()
         return response
 
     def _generate_fingerprint(self) -> str:
@@ -335,8 +334,8 @@ class SessionSecurity:
             Fingerprint string
         """
         # Use User-Agent and Accept-Language for fingerprinting
-        user_agent = request.headers.get('User-Agent', '')
-        accept_language = request.headers.get('Accept-Language', '')
+        user_agent = request.headers.get("User-Agent", "")
+        accept_language = request.headers.get("Accept-Language", "")
 
         data = f"{user_agent}:{accept_language}"
 
@@ -374,6 +373,7 @@ def init_security(app: Flask, enable_https: bool = False):
 
 # Decorators
 
+
 def csrf_exempt(view):
     """
     Decorator to exempt view from CSRF protection.
@@ -386,7 +386,7 @@ def csrf_exempt(view):
     """
     from flask import current_app
 
-    if hasattr(current_app, 'csrf'):
+    if hasattr(current_app, "csrf"):
         current_app.csrf.exempt(view)
 
     return view
@@ -402,6 +402,7 @@ def require_https(f):
         def login():
             # ...
     """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not request.is_secure:

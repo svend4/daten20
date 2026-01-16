@@ -17,18 +17,19 @@ Key Features:
 - Trend analysis
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from decimal import Decimal
-from typing import Dict, List, Optional, Any, Tuple
-from enum import Enum
 import json
 import threading
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from decimal import Decimal
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class ReportFormat(str, Enum):
     """Report export formats"""
+
     PDF = "pdf"
     EXCEL = "excel"
     POWERPOINT = "powerpoint"
@@ -38,6 +39,7 @@ class ReportFormat(str, Enum):
 
 class ReportFrequency(str, Enum):
     """Report scheduling frequency"""
+
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
@@ -46,6 +48,7 @@ class ReportFrequency(str, Enum):
 
 class ChartType(str, Enum):
     """Chart types for visualizations"""
+
     LINE = "line"
     BAR = "bar"
     PIE = "pie"
@@ -58,6 +61,7 @@ class ChartType(str, Enum):
 @dataclass
 class KPI:
     """Key Performance Indicator"""
+
     name: str
     value: float
     unit: str
@@ -71,6 +75,7 @@ class KPI:
 @dataclass
 class ChartData:
     """Chart data structure"""
+
     chart_type: ChartType
     title: str
     data: Dict[str, Any]
@@ -82,6 +87,7 @@ class ChartData:
 @dataclass
 class Report:
     """BI Report"""
+
     id: str
     name: str
     description: str
@@ -96,6 +102,7 @@ class Report:
 @dataclass
 class ScheduledReport:
     """Scheduled report configuration"""
+
     id: str
     report_id: str
     name: str
@@ -140,14 +147,14 @@ class KPICalculator:
         mrr = Decimal("0")
 
         for sub in subscriptions:
-            if sub.get('status') != 'active':
+            if sub.get("status") != "active":
                 continue
 
-            if sub.get('billing_cycle') == 'monthly':
-                mrr += Decimal(str(sub.get('amount', 0)))
-            elif sub.get('billing_cycle') == 'yearly':
+            if sub.get("billing_cycle") == "monthly":
+                mrr += Decimal(str(sub.get("amount", 0)))
+            elif sub.get("billing_cycle") == "yearly":
                 # Convert yearly to monthly
-                mrr += Decimal(str(sub.get('amount', 0))) / Decimal("12")
+                mrr += Decimal(str(sub.get("amount", 0))) / Decimal("12")
 
         return mrr
 
@@ -155,12 +162,7 @@ class KPICalculator:
         """Calculate Annual Recurring Revenue from MRR"""
         return mrr * Decimal("12")
 
-    def calculate_churn_rate(
-        self,
-        churned_customers: int,
-        total_customers_start: int,
-        period_days: int = 30
-    ) -> float:
+    def calculate_churn_rate(self, churned_customers: int, total_customers_start: int, period_days: int = 30) -> float:
         """
         Calculate customer churn rate
 
@@ -185,10 +187,7 @@ class KPICalculator:
         return round(monthly_churn, 2)
 
     def calculate_clv(
-        self,
-        avg_revenue_per_user: Decimal,
-        avg_customer_lifespan_months: int,
-        gross_margin: float = 0.8
+        self, avg_revenue_per_user: Decimal, avg_customer_lifespan_months: int, gross_margin: float = 0.8
     ) -> Decimal:
         """
         Calculate Customer Lifetime Value
@@ -204,12 +203,7 @@ class KPICalculator:
         clv = avg_revenue_per_user * Decimal(str(avg_customer_lifespan_months)) * Decimal(str(gross_margin))
         return clv.quantize(Decimal("0.01"))
 
-    def calculate_nrr(
-        self,
-        revenue_start: Decimal,
-        expansion_revenue: Decimal,
-        churned_revenue: Decimal
-    ) -> float:
+    def calculate_nrr(self, revenue_start: Decimal, expansion_revenue: Decimal, churned_revenue: Decimal) -> float:
         """
         Calculate Net Revenue Retention
 
@@ -229,11 +223,7 @@ class KPICalculator:
 
         return round(nrr, 2)
 
-    def calculate_cac(
-        self,
-        sales_marketing_costs: Decimal,
-        new_customers: int
-    ) -> Decimal:
+    def calculate_cac(self, sales_marketing_costs: Decimal, new_customers: int) -> Decimal:
         """
         Calculate Customer Acquisition Cost
 
@@ -309,35 +299,17 @@ class DashboardBuilder:
         self.widgets = []
         self.layout = {"rows": [], "columns": 12}
 
-    def add_kpi_widget(
-        self,
-        kpi: KPI,
-        position: Dict[str, int],
-        size: Dict[str, int] = {"width": 3, "height": 2}
-    ):
+    def add_kpi_widget(self, kpi: KPI, position: Dict[str, int], size: Dict[str, int] = {"width": 3, "height": 2}):
         """Add KPI card widget"""
-        widget = {
-            "type": "kpi",
-            "kpi": kpi,
-            "position": position,
-            "size": size
-        }
+        widget = {"type": "kpi", "kpi": kpi, "position": position, "size": size}
         self.widgets.append(widget)
         return self
 
     def add_chart_widget(
-        self,
-        chart: ChartData,
-        position: Dict[str, int],
-        size: Dict[str, int] = {"width": 6, "height": 4}
+        self, chart: ChartData, position: Dict[str, int], size: Dict[str, int] = {"width": 6, "height": 4}
     ):
         """Add chart widget"""
-        widget = {
-            "type": "chart",
-            "chart": chart,
-            "position": position,
-            "size": size
-        }
+        widget = {"type": "chart", "chart": chart, "position": position, "size": size}
         self.widgets.append(widget)
         return self
 
@@ -347,27 +319,16 @@ class DashboardBuilder:
         headers: List[str],
         rows: List[List[Any]],
         position: Dict[str, int],
-        size: Dict[str, int] = {"width": 12, "height": 4}
+        size: Dict[str, int] = {"width": 12, "height": 4},
     ):
         """Add table widget"""
-        widget = {
-            "type": "table",
-            "title": title,
-            "headers": headers,
-            "rows": rows,
-            "position": position,
-            "size": size
-        }
+        widget = {"type": "table", "title": title, "headers": headers, "rows": rows, "position": position, "size": size}
         self.widgets.append(widget)
         return self
 
     def build(self) -> Dict[str, Any]:
         """Build dashboard configuration"""
-        return {
-            "widgets": self.widgets,
-            "layout": self.layout,
-            "created_at": datetime.now().isoformat()
-        }
+        return {"widgets": self.widgets, "layout": self.layout, "created_at": datetime.now().isoformat()}
 
 
 class ReportGenerator:
@@ -395,13 +356,14 @@ class ReportGenerator:
         Returns:
             PDF file as bytes
         """
-        from reportlab.lib.pagesizes import letter, A4
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.units import inch
-        from reportlab.lib import colors
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
         from io import BytesIO
+
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+        from reportlab.lib.pagesizes import A4, letter
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.lib.units import inch
+        from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
         # Create PDF in memory
         buffer = BytesIO()
@@ -411,94 +373,95 @@ class ReportGenerator:
 
         # Title
         title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
+            "CustomTitle",
+            parent=styles["Heading1"],
             fontSize=24,
-            textColor=colors.HexColor('#1f4788'),
+            textColor=colors.HexColor("#1f4788"),
             spaceAfter=30,
-            alignment=TA_CENTER
+            alignment=TA_CENTER,
         )
         story.append(Paragraph(report.name, title_style))
-        story.append(Spacer(1, 0.2*inch))
+        story.append(Spacer(1, 0.2 * inch))
 
         # Report metadata
-        meta_style = styles['Normal']
+        meta_style = styles["Normal"]
         story.append(Paragraph(f"<b>Description:</b> {report.description}", meta_style))
         story.append(Paragraph(f"<b>Generated:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", meta_style))
         story.append(Paragraph(f"<b>Created by:</b> {report.created_by}", meta_style))
-        story.append(Spacer(1, 0.3*inch))
+        story.append(Spacer(1, 0.3 * inch))
 
         # KPIs Section
         heading_style = ParagraphStyle(
-            'CustomHeading',
-            parent=styles['Heading2'],
-            fontSize=16,
-            textColor=colors.HexColor('#2c5aa0'),
-            spaceAfter=12
+            "CustomHeading", parent=styles["Heading2"], fontSize=16, textColor=colors.HexColor("#2c5aa0"), spaceAfter=12
         )
         story.append(Paragraph("Key Performance Indicators", heading_style))
 
         # KPI Table
-        kpi_data = [['KPI', 'Value', 'Change', 'Trend', 'Target']]
+        kpi_data = [["KPI", "Value", "Change", "Trend", "Target"]]
         for kpi in report.kpis:
-            trend_symbol = '↑' if kpi.trend == 'up' else '↓' if kpi.trend == 'down' else '→'
-            target_str = f"{kpi.target} {kpi.unit}" if kpi.target else 'N/A'
-            kpi_data.append([
-                kpi.name,
-                f"{kpi.value} {kpi.unit}",
-                f"{kpi.change_percentage:+.2f}%",
-                f"{trend_symbol} {kpi.trend}",
-                target_str
-            ])
+            trend_symbol = "↑" if kpi.trend == "up" else "↓" if kpi.trend == "down" else "→"
+            target_str = f"{kpi.target} {kpi.unit}" if kpi.target else "N/A"
+            kpi_data.append(
+                [
+                    kpi.name,
+                    f"{kpi.value} {kpi.unit}",
+                    f"{kpi.change_percentage:+.2f}%",
+                    f"{trend_symbol} {kpi.trend}",
+                    target_str,
+                ]
+            )
 
-        kpi_table = Table(kpi_data, colWidths=[2.5*inch, 1.5*inch, 1*inch, 1*inch, 1*inch])
-        kpi_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5aa0')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-        ]))
+        kpi_table = Table(kpi_data, colWidths=[2.5 * inch, 1.5 * inch, 1 * inch, 1 * inch, 1 * inch])
+        kpi_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c5aa0")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 12),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 1), (-1, -1), 10),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+                ]
+            )
+        )
         story.append(kpi_table)
-        story.append(Spacer(1, 0.3*inch))
+        story.append(Spacer(1, 0.3 * inch))
 
         # Charts Section
         if report.charts:
             story.append(Paragraph("Visualizations & Charts", heading_style))
-            chart_data = [['#', 'Chart Type', 'Title', 'Data Points']]
+            chart_data = [["#", "Chart Type", "Title", "Data Points"]]
             for idx, chart in enumerate(report.charts, 1):
-                chart_data.append([
-                    str(idx),
-                    chart.chart_type.value.title(),
-                    chart.title,
-                    str(len(chart.labels))
-                ])
+                chart_data.append([str(idx), chart.chart_type.value.title(), chart.title, str(len(chart.labels))])
 
-            chart_table = Table(chart_data, colWidths=[0.5*inch, 1.5*inch, 3*inch, 1*inch])
-            chart_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5aa0')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-            ]))
+            chart_table = Table(chart_data, colWidths=[0.5 * inch, 1.5 * inch, 3 * inch, 1 * inch])
+            chart_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c5aa0")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, 0), 12),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+                    ]
+                )
+            )
             story.append(chart_table)
-            story.append(Spacer(1, 0.3*inch))
+            story.append(Spacer(1, 0.3 * inch))
 
         # Filters
         if report.filters:
             story.append(Paragraph("Applied Filters", heading_style))
             filter_text = json.dumps(report.filters, indent=2)
-            filter_para = Paragraph(f"<pre>{filter_text}</pre>", styles['Code'])
+            filter_para = Paragraph(f"<pre>{filter_text}</pre>", styles["Code"])
             story.append(filter_para)
 
         # Build PDF
@@ -517,10 +480,11 @@ class ReportGenerator:
         - Charts Info
         - Metadata
         """
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-        from openpyxl.utils import get_column_letter
         from io import BytesIO
+
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+        from openpyxl.utils import get_column_letter
 
         wb = Workbook()
 
@@ -532,29 +496,26 @@ class ReportGenerator:
         header_fill = PatternFill(start_color="2C5AA0", end_color="2C5AA0", fill_type="solid")
         header_font = Font(bold=True, color="FFFFFF", size=12)
         border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
+            left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin")
         )
 
         # Report title
-        ws_summary['A1'] = report.name
-        ws_summary['A1'].font = Font(bold=True, size=16, color="1F4788")
-        ws_summary.merge_cells('A1:F1')
-        ws_summary['A1'].alignment = Alignment(horizontal='center')
+        ws_summary["A1"] = report.name
+        ws_summary["A1"].font = Font(bold=True, size=16, color="1F4788")
+        ws_summary.merge_cells("A1:F1")
+        ws_summary["A1"].alignment = Alignment(horizontal="center")
 
-        ws_summary['A2'] = f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        ws_summary['A2'].font = Font(italic=True, size=10)
-        ws_summary.merge_cells('A2:F2')
+        ws_summary["A2"] = f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        ws_summary["A2"].font = Font(italic=True, size=10)
+        ws_summary.merge_cells("A2:F2")
 
         # KPI Headers
-        headers = ['KPI Name', 'Value', 'Unit', 'Change %', 'Trend', 'Target']
+        headers = ["KPI Name", "Value", "Unit", "Change %", "Trend", "Target"]
         for col_num, header in enumerate(headers, 1):
             cell = ws_summary.cell(row=4, column=col_num, value=header)
             cell.fill = header_fill
             cell.font = header_font
-            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.border = border
 
         # KPI Data
@@ -567,12 +528,12 @@ class ReportGenerator:
             # Trend cell with color
             trend_cell = ws_summary.cell(row=row_num, column=5, value=kpi.trend)
             trend_cell.border = border
-            if kpi.trend == 'up':
+            if kpi.trend == "up":
                 trend_cell.font = Font(color="00B050")
-            elif kpi.trend == 'down':
+            elif kpi.trend == "down":
                 trend_cell.font = Font(color="FF0000")
 
-            target_val = kpi.target if kpi.target else 'N/A'
+            target_val = kpi.target if kpi.target else "N/A"
             ws_summary.cell(row=row_num, column=6, value=target_val).border = border
 
         # Auto-adjust column widths
@@ -583,12 +544,12 @@ class ReportGenerator:
         ws_charts = wb.create_sheet("Charts Info")
 
         # Headers
-        chart_headers = ['#', 'Chart Type', 'Title', 'Data Points', 'Datasets']
+        chart_headers = ["#", "Chart Type", "Title", "Data Points", "Datasets"]
         for col_num, header in enumerate(chart_headers, 1):
             cell = ws_charts.cell(row=1, column=col_num, value=header)
             cell.fill = header_fill
             cell.font = header_font
-            cell.alignment = Alignment(horizontal='center')
+            cell.alignment = Alignment(horizontal="center")
             cell.border = border
 
         # Chart data
@@ -607,14 +568,14 @@ class ReportGenerator:
         ws_meta = wb.create_sheet("Metadata")
 
         metadata_items = [
-            ('Report ID', report.id),
-            ('Report Name', report.name),
-            ('Description', report.description),
-            ('Created At', report.created_at.strftime('%Y-%m-%d %H:%M:%S')),
-            ('Created By', report.created_by),
-            ('Number of KPIs', len(report.kpis)),
-            ('Number of Charts', len(report.charts)),
-            ('Export Format', report.format.value),
+            ("Report ID", report.id),
+            ("Report Name", report.name),
+            ("Description", report.description),
+            ("Created At", report.created_at.strftime("%Y-%m-%d %H:%M:%S")),
+            ("Created By", report.created_by),
+            ("Number of KPIs", len(report.kpis)),
+            ("Number of Charts", len(report.charts)),
+            ("Export Format", report.format.value),
         ]
 
         for row_num, (key, value) in enumerate(metadata_items, 1):
@@ -625,12 +586,12 @@ class ReportGenerator:
             val_cell = ws_meta.cell(row=row_num, column=2, value=str(value))
             val_cell.border = border
 
-        ws_meta.column_dimensions['A'].width = 20
-        ws_meta.column_dimensions['B'].width = 40
+        ws_meta.column_dimensions["A"].width = 20
+        ws_meta.column_dimensions["B"].width = 40
 
         # Filters (if any)
         if report.filters:
-            ws_meta.cell(row=len(metadata_items) + 2, column=1, value='Filters:').font = Font(bold=True)
+            ws_meta.cell(row=len(metadata_items) + 2, column=1, value="Filters:").font = Font(bold=True)
             ws_meta.cell(row=len(metadata_items) + 3, column=1, value=json.dumps(report.filters, indent=2))
 
         # Save to bytes
@@ -650,11 +611,12 @@ class ReportGenerator:
         - KPI summary slide
         - Individual chart slides
         """
-        from pptx import Presentation
-        from pptx.util import Inches, Pt
-        from pptx.enum.text import PP_ALIGN
-        from pptx.dml.color import RGBColor
         from io import BytesIO
+
+        from pptx import Presentation
+        from pptx.dml.color import RGBColor
+        from pptx.enum.text import PP_ALIGN
+        from pptx.util import Inches, Pt
 
         prs = Presentation()
         prs.slide_width = Inches(10)
@@ -689,15 +651,15 @@ class ReportGenerator:
 
         for kpi in report.kpis:
             p = tf.add_paragraph()
-            trend_arrow = '↑' if kpi.trend == 'up' else '↓' if kpi.trend == 'down' else '→'
+            trend_arrow = "↑" if kpi.trend == "up" else "↓" if kpi.trend == "down" else "→"
             p.text = f"{kpi.name}: {kpi.value} {kpi.unit} ({kpi.change_percentage:+.2f}% {trend_arrow})"
             p.level = 0
             p.font.size = Pt(18)
 
             # Color based on trend
-            if kpi.trend == 'up':
+            if kpi.trend == "up":
                 p.font.color.rgb = RGBColor(0, 176, 80)
-            elif kpi.trend == 'down':
+            elif kpi.trend == "down":
                 p.font.color.rgb = RGBColor(255, 0, 0)
 
             # Add target if available
@@ -804,7 +766,7 @@ class ReportGenerator:
             "charts": [self._chart_to_dict(chart) for chart in report.charts],
             "filters": report.filters,
             "created_at": report.created_at.isoformat(),
-            "created_by": report.created_by
+            "created_by": report.created_by,
         }
 
         return json.dumps(report_dict, indent=2)
@@ -837,7 +799,7 @@ class ReportGenerator:
                 "change_percentage": kpi.change_percentage,
                 "trend": kpi.trend,
                 "target": kpi.target,
-                "description": kpi.description
+                "description": kpi.description,
             }
             for kpi in kpis
         ]
@@ -850,7 +812,7 @@ class ReportGenerator:
             "data": chart.data,
             "labels": chart.labels,
             "datasets": chart.datasets,
-            "options": chart.options
+            "options": chart.options,
         }
 
 
@@ -865,7 +827,7 @@ class ReportScheduler:
     - Execution history
     """
 
-    def __init__(self, parent_dashboard: Optional['BIDashboard'] = None):
+    def __init__(self, parent_dashboard: Optional["BIDashboard"] = None):
         self.parent_dashboard = parent_dashboard
         self.scheduled_reports: Dict[str, ScheduledReport] = {}
         self.execution_history = []
@@ -877,9 +839,7 @@ class ReportScheduler:
         self.scheduled_reports[scheduled_report.id] = scheduled_report
 
         # Calculate next run time
-        scheduled_report.next_run = self._calculate_next_run(
-            scheduled_report.frequency
-        )
+        scheduled_report.next_run = self._calculate_next_run(scheduled_report.frequency)
 
     def unschedule_report(self, report_id: str):
         """Remove scheduled report"""
@@ -915,6 +875,7 @@ class ReportScheduler:
 
             # Sleep for 60 seconds between checks
             import time
+
             time.sleep(60)
 
     def _execute_scheduled_report(self, scheduled_report: ScheduledReport):
@@ -926,14 +887,14 @@ class ReportScheduler:
                 "scheduled_report_id": scheduled_report.id,
                 "executed_at": datetime.now(),
                 "status": "success",
-                "recipients": scheduled_report.recipients
+                "recipients": scheduled_report.recipients,
             }
 
             # Generate actual report and send emails
             if self.parent_dashboard:
                 try:
-                    import tempfile
                     import os
+                    import tempfile
 
                     # Get the report configuration
                     if scheduled_report.report_id not in self.parent_dashboard.reports:
@@ -955,11 +916,7 @@ class ReportScheduler:
                         raise ValueError(f"Unsupported format: {scheduled_report.format}")
 
                     # Save to temporary file
-                    with tempfile.NamedTemporaryFile(
-                        mode='wb',
-                        suffix=f'.{file_ext}',
-                        delete=False
-                    ) as tmp_file:
+                    with tempfile.NamedTemporaryFile(mode="wb", suffix=f".{file_ext}", delete=False) as tmp_file:
                         tmp_file.write(report_data)
                         tmp_filename = tmp_file.name
 
@@ -987,7 +944,7 @@ class ReportScheduler:
                             subject=subject,
                             body=body,
                             html=True,
-                            attachments=[tmp_filename]
+                            attachments=[tmp_filename],
                         )
 
                         execution["report_generated"] = True
@@ -1012,8 +969,7 @@ class ReportScheduler:
             # Update last run and calculate next run
             scheduled_report.last_run = datetime.now()
             scheduled_report.next_run = self._calculate_next_run(
-                scheduled_report.frequency,
-                from_time=scheduled_report.last_run
+                scheduled_report.frequency, from_time=scheduled_report.last_run
             )
 
         except Exception as e:
@@ -1021,15 +977,11 @@ class ReportScheduler:
                 "report_id": scheduled_report.report_id,
                 "executed_at": datetime.now(),
                 "status": "failed",
-                "error": str(e)
+                "error": str(e),
             }
             self.execution_history.append(execution)
 
-    def _calculate_next_run(
-        self,
-        frequency: ReportFrequency,
-        from_time: Optional[datetime] = None
-    ) -> datetime:
+    def _calculate_next_run(self, frequency: ReportFrequency, from_time: Optional[datetime] = None) -> datetime:
         """Calculate next run time based on frequency"""
         base_time = from_time or datetime.now()
 
@@ -1045,16 +997,12 @@ class ReportScheduler:
 
         return base_time + timedelta(days=1)
 
-    def get_execution_history(
-        self,
-        report_id: Optional[str] = None,
-        limit: int = 100
-    ) -> List[Dict]:
+    def get_execution_history(self, report_id: Optional[str] = None, limit: int = 100) -> List[Dict]:
         """Get execution history"""
         history = self.execution_history
 
         if report_id:
-            history = [h for h in history if h.get('report_id') == report_id]
+            history = [h for h in history if h.get("report_id") == report_id]
 
         return history[-limit:]
 
@@ -1080,11 +1028,7 @@ class BIDashboard:
         self.dashboards: Dict[str, Dict] = {}
         self.reports: Dict[str, Report] = {}
 
-    def create_executive_dashboard(
-        self,
-        tenant_id: str,
-        date_range: Tuple[datetime, datetime]
-    ) -> Dict[str, Any]:
+    def create_executive_dashboard(self, tenant_id: str, date_range: Tuple[datetime, datetime]) -> Dict[str, Any]:
         """
         Create executive KPI dashboard
 
@@ -1099,17 +1043,12 @@ class BIDashboard:
 
         # Get data (placeholder - would fetch from database)
         subscriptions = self._fetch_subscriptions(tenant_id, end_date)
-        previous_subscriptions = self._fetch_subscriptions(
-            tenant_id,
-            start_date - timedelta(days=30)
-        )
+        previous_subscriptions = self._fetch_subscriptions(tenant_id, start_date - timedelta(days=30))
 
         # Calculate KPIs
         mrr = self.kpi_calculator.calculate_mrr(subscriptions)
         previous_mrr = self.kpi_calculator.calculate_mrr(previous_subscriptions)
-        mrr_change, mrr_trend = self.kpi_calculator.get_kpi_trend(
-            float(mrr), float(previous_mrr)
-        )
+        mrr_change, mrr_trend = self.kpi_calculator.get_kpi_trend(float(mrr), float(previous_mrr))
 
         arr = self.kpi_calculator.calculate_arr(mrr)
 
@@ -1122,7 +1061,7 @@ class BIDashboard:
                 change_percentage=mrr_change,
                 trend=mrr_trend,
                 target=100000.0,
-                description="Total monthly recurring revenue"
+                description="Total monthly recurring revenue",
             ),
             KPI(
                 name="Annual Recurring Revenue",
@@ -1131,8 +1070,8 @@ class BIDashboard:
                 change_percentage=mrr_change * 12,  # Approximation
                 trend=mrr_trend,
                 target=1200000.0,
-                description="Annualized recurring revenue"
-            )
+                description="Annualized recurring revenue",
+            ),
         ]
 
         # Build dashboard
@@ -1140,11 +1079,7 @@ class BIDashboard:
 
         # Add KPI widgets
         for i, kpi in enumerate(kpis):
-            builder.add_kpi_widget(
-                kpi,
-                position={"row": 0, "col": i * 3},
-                size={"width": 3, "height": 2}
-            )
+            builder.add_kpi_widget(kpi, position={"row": 0, "col": i * 3}, size={"width": 3, "height": 2})
 
         # Add revenue trend chart
         revenue_chart = ChartData(
@@ -1152,19 +1087,10 @@ class BIDashboard:
             title="Revenue Trend",
             data={},
             labels=["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-            datasets=[
-                {
-                    "label": "MRR",
-                    "data": [85000, 88000, 92000, 95000, 97000, float(mrr)]
-                }
-            ]
+            datasets=[{"label": "MRR", "data": [85000, 88000, 92000, 95000, 97000, float(mrr)]}],
         )
 
-        builder.add_chart_widget(
-            revenue_chart,
-            position={"row": 2, "col": 0},
-            size={"width": 6, "height": 4}
-        )
+        builder.add_chart_widget(revenue_chart, position={"row": 2, "col": 0}, size={"width": 6, "height": 4})
 
         dashboard = builder.build()
         dashboard["kpis"] = kpis
@@ -1178,7 +1104,7 @@ class BIDashboard:
         kpis: List[KPI],
         charts: List[ChartData],
         filters: Dict[str, Any],
-        created_by: str
+        created_by: str,
     ) -> Report:
         """Create custom report"""
         import uuid
@@ -1192,7 +1118,7 @@ class BIDashboard:
             filters=filters,
             created_at=datetime.now(),
             created_by=created_by,
-            format=ReportFormat.JSON
+            format=ReportFormat.JSON,
         )
 
         self.reports[report.id] = report
@@ -1213,9 +1139,9 @@ class BIDashboard:
         elif format == ReportFormat.POWERPOINT:
             return self.report_generator.generate_powerpoint(report)
         elif format == ReportFormat.JSON:
-            return self.report_generator.generate_json(report).encode('utf-8')
+            return self.report_generator.generate_json(report).encode("utf-8")
         elif format == ReportFormat.CSV:
-            return self.report_generator.generate_csv(report).encode('utf-8')
+            return self.report_generator.generate_csv(report).encode("utf-8")
 
         raise ValueError(f"Unsupported format: {format}")
 
@@ -1226,7 +1152,7 @@ class BIDashboard:
         frequency: ReportFrequency,
         recipients: List[str],
         format: ReportFormat,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
     ) -> ScheduledReport:
         """Schedule automatic report generation"""
         import uuid
@@ -1238,17 +1164,13 @@ class BIDashboard:
             frequency=frequency,
             recipients=recipients,
             format=format,
-            filters=filters or {}
+            filters=filters or {},
         )
 
         self.report_scheduler.schedule_report(scheduled_report)
         return scheduled_report
 
-    def _fetch_subscriptions(
-        self,
-        tenant_id: str,
-        as_of_date: datetime
-    ) -> List[Dict]:
+    def _fetch_subscriptions(self, tenant_id: str, as_of_date: datetime) -> List[Dict]:
         """Fetch subscriptions data from database"""
         try:
             # Fetch from actual database
@@ -1257,25 +1179,18 @@ class BIDashboard:
             db = DocumentDatabase()
 
             # Query real database for active subscriptions
-            subscriptions = db.get_subscriptions(
-                tenant_id=tenant_id,
-                status='active',
-                as_of_date=as_of_date
-            )
+            subscriptions = db.get_subscriptions(tenant_id=tenant_id, status="active", as_of_date=as_of_date)
 
             # If no data found, initialize sample data for testing
             if not subscriptions:
                 import logging
+
                 logger = logging.getLogger(__name__)
                 logger.warning(f"No subscriptions found for tenant {tenant_id}, initializing sample data")
                 db.initialize_sample_subscriptions(tenant_id)
 
                 # Fetch again
-                subscriptions = db.get_subscriptions(
-                    tenant_id=tenant_id,
-                    status='active',
-                    as_of_date=as_of_date
-                )
+                subscriptions = db.get_subscriptions(tenant_id=tenant_id, status="active", as_of_date=as_of_date)
 
             return subscriptions
 
@@ -1288,7 +1203,7 @@ class BIDashboard:
                     "status": "active",
                     "billing_cycle": "monthly",
                     "amount": 99.00,
-                    "created_at": as_of_date.isoformat()
+                    "created_at": as_of_date.isoformat(),
                 }
             ]
         except Exception as e:
@@ -1300,7 +1215,7 @@ class BIDashboard:
                     "status": "active",
                     "billing_cycle": "monthly",
                     "amount": 99.00,
-                    "created_at": as_of_date.isoformat()
+                    "created_at": as_of_date.isoformat(),
                 }
             ]
 
@@ -1328,8 +1243,7 @@ if __name__ == "__main__":
 
     # Create executive dashboard
     exec_dashboard = dashboard.create_executive_dashboard(
-        tenant_id="tenant123",
-        date_range=(datetime.now() - timedelta(days=30), datetime.now())
+        tenant_id="tenant123", date_range=(datetime.now() - timedelta(days=30), datetime.now())
     )
 
     print("Executive Dashboard Created!")

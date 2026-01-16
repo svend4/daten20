@@ -1,10 +1,11 @@
 """Pytest configuration and fixtures"""
 
-import pytest
 from decimal import Decimal
 
-from src.models.service import Service, BasicInfo, Funding, SystemSettings
+import pytest
+
 from src.models.financial import FinancialParameters
+from src.models.service import BasicInfo, Funding, Service, SystemSettings
 
 
 @pytest.fixture
@@ -19,27 +20,19 @@ def sample_service():
         provider_type="Qualified",
         document_date="01.01.2026",
         document_version="1.0",
-        responsible_person="Test Person"
+        responsible_person="Test Person",
     )
 
-    service.financial = FinancialParameters(
-        brutto_rate=Decimal("25.00")
-    )
+    service.financial = FinancialParameters(brutto_rate=Decimal("25.00"))
     service.financial.materials_per_month = Decimal("50.00")
     service.financial.admin_percent = Decimal("5.0")
     service.financial.region_coefficient = Decimal("1.20")
 
     service.system_settings = SystemSettings(
-        use_umlages=True,
-        use_vacation_reserve=False,
-        surcharge_base="full_cost",
-        service_type="social"
+        use_umlages=True, use_vacation_reserve=False, surcharge_base="full_cost", service_type="social"
     )
 
-    service.funding = Funding(
-        payer="Test Payer",
-        documents=["Doc1", "Doc2"]
-    )
+    service.funding = Funding(payer="Test Payer", documents=["Doc1", "Doc2"])
 
     return service
 
@@ -60,6 +53,7 @@ def sample_financial_params():
 # ============================================================================
 # General fixtures for document management applications
 # ============================================================================
+
 
 @pytest.fixture
 def temp_dir(tmp_path):
@@ -162,20 +156,13 @@ def sample_comparison_docs(tmp_path):
 # pytest configuration hooks
 # ============================================================================
 
+
 def pytest_configure(config):
     """Configure pytest with custom markers."""
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
-    )
-    config.addinivalue_line(
-        "markers", "integration: marks tests as integration tests"
-    )
-    config.addinivalue_line(
-        "markers", "unit: marks tests as unit tests"
-    )
-    config.addinivalue_line(
-        "markers", "smoke: marks tests as smoke tests"
-    )
+    config.addinivalue_line("markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')")
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+    config.addinivalue_line("markers", "unit: marks tests as unit tests")
+    config.addinivalue_line("markers", "smoke: marks tests as smoke tests")
 
 
 def pytest_collection_modifyitems(config, items):

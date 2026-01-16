@@ -10,16 +10,17 @@ Provides real-time collaborative editing with:
 - Collaborative undo/redo
 """
 
-from typing import Optional, List, Dict, Any, Tuple, Set
+import json
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import uuid
-import json
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 class OperationType(str, Enum):
     """Types of operations for OT"""
+
     INSERT = "insert"
     DELETE = "delete"
     RETAIN = "retain"
@@ -27,6 +28,7 @@ class OperationType(str, Enum):
 
 class ConnectionStatus(str, Enum):
     """Connection status"""
+
     CONNECTING = "connecting"
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
@@ -36,6 +38,7 @@ class ConnectionStatus(str, Enum):
 @dataclass
 class Operation:
     """Operational Transformation operation"""
+
     type: OperationType
     position: int
     content: Optional[str] = None  # For INSERT
@@ -45,6 +48,7 @@ class Operation:
 @dataclass
 class DocumentOperation:
     """Document operation with metadata"""
+
     id: str
     document_id: str
     user_id: int
@@ -57,6 +61,7 @@ class DocumentOperation:
 @dataclass
 class Cursor:
     """User cursor position"""
+
     user_id: int
     username: str
     position: int
@@ -68,6 +73,7 @@ class Cursor:
 @dataclass
 class UserPresence:
     """User presence in document"""
+
     user_id: int
     username: str
     cursor: Optional[Cursor] = None
@@ -79,6 +85,7 @@ class UserPresence:
 @dataclass
 class DocumentSnapshot:
     """Document snapshot at a point in time"""
+
     id: str
     document_id: str
     revision: int
@@ -90,6 +97,7 @@ class DocumentSnapshot:
 @dataclass
 class CollaborativeDocument:
     """Document being collaboratively edited"""
+
     id: str
     name: str
     content: str
@@ -107,18 +115,11 @@ class OperationalTransform:
         """Apply operation to content"""
         if operation.type == OperationType.INSERT:
             # Insert content at position
-            return (
-                content[:operation.position] +
-                operation.content +
-                content[operation.position:]
-            )
+            return content[: operation.position] + operation.content + content[operation.position :]
 
         elif operation.type == OperationType.DELETE:
             # Delete content at position
-            return (
-                content[:operation.position] +
-                content[operation.position + operation.length:]
-            )
+            return content[: operation.position] + content[operation.position + operation.length :]
 
         elif operation.type == OperationType.RETAIN:
             # No change
@@ -126,12 +127,7 @@ class OperationalTransform:
 
         return content
 
-    def transform_operations(
-        self,
-        op1: Operation,
-        op2: Operation,
-        op1_is_first: bool
-    ) -> Tuple[Operation, Operation]:
+    def transform_operations(self, op1: Operation, op2: Operation, op1_is_first: bool) -> Tuple[Operation, Operation]:
         """
         Transform two concurrent operations
 
@@ -142,17 +138,13 @@ class OperationalTransform:
             if op1.position < op2.position or (op1.position == op2.position and op1_is_first):
                 # op1 comes before op2
                 op2_transformed = Operation(
-                    type=op2.type,
-                    position=op2.position + len(op1.content),
-                    content=op2.content
+                    type=op2.type, position=op2.position + len(op1.content), content=op2.content
                 )
                 return op1, op2_transformed
             else:
                 # op2 comes before op1
                 op1_transformed = Operation(
-                    type=op1.type,
-                    position=op1.position + len(op2.content),
-                    content=op1.content
+                    type=op1.type, position=op1.position + len(op2.content), content=op1.content
                 )
                 return op1_transformed, op2
 
@@ -160,27 +152,15 @@ class OperationalTransform:
         elif op1.type == OperationType.INSERT and op2.type == OperationType.DELETE:
             if op1.position <= op2.position:
                 # INSERT before DELETE
-                op2_transformed = Operation(
-                    type=op2.type,
-                    position=op2.position + len(op1.content),
-                    length=op2.length
-                )
+                op2_transformed = Operation(type=op2.type, position=op2.position + len(op1.content), length=op2.length)
                 return op1, op2_transformed
             elif op1.position >= op2.position + op2.length:
                 # INSERT after DELETE
-                op1_transformed = Operation(
-                    type=op1.type,
-                    position=op1.position - op2.length,
-                    content=op1.content
-                )
+                op1_transformed = Operation(type=op1.type, position=op1.position - op2.length, content=op1.content)
                 return op1_transformed, op2
             else:
                 # INSERT within DELETE range
-                op2_transformed = Operation(
-                    type=op2.type,
-                    position=op2.position,
-                    length=op2.length + len(op1.content)
-                )
+                op2_transformed = Operation(type=op2.type, position=op2.position, length=op2.length + len(op1.content))
                 return op1, op2_transformed
 
         # DELETE vs INSERT (reverse of above)
@@ -192,19 +172,11 @@ class OperationalTransform:
         elif op1.type == OperationType.DELETE and op2.type == OperationType.DELETE:
             if op1.position + op1.length <= op2.position:
                 # op1 DELETE before op2 DELETE
-                op2_transformed = Operation(
-                    type=op2.type,
-                    position=op2.position - op1.length,
-                    length=op2.length
-                )
+                op2_transformed = Operation(type=op2.type, position=op2.position - op1.length, length=op2.length)
                 return op1, op2_transformed
             elif op2.position + op2.length <= op1.position:
                 # op2 DELETE before op1 DELETE
-                op1_transformed = Operation(
-                    type=op1.type,
-                    position=op1.position - op2.length,
-                    length=op1.length
-                )
+                op1_transformed = Operation(type=op1.type, position=op1.position - op2.length, length=op1.length)
                 return op1_transformed, op2
             else:
                 # Overlapping DELETEs - complex case
@@ -213,48 +185,36 @@ class OperationalTransform:
                     op2_transformed = Operation(
                         type=op2.type,
                         position=op1.position,
-                        length=max(0, op2.position + op2.length - op1.position - op1.length)
+                        length=max(0, op2.position + op2.length - op1.position - op1.length),
                     )
                     return op1, op2_transformed
                 else:
                     op1_transformed = Operation(
                         type=op1.type,
                         position=op2.position,
-                        length=max(0, op1.position + op1.length - op2.position - op2.length)
+                        length=max(0, op1.position + op1.length - op2.position - op2.length),
                     )
                     return op1_transformed, op2
 
         # Default: no transformation needed
         return op1, op2
 
-    def compose_operations(
-        self,
-        op1: Operation,
-        op2: Operation
-    ) -> Optional[Operation]:
+    def compose_operations(self, op1: Operation, op2: Operation) -> Optional[Operation]:
         """Compose two sequential operations into one"""
         # Simplified composition
         # In production, implement full OT composition rules
 
         # INSERT followed by INSERT at same position
-        if (op1.type == OperationType.INSERT and
-            op2.type == OperationType.INSERT and
-            op1.position + len(op1.content) == op2.position):
-            return Operation(
-                type=OperationType.INSERT,
-                position=op1.position,
-                content=op1.content + op2.content
-            )
+        if (
+            op1.type == OperationType.INSERT
+            and op2.type == OperationType.INSERT
+            and op1.position + len(op1.content) == op2.position
+        ):
+            return Operation(type=OperationType.INSERT, position=op1.position, content=op1.content + op2.content)
 
         # DELETE followed by DELETE at same position
-        if (op1.type == OperationType.DELETE and
-            op2.type == OperationType.DELETE and
-            op1.position == op2.position):
-            return Operation(
-                type=OperationType.DELETE,
-                position=op1.position,
-                length=op1.length + op2.length
-            )
+        if op1.type == OperationType.DELETE and op2.type == OperationType.DELETE and op1.position == op2.position:
+            return Operation(type=OperationType.DELETE, position=op1.position, length=op1.length + op2.length)
 
         return None
 
@@ -266,19 +226,11 @@ class DocumentManager:
         self.documents: Dict[str, CollaborativeDocument] = {}
         self.ot = OperationalTransform()
 
-    def create_document(
-        self,
-        name: str,
-        initial_content: str = ""
-    ) -> str:
+    def create_document(self, name: str, initial_content: str = "") -> str:
         """Create new collaborative document"""
         doc_id = str(uuid.uuid4())
 
-        document = CollaborativeDocument(
-            id=doc_id,
-            name=name,
-            content=initial_content
-        )
+        document = CollaborativeDocument(id=doc_id, name=name, content=initial_content)
 
         self.documents[doc_id] = document
         return doc_id
@@ -288,11 +240,7 @@ class DocumentManager:
         return self.documents.get(doc_id)
 
     def apply_operation(
-        self,
-        doc_id: str,
-        user_id: int,
-        operation: Operation,
-        client_revision: int
+        self, doc_id: str, user_id: int, operation: Operation, client_revision: int
     ) -> Tuple[bool, Optional[int]]:
         """
         Apply operation to document
@@ -307,11 +255,7 @@ class DocumentManager:
         # Check if operation is based on current revision
         if client_revision != document.revision:
             # Need to transform operation against missing operations
-            operation = self._transform_against_missing_ops(
-                document,
-                operation,
-                client_revision
-            )
+            operation = self._transform_against_missing_ops(document, operation, client_revision)
 
         # Apply operation
         try:
@@ -326,7 +270,7 @@ class DocumentManager:
                 user_id=user_id,
                 operation=operation,
                 revision=document.revision,
-                applied=True
+                applied=True,
             )
 
             document.operations_history.append(doc_op)
@@ -342,63 +286,39 @@ class DocumentManager:
             return False, None
 
     def _transform_against_missing_ops(
-        self,
-        document: CollaborativeDocument,
-        operation: Operation,
-        client_revision: int
+        self, document: CollaborativeDocument, operation: Operation, client_revision: int
     ) -> Operation:
         """Transform operation against operations client hasn't seen"""
         # Get operations after client's revision
-        missing_ops = [
-            op for op in document.operations_history
-            if op.revision > client_revision and op.applied
-        ]
+        missing_ops = [op for op in document.operations_history if op.revision > client_revision and op.applied]
 
         transformed_op = operation
 
         for doc_op in missing_ops:
             # Transform against each missing operation
             transformed_op, _ = self.ot.transform_operations(
-                transformed_op,
-                doc_op.operation,
-                True  # Our operation happened first (client-side)
+                transformed_op, doc_op.operation, True  # Our operation happened first (client-side)
             )
 
         return transformed_op
 
-    def get_operations_since(
-        self,
-        doc_id: str,
-        since_revision: int
-    ) -> List[DocumentOperation]:
+    def get_operations_since(self, doc_id: str, since_revision: int) -> List[DocumentOperation]:
         """Get operations since a revision"""
         if doc_id not in self.documents:
             return []
 
         document = self.documents[doc_id]
 
-        return [
-            op for op in document.operations_history
-            if op.revision > since_revision
-        ]
+        return [op for op in document.operations_history if op.revision > since_revision]
 
 
 class PresenceManager:
     """Manages user presence and cursors"""
 
     def __init__(self):
-        self.user_colors = [
-            "#0d6efd", "#198754", "#dc3545", "#ffc107",
-            "#6f42c1", "#fd7e14", "#20c997", "#d63384"
-        ]
+        self.user_colors = ["#0d6efd", "#198754", "#dc3545", "#ffc107", "#6f42c1", "#fd7e14", "#20c997", "#d63384"]
 
-    def join_document(
-        self,
-        doc_id: str,
-        user_id: int,
-        username: str,
-        document_manager: DocumentManager
-    ) -> bool:
+    def join_document(self, doc_id: str, user_id: int, username: str, document_manager: DocumentManager) -> bool:
         """User joins document editing session"""
         document = document_manager.get_document(doc_id)
         if not document:
@@ -410,23 +330,13 @@ class PresenceManager:
         presence = UserPresence(
             user_id=user_id,
             username=username,
-            cursor=Cursor(
-                user_id=user_id,
-                username=username,
-                position=0,
-                color=color
-            )
+            cursor=Cursor(user_id=user_id, username=username, position=0, color=color),
         )
 
         document.active_users[user_id] = presence
         return True
 
-    def leave_document(
-        self,
-        doc_id: str,
-        user_id: int,
-        document_manager: DocumentManager
-    ) -> bool:
+    def leave_document(self, doc_id: str, user_id: int, document_manager: DocumentManager) -> bool:
         """User leaves document editing session"""
         document = document_manager.get_document(doc_id)
         if not document:
@@ -444,7 +354,7 @@ class PresenceManager:
         position: int,
         selection_start: Optional[int],
         selection_end: Optional[int],
-        document_manager: DocumentManager
+        document_manager: DocumentManager,
     ) -> bool:
         """Update user cursor position"""
         document = document_manager.get_document(doc_id)
@@ -459,11 +369,7 @@ class PresenceManager:
 
         return True
 
-    def get_active_users(
-        self,
-        doc_id: str,
-        document_manager: DocumentManager
-    ) -> List[UserPresence]:
+    def get_active_users(self, doc_id: str, document_manager: DocumentManager) -> List[UserPresence]:
         """Get active users in document"""
         document = document_manager.get_document(doc_id)
         if not document:
@@ -478,13 +384,7 @@ class VersionHistory:
     def __init__(self):
         self.snapshots: Dict[str, List[DocumentSnapshot]] = {}  # doc_id -> snapshots
 
-    def create_snapshot(
-        self,
-        doc_id: str,
-        content: str,
-        revision: int,
-        created_by: Optional[int] = None
-    ) -> str:
+    def create_snapshot(self, doc_id: str, content: str, revision: int, created_by: Optional[int] = None) -> str:
         """Create document snapshot"""
         snapshot_id = str(uuid.uuid4())
 
@@ -494,7 +394,7 @@ class VersionHistory:
             revision=revision,
             content=content,
             created_at=datetime.now(),
-            created_by=created_by
+            created_by=created_by,
         )
 
         if doc_id not in self.snapshots:
@@ -516,11 +416,7 @@ class VersionHistory:
                     return snapshot
         return None
 
-    def get_document_snapshots(
-        self,
-        doc_id: str,
-        limit: int = 50
-    ) -> List[DocumentSnapshot]:
+    def get_document_snapshots(self, doc_id: str, limit: int = 50) -> List[DocumentSnapshot]:
         """Get snapshots for document"""
         if doc_id not in self.snapshots:
             return []
@@ -528,12 +424,7 @@ class VersionHistory:
         snapshots = self.snapshots[doc_id]
         return snapshots[-limit:]  # Most recent
 
-    def restore_snapshot(
-        self,
-        doc_id: str,
-        snapshot_id: str,
-        document_manager: DocumentManager
-    ) -> bool:
+    def restore_snapshot(self, doc_id: str, snapshot_id: str, document_manager: DocumentManager) -> bool:
         """Restore document from snapshot"""
         snapshot = self.get_snapshot(snapshot_id)
         if not snapshot or snapshot.document_id != doc_id:
@@ -562,17 +453,12 @@ class RealtimeEngine:
         # WebSocket connections (simplified)
         self.connections: Dict[str, Set[int]] = {}  # doc_id -> user_ids
 
-    def connect_user(
-        self,
-        doc_id: str,
-        user_id: int,
-        username: str
-    ) -> Dict[str, Any]:
+    def connect_user(self, doc_id: str, user_id: int, username: str) -> Dict[str, Any]:
         """User connects to document"""
         # Get or create document
         document = self.document_manager.get_document(doc_id)
         if not document:
-            return {'error': 'Document not found'}
+            return {"error": "Document not found"}
 
         # Add to connections
         if doc_id not in self.connections:
@@ -580,37 +466,29 @@ class RealtimeEngine:
         self.connections[doc_id].add(user_id)
 
         # Join document
-        self.presence_manager.join_document(
-            doc_id,
-            user_id,
-            username,
-            self.document_manager
-        )
+        self.presence_manager.join_document(doc_id, user_id, username, self.document_manager)
 
         # Get active users
-        active_users = self.presence_manager.get_active_users(
-            doc_id,
-            self.document_manager
-        )
+        active_users = self.presence_manager.get_active_users(doc_id, self.document_manager)
 
         return {
-            'document': {
-                'id': document.id,
-                'name': document.name,
-                'content': document.content,
-                'revision': document.revision
+            "document": {
+                "id": document.id,
+                "name": document.name,
+                "content": document.content,
+                "revision": document.revision,
             },
-            'active_users': [
+            "active_users": [
                 {
-                    'user_id': u.user_id,
-                    'username': u.username,
-                    'cursor': {
-                        'position': u.cursor.position if u.cursor else 0,
-                        'color': u.cursor.color if u.cursor else '#0d6efd'
-                    }
+                    "user_id": u.user_id,
+                    "username": u.username,
+                    "cursor": {
+                        "position": u.cursor.position if u.cursor else 0,
+                        "color": u.cursor.color if u.cursor else "#0d6efd",
+                    },
                 }
                 for u in active_users
-            ]
+            ],
         }
 
     def disconnect_user(self, doc_id: str, user_id: int):
@@ -618,29 +496,14 @@ class RealtimeEngine:
         if doc_id in self.connections:
             self.connections[doc_id].discard(user_id)
 
-        self.presence_manager.leave_document(
-            doc_id,
-            user_id,
-            self.document_manager
-        )
+        self.presence_manager.leave_document(doc_id, user_id, self.document_manager)
 
-    def handle_operation(
-        self,
-        doc_id: str,
-        user_id: int,
-        operation: Operation,
-        client_revision: int
-    ) -> Dict[str, Any]:
+    def handle_operation(self, doc_id: str, user_id: int, operation: Operation, client_revision: int) -> Dict[str, Any]:
         """Handle operation from user"""
-        success, new_revision = self.document_manager.apply_operation(
-            doc_id,
-            user_id,
-            operation,
-            client_revision
-        )
+        success, new_revision = self.document_manager.apply_operation(doc_id, user_id, operation, client_revision)
 
         if not success:
-            return {'error': 'Failed to apply operation'}
+            return {"error": "Failed to apply operation"}
 
         # Get updated document
         document = self.document_manager.get_document(doc_id)
@@ -649,14 +512,14 @@ class RealtimeEngine:
         # In production, use WebSocket to broadcast
 
         return {
-            'success': True,
-            'revision': new_revision,
-            'operation': {
-                'type': operation.type.value,
-                'position': operation.position,
-                'content': operation.content,
-                'length': operation.length
-            }
+            "success": True,
+            "revision": new_revision,
+            "operation": {
+                "type": operation.type.value,
+                "position": operation.position,
+                "content": operation.content,
+                "length": operation.length,
+            },
         }
 
     def handle_cursor_update(
@@ -665,34 +528,20 @@ class RealtimeEngine:
         user_id: int,
         position: int,
         selection_start: Optional[int] = None,
-        selection_end: Optional[int] = None
+        selection_end: Optional[int] = None,
     ) -> bool:
         """Handle cursor position update"""
         return self.presence_manager.update_cursor(
-            doc_id,
-            user_id,
-            position,
-            selection_start,
-            selection_end,
-            self.document_manager
+            doc_id, user_id, position, selection_start, selection_end, self.document_manager
         )
 
-    def create_snapshot(
-        self,
-        doc_id: str,
-        created_by: Optional[int] = None
-    ) -> Optional[str]:
+    def create_snapshot(self, doc_id: str, created_by: Optional[int] = None) -> Optional[str]:
         """Create snapshot of current document state"""
         document = self.document_manager.get_document(doc_id)
         if not document:
             return None
 
-        return self.version_history.create_snapshot(
-            doc_id,
-            document.content,
-            document.revision,
-            created_by
-        )
+        return self.version_history.create_snapshot(doc_id, document.content, document.revision, created_by)
 
     def get_statistics(self, doc_id: str) -> Dict[str, Any]:
         """Get document statistics"""
@@ -700,21 +549,18 @@ class RealtimeEngine:
         if not document:
             return {}
 
-        active_users = self.presence_manager.get_active_users(
-            doc_id,
-            self.document_manager
-        )
+        active_users = self.presence_manager.get_active_users(doc_id, self.document_manager)
 
         snapshots = self.version_history.get_document_snapshots(doc_id)
 
         return {
-            'document_id': doc_id,
-            'revision': document.revision,
-            'content_length': len(document.content),
-            'active_users': len(active_users),
-            'operations_count': len(document.operations_history),
-            'snapshots_count': len(snapshots),
-            'last_modified': document.last_modified.isoformat()
+            "document_id": doc_id,
+            "revision": document.revision,
+            "content_length": len(document.content),
+            "active_users": len(active_users),
+            "operations_count": len(document.operations_history),
+            "snapshots_count": len(snapshots),
+            "last_modified": document.last_modified.isoformat(),
         }
 
 

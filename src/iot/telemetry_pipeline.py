@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class TelemetryType(Enum):
     """Telemetry data types."""
+
     NUMERIC = "numeric"
     STRING = "string"
     BOOLEAN = "boolean"
@@ -29,6 +30,7 @@ class TelemetryType(Enum):
 
 class AggregationType(Enum):
     """Aggregation types."""
+
     AVG = "avg"
     SUM = "sum"
     MIN = "min"
@@ -39,6 +41,7 @@ class AggregationType(Enum):
 
 class AlertSeverity(Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -48,6 +51,7 @@ class AlertSeverity(Enum):
 @dataclass
 class TelemetryPoint:
     """Single telemetry data point."""
+
     device_id: str
     metric_name: str
     value: Union[float, int, str, bool, Dict]
@@ -61,6 +65,7 @@ class TelemetryPoint:
 @dataclass
 class AggregatedData:
     """Aggregated telemetry data."""
+
     metric_name: str
     aggregation: AggregationType
     value: float
@@ -73,6 +78,7 @@ class AggregatedData:
 @dataclass
 class AlertRule:
     """Alert rule definition."""
+
     rule_id: str
     rule_name: str
     metric_name: str
@@ -88,6 +94,7 @@ class AlertRule:
 @dataclass
 class Alert:
     """Triggered alert."""
+
     alert_id: str
     rule_id: str
     device_id: str
@@ -112,13 +119,13 @@ class SchemaValidator:
         metric_name: str,
         data_type: TelemetryType,
         required_fields: Optional[List[str]] = None,
-        valid_range: Optional[tuple] = None
+        valid_range: Optional[tuple] = None,
     ):
         """Register telemetry schema."""
         self.schemas[metric_name] = {
-            'data_type': data_type,
-            'required_fields': required_fields or [],
-            'valid_range': valid_range
+            "data_type": data_type,
+            "required_fields": required_fields or [],
+            "valid_range": valid_range,
         }
 
     def validate(self, point: TelemetryPoint) -> bool:
@@ -129,15 +136,15 @@ class SchemaValidator:
             return True
 
         # Validate data type
-        data_type = schema['data_type']
+        data_type = schema["data_type"]
         if data_type == TelemetryType.NUMERIC:
             if not isinstance(point.value, (int, float)):
                 logger.error(f"Invalid type for {point.metric_name}: expected numeric")
                 return False
 
             # Validate range
-            if schema['valid_range']:
-                min_val, max_val = schema['valid_range']
+            if schema["valid_range"]:
+                min_val, max_val = schema["valid_range"]
                 if not (min_val <= point.value <= max_val):
                     logger.error(f"Value out of range: {point.value}")
                     return False
@@ -148,22 +155,18 @@ class SchemaValidator:
 class DataTransformer:
     """Transform and normalize telemetry data."""
 
-    def transform(
-        self,
-        point: TelemetryPoint,
-        transformations: Optional[Dict[str, Callable]] = None
-    ) -> TelemetryPoint:
+    def transform(self, point: TelemetryPoint, transformations: Optional[Dict[str, Callable]] = None) -> TelemetryPoint:
         """Apply transformations to telemetry point."""
         if not transformations:
             return point
 
         # Apply value transformation
-        if 'value' in transformations:
-            point.value = transformations['value'](point.value)
+        if "value" in transformations:
+            point.value = transformations["value"](point.value)
 
         # Apply unit conversion
-        if 'unit' in transformations:
-            point.value, point.unit = transformations['unit'](point.value, point.unit)
+        if "unit" in transformations:
+            point.value, point.unit = transformations["unit"](point.value, point.unit)
 
         return point
 
@@ -178,21 +181,16 @@ class DataTransformer:
 
         return point
 
-    def convert_unit(
-        self,
-        value: float,
-        from_unit: str,
-        to_unit: str
-    ) -> float:
+    def convert_unit(self, value: float, from_unit: str, to_unit: str) -> float:
         """Convert between units."""
         # Simple unit conversions
         conversions = {
-            ('celsius', 'fahrenheit'): lambda v: v * 9/5 + 32,
-            ('fahrenheit', 'celsius'): lambda v: (v - 32) * 5/9,
-            ('m', 'ft'): lambda v: v * 3.28084,
-            ('ft', 'm'): lambda v: v / 3.28084,
-            ('kg', 'lb'): lambda v: v * 2.20462,
-            ('lb', 'kg'): lambda v: v / 2.20462,
+            ("celsius", "fahrenheit"): lambda v: v * 9 / 5 + 32,
+            ("fahrenheit", "celsius"): lambda v: (v - 32) * 5 / 9,
+            ("m", "ft"): lambda v: v * 3.28084,
+            ("ft", "m"): lambda v: v / 3.28084,
+            ("kg", "lb"): lambda v: v * 2.20462,
+            ("lb", "kg"): lambda v: v / 2.20462,
         }
 
         key = (from_unit.lower(), to_unit.lower())
@@ -253,10 +251,10 @@ class TelemetryIngestion:
     def get_stats(self) -> Dict[str, Any]:
         """Get ingestion statistics."""
         return {
-            'ingestion_count': self.ingestion_count,
-            'dropped_count': self.dropped_count,
-            'queue_size': self.queue.qsize(),
-            'drop_rate': self.dropped_count / max(self.ingestion_count + self.dropped_count, 1)
+            "ingestion_count": self.ingestion_count,
+            "dropped_count": self.dropped_count,
+            "queue_size": self.queue.qsize(),
+            "drop_rate": self.dropped_count / max(self.ingestion_count + self.dropped_count, 1),
         }
 
 
@@ -272,11 +270,7 @@ class DataAggregator:
         self.buffers[key].append(point)
 
     def aggregate(
-        self,
-        device_id: str,
-        metric_name: str,
-        aggregation: AggregationType,
-        time_window: Optional[timedelta] = None
+        self, device_id: str, metric_name: str, aggregation: AggregationType, time_window: Optional[timedelta] = None
     ) -> Optional[AggregatedData]:
         """Aggregate data for metric."""
         key = f"{device_id}:{metric_name}"
@@ -316,7 +310,7 @@ class DataAggregator:
         elif aggregation == AggregationType.STDDEV:
             mean = sum(values) / len(values)
             variance = sum((x - mean) ** 2 for x in values) / len(values)
-            result = variance ** 0.5
+            result = variance**0.5
         else:
             result = 0.0
 
@@ -327,7 +321,7 @@ class DataAggregator:
             start_time=points[0].timestamp,
             end_time=points[-1].timestamp,
             sample_count=len(points),
-            device_ids=[device_id]
+            device_ids=[device_id],
         )
 
 
@@ -354,7 +348,7 @@ class TimeSeriesStore:
         metric_name: str,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
-        limit: Optional[int] = None
+        limit: Optional[int] = None,
     ) -> List[TelemetryPoint]:
         """Query time-series data."""
         key = f"{device_id}:{metric_name}"
@@ -382,10 +376,7 @@ class TimeSeriesStore:
             original_len = len(points)
 
             # Filter out old points
-            self.data[key] = deque(
-                [p for p in points if p.timestamp >= cutoff],
-                maxlen=points.maxlen
-            )
+            self.data[key] = deque([p for p in points if p.timestamp >= cutoff], maxlen=points.maxlen)
 
             removed += original_len - len(self.data[key])
 
@@ -446,7 +437,7 @@ class AlertingEngine:
                     value=point.value,
                     threshold=rule.threshold,
                     severity=rule.severity,
-                    message=f"{rule.rule_name}: {point.metric_name}={point.value} {rule.condition} {rule.threshold}"
+                    message=f"{rule.rule_name}: {point.metric_name}={point.value} {rule.condition} {rule.threshold}",
                 )
 
                 triggered_alerts.append(alert)
@@ -457,12 +448,7 @@ class AlertingEngine:
 
         return triggered_alerts
 
-    def _check_condition(
-        self,
-        value: Any,
-        condition: str,
-        threshold: Union[float, tuple]
-    ) -> bool:
+    def _check_condition(self, value: Any, condition: str, threshold: Union[float, tuple]) -> bool:
         """Check if condition is met."""
         try:
             if condition == ">":
@@ -493,9 +479,7 @@ class AlertingEngine:
         return False
 
     def get_active_alerts(
-        self,
-        severity: Optional[AlertSeverity] = None,
-        acknowledged: Optional[bool] = False
+        self, severity: Optional[AlertSeverity] = None, acknowledged: Optional[bool] = False
     ) -> List[Alert]:
         """Get active alerts."""
         alerts = self.alerts
@@ -557,18 +541,13 @@ class TelemetryPipeline:
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
         aggregation: Optional[str] = None,
-        interval: Optional[timedelta] = None
+        interval: Optional[timedelta] = None,
     ) -> Union[List[TelemetryPoint], List[AggregatedData]]:
         """Query telemetry data."""
         # Query data for each device
         all_points = []
         for device_id in device_ids:
-            points = self.store.query(
-                device_id=device_id,
-                metric_name=metric,
-                start_time=start_time,
-                end_time=end_time
-            )
+            points = self.store.query(device_id=device_id, metric_name=metric, start_time=start_time, end_time=end_time)
             all_points.extend(points)
 
         # Return raw data if no aggregation
@@ -579,10 +558,7 @@ class TelemetryPipeline:
         aggregated_results = []
         for device_id in device_ids:
             result = self.aggregator.aggregate(
-                device_id=device_id,
-                metric_name=metric,
-                aggregation=AggregationType(aggregation),
-                time_window=interval
+                device_id=device_id, metric_name=metric, aggregation=AggregationType(aggregation), time_window=interval
             )
             if result:
                 aggregated_results.append(result)
@@ -590,12 +566,7 @@ class TelemetryPipeline:
         return aggregated_results
 
     def add_alert_rule(
-        self,
-        rule_name: str,
-        metric_name: str,
-        condition: str,
-        threshold: Union[float, tuple],
-        **kwargs
+        self, rule_name: str, metric_name: str, condition: str, threshold: Union[float, tuple], **kwargs
     ) -> AlertRule:
         """Add alert rule."""
         rule = AlertRule(
@@ -604,7 +575,7 @@ class TelemetryPipeline:
             metric_name=metric_name,
             condition=condition,
             threshold=threshold,
-            **kwargs
+            **kwargs,
         )
 
         self.alerting.add_rule(rule)
@@ -617,10 +588,10 @@ class TelemetryPipeline:
     def get_stats(self) -> Dict[str, Any]:
         """Get pipeline statistics."""
         return {
-            'ingestion': self.ingestion.get_stats(),
-            'store_size': sum(len(points) for points in self.store.data.values()),
-            'alert_rules': len(self.alerting.rules),
-            'active_alerts': len([a for a in self.alerting.alerts if not a.acknowledged])
+            "ingestion": self.ingestion.get_stats(),
+            "store_size": sum(len(points) for points in self.store.data.values()),
+            "alert_rules": len(self.alerting.rules),
+            "active_alerts": len([a for a in self.alerting.alerts if not a.acknowledged]),
         }
 
 

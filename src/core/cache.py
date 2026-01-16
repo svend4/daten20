@@ -5,21 +5,22 @@ Provides caching mechanisms, query optimization, and performance monitoring.
 Supports multiple backends: Simple (in-memory), Redis, and Memcached.
 """
 
-import time
 import hashlib
-import pickle
-from typing import Any, Optional, Callable, Dict
-from functools import wraps
-from datetime import datetime, timedelta
 import logging
+import pickle
+import time
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import Any, Callable, Dict, Optional
 
 try:
     import redis
+
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
 
-logger = logging.getLogger('dms.cache')
+logger = logging.getLogger("dms.cache")
 
 
 class CacheBackend:
@@ -88,7 +89,7 @@ class SimpleCache(CacheBackend):
 class RedisCache(CacheBackend):
     """Redis-based cache implementation."""
 
-    def __init__(self, redis_url: str = 'redis://localhost:6379/0'):
+    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
         """
         Initialize Redis cache.
 
@@ -146,7 +147,7 @@ class RedisCache(CacheBackend):
 class CacheManager:
     """Manage caching with multiple backends."""
 
-    def __init__(self, backend: str = 'simple', **kwargs):
+    def __init__(self, backend: str = "simple", **kwargs):
         """
         Initialize cache manager.
 
@@ -156,8 +157,8 @@ class CacheManager:
         """
         self.backend_type = backend
 
-        if backend == 'redis':
-            redis_url = kwargs.get('redis_url', 'redis://localhost:6379/0')
+        if backend == "redis":
+            redis_url = kwargs.get("redis_url", "redis://localhost:6379/0")
             self.backend = RedisCache(redis_url)
         else:
             self.backend = SimpleCache()
@@ -221,17 +222,18 @@ class CacheManager:
         hit_rate = (self.hit_count / total * 100) if total > 0 else 0
 
         return {
-            'backend': self.backend_type,
-            'hits': self.hit_count,
-            'misses': self.miss_count,
-            'total_requests': total,
-            'hit_rate': round(hit_rate, 2)
+            "backend": self.backend_type,
+            "hits": self.hit_count,
+            "misses": self.miss_count,
+            "total_requests": total,
+            "hit_rate": round(hit_rate, 2),
         }
 
 
 # Caching decorators
 
-def cached(timeout: int = 300, key_prefix: str = ''):
+
+def cached(timeout: int = 300, key_prefix: str = ""):
     """
     Decorator to cache function results.
 
@@ -244,6 +246,7 @@ def cached(timeout: int = 300, key_prefix: str = ''):
         def get_user(user_id):
             return User.query.get(user_id)
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -268,6 +271,7 @@ def cached(timeout: int = 300, key_prefix: str = ''):
         wrapper.cache_key = lambda *args, **kwargs: _generate_cache_key(func, args, kwargs, key_prefix)
 
         return wrapper
+
     return decorator
 
 
@@ -283,6 +287,7 @@ def cache_invalidate(key_pattern: str):
         def update_user(user_id, data):
             ...
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -295,11 +300,13 @@ def cache_invalidate(key_pattern: str):
             cache.clear()
 
             return result
+
         return wrapper
+
     return decorator
 
 
-def _generate_cache_key(func: Callable, args: tuple, kwargs: dict, prefix: str = '') -> str:
+def _generate_cache_key(func: Callable, args: tuple, kwargs: dict, prefix: str = "") -> str:
     """
     Generate cache key from function and arguments.
 
@@ -323,7 +330,7 @@ def _generate_cache_key(func: Callable, args: tuple, kwargs: dict, prefix: str =
     for k, v in sorted(kwargs.items()):
         key_parts.append(f"{k}={v}")
 
-    key_string = ':'.join(key_parts)
+    key_string = ":".join(key_parts)
 
     # Hash if too long
     if len(key_string) > 200:
@@ -344,24 +351,21 @@ class PerformanceMonitor:
         if name not in self.metrics:
             self.metrics[name] = []
 
-        self.metrics[name].append({
-            'duration': duration,
-            'timestamp': datetime.now()
-        })
+        self.metrics[name].append({"duration": duration, "timestamp": datetime.now()})
 
     def get_stats(self, name: str) -> Dict[str, Any]:
         """Get statistics for a metric."""
         if name not in self.metrics:
             return {}
 
-        durations = [m['duration'] for m in self.metrics[name]]
+        durations = [m["duration"] for m in self.metrics[name]]
 
         return {
-            'count': len(durations),
-            'avg': sum(durations) / len(durations),
-            'min': min(durations),
-            'max': max(durations),
-            'total': sum(durations)
+            "count": len(durations),
+            "avg": sum(durations) / len(durations),
+            "min": min(durations),
+            "max": max(durations),
+            "total": sum(durations),
         }
 
     def get_all_stats(self) -> Dict[str, Dict[str, Any]]:
@@ -381,6 +385,7 @@ def timed(metric_name: Optional[str] = None):
         def query_database():
             ...
     """
+
     def decorator(func):
         name = metric_name or func.__name__
 
@@ -399,6 +404,7 @@ def timed(metric_name: Optional[str] = None):
                     logger.warning(f"Slow operation: {name} took {duration:.2f}s")
 
         return wrapper
+
     return decorator
 
 
@@ -423,7 +429,7 @@ def get_performance_monitor() -> PerformanceMonitor:
     return _performance_monitor
 
 
-def init_cache(backend: str = 'simple', **kwargs):
+def init_cache(backend: str = "simple", **kwargs):
     """
     Initialize cache system.
 

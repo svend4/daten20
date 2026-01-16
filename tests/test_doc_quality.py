@@ -12,14 +12,15 @@ Tests document quality assessment functionality including:
 - Quality scoring (0-100)
 """
 
-import pytest
 import re
-from datetime import datetime, timedelta
-from pathlib import Path
-
 
 # Import required modules
 import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.ml.ner import NEREngine
@@ -65,7 +66,7 @@ Final thoughts.
 """
 
         # Detect headers (markdown or similar)
-        headers = re.findall(r'^#{1,6}\s+(.+)$', text, re.MULTILINE)
+        headers = re.findall(r"^#{1,6}\s+(.+)$", text, re.MULTILINE)
 
         # Document with sections is more complete
         assert len(headers) > 0
@@ -97,8 +98,8 @@ Final thoughts.
         text_without_metadata = "Just plain content with no metadata."
 
         # Check for metadata patterns
-        has_author = 'Author:' in text_with_metadata
-        has_date = 'Date:' in text_with_metadata
+        has_author = "Author:" in text_with_metadata
+        has_date = "Date:" in text_with_metadata
 
         assert has_author
         assert has_date
@@ -109,20 +110,11 @@ class TestAccuracyDimension:
 
     def test_email_validation(self):
         """Test email address validation"""
-        valid_emails = [
-            "user@example.com",
-            "first.last@company.org",
-            "name+tag@domain.co.uk"
-        ]
+        valid_emails = ["user@example.com", "first.last@company.org", "name+tag@domain.co.uk"]
 
-        invalid_emails = [
-            "invalid.email",
-            "@example.com",
-            "user@",
-            "user @example.com"
-        ]
+        invalid_emails = ["invalid.email", "@example.com", "user@", "user @example.com"]
 
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
 
         for email in valid_emails:
             assert re.match(email_pattern, email), f"Valid email rejected: {email}"
@@ -132,13 +124,9 @@ class TestAccuracyDimension:
 
     def test_phone_validation(self):
         """Test phone number validation"""
-        valid_phones = [
-            "+1-555-123-4567",
-            "(555) 123-4567",
-            "555.123.4567"
-        ]
+        valid_phones = ["+1-555-123-4567", "(555) 123-4567", "555.123.4567"]
 
-        phone_pattern = r'[\+]?[(]?\d{1,4}[)]?[-\s\.]?\(?\d{1,4}\)?[-\s\.]?\d{1,4}[-\s\.]?\d{1,9}'
+        phone_pattern = r"[\+]?[(]?\d{1,4}[)]?[-\s\.]?\(?\d{1,4}\)?[-\s\.]?\d{1,4}[-\s\.]?\d{1,9}"
 
         for phone in valid_phones:
             assert re.search(phone_pattern, phone), f"Valid phone rejected: {phone}"
@@ -148,35 +136,23 @@ class TestAccuracyDimension:
         valid_urls = [
             "https://www.example.com",
             "http://example.org/path",
-            "https://subdomain.example.com:8080/path?query=value"
+            "https://subdomain.example.com:8080/path?query=value",
         ]
 
-        invalid_urls = [
-            "not_a_url",
-            "htp://wrong.com",
-            "www.example.com"  # Missing protocol
-        ]
+        invalid_urls = ["not_a_url", "htp://wrong.com", "www.example.com"]  # Missing protocol
 
-        url_pattern = r'https?://[^\s]+'
+        url_pattern = r"https?://[^\s]+"
 
         for url in valid_urls:
             assert re.match(url_pattern, url), f"Valid URL rejected: {url}"
 
     def test_date_validation(self):
         """Test date format validation"""
-        valid_dates = [
-            "01.01.2020",
-            "31.12.1999",
-            "15.06.2026"
-        ]
+        valid_dates = ["01.01.2020", "31.12.1999", "15.06.2026"]
 
-        invalid_dates = [
-            "32.01.2020",  # Invalid day
-            "01.13.2020",  # Invalid month
-            "2020-01-01"   # Wrong format
-        ]
+        invalid_dates = ["32.01.2020", "01.13.2020", "2020-01-01"]  # Invalid day  # Invalid month  # Wrong format
 
-        date_pattern = r'\b\d{2}\.\d{2}\.\d{4}\b'
+        date_pattern = r"\b\d{2}\.\d{2}\.\d{4}\b"
 
         for date in valid_dates:
             assert re.match(date_pattern, date), f"Valid date rejected: {date}"
@@ -186,7 +162,7 @@ class TestAccuracyDimension:
         text = "The event happened in year 2050"
 
         # Extract years
-        years = re.findall(r'\b(19|20)\d{2}\b', text)
+        years = re.findall(r"\b(19|20)\d{2}\b", text)
 
         # Check if years are reasonable (not too far in future)
         current_year = datetime.now().year
@@ -210,8 +186,8 @@ class TestConsistencyDimension:
         """
 
         # Check for consistent terminology
-        ai_count = text.lower().count('ai ')
-        artificial_intelligence_count = text.lower().count('artificial intelligence')
+        ai_count = text.lower().count("ai ")
+        artificial_intelligence_count = text.lower().count("artificial intelligence")
 
         # Both terms used - could be flagged for consistency
         assert ai_count > 0
@@ -223,8 +199,8 @@ class TestConsistencyDimension:
         dates_format2 = ["2020-01-01", "2020-06-15", "2020-12-31"]
 
         # All should follow same format
-        pattern1 = r'\d{2}\.\d{2}\.\d{4}'
-        pattern2 = r'\d{4}-\d{2}-\d{2}'
+        pattern1 = r"\d{2}\.\d{2}\.\d{4}"
+        pattern2 = r"\d{4}-\d{2}-\d{2}"
 
         all_match_1 = all(re.match(pattern1, d) for d in dates_format1)
         all_match_2 = all(re.match(pattern2, d) for d in dates_format2)
@@ -272,25 +248,25 @@ class TestReadabilityDimension:
 
         # Count components
         words = len(text.split())
-        sentences = text.count('.') + text.count('!') + text.count('?')
+        sentences = text.count(".") + text.count("!") + text.count("?")
 
         # Simple syllable count (approximation)
         def count_syllables(word):
             word = word.lower()
             count = 0
-            vowels = 'aeiouy'
+            vowels = "aeiouy"
             if word[0] in vowels:
                 count += 1
             for index in range(1, len(word)):
                 if word[index] in vowels and word[index - 1] not in vowels:
                     count += 1
-            if word.endswith('e'):
+            if word.endswith("e"):
                 count -= 1
             if count == 0:
                 count += 1
             return count
 
-        syllables = sum(count_syllables(word.strip('.,!?')) for word in text.split())
+        syllables = sum(count_syllables(word.strip(".,!?")) for word in text.split())
 
         # Calculate score
         if sentences > 0 and words > 0:
@@ -304,7 +280,7 @@ class TestReadabilityDimension:
         """Test average sentence length calculation"""
         text = "This is sentence one. This is sentence two. Short."
 
-        sentences = re.split(r'[.!?]+', text)
+        sentences = re.split(r"[.!?]+", text)
         sentences = [s.strip() for s in sentences if s.strip()]
 
         total_words = sum(len(s.split()) for s in sentences)
@@ -320,13 +296,13 @@ class TestReadabilityDimension:
         def count_syllables(word):
             word = word.lower()
             count = 0
-            vowels = 'aeiouy'
+            vowels = "aeiouy"
             if word and word[0] in vowels:
                 count += 1
             for index in range(1, len(word)):
                 if word[index] in vowels and word[index - 1] not in vowels:
                     count += 1
-            if word.endswith('e'):
+            if word.endswith("e"):
                 count -= 1
             if count == 0:
                 count += 1
@@ -343,7 +319,7 @@ class TestReadabilityDimension:
         active_text = "The team created the document."
 
         # Simple passive voice detection: "was/were" + past participle ending in "ed"
-        passive_pattern = r'\b(was|were|is|are|been|being)\s+\w+ed\b'
+        passive_pattern = r"\b(was|were|is|are|been|being)\s+\w+ed\b"
 
         has_passive = bool(re.search(passive_pattern, passive_text))
         has_passive_active = bool(re.search(passive_pattern, active_text))
@@ -354,8 +330,10 @@ class TestReadabilityDimension:
     def test_readability_scoring(self):
         """Test overall readability scoring"""
         easy_text = "The cat sat on the mat. The dog ran in the park. The sun was bright."
-        hard_text = "The methodology encompasses sophisticated analytical procedures. " \
-                    "Comprehensive evaluations demonstrate exceptional effectiveness."
+        hard_text = (
+            "The methodology encompasses sophisticated analytical procedures. "
+            "Comprehensive evaluations demonstrate exceptional effectiveness."
+        )
 
         # Easy text should score higher for readability
         # (implementation would calculate actual scores)
@@ -395,8 +373,8 @@ class TestTimelinessDimension:
         """
 
         # Extract years from citations
-        years = re.findall(r'\((\d{4})\)', text)
-        years.extend(re.findall(r'\b(20\d{2})\b', text))
+        years = re.findall(r"\((\d{4})\)", text)
+        years.extend(re.findall(r"\b(20\d{2})\b", text))
 
         # Check how recent references are
         current_year = datetime.now().year
@@ -410,7 +388,7 @@ class TestTimelinessDimension:
         text = "As of January 2020, the population was 1 million."
 
         # Extract temporal markers
-        temporal_markers = re.findall(r'as of\s+(\w+\s+\d{4})', text, re.IGNORECASE)
+        temporal_markers = re.findall(r"as of\s+(\w+\s+\d{4})", text, re.IGNORECASE)
 
         # Check if dates are recent
         current_year = datetime.now().year
@@ -426,22 +404,16 @@ class TestIssueDetection:
 
         # Missing required sections
         text = "Some content without introduction or conclusion"
-        if 'introduction' not in text.lower():
-            issues.append({
-                'severity': 'critical',
-                'type': 'missing_section',
-                'message': 'Missing introduction section'
-            })
+        if "introduction" not in text.lower():
+            issues.append(
+                {"severity": "critical", "type": "missing_section", "message": "Missing introduction section"}
+            )
 
         # Empty document
         if len(text.strip()) == 0:
-            issues.append({
-                'severity': 'critical',
-                'type': 'empty_document',
-                'message': 'Document is empty'
-            })
+            issues.append({"severity": "critical", "type": "empty_document", "message": "Document is empty"})
 
-        critical = [i for i in issues if i['severity'] == 'critical']
+        critical = [i for i in issues if i["severity"] == "critical"]
         assert isinstance(critical, list)
 
     def test_high_severity_issues(self):
@@ -451,15 +423,11 @@ class TestIssueDetection:
         text = "Contact us at invalid.email"
 
         # Invalid email
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        if 'email' in text.lower() and not re.search(email_pattern, text):
-            issues.append({
-                'severity': 'high',
-                'type': 'invalid_contact',
-                'message': 'Invalid email address found'
-            })
+        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+        if "email" in text.lower() and not re.search(email_pattern, text):
+            issues.append({"severity": "high", "type": "invalid_contact", "message": "Invalid email address found"})
 
-        high = [i for i in issues if i['severity'] == 'high']
+        high = [i for i in issues if i["severity"] == "high"]
         assert isinstance(high, list)
 
     def test_medium_severity_issues(self):
@@ -469,14 +437,16 @@ class TestIssueDetection:
         text = "The company provides AI services. The artificial intelligence system..."
 
         # Inconsistent terminology
-        if 'ai' in text.lower() and 'artificial intelligence' in text.lower():
-            issues.append({
-                'severity': 'medium',
-                'type': 'inconsistent_terminology',
-                'message': 'Inconsistent use of AI/artificial intelligence'
-            })
+        if "ai" in text.lower() and "artificial intelligence" in text.lower():
+            issues.append(
+                {
+                    "severity": "medium",
+                    "type": "inconsistent_terminology",
+                    "message": "Inconsistent use of AI/artificial intelligence",
+                }
+            )
 
-        medium = [i for i in issues if i['severity'] == 'medium']
+        medium = [i for i in issues if i["severity"] == "medium"]
         assert isinstance(medium, list)
 
     def test_low_severity_issues(self):
@@ -488,13 +458,11 @@ class TestIssueDetection:
         # Complex language
         avg_word_length = sum(len(w) for w in text.split()) / len(text.split())
         if avg_word_length > 7:
-            issues.append({
-                'severity': 'low',
-                'type': 'complex_language',
-                'message': 'Language complexity may affect readability'
-            })
+            issues.append(
+                {"severity": "low", "type": "complex_language", "message": "Language complexity may affect readability"}
+            )
 
-        low = [i for i in issues if i['severity'] == 'low']
+        low = [i for i in issues if i["severity"] == "low"]
         assert isinstance(low, list)
 
 
@@ -503,13 +471,7 @@ class TestQualityScoring:
 
     def test_score_calculation(self):
         """Test calculation of overall quality score"""
-        dimension_scores = {
-            'completeness': 85,
-            'accuracy': 90,
-            'consistency': 80,
-            'readability': 75,
-            'timeliness': 95
-        }
+        dimension_scores = {"completeness": 85, "accuracy": 90, "consistency": 80, "readability": 75, "timeliness": 95}
 
         # Average of all dimensions
         overall = sum(dimension_scores.values()) / len(dimension_scores)
@@ -519,25 +481,18 @@ class TestQualityScoring:
 
     def test_weighted_scoring(self):
         """Test weighted quality scoring"""
-        dimension_scores = {
-            'completeness': 80,
-            'accuracy': 95,
-            'consistency': 70,
-            'readability': 85,
-            'timeliness': 60
-        }
+        dimension_scores = {"completeness": 80, "accuracy": 95, "consistency": 70, "readability": 85, "timeliness": 60}
 
         weights = {
-            'completeness': 0.25,
-            'accuracy': 0.30,  # More important
-            'consistency': 0.15,
-            'readability': 0.20,
-            'timeliness': 0.10
+            "completeness": 0.25,
+            "accuracy": 0.30,  # More important
+            "consistency": 0.15,
+            "readability": 0.20,
+            "timeliness": 0.10,
         }
 
         # Weighted average
-        overall = sum(dimension_scores[dim] * weights[dim]
-                     for dim in dimension_scores)
+        overall = sum(dimension_scores[dim] * weights[dim] for dim in dimension_scores)
 
         assert 0 <= overall <= 100
 
@@ -607,24 +562,16 @@ class TestQualityCLI:
         """Test CLI help message"""
         import subprocess
 
-        result = subprocess.run(
-            ['python', 'doc-quality.py', '--help'],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["python", "doc-quality.py", "--help"], capture_output=True, text=True)
 
         assert result.returncode == 0
-        assert 'analyze' in result.stdout.lower()
+        assert "analyze" in result.stdout.lower()
 
     def test_cli_analyze_command(self):
         """Test analyze command exists"""
         import subprocess
 
-        result = subprocess.run(
-            ['python', 'doc-quality.py', 'analyze', '--help'],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["python", "doc-quality.py", "analyze", "--help"], capture_output=True, text=True)
 
         assert result.returncode == 0
 
@@ -667,5 +614,5 @@ class TestEdgeCases:
         assert len(words) > 0
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

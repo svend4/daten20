@@ -44,33 +44,36 @@ Version: 1.0.0
 """
 
 import argparse
-import sys
+import hashlib
 import os
 import re
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple, Pattern
-from dataclasses import dataclass, field, asdict
+import sys
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-import hashlib
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Pattern, Tuple
 
 # Setup logging
 from src.core.logging_config import setup_logging
+
 logger = setup_logging(__name__, log_level="INFO")
 
 
 class SplitMode(str, Enum):
     """Document split modes"""
-    SIZE = "size"            # Split by size (lines/words/chars)
+
+    SIZE = "size"  # Split by size (lines/words/chars)
     DELIMITER = "delimiter"  # Split by custom delimiter
-    CHAPTER = "chapter"      # Split by chapter markers
-    SECTION = "section"      # Split by section headers
-    PAGE = "page"            # Split by page markers
-    SMART = "smart"          # Intelligent splitting
+    CHAPTER = "chapter"  # Split by chapter markers
+    SECTION = "section"  # Split by section headers
+    PAGE = "page"  # Split by page markers
+    SMART = "smart"  # Intelligent splitting
 
 
 class SizeUnit(str, Enum):
     """Size units for splitting"""
+
     LINES = "lines"
     WORDS = "words"
     CHARS = "chars"
@@ -79,6 +82,7 @@ class SizeUnit(str, Enum):
 @dataclass
 class DocumentPart:
     """A part of a split document"""
+
     part_number: int
     content: str
     line_count: int
@@ -94,6 +98,7 @@ class DocumentPart:
 @dataclass
 class SplitResult:
     """Result of document split operation"""
+
     input_file: str
     output_dir: str
     split_mode: str
@@ -106,6 +111,7 @@ class SplitResult:
 @dataclass
 class SplitConfig:
     """Configuration for split operation"""
+
     mode: SplitMode = SplitMode.SIZE
     size_unit: SizeUnit = SizeUnit.LINES
     size_value: int = 100
@@ -133,12 +139,7 @@ class DocumentSplitter:
         self.config = config or SplitConfig()
         logger.info(f"DocumentSplitter initialized with mode: {self.config.mode}")
 
-    def split(
-        self,
-        input_file: str,
-        output_dir: str,
-        preview: bool = False
-    ) -> SplitResult:
+    def split(self, input_file: str, output_dir: str, preview: bool = False) -> SplitResult:
         """
         Split document into parts
 
@@ -194,10 +195,7 @@ class DocumentSplitter:
             total_parts=len(parts_with_names),
             parts=parts_with_names,
             execution_time=execution_time,
-            metadata={
-                "split_config": asdict(self.config),
-                "preview": preview
-            }
+            metadata={"split_config": asdict(self.config), "preview": preview},
         )
 
         logger.info(f"Split completed: {len(parts_with_names)} parts created")
@@ -206,7 +204,7 @@ class DocumentSplitter:
     def _read_document(self, file_path: str) -> str:
         """Read document content"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
             logger.debug(f"Read {len(content)} chars from {file_path}")
             return content
@@ -219,18 +217,18 @@ class DocumentSplitter:
         parts = []
 
         if self.config.size_unit == SizeUnit.LINES:
-            lines = content.split('\n')
+            lines = content.split("\n")
             chunk_size = self.config.size_value
 
             for i in range(0, len(lines), chunk_size):
-                chunk_lines = lines[i:i + chunk_size]
-                chunk_content = '\n'.join(chunk_lines)
+                chunk_lines = lines[i : i + chunk_size]
+                chunk_content = "\n".join(chunk_lines)
 
                 part = self._create_part(
                     part_number=len(parts) + 1,
                     content=chunk_content,
                     start_line=i + 1,
-                    end_line=min(i + chunk_size, len(lines))
+                    end_line=min(i + chunk_size, len(lines)),
                 )
                 parts.append(part)
 
@@ -239,14 +237,14 @@ class DocumentSplitter:
             chunk_size = self.config.size_value
 
             for i in range(0, len(words), chunk_size):
-                chunk_words = words[i:i + chunk_size]
-                chunk_content = ' '.join(chunk_words)
+                chunk_words = words[i : i + chunk_size]
+                chunk_content = " ".join(chunk_words)
 
                 part = self._create_part(
                     part_number=len(parts) + 1,
                     content=chunk_content,
                     start_line=0,  # Not applicable for word-based split
-                    end_line=0
+                    end_line=0,
                 )
                 parts.append(part)
 
@@ -254,14 +252,9 @@ class DocumentSplitter:
             chunk_size = self.config.size_value
 
             for i in range(0, len(content), chunk_size):
-                chunk_content = content[i:i + chunk_size]
+                chunk_content = content[i : i + chunk_size]
 
-                part = self._create_part(
-                    part_number=len(parts) + 1,
-                    content=chunk_content,
-                    start_line=0,
-                    end_line=0
-                )
+                part = self._create_part(part_number=len(parts) + 1, content=chunk_content, start_line=0, end_line=0)
                 parts.append(part)
 
         return parts
@@ -283,13 +276,13 @@ class DocumentSplitter:
             if not chunk.strip():  # Skip empty chunks
                 continue
 
-            lines_in_chunk = chunk.count('\n') + 1
+            lines_in_chunk = chunk.count("\n") + 1
 
             part = self._create_part(
                 part_number=len(parts) + 1,
                 content=chunk,
                 start_line=current_line,
-                end_line=current_line + lines_in_chunk - 1
+                end_line=current_line + lines_in_chunk - 1,
             )
             parts.append(part)
 
@@ -300,16 +293,10 @@ class DocumentSplitter:
     def _split_by_chapter(self, content: str) -> List[DocumentPart]:
         """Split by chapter markers"""
         # Common chapter patterns
-        chapter_patterns = [
-            r'^CHAPTER\s+\d+',
-            r'^Chapter\s+\d+',
-            r'^# CHAPTER',
-            r'^#{1,2}\s+\d+\.',
-            r'^\d+\.\s+[A-Z]'
-        ]
+        chapter_patterns = [r"^CHAPTER\s+\d+", r"^Chapter\s+\d+", r"^# CHAPTER", r"^#{1,2}\s+\d+\.", r"^\d+\.\s+[A-Z]"]
 
         # Find chapter boundaries
-        lines = content.split('\n')
+        lines = content.split("\n")
         chapter_starts = []
 
         for idx, line in enumerate(lines):
@@ -333,15 +320,12 @@ class DocumentSplitter:
             end = chapter_starts[idx + 1]
 
             chapter_lines = lines[start:end]
-            chapter_content = '\n'.join(chapter_lines)
+            chapter_content = "\n".join(chapter_lines)
 
             part = self._create_part(
-                part_number=len(parts) + 1,
-                content=chapter_content,
-                start_line=start + 1,
-                end_line=end
+                part_number=len(parts) + 1, content=chapter_content, start_line=start + 1, end_line=end
             )
-            part.metadata['chapter_title'] = chapter_lines[0].strip()
+            part.metadata["chapter_title"] = chapter_lines[0].strip()
             parts.append(part)
 
         return parts
@@ -349,9 +333,9 @@ class DocumentSplitter:
     def _split_by_section(self, content: str) -> List[DocumentPart]:
         """Split by section headers (markdown-style)"""
         # Section patterns (## or ###)
-        section_pattern = re.compile(r'^#{2,3}\s+.+$', re.MULTILINE)
+        section_pattern = re.compile(r"^#{2,3}\s+.+$", re.MULTILINE)
 
-        lines = content.split('\n')
+        lines = content.split("\n")
         section_starts = []
 
         for idx, line in enumerate(lines):
@@ -371,15 +355,12 @@ class DocumentSplitter:
             end = section_starts[idx + 1]
 
             section_lines = lines[start:end]
-            section_content = '\n'.join(section_lines)
+            section_content = "\n".join(section_lines)
 
             part = self._create_part(
-                part_number=len(parts) + 1,
-                content=section_content,
-                start_line=start + 1,
-                end_line=end
+                part_number=len(parts) + 1, content=section_content, start_line=start + 1, end_line=end
             )
-            part.metadata['section_title'] = section_lines[0].strip()
+            part.metadata["section_title"] = section_lines[0].strip()
             parts.append(part)
 
         return parts
@@ -387,7 +368,7 @@ class DocumentSplitter:
     def _split_by_page(self, content: str) -> List[DocumentPart]:
         """Split by page markers (\\f or custom)"""
         # Form feed character or custom page marker
-        page_marker = '\f'
+        page_marker = "\f"
         pages = content.split(page_marker)
 
         parts = []
@@ -397,15 +378,15 @@ class DocumentSplitter:
             if not page.strip():
                 continue
 
-            lines_in_page = page.count('\n') + 1
+            lines_in_page = page.count("\n") + 1
 
             part = self._create_part(
                 part_number=len(parts) + 1,
                 content=page,
                 start_line=current_line,
-                end_line=current_line + lines_in_page - 1
+                end_line=current_line + lines_in_page - 1,
             )
-            part.metadata['page_number'] = idx
+            part.metadata["page_number"] = idx
             parts.append(part)
 
             current_line += lines_in_page
@@ -414,7 +395,7 @@ class DocumentSplitter:
 
     def _split_smart(self, content: str) -> List[DocumentPart]:
         """Intelligent splitting with context preservation"""
-        lines = content.split('\n')
+        lines = content.split("\n")
         max_size = self.config.size_value
         parts = []
 
@@ -430,12 +411,12 @@ class DocumentSplitter:
                 # Try to find a good break point (empty line)
                 if not line.strip() or self._is_paragraph_boundary(line):
                     # Good break point found
-                    chunk_content = '\n'.join(current_chunk)
+                    chunk_content = "\n".join(current_chunk)
                     part = self._create_part(
                         part_number=len(parts) + 1,
                         content=chunk_content,
                         start_line=current_start_line,
-                        end_line=idx - 1
+                        end_line=idx - 1,
                     )
                     parts.append(part)
 
@@ -448,12 +429,9 @@ class DocumentSplitter:
 
         # Add remaining chunk
         if current_chunk:
-            chunk_content = '\n'.join(current_chunk)
+            chunk_content = "\n".join(current_chunk)
             part = self._create_part(
-                part_number=len(parts) + 1,
-                content=chunk_content,
-                start_line=current_start_line,
-                end_line=len(lines)
+                part_number=len(parts) + 1, content=chunk_content, start_line=current_start_line, end_line=len(lines)
             )
             parts.append(part)
 
@@ -466,33 +444,27 @@ class DocumentSplitter:
             return True
 
         # Check for common section/chapter markers
-        markers = [r'^#', r'^\d+\.', r'^CHAPTER', r'^Section', r'^\*\*']
+        markers = [r"^#", r"^\d+\.", r"^CHAPTER", r"^Section", r"^\*\*"]
         for marker in markers:
             if re.match(marker, line.strip()):
                 return True
 
         return False
 
-    def _create_part(
-        self,
-        part_number: int,
-        content: str,
-        start_line: int,
-        end_line: int
-    ) -> DocumentPart:
+    def _create_part(self, part_number: int, content: str, start_line: int, end_line: int) -> DocumentPart:
         """Create DocumentPart with statistics"""
         checksum = hashlib.md5(content.encode()).hexdigest()
 
         return DocumentPart(
             part_number=part_number,
             content=content,
-            line_count=content.count('\n') + 1,
+            line_count=content.count("\n") + 1,
             word_count=len(content.split()),
             char_count=len(content),
             start_line=start_line,
             end_line=end_line,
             file_name="",  # Will be set later
-            checksum=checksum
+            checksum=checksum,
         )
 
     def _generate_file_names(self, parts: List[DocumentPart]) -> List[DocumentPart]:
@@ -516,17 +488,12 @@ class DocumentSplitter:
         for part in parts:
             file_path = output_path / part.file_name
 
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(part.content)
 
             logger.debug(f"Wrote part {part.part_number} to {file_path}")
 
-    def _create_index(
-        self,
-        parts: List[DocumentPart],
-        output_dir: str,
-        input_file: str
-    ) -> None:
+    def _create_index(self, parts: List[DocumentPart], output_dir: str, input_file: str) -> None:
         """Create index file with metadata"""
         index_path = Path(output_dir) / "index.txt"
 
@@ -541,7 +508,7 @@ class DocumentSplitter:
             f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             "",
             "-" * 70,
-            ""
+            "",
         ]
 
         for part in parts:
@@ -558,8 +525,8 @@ class DocumentSplitter:
 
         index_lines.append("-" * 70)
 
-        with open(index_path, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(index_lines))
+        with open(index_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(index_lines))
 
         logger.info(f"Created index file: {index_path}")
 
@@ -593,7 +560,7 @@ Split Modes:
   section    - Split by section headers (##, ###)
   page       - Split by page markers (\\f)
   smart      - Intelligent splitting with context preservation
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -602,8 +569,7 @@ Split Modes:
     split_parser = subparsers.add_parser("split", help="Split document")
     split_parser.add_argument("file", help="Input file to split")
     split_parser.add_argument("-o", "--output", required=True, help="Output directory")
-    split_parser.add_argument("--mode", choices=[m.value for m in SplitMode],
-                             default="size", help="Split mode")
+    split_parser.add_argument("--mode", choices=[m.value for m in SplitMode], default="size", help="Split mode")
     split_parser.add_argument("--lines", type=int, default=100, help="Lines per part (size mode)")
     split_parser.add_argument("--words", type=int, help="Words per part (size mode)")
     split_parser.add_argument("--chars", type=int, help="Characters per part (size mode)")
@@ -616,8 +582,7 @@ Split Modes:
     # Preview command
     preview_parser = subparsers.add_parser("preview", help="Preview split without writing")
     preview_parser.add_argument("file", help="Input file")
-    preview_parser.add_argument("--mode", choices=[m.value for m in SplitMode],
-                               default="size", help="Split mode")
+    preview_parser.add_argument("--mode", choices=[m.value for m in SplitMode], default="size", help="Split mode")
     preview_parser.add_argument("--lines", type=int, default=100, help="Lines per part")
     preview_parser.add_argument("--pattern", help="Regex pattern for delimiter mode")
 
@@ -631,29 +596,29 @@ Split Modes:
         # Configure splitter
         config = SplitConfig(
             mode=SplitMode(args.mode),
-            prefix=getattr(args, 'prefix', 'part'),
-            create_index=not getattr(args, 'no_index', False)
+            prefix=getattr(args, "prefix", "part"),
+            create_index=not getattr(args, "no_index", False),
         )
 
         # Set size parameters
         if args.mode == "size":
-            if getattr(args, 'words', None):
+            if getattr(args, "words", None):
                 config.size_unit = SizeUnit.WORDS
                 config.size_value = args.words
-            elif getattr(args, 'chars', None):
+            elif getattr(args, "chars", None):
                 config.size_unit = SizeUnit.CHARS
                 config.size_value = args.chars
             else:
                 config.size_unit = SizeUnit.LINES
-                config.size_value = getattr(args, 'lines', 100)
+                config.size_value = getattr(args, "lines", 100)
 
-        if args.mode == "smart" and getattr(args, 'max_size', None):
+        if args.mode == "smart" and getattr(args, "max_size", None):
             config.size_value = args.max_size
 
         if args.mode == "delimiter":
-            if getattr(args, 'pattern', None):
+            if getattr(args, "pattern", None):
                 config.pattern = args.pattern
-            elif getattr(args, 'delimiter', None):
+            elif getattr(args, "delimiter", None):
                 config.delimiter = args.delimiter
 
         splitter = DocumentSplitter(config)

@@ -9,22 +9,24 @@ Version: 4.4.0
 """
 
 import asyncio
-import numpy as np
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime
 import threading
 import time
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 
 # ============================================================================
 # 1. EEG SIGNAL PROCESSOR (~220 lines)
 # ============================================================================
 
+
 @dataclass
 class EEGChannel:
     """EEG channel configuration"""
+
     channel_id: str
     name: str
     position: Tuple[float, float, float]  # 3D coordinates (x, y, z)
@@ -35,6 +37,7 @@ class EEGChannel:
 @dataclass
 class EEGSignal:
     """EEG signal data"""
+
     timestamp: float
     channels: List[str]
     data: np.ndarray  # Shape: (n_channels, n_samples)
@@ -44,6 +47,7 @@ class EEGSignal:
 
 class FilterType(Enum):
     """Digital filter types"""
+
     BANDPASS = "bandpass"
     LOWPASS = "lowpass"
     HIGHPASS = "highpass"
@@ -68,22 +72,13 @@ class EEGProcessor:
     def _init_filters(self):
         """Initialize digital filters"""
         # Bandpass filter coefficients (8-30 Hz for motor imagery)
-        self.filter_coefficients['bandpass_8_30'] = {
-            'b': [0.05, 0.1, 0.05],
-            'a': [1.0, -1.5, 0.9]
-        }
+        self.filter_coefficients["bandpass_8_30"] = {"b": [0.05, 0.1, 0.05], "a": [1.0, -1.5, 0.9]}
 
         # Notch filter for 50/60 Hz power line interference
-        self.filter_coefficients['notch_50'] = {
-            'b': [1.0, -1.9, 1.0],
-            'a': [1.0, -1.8, 0.95]
-        }
+        self.filter_coefficients["notch_50"] = {"b": [1.0, -1.9, 1.0], "a": [1.0, -1.8, 0.95]}
 
         # Lowpass filter (40 Hz)
-        self.filter_coefficients['lowpass_40'] = {
-            'b': [0.1, 0.2, 0.1],
-            'a': [1.0, -1.3, 0.7]
-        }
+        self.filter_coefficients["lowpass_40"] = {"b": [0.1, 0.2, 0.1], "a": [1.0, -1.3, 0.7]}
 
     async def process_signal(self, raw_data: np.ndarray) -> EEGSignal:
         """Process raw EEG signal"""
@@ -104,7 +99,7 @@ class EEGProcessor:
             channels=[f"Ch{i+1}" for i in range(self.n_channels)],
             data=car_applied,
             sampling_rate=self.sampling_rate,
-            quality_score=quality
+            quality_score=quality,
         )
 
         return signal
@@ -112,18 +107,18 @@ class EEGProcessor:
     def apply_filter(self, signal: np.ndarray, filter_type: FilterType) -> np.ndarray:
         """Apply digital filter to signal"""
         if filter_type == FilterType.BANDPASS:
-            coeffs = self.filter_coefficients['bandpass_8_30']
+            coeffs = self.filter_coefficients["bandpass_8_30"]
         elif filter_type == FilterType.NOTCH:
-            coeffs = self.filter_coefficients['notch_50']
+            coeffs = self.filter_coefficients["notch_50"]
         elif filter_type == FilterType.LOWPASS:
-            coeffs = self.filter_coefficients['lowpass_40']
+            coeffs = self.filter_coefficients["lowpass_40"]
         else:
             return signal
 
         # Simple IIR filter implementation
         filtered = np.zeros_like(signal)
         for ch in range(signal.shape[0]):
-            filtered[ch] = self._apply_iir(signal[ch], coeffs['b'], coeffs['a'])
+            filtered[ch] = self._apply_iir(signal[ch], coeffs["b"], coeffs["a"])
 
         return filtered
 
@@ -133,9 +128,9 @@ class EEGProcessor:
         for n in range(len(x)):
             y[n] = b[0] * x[n]
             if n > 0:
-                y[n] += b[1] * x[n-1] - a[1] * y[n-1]
+                y[n] += b[1] * x[n - 1] - a[1] * y[n - 1]
             if n > 1:
-                y[n] += b[2] * x[n-2] - a[2] * y[n-2]
+                y[n] += b[2] * x[n - 2] - a[2] * y[n - 2]
         return y
 
     def _remove_artifacts(self, signal: np.ndarray) -> np.ndarray:
@@ -169,28 +164,27 @@ class EEGProcessor:
         features = {}
 
         # Power spectral density in different bands
-        features['delta_power'] = self._compute_band_power(signal.data, 0.5, 4)
-        features['theta_power'] = self._compute_band_power(signal.data, 4, 8)
-        features['alpha_power'] = self._compute_band_power(signal.data, 8, 13)
-        features['beta_power'] = self._compute_band_power(signal.data, 13, 30)
-        features['gamma_power'] = self._compute_band_power(signal.data, 30, 100)
+        features["delta_power"] = self._compute_band_power(signal.data, 0.5, 4)
+        features["theta_power"] = self._compute_band_power(signal.data, 4, 8)
+        features["alpha_power"] = self._compute_band_power(signal.data, 8, 13)
+        features["beta_power"] = self._compute_band_power(signal.data, 13, 30)
+        features["gamma_power"] = self._compute_band_power(signal.data, 30, 100)
 
         # Statistical features
-        features['mean'] = np.mean(signal.data, axis=1)
-        features['std'] = np.std(signal.data, axis=1)
-        features['variance'] = np.var(signal.data, axis=1)
+        features["mean"] = np.mean(signal.data, axis=1)
+        features["std"] = np.std(signal.data, axis=1)
+        features["variance"] = np.var(signal.data, axis=1)
 
         return features
 
-    def _compute_band_power(self, signal: np.ndarray, low_freq: float,
-                           high_freq: float) -> np.ndarray:
+    def _compute_band_power(self, signal: np.ndarray, low_freq: float, high_freq: float) -> np.ndarray:
         """Compute power in frequency band"""
         # Simplified FFT-based power calculation
         fft = np.fft.fft(signal, axis=1)
-        freqs = np.fft.fftfreq(signal.shape[1], 1/self.sampling_rate)
+        freqs = np.fft.fftfreq(signal.shape[1], 1 / self.sampling_rate)
 
         band_mask = (freqs >= low_freq) & (freqs <= high_freq)
-        band_power = np.mean(np.abs(fft[:, band_mask])**2, axis=1)
+        band_power = np.mean(np.abs(fft[:, band_mask]) ** 2, axis=1)
 
         return band_power
 
@@ -216,10 +210,10 @@ class EEGProcessor:
     def get_statistics(self) -> Dict[str, Any]:
         """Get processing statistics"""
         return {
-            'sampling_rate': self.sampling_rate,
-            'n_channels': self.n_channels,
-            'filters_active': len(self.filter_coefficients),
-            'buffer_size': len(self.buffer)
+            "sampling_rate": self.sampling_rate,
+            "n_channels": self.n_channels,
+            "filters_active": len(self.filter_coefficients),
+            "buffer_size": len(self.buffer),
         }
 
 
@@ -243,8 +237,10 @@ def get_eeg_processor(sampling_rate: int = 250, n_channels: int = 32) -> EEGProc
 # 2. MOTOR IMAGERY CLASSIFIER (~210 lines)
 # ============================================================================
 
+
 class MotorImageryType(Enum):
     """Motor imagery types"""
+
     LEFT_HAND = "left_hand"
     RIGHT_HAND = "right_hand"
     FEET = "feet"
@@ -255,6 +251,7 @@ class MotorImageryType(Enum):
 @dataclass
 class MotorImageryTrial:
     """Motor imagery trial data"""
+
     trial_id: str
     imagery_type: MotorImageryType
     signal: EEGSignal
@@ -265,6 +262,7 @@ class MotorImageryTrial:
 @dataclass
 class ClassificationResult:
     """Classification result"""
+
     predicted_class: MotorImageryType
     confidence: float
     probabilities: Dict[MotorImageryType, float]
@@ -287,7 +285,7 @@ class MotorImageryClassifier:
     async def train(self, trials: List[MotorImageryTrial]) -> Dict[str, Any]:
         """Train classifier on motor imagery trials"""
         if len(trials) < 40:
-            return {'success': False, 'error': 'Insufficient training data (need ≥40 trials)'}
+            return {"success": False, "error": "Insufficient training data (need ≥40 trials)"}
 
         # Extract signals and labels
         signals = []
@@ -322,11 +320,11 @@ class MotorImageryClassifier:
         self.is_trained = True
 
         return {
-            'success': True,
-            'n_trials': len(trials),
-            'accuracy': accuracy,
-            'n_features': len(features[0]),
-            'timestamp': time.time()
+            "success": True,
+            "n_trials": len(trials),
+            "accuracy": accuracy,
+            "n_features": len(features[0]),
+            "timestamp": time.time(),
         }
 
     async def classify(self, signal: EEGSignal) -> ClassificationResult:
@@ -339,7 +337,7 @@ class MotorImageryClassifier:
                 confidence=0.0,
                 probabilities={},
                 features={},
-                processing_time=time.time() - start_time
+                processing_time=time.time() - start_time,
             )
 
         # Extract features
@@ -361,16 +359,15 @@ class MotorImageryClassifier:
             MotorImageryType.LEFT_HAND: probabilities[0],
             MotorImageryType.RIGHT_HAND: probabilities[1],
             MotorImageryType.FEET: probabilities[2],
-            MotorImageryType.TONGUE: probabilities[3]
+            MotorImageryType.TONGUE: probabilities[3],
         }
 
         return ClassificationResult(
             predicted_class=predicted_class,
             confidence=max(probabilities),
             probabilities=probs_dict,
-            features={'mu_power': features.get('mu_power', 0.0),
-                     'beta_power': features.get('beta_power', 0.0)},
-            processing_time=time.time() - start_time
+            features={"mu_power": features.get("mu_power", 0.0), "beta_power": features.get("beta_power", 0.0)},
+            processing_time=time.time() - start_time,
         )
 
     def extract_features(self, signal: EEGSignal) -> Dict[str, float]:
@@ -382,17 +379,16 @@ class MotorImageryClassifier:
         beta_power = np.mean(self._compute_band_power(signal.data, 13, 30))
 
         return {
-            'mu_power': float(mu_power),
-            'beta_power': float(beta_power),
-            'mu_beta_ratio': float(mu_power / (beta_power + 1e-6))
+            "mu_power": float(mu_power),
+            "beta_power": float(beta_power),
+            "mu_beta_ratio": float(mu_power / (beta_power + 1e-6)),
         }
 
-    def _compute_band_power(self, signal: np.ndarray, low_freq: float,
-                           high_freq: float) -> np.ndarray:
+    def _compute_band_power(self, signal: np.ndarray, low_freq: float, high_freq: float) -> np.ndarray:
         """Compute band power"""
         # Simplified band power computation
         fft = np.fft.fft(signal, axis=1)
-        power = np.abs(fft)**2
+        power = np.abs(fft) ** 2
         return np.mean(power, axis=1)
 
     def compute_csp(self, signals: np.ndarray, labels: np.ndarray) -> np.ndarray:
@@ -464,7 +460,7 @@ class MotorImageryClassifier:
             MotorImageryType.LEFT_HAND: 0,
             MotorImageryType.RIGHT_HAND: 1,
             MotorImageryType.FEET: 2,
-            MotorImageryType.TONGUE: 3
+            MotorImageryType.TONGUE: 3,
         }
         return mapping.get(mi_type, 0)
 
@@ -474,23 +470,23 @@ class MotorImageryClassifier:
             0: MotorImageryType.LEFT_HAND,
             1: MotorImageryType.RIGHT_HAND,
             2: MotorImageryType.FEET,
-            3: MotorImageryType.TONGUE
+            3: MotorImageryType.TONGUE,
         }
         return mapping.get(idx, MotorImageryType.REST)
 
     def calibrate(self, calibration_data: List[MotorImageryTrial]) -> bool:
         """Calibrate classifier"""
         result = asyncio.run(self.train(calibration_data))
-        return result.get('success', False)
+        return result.get("success", False)
 
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information"""
         return {
-            'is_trained': self.is_trained,
-            'n_channels': self.n_channels,
-            'n_classes': self.n_classes,
-            'csp_filters_shape': self.csp_filters.shape if self.csp_filters is not None else None,
-            'training_sessions': len(self.training_history)
+            "is_trained": self.is_trained,
+            "n_channels": self.n_channels,
+            "n_classes": self.n_classes,
+            "csp_filters_shape": self.csp_filters.shape if self.csp_filters is not None else None,
+            "training_sessions": len(self.training_history),
         }
 
 
@@ -499,8 +495,7 @@ _mi_classifier_instance = None
 _mi_classifier_lock = threading.Lock()
 
 
-def get_motor_imagery_classifier(n_channels: int = 32,
-                                 n_classes: int = 4) -> MotorImageryClassifier:
+def get_motor_imagery_classifier(n_channels: int = 32, n_classes: int = 4) -> MotorImageryClassifier:
     """Get motor imagery classifier singleton"""
     global _mi_classifier_instance
 
@@ -515,8 +510,10 @@ def get_motor_imagery_classifier(n_channels: int = 32,
 # 3. P300 DETECTOR (~200 lines)
 # ============================================================================
 
+
 class P300Paradigm(Enum):
     """P300 paradigm types"""
+
     ODDBALL = "oddball"
     MATRIX_SPELLER = "matrix_speller"
     RSVP = "rsvp"
@@ -526,6 +523,7 @@ class P300Paradigm(Enum):
 @dataclass
 class P300Stimulus:
     """P300 stimulus presentation"""
+
     stimulus_id: str
     paradigm: P300Paradigm
     timestamp: float
@@ -538,6 +536,7 @@ class P300Stimulus:
 @dataclass
 class P300Response:
     """P300 response detection"""
+
     stimulus_id: str
     signal: EEGSignal
     p300_amplitude: float
@@ -549,8 +548,7 @@ class P300Response:
 class P300Detector:
     """P300 event-related potential detector"""
 
-    def __init__(self, paradigm: P300Paradigm = P300Paradigm.MATRIX_SPELLER,
-                 n_channels: int = 8):
+    def __init__(self, paradigm: P300Paradigm = P300Paradigm.MATRIX_SPELLER, n_channels: int = 8):
         self.paradigm = paradigm
         self.n_channels = n_channels
         self.is_trained = False
@@ -566,8 +564,7 @@ class P300Detector:
         # In real implementation, this would control visual display
         await asyncio.sleep(0.1)  # Stimulus duration
 
-    async def detect_p300(self, signal: EEGSignal,
-                         stimulus: P300Stimulus) -> P300Response:
+    async def detect_p300(self, signal: EEGSignal, stimulus: P300Stimulus) -> P300Response:
         """Detect P300 response"""
         # Extract epoch (0-800ms post-stimulus)
         epoch_samples = int(0.8 * signal.sampling_rate)
@@ -588,11 +585,10 @@ class P300Detector:
             p300_amplitude=float(amplitude),
             p300_latency=float(latency),
             is_target=is_target,
-            confidence=confidence
+            confidence=confidence,
         )
 
-    def extract_erp(self, signals: List[EEGSignal],
-                   stimuli: List[P300Stimulus]) -> np.ndarray:
+    def extract_erp(self, signals: List[EEGSignal], stimuli: List[P300Stimulus]) -> np.ndarray:
         """Extract event-related potential"""
         epochs = []
 
@@ -621,8 +617,8 @@ class P300Detector:
 
         # Compute ERP templates
         self.erp_template = {
-            'target': np.mean(target_epochs, axis=0) if target_epochs else None,
-            'non_target': np.mean(non_target_epochs, axis=0) if non_target_epochs else None
+            "target": np.mean(target_epochs, axis=0) if target_epochs else None,
+            "non_target": np.mean(non_target_epochs, axis=0) if non_target_epochs else None,
         }
 
         # Train simple classifier (LDA)
@@ -631,10 +627,10 @@ class P300Detector:
         self.is_trained = True
 
         return {
-            'success': True,
-            'n_target_trials': len(target_epochs),
-            'n_non_target_trials': len(non_target_epochs),
-            'timestamp': time.time()
+            "success": True,
+            "n_target_trials": len(target_epochs),
+            "n_non_target_trials": len(non_target_epochs),
+            "timestamp": time.time(),
         }
 
     def _classify_p300(self, epoch: np.ndarray) -> bool:
@@ -680,21 +676,21 @@ class P300Detector:
     def get_matrix_speller_matrix(self) -> List[List[str]]:
         """Get 6x6 matrix speller layout"""
         return [
-            ['A', 'B', 'C', 'D', 'E', 'F'],
-            ['G', 'H', 'I', 'J', 'K', 'L'],
-            ['M', 'N', 'O', 'P', 'Q', 'R'],
-            ['S', 'T', 'U', 'V', 'W', 'X'],
-            ['Y', 'Z', '1', '2', '3', '4'],
-            ['5', '6', '7', '8', '9', '_']
+            ["A", "B", "C", "D", "E", "F"],
+            ["G", "H", "I", "J", "K", "L"],
+            ["M", "N", "O", "P", "Q", "R"],
+            ["S", "T", "U", "V", "W", "X"],
+            ["Y", "Z", "1", "2", "3", "4"],
+            ["5", "6", "7", "8", "9", "_"],
         ]
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get detector statistics"""
         return {
-            'paradigm': self.paradigm.value,
-            'is_trained': self.is_trained,
-            'n_channels': self.n_channels,
-            'matrix_size': '6x6' if self.paradigm == P300Paradigm.MATRIX_SPELLER else 'N/A'
+            "paradigm": self.paradigm.value,
+            "is_trained": self.is_trained,
+            "n_channels": self.n_channels,
+            "matrix_size": "6x6" if self.paradigm == P300Paradigm.MATRIX_SPELLER else "N/A",
         }
 
 
@@ -703,8 +699,7 @@ _p300_detector_instance = None
 _p300_detector_lock = threading.Lock()
 
 
-def get_p300_detector(paradigm: P300Paradigm = P300Paradigm.MATRIX_SPELLER,
-                     n_channels: int = 8) -> P300Detector:
+def get_p300_detector(paradigm: P300Paradigm = P300Paradigm.MATRIX_SPELLER, n_channels: int = 8) -> P300Detector:
     """Get P300 detector singleton"""
     global _p300_detector_instance
 
@@ -719,9 +714,11 @@ def get_p300_detector(paradigm: P300Paradigm = P300Paradigm.MATRIX_SPELLER,
 # 4. SSVEP PROCESSOR (~190 lines)
 # ============================================================================
 
+
 @dataclass
 class SSVEPStimulus:
     """SSVEP stimulus configuration"""
+
     stimulus_id: str
     frequency: float  # Hz
     phase: float
@@ -732,6 +729,7 @@ class SSVEPStimulus:
 @dataclass
 class SSVEPResponse:
     """SSVEP detection response"""
+
     stimulus_id: str
     detected_frequency: float
     snr: float
@@ -778,7 +776,7 @@ class SSVEPProcessor:
             snr=snr,
             correlation=correlation,
             command=command,
-            confidence=confidence
+            confidence=confidence,
         )
 
     def compute_cca(self, signal: np.ndarray, frequency: float) -> float:
@@ -830,8 +828,8 @@ class SSVEPProcessor:
         """Compute signal-to-noise ratio"""
         # FFT-based SNR estimation
         fft = np.fft.fft(signal.data, axis=1)
-        power = np.abs(fft)**2
-        freqs = np.fft.fftfreq(signal.data.shape[1], 1/signal.sampling_rate)
+        power = np.abs(fft) ** 2
+        freqs = np.fft.fftfreq(signal.data.shape[1], 1 / signal.sampling_rate)
 
         # Power at target frequency
         target_idx = np.argmin(np.abs(freqs - target_freq))
@@ -856,7 +854,7 @@ class SSVEPProcessor:
                 frequency=self.stimulus_frequencies[i],
                 phase=0.0,
                 command=commands[i] if i < len(commands) else f"cmd_{i}",
-                position=(i * 100, 100)
+                position=(i * 100, 100),
             )
             stimuli.append(stim)
 
@@ -878,10 +876,12 @@ class SSVEPProcessor:
     def get_performance_metrics(self) -> Dict[str, Any]:
         """Get SSVEP performance metrics"""
         return {
-            'n_stimuli': len(self.stimuli),
-            'frequencies': self.stimulus_frequencies,
-            'detection_count': len(self.detection_history),
-            'average_snr': np.mean([h.get('snr', 0) for h in self.detection_history]) if self.detection_history else 0.0
+            "n_stimuli": len(self.stimuli),
+            "frequencies": self.stimulus_frequencies,
+            "detection_count": len(self.detection_history),
+            "average_snr": (
+                np.mean([h.get("snr", 0) for h in self.detection_history]) if self.detection_history else 0.0
+            ),
         }
 
 
@@ -905,8 +905,10 @@ def get_ssvep_processor(stimulus_frequencies: List[float] = None) -> SSVEPProces
 # 5. COGNITIVE STATE MONITOR (~230 lines)
 # ============================================================================
 
+
 class CognitiveState(Enum):
     """Cognitive states"""
+
     FOCUSED = "focused"
     DISTRACTED = "distracted"
     DROWSY = "drowsy"
@@ -919,6 +921,7 @@ class CognitiveState(Enum):
 @dataclass
 class CognitiveMetrics:
     """Cognitive state metrics"""
+
     timestamp: float
     attention_level: float  # 0-1
     mental_workload: float  # 0-1
@@ -931,6 +934,7 @@ class CognitiveMetrics:
 @dataclass
 class BrainRhythms:
     """Brain rhythm powers"""
+
     delta: float  # 0.5-4 Hz
     theta: float  # 4-8 Hz
     alpha: float  # 8-13 Hz
@@ -966,7 +970,7 @@ class CognitiveMonitor:
             drowsiness_level=drowsiness,
             stress_level=stress,
             engagement=engagement,
-            state=CognitiveState.FOCUSED
+            state=CognitiveState.FOCUSED,
         )
 
         # Classify state
@@ -1041,21 +1045,18 @@ class CognitiveMonitor:
         gamma = np.mean(self._compute_band_power(signal.data, 30, 100, signal.sampling_rate))
 
         return BrainRhythms(
-            delta=float(delta),
-            theta=float(theta),
-            alpha=float(alpha),
-            beta=float(beta),
-            gamma=float(gamma)
+            delta=float(delta), theta=float(theta), alpha=float(alpha), beta=float(beta), gamma=float(gamma)
         )
 
-    def _compute_band_power(self, signal: np.ndarray, low_freq: float,
-                           high_freq: float, sampling_rate: int) -> np.ndarray:
+    def _compute_band_power(
+        self, signal: np.ndarray, low_freq: float, high_freq: float, sampling_rate: int
+    ) -> np.ndarray:
         """Compute power in frequency band"""
         fft = np.fft.fft(signal, axis=1)
-        freqs = np.fft.fftfreq(signal.shape[1], 1/sampling_rate)
+        freqs = np.fft.fftfreq(signal.shape[1], 1 / sampling_rate)
 
         band_mask = (freqs >= low_freq) & (freqs <= high_freq)
-        band_power = np.mean(np.abs(fft[:, band_mask])**2, axis=1)
+        band_power = np.mean(np.abs(fft[:, band_mask]) ** 2, axis=1)
 
         return band_power
 
@@ -1083,17 +1084,18 @@ class CognitiveMonitor:
         recent_metrics = [m for m in self.history if m.timestamp > cutoff_time]
 
         if not recent_metrics:
-            return {'error': 'No recent data'}
+            return {"error": "No recent data"}
 
         return {
-            'duration': duration,
-            'n_samples': len(recent_metrics),
-            'avg_attention': np.mean([m.attention_level for m in recent_metrics]),
-            'avg_workload': np.mean([m.mental_workload for m in recent_metrics]),
-            'avg_drowsiness': np.mean([m.drowsiness_level for m in recent_metrics]),
-            'avg_stress': np.mean([m.stress_level for m in recent_metrics]),
-            'dominant_state': max(set([m.state for m in recent_metrics]),
-                                key=[m.state for m in recent_metrics].count).value
+            "duration": duration,
+            "n_samples": len(recent_metrics),
+            "avg_attention": np.mean([m.attention_level for m in recent_metrics]),
+            "avg_workload": np.mean([m.mental_workload for m in recent_metrics]),
+            "avg_drowsiness": np.mean([m.drowsiness_level for m in recent_metrics]),
+            "avg_stress": np.mean([m.stress_level for m in recent_metrics]),
+            "dominant_state": max(
+                set([m.state for m in recent_metrics]), key=[m.state for m in recent_metrics].count
+            ).value,
         }
 
 
@@ -1117,8 +1119,10 @@ def get_cognitive_monitor(n_channels: int = 8) -> CognitiveMonitor:
 # 6. BCI CONTROL INTERFACE (~210 lines)
 # ============================================================================
 
+
 class BCICommand(Enum):
     """BCI commands"""
+
     SELECT = "select"
     OPEN = "open"
     CLOSE = "close"
@@ -1134,6 +1138,7 @@ class BCICommand(Enum):
 @dataclass
 class BCIAction:
     """BCI action"""
+
     command: BCICommand
     target: Optional[str]
     parameters: Dict[str, Any]
@@ -1144,6 +1149,7 @@ class BCIAction:
 @dataclass
 class ControlSession:
     """BCI control session"""
+
     session_id: str
     user_id: str
     start_time: float
@@ -1172,7 +1178,7 @@ class BCIControlInterface:
             start_time=time.time(),
             current_context="main_menu",
             command_history=[],
-            accuracy=0.0
+            accuracy=0.0,
         )
 
         self.active_session = session
@@ -1196,13 +1202,7 @@ class BCIControlInterface:
             command = self._mi_to_command(result.predicted_class)
             confidence = result.confidence
 
-        action = BCIAction(
-            command=command,
-            target=None,
-            parameters={},
-            confidence=confidence,
-            timestamp=time.time()
-        )
+        action = BCIAction(command=command, target=None, parameters={}, confidence=confidence, timestamp=time.time())
 
         if self.active_session:
             self.active_session.command_history.append(action)
@@ -1216,19 +1216,19 @@ class BCIControlInterface:
             MotorImageryType.RIGHT_HAND: BCICommand.NAVIGATE_RIGHT,
             MotorImageryType.FEET: BCICommand.SCROLL_DOWN,
             MotorImageryType.TONGUE: BCICommand.SELECT,
-            MotorImageryType.REST: BCICommand.CANCEL
+            MotorImageryType.REST: BCICommand.CANCEL,
         }
         return mapping.get(mi_type, BCICommand.CANCEL)
 
     def _ssvep_to_command(self, ssvep_cmd: str) -> BCICommand:
         """Map SSVEP command to BCI command"""
         mapping = {
-            'up': BCICommand.SCROLL_UP,
-            'down': BCICommand.SCROLL_DOWN,
-            'left': BCICommand.NAVIGATE_LEFT,
-            'right': BCICommand.NAVIGATE_RIGHT,
-            'select': BCICommand.SELECT,
-            'back': BCICommand.CANCEL
+            "up": BCICommand.SCROLL_UP,
+            "down": BCICommand.SCROLL_DOWN,
+            "left": BCICommand.NAVIGATE_LEFT,
+            "right": BCICommand.NAVIGATE_RIGHT,
+            "select": BCICommand.SELECT,
+            "back": BCICommand.CANCEL,
         }
         return mapping.get(ssvep_cmd, BCICommand.CANCEL)
 
@@ -1264,7 +1264,7 @@ class BCIControlInterface:
 
         while time.time() - start_time < duration:
             char = await self.p300_detector.spell_character(n_repetitions=5)
-            if char == '_':
+            if char == "_":
                 break
             text += char
 
@@ -1276,19 +1276,15 @@ class BCIControlInterface:
 
     async def execute_action(self, action: BCIAction) -> Dict[str, Any]:
         """Execute BCI action"""
-        result = {
-            'success': True,
-            'action': action.command.value,
-            'timestamp': time.time()
-        }
+        result = {"success": True, "action": action.command.value, "timestamp": time.time()}
 
         # In real implementation, would execute actual document management actions
         if action.command == BCICommand.OPEN:
-            result['operation'] = 'document_opened'
+            result["operation"] = "document_opened"
         elif action.command == BCICommand.SCROLL_DOWN:
-            result['operation'] = 'scrolled_down'
+            result["operation"] = "scrolled_down"
         elif action.command == BCICommand.SELECT:
-            result['operation'] = 'item_selected'
+            result["operation"] = "item_selected"
 
         return result
 
@@ -1299,7 +1295,7 @@ class BCIControlInterface:
     def get_session_stats(self) -> Dict[str, Any]:
         """Get session statistics"""
         if not self.active_session:
-            return {'error': 'No active session'}
+            return {"error": "No active session"}
 
         session = self.active_session
         duration = time.time() - session.start_time
@@ -1310,12 +1306,12 @@ class BCIControlInterface:
             session.accuracy = avg_confidence
 
         return {
-            'session_id': session.session_id,
-            'user_id': session.user_id,
-            'duration': duration,
-            'n_commands': len(session.command_history),
-            'accuracy': session.accuracy,
-            'commands_per_minute': len(session.command_history) / (duration / 60) if duration > 0 else 0
+            "session_id": session.session_id,
+            "user_id": session.user_id,
+            "duration": duration,
+            "n_commands": len(session.command_history),
+            "accuracy": session.accuracy,
+            "commands_per_minute": len(session.command_history) / (duration / 60) if duration > 0 else 0,
         }
 
 
@@ -1339,8 +1335,10 @@ def get_bci_control(bci_mode: str = "motor_imagery") -> BCIControlInterface:
 # 7. NEUROFEEDBACK SYSTEM (~190 lines)
 # ============================================================================
 
+
 class FeedbackProtocol(Enum):
     """Neurofeedback training protocols"""
+
     SMR_TRAINING = "smr_training"
     ALPHA_TRAINING = "alpha_training"
     THETA_TRAINING = "theta_training"
@@ -1352,6 +1350,7 @@ class FeedbackProtocol(Enum):
 @dataclass
 class FeedbackTarget:
     """Feedback training target"""
+
     protocol: FeedbackProtocol
     target_frequency: Tuple[float, float]
     target_amplitude: float
@@ -1362,6 +1361,7 @@ class FeedbackTarget:
 @dataclass
 class TrainingSession:
     """Neurofeedback training session"""
+
     session_id: str
     user_id: str
     protocol: FeedbackProtocol
@@ -1391,29 +1391,29 @@ class NeurofeedbackSystem:
                 target_frequency=(12.0, 15.0),
                 target_amplitude=10.0,
                 reward_threshold=0.7,
-                channels=['C3', 'C4']
+                channels=["C3", "C4"],
             ),
             FeedbackProtocol.ALPHA_TRAINING: FeedbackTarget(
                 protocol=FeedbackProtocol.ALPHA_TRAINING,
                 target_frequency=(8.0, 13.0),
                 target_amplitude=15.0,
                 reward_threshold=0.7,
-                channels=['O1', 'O2']
+                channels=["O1", "O2"],
             ),
             FeedbackProtocol.THETA_TRAINING: FeedbackTarget(
                 protocol=FeedbackProtocol.THETA_TRAINING,
                 target_frequency=(4.0, 8.0),
                 target_amplitude=12.0,
                 reward_threshold=0.6,
-                channels=['Fz', 'Cz']
+                channels=["Fz", "Cz"],
             ),
             FeedbackProtocol.BETA_TRAINING: FeedbackTarget(
                 protocol=FeedbackProtocol.BETA_TRAINING,
                 target_frequency=(13.0, 30.0),
                 target_amplitude=8.0,
                 reward_threshold=0.7,
-                channels=['Fz', 'Cz']
-            )
+                channels=["Fz", "Cz"],
+            ),
         }
 
         return targets.get(self.protocol, targets[FeedbackProtocol.ALPHA_TRAINING])
@@ -1427,7 +1427,7 @@ class NeurofeedbackSystem:
             duration=duration,
             success_rate=0.0,
             average_score=0.0,
-            start_time=time.time()
+            start_time=time.time(),
         )
 
         self.current_session = session
@@ -1445,7 +1445,7 @@ class NeurofeedbackSystem:
             scores.append(score)
 
             # Provide feedback
-            await self.update_visualization({'score': score, 'reward': score > 0.7})
+            await self.update_visualization({"score": score, "reward": score > 0.7})
 
         # Calculate session statistics
         session.average_score = float(np.mean(scores))
@@ -1466,20 +1466,17 @@ class NeurofeedbackSystem:
 
         # Compute current band power
         band_power = self._compute_band_power(
-            signal.data,
-            target.target_frequency[0],
-            target.target_frequency[1],
-            signal.sampling_rate
+            signal.data, target.target_frequency[0], target.target_frequency[1], signal.sampling_rate
         )
 
         current_amplitude = float(np.mean(band_power))
 
         feedback = {
-            'reward': reward,
-            'target_amplitude': target.target_amplitude,
-            'current_amplitude': current_amplitude,
-            'success': reward > target.reward_threshold,
-            'timestamp': time.time()
+            "reward": reward,
+            "target_amplitude": target.target_amplitude,
+            "current_amplitude": current_amplitude,
+            "success": reward > target.reward_threshold,
+            "timestamp": time.time(),
         }
 
         return feedback
@@ -1488,10 +1485,7 @@ class NeurofeedbackSystem:
         """Calculate reward based on signal"""
         # Compute power in target frequency band
         band_power = self._compute_band_power(
-            signal.data,
-            target.target_frequency[0],
-            target.target_frequency[1],
-            signal.sampling_rate
+            signal.data, target.target_frequency[0], target.target_frequency[1], signal.sampling_rate
         )
 
         current_amplitude = np.mean(band_power)
@@ -1501,14 +1495,15 @@ class NeurofeedbackSystem:
 
         return float(reward)
 
-    def _compute_band_power(self, signal: np.ndarray, low_freq: float,
-                           high_freq: float, sampling_rate: int) -> np.ndarray:
+    def _compute_band_power(
+        self, signal: np.ndarray, low_freq: float, high_freq: float, sampling_rate: int
+    ) -> np.ndarray:
         """Compute power in frequency band"""
         fft = np.fft.fft(signal, axis=1)
-        freqs = np.fft.fftfreq(signal.shape[1], 1/sampling_rate)
+        freqs = np.fft.fftfreq(signal.shape[1], 1 / sampling_rate)
 
         band_mask = (freqs >= low_freq) & (freqs <= high_freq)
-        band_power = np.mean(np.abs(fft[:, band_mask])**2, axis=1)
+        band_power = np.mean(np.abs(fft[:, band_mask]) ** 2, axis=1)
 
         return band_power
 

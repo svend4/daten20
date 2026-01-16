@@ -8,13 +8,16 @@ and financial parameters.
 
 import logging
 from decimal import Decimal, InvalidOperation
-from typing import Dict, Any, Optional, List
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from src.core.input_validation import InputValidator, ValidationError
 from src.utils.constants import REGIONAL_COEFFICIENTS
 
-logger = logging.getLogger('dms.financial_validation')
+if TYPE_CHECKING:
+    from src.models.financial import FinancialParameters
+
+logger = logging.getLogger("dms.financial_validation")
 
 
 class FinancialValidator:
@@ -31,51 +34,19 @@ class FinancialValidator:
 
         # Define financial validation rules
         self.rules = {
-            'brutto_rate': {
-                'min': Decimal("0"),
-                'max': Decimal("1000000"),
-                'description': "Brutto hourly rate"
+            "brutto_rate": {"min": Decimal("0"), "max": Decimal("1000000"), "description": "Brutto hourly rate"},
+            "region_coefficient": {"min": Decimal("0.1"), "max": Decimal("10"), "description": "Regional coefficient"},
+            "materials_cost": {"min": Decimal("0"), "max": Decimal("100000"), "description": "Materials cost per hour"},
+            "admin_percent": {"min": Decimal("0"), "max": Decimal("100"), "description": "Administrative percentage"},
+            "insurance_rate": {"min": Decimal("0"), "max": Decimal("100"), "description": "Insurance rate percentage"},
+            "surcharge_percent": {"min": Decimal("0"), "max": Decimal("200"), "description": "Surcharge percentage"},
+            "umlage_percent": {"min": Decimal("0"), "max": Decimal("10"), "description": "Umlage percentage"},
+            "vacation_reserve": {
+                "min": Decimal("0"),
+                "max": Decimal("50"),
+                "description": "Vacation reserve percentage",
             },
-            'region_coefficient': {
-                'min': Decimal("0.1"),
-                'max': Decimal("10"),
-                'description': "Regional coefficient"
-            },
-            'materials_cost': {
-                'min': Decimal("0"),
-                'max': Decimal("100000"),
-                'description': "Materials cost per hour"
-            },
-            'admin_percent': {
-                'min': Decimal("0"),
-                'max': Decimal("100"),
-                'description': "Administrative percentage"
-            },
-            'insurance_rate': {
-                'min': Decimal("0"),
-                'max': Decimal("100"),
-                'description': "Insurance rate percentage"
-            },
-            'surcharge_percent': {
-                'min': Decimal("0"),
-                'max': Decimal("200"),
-                'description': "Surcharge percentage"
-            },
-            'umlage_percent': {
-                'min': Decimal("0"),
-                'max': Decimal("10"),
-                'description': "Umlage percentage"
-            },
-            'vacation_reserve': {
-                'min': Decimal("0"),
-                'max': Decimal("50"),
-                'description': "Vacation reserve percentage"
-            },
-            'hours': {
-                'min': Decimal("0"),
-                'max': Decimal("10000"),
-                'description': "Working hours"
-            }
+            "hours": {"min": Decimal("0"), "max": Decimal("10000"), "description": "Working hours"},
         }
 
     def validate_decimal(
@@ -84,7 +55,7 @@ class FinancialValidator:
         param_name: str,
         min_value: Optional[Decimal] = None,
         max_value: Optional[Decimal] = None,
-        allow_zero: bool = True
+        allow_zero: bool = True,
     ) -> Decimal:
         """
         Validate and convert value to Decimal.
@@ -106,49 +77,34 @@ class FinancialValidator:
         try:
             if isinstance(value, str):
                 # Remove spaces and replace comma with dot
-                value = value.strip().replace(',', '.')
+                value = value.strip().replace(",", ".")
 
             decimal_value = Decimal(str(value))
         except (ValueError, InvalidOperation) as e:
-            raise ValidationError(
-                f"{param_name} must be a valid number, got: {value}"
-            )
+            raise ValidationError(f"{param_name} must be a valid number, got: {value}")
 
         # Check for NaN or Infinity
         if not decimal_value.is_finite():
-            raise ValidationError(
-                f"{param_name} must be a finite number"
-            )
+            raise ValidationError(f"{param_name} must be a finite number")
 
         # Check if zero is allowed
         if not allow_zero and decimal_value == Decimal("0"):
-            raise ValidationError(
-                f"{param_name} cannot be zero"
-            )
+            raise ValidationError(f"{param_name} cannot be zero")
 
         # Check minimum value
         if min_value is not None and decimal_value < min_value:
-            raise ValidationError(
-                f"{param_name} must be at least {min_value}, got: {decimal_value}"
-            )
+            raise ValidationError(f"{param_name} must be at least {min_value}, got: {decimal_value}")
 
         # Check maximum value
         if max_value is not None and decimal_value > max_value:
-            raise ValidationError(
-                f"{param_name} cannot exceed {max_value}, got: {decimal_value}"
-            )
+            raise ValidationError(f"{param_name} cannot exceed {max_value}, got: {decimal_value}")
 
         return decimal_value
 
     def validate_brutto_rate(self, value: Any) -> Decimal:
         """Validate brutto hourly rate."""
-        rules = self.rules['brutto_rate']
-        return self.validate_decimal(
-            value,
-            rules['description'],
-            rules['min'],
-            rules['max']
-        )
+        rules = self.rules["brutto_rate"]
+        return self.validate_decimal(value, rules["description"], rules["min"], rules["max"])
 
     def validate_region_coefficient(self, value: Any, region_name: Optional[str] = None) -> Decimal:
         """
@@ -167,42 +123,23 @@ class FinancialValidator:
         # If region name provided, validate it exists
         if region_name is not None:
             if region_name not in REGIONAL_COEFFICIENTS:
-                valid_regions = ', '.join(REGIONAL_COEFFICIENTS.keys())
-                raise ValidationError(
-                    f"Invalid region: {region_name}. "
-                    f"Valid regions: {valid_regions}"
-                )
+                valid_regions = ", ".join(REGIONAL_COEFFICIENTS.keys())
+                raise ValidationError(f"Invalid region: {region_name}. " f"Valid regions: {valid_regions}")
             # Use predefined coefficient
             value = REGIONAL_COEFFICIENTS[region_name]
 
-        rules = self.rules['region_coefficient']
-        return self.validate_decimal(
-            value,
-            rules['description'],
-            rules['min'],
-            rules['max'],
-            allow_zero=False
-        )
+        rules = self.rules["region_coefficient"]
+        return self.validate_decimal(value, rules["description"], rules["min"], rules["max"], allow_zero=False)
 
     def validate_materials_cost(self, value: Any) -> Decimal:
         """Validate materials cost per hour."""
-        rules = self.rules['materials_cost']
-        return self.validate_decimal(
-            value,
-            rules['description'],
-            rules['min'],
-            rules['max']
-        )
+        rules = self.rules["materials_cost"]
+        return self.validate_decimal(value, rules["description"], rules["min"], rules["max"])
 
     def validate_admin_percent(self, value: Any) -> Decimal:
         """Validate administrative percentage."""
-        rules = self.rules['admin_percent']
-        return self.validate_decimal(
-            value,
-            rules['description'],
-            rules['min'],
-            rules['max']
-        )
+        rules = self.rules["admin_percent"]
+        return self.validate_decimal(value, rules["description"], rules["min"], rules["max"])
 
     def validate_insurance_rate(self, rate_name: str, value: Any) -> Decimal:
         """
@@ -220,21 +157,13 @@ class FinancialValidator:
         """
         # Normalize rate name (check if starts with valid prefix)
         rate_prefix = rate_name.upper().split()[0]  # "KV zusatz" -> "KV"
-        valid_rates = ['KV', 'PV', 'RV', 'AV', 'UV']
+        valid_rates = ["KV", "PV", "RV", "AV", "UV"]
 
         if rate_prefix not in valid_rates:
-            raise ValidationError(
-                f"Invalid insurance rate name: {rate_name}. "
-                f"Valid: {', '.join(valid_rates)}"
-            )
+            raise ValidationError(f"Invalid insurance rate name: {rate_name}. " f"Valid: {', '.join(valid_rates)}")
 
-        rules = self.rules['insurance_rate']
-        return self.validate_decimal(
-            value,
-            f"{rate_name} {rules['description']}",
-            rules['min'],
-            rules['max']
-        )
+        rules = self.rules["insurance_rate"]
+        return self.validate_decimal(value, f"{rate_name} {rules['description']}", rules["min"], rules["max"])
 
     def validate_surcharge(self, surcharge_type: str, value: Any) -> Decimal:
         """
@@ -250,20 +179,12 @@ class FinancialValidator:
         Raises:
             ValidationError: If validation fails
         """
-        valid_types = ['night', 'weekend', 'holiday', 'urgent']
+        valid_types = ["night", "weekend", "holiday", "urgent"]
         if surcharge_type not in valid_types:
-            raise ValidationError(
-                f"Invalid surcharge type: {surcharge_type}. "
-                f"Valid: {', '.join(valid_types)}"
-            )
+            raise ValidationError(f"Invalid surcharge type: {surcharge_type}. " f"Valid: {', '.join(valid_types)}")
 
-        rules = self.rules['surcharge_percent']
-        return self.validate_decimal(
-            value,
-            f"{surcharge_type} surcharge",
-            rules['min'],
-            rules['max']
-        )
+        rules = self.rules["surcharge_percent"]
+        return self.validate_decimal(value, f"{surcharge_type} surcharge", rules["min"], rules["max"])
 
     def validate_umlage(self, umlage_type: str, value: Any) -> Decimal:
         """
@@ -279,47 +200,26 @@ class FinancialValidator:
         Raises:
             ValidationError: If validation fails
         """
-        valid_types = ['U1', 'U2', 'U3']
+        valid_types = ["U1", "U2", "U3"]
         if umlage_type.upper() not in valid_types:
-            raise ValidationError(
-                f"Invalid umlage type: {umlage_type}. "
-                f"Valid: {', '.join(valid_types)}"
-            )
+            raise ValidationError(f"Invalid umlage type: {umlage_type}. " f"Valid: {', '.join(valid_types)}")
 
-        rules = self.rules['umlage_percent']
-        return self.validate_decimal(
-            value,
-            f"{umlage_type} umlage",
-            rules['min'],
-            rules['max']
-        )
+        rules = self.rules["umlage_percent"]
+        return self.validate_decimal(value, f"{umlage_type} umlage", rules["min"], rules["max"])
 
     def validate_vacation_reserve(self, value: Any) -> Decimal:
         """Validate vacation reserve percentage."""
-        rules = self.rules['vacation_reserve']
-        return self.validate_decimal(
-            value,
-            rules['description'],
-            rules['min'],
-            rules['max']
-        )
+        rules = self.rules["vacation_reserve"]
+        return self.validate_decimal(value, rules["description"], rules["min"], rules["max"])
 
     def validate_hours(self, value: Any) -> Decimal:
         """Validate working hours."""
-        rules = self.rules['hours']
-        decimal_hours = self.validate_decimal(
-            value,
-            rules['description'],
-            rules['min'],
-            rules['max']
-        )
+        rules = self.rules["hours"]
+        decimal_hours = self.validate_decimal(value, rules["description"], rules["min"], rules["max"])
 
         # Additional check: hours should be reasonable (warn if > 100)
         if decimal_hours > Decimal("100"):
-            logger.warning(
-                f"Hours value is unusually high: {decimal_hours}. "
-                "Please verify this is correct."
-            )
+            logger.warning(f"Hours value is unusually high: {decimal_hours}. " "Please verify this is correct.")
 
         return decimal_hours
 
@@ -349,11 +249,9 @@ class FinancialValidator:
             raise ValidationError(f"Invalid config file: {e}")
 
         # Check file extension
-        valid_extensions = ['.yaml', '.yml', '.json']
+        valid_extensions = [".yaml", ".yml", ".json"]
         if path.suffix.lower() not in valid_extensions:
-            raise ValidationError(
-                f"Config file must be YAML or JSON, got: {path.suffix}"
-            )
+            raise ValidationError(f"Config file must be YAML or JSON, got: {path.suffix}")
 
         # Check file size (max 10MB)
         max_size = 10 * 1024 * 1024  # 10MB
@@ -363,21 +261,18 @@ class FinancialValidator:
             raise ValidationError(f"Cannot access config file: {e}")
 
         if file_size > max_size:
-            raise ValidationError(
-                f"Config file too large: {file_size} bytes (max: {max_size})"
-            )
+            raise ValidationError(f"Config file too large: {file_size} bytes (max: {max_size})")
 
         # Try to load and parse the file
         try:
             from src.utils.helpers import load_config
+
             config = load_config(config_path)
         except Exception as e:
             raise ValidationError(f"Failed to parse config file: {e}")
 
         if not isinstance(config, dict):
-            raise ValidationError(
-                "Config file must contain a dictionary/object"
-            )
+            raise ValidationError("Config file must contain a dictionary/object")
 
         logger.info(f"Config file validated: {config_path}")
         return config
@@ -398,60 +293,52 @@ class FinancialValidator:
         validated = {}
 
         # Validate brutto rate
-        if 'brutto' in args and args['brutto'] is not None:
-            validated['brutto'] = self.validate_brutto_rate(args['brutto'])
+        if "brutto" in args and args["brutto"] is not None:
+            validated["brutto"] = self.validate_brutto_rate(args["brutto"])
 
         # Validate region coefficient
-        if 'coefficient' in args and args['coefficient'] is not None:
-            validated['coefficient'] = self.validate_region_coefficient(
-                args['coefficient']
-            )
+        if "coefficient" in args and args["coefficient"] is not None:
+            validated["coefficient"] = self.validate_region_coefficient(args["coefficient"])
 
         # Validate region name
-        if 'region' in args and args['region'] is not None:
-            validated['region'] = args['region']
-            validated['coefficient'] = self.validate_region_coefficient(
-                None,
-                region_name=args['region']
-            )
+        if "region" in args and args["region"] is not None:
+            validated["region"] = args["region"]
+            validated["coefficient"] = self.validate_region_coefficient(None, region_name=args["region"])
 
         # Validate materials cost
-        if 'materials' in args and args['materials'] is not None:
-            validated['materials'] = self.validate_materials_cost(args['materials'])
+        if "materials" in args and args["materials"] is not None:
+            validated["materials"] = self.validate_materials_cost(args["materials"])
 
         # Validate admin percentage
-        if 'admin' in args and args['admin'] is not None:
-            validated['admin'] = self.validate_admin_percent(args['admin'])
+        if "admin" in args and args["admin"] is not None:
+            validated["admin"] = self.validate_admin_percent(args["admin"])
 
         # Validate hours
-        if 'hours' in args and args['hours'] is not None:
-            validated['hours'] = self.validate_hours(args['hours'])
+        if "hours" in args and args["hours"] is not None:
+            validated["hours"] = self.validate_hours(args["hours"])
 
         # Validate surcharges
-        if 'surcharge' in args and args['surcharge'] is not None:
-            surcharges = args['surcharge'] if isinstance(args['surcharge'], list) else [args['surcharge']]
+        if "surcharge" in args and args["surcharge"] is not None:
+            surcharges = args["surcharge"] if isinstance(args["surcharge"], list) else [args["surcharge"]]
             for surcharge_type in surcharges:
                 self.validate_surcharge(surcharge_type, 25)  # Just validate type
-            validated['surcharge'] = surcharges
+            validated["surcharge"] = surcharges
 
         # Validate mode
-        if 'mode' in args and args['mode'] is not None:
-            valid_modes = ['umlages', 'reserve', 'compare']
-            if args['mode'] not in valid_modes:
-                raise ValidationError(
-                    f"Invalid mode: {args['mode']}. "
-                    f"Valid: {', '.join(valid_modes)}"
-                )
-            validated['mode'] = args['mode']
+        if "mode" in args and args["mode"] is not None:
+            valid_modes = ["umlages", "reserve", "compare"]
+            if args["mode"] not in valid_modes:
+                raise ValidationError(f"Invalid mode: {args['mode']}. " f"Valid: {', '.join(valid_modes)}")
+            validated["mode"] = args["mode"]
 
         # Validate config file
-        if 'config' in args and args['config'] is not None:
-            validated['config'] = self.validate_config_file(args['config'])
+        if "config" in args and args["config"] is not None:
+            validated["config"] = self.validate_config_file(args["config"])
 
         logger.debug(f"CLI arguments validated: {len(validated)} parameters")
         return validated
 
-    def validate_financial_parameters(self, params: 'FinancialParameters') -> None:
+    def validate_financial_parameters(self, params: "FinancialParameters") -> None:
         """
         Validate all financial parameters comprehensively.
 
@@ -477,13 +364,13 @@ class FinancialValidator:
 
         # Validate insurance rates
         insurance_rates = [
-            ('KV', params.insurance_rates.kv_er),
-            ('KV zusatz', params.insurance_rates.kv_zusatz_er),
-            ('PV', params.insurance_rates.pv_er),
-            ('PV (Saxony)', params.insurance_rates.pv_er_sn),
-            ('RV', params.insurance_rates.rv_er),
-            ('AV', params.insurance_rates.av_er),
-            ('UV', params.insurance_rates.uv_er)
+            ("KV", params.insurance_rates.kv_er),
+            ("KV zusatz", params.insurance_rates.kv_zusatz_er),
+            ("PV", params.insurance_rates.pv_er),
+            ("PV (Saxony)", params.insurance_rates.pv_er_sn),
+            ("RV", params.insurance_rates.rv_er),
+            ("AV", params.insurance_rates.av_er),
+            ("UV", params.insurance_rates.uv_er),
         ]
 
         for rate_name, rate_value in insurance_rates:
@@ -492,9 +379,9 @@ class FinancialValidator:
 
         # Validate umlages
         if params.umlages:
-            self.validate_umlage('U1', params.umlages.u1)
-            self.validate_umlage('U2', params.umlages.u2)
-            self.validate_umlage('U3', params.umlages.u3)
+            self.validate_umlage("U1", params.umlages.u1)
+            self.validate_umlage("U2", params.umlages.u2)
+            self.validate_umlage("U3", params.umlages.u3)
 
         # Validate vacation reserve
         if params.vacation_reserve_percent is not None:
@@ -502,10 +389,7 @@ class FinancialValidator:
 
         # Validate mutually exclusive options
         if params.use_umlages and params.use_vacation_reserve:
-            logger.warning(
-                "Both use_umlages and use_vacation_reserve are enabled. "
-                "Using umlages mode by default."
-            )
+            logger.warning("Both use_umlages and use_vacation_reserve are enabled. " "Using umlages mode by default.")
 
         logger.info("All financial parameters validated successfully")
 
@@ -515,7 +399,7 @@ financial_validator = FinancialValidator()
 
 
 # Example usage
-if __name__ == '__main__':
+if __name__ == "__main__":
     import json
 
     # Configure logging
@@ -524,9 +408,9 @@ if __name__ == '__main__':
     validator = FinancialValidator()
 
     # Test validations
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Financial Validator Tests")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     # Test brutto rate
     try:
@@ -556,14 +440,7 @@ if __name__ == '__main__':
         print(f"✓ Caught invalid region: {e}")
 
     # Test CLI args validation
-    test_args = {
-        'brutto': 25.0,
-        'region': 'Bayern',
-        'materials': 5.0,
-        'admin': 10.0,
-        'hours': 40.0,
-        'mode': 'umlages'
-    }
+    test_args = {"brutto": 25.0, "region": "Bayern", "materials": 5.0, "admin": 10.0, "hours": 40.0, "mode": "umlages"}
 
     try:
         validated = validator.validate_cli_args(test_args)
@@ -572,6 +449,6 @@ if __name__ == '__main__':
     except ValidationError as e:
         print(f"✗ Error: {e}")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("All tests completed")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")

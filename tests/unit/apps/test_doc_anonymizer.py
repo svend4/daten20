@@ -10,58 +10,45 @@ Tests all major functionality of DocumentAnonymizer:
 - Batch processing
 """
 
-import pytest
-import sys
-import os
 import json
+import os
+import sys
 import tempfile
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the anonymizer module
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("doc_anonymizer", "doc-anonymizer.py")
 doc_anonymizer = importlib.util.module_from_spec(spec)
-sys.modules['doc_anonymizer'] = doc_anonymizer  # Add to sys.modules for imports to work
+sys.modules["doc_anonymizer"] = doc_anonymizer  # Add to sys.modules for imports to work
 spec.loader.exec_module(doc_anonymizer)
 
-from doc_anonymizer import (
-    DocumentAnonymizer,
-    AnonymizationStrategy,
-    ComplianceMode,
-    PIIItem,
-    AnonymizationResult
-)
+from doc_anonymizer import AnonymizationResult, AnonymizationStrategy, ComplianceMode, DocumentAnonymizer, PIIItem
 
 
 # Fixtures
 @pytest.fixture
 def anonymizer_redaction():
     """Create DocumentAnonymizer with redaction strategy."""
-    return DocumentAnonymizer(
-        strategy=AnonymizationStrategy.REDACTION,
-        compliance_mode=ComplianceMode.GDPR
-    )
+    return DocumentAnonymizer(strategy=AnonymizationStrategy.REDACTION, compliance_mode=ComplianceMode.GDPR)
 
 
 @pytest.fixture
 def anonymizer_masking():
     """Create DocumentAnonymizer with masking strategy."""
-    return DocumentAnonymizer(
-        strategy=AnonymizationStrategy.MASKING,
-        compliance_mode=ComplianceMode.GDPR
-    )
+    return DocumentAnonymizer(strategy=AnonymizationStrategy.MASKING, compliance_mode=ComplianceMode.GDPR)
 
 
 @pytest.fixture
 def anonymizer_replacement():
     """Create DocumentAnonymizer with replacement strategy."""
-    return DocumentAnonymizer(
-        strategy=AnonymizationStrategy.REPLACEMENT,
-        compliance_mode=ComplianceMode.GDPR
-    )
+    return DocumentAnonymizer(strategy=AnonymizationStrategy.REPLACEMENT, compliance_mode=ComplianceMode.GDPR)
 
 
 @pytest.fixture
@@ -98,11 +85,11 @@ class TestDocumentAnonymizer:
         # Check that PII items have correct structure
         for item in pii_items:
             assert isinstance(item, PIIItem)
-            assert hasattr(item, 'text')
-            assert hasattr(item, 'type')
-            assert hasattr(item, 'start')
-            assert hasattr(item, 'end')
-            assert hasattr(item, 'confidence')
+            assert hasattr(item, "text")
+            assert hasattr(item, "type")
+            assert hasattr(item, "start")
+            assert hasattr(item, "end")
+            assert hasattr(item, "confidence")
 
     def test_anonymization_strategies(self):
         """Test all anonymization strategies are available"""
@@ -196,10 +183,7 @@ class TestDocumentAnonymizer:
         """Test full document anonymization with redaction"""
         output_file = tmp_path / "anonymized_redaction.txt"
 
-        result = anonymizer_redaction.anonymize(
-            pii_document_path,
-            str(output_file)
-        )
+        result = anonymizer_redaction.anonymize(pii_document_path, str(output_file))
 
         assert isinstance(result, AnonymizationResult)
         assert output_file.exists()
@@ -211,10 +195,7 @@ class TestDocumentAnonymizer:
         """Test full document anonymization with masking"""
         output_file = tmp_path / "anonymized_masking.txt"
 
-        result = anonymizer_masking.anonymize(
-            pii_document_path,
-            str(output_file)
-        )
+        result = anonymizer_masking.anonymize(pii_document_path, str(output_file))
 
         assert isinstance(result, AnonymizationResult)
         assert output_file.exists()
@@ -230,10 +211,7 @@ class TestDocumentAnonymizer:
         mapping_file = tmp_path / "mapping.enc"
 
         result = anonymizer_redaction.anonymize(
-            pii_document_path,
-            str(output_file),
-            reversible=True,
-            mapping_file=str(mapping_file)
+            pii_document_path, str(output_file), reversible=True, mapping_file=str(mapping_file)
         )
 
         assert result.mapping  # Should have mapping
@@ -257,11 +235,7 @@ class TestDocumentAnonymizer:
         """Test audit trail creation"""
         output_file = tmp_path / "anonymized.txt"
 
-        result = anonymizer_redaction.anonymize(
-            pii_document_path,
-            str(output_file),
-            audit_log=True
-        )
+        result = anonymizer_redaction.anonymize(pii_document_path, str(output_file), audit_log=True)
 
         assert result.audit_trail  # Should have audit trail
         assert len(result.audit_trail) > 0
@@ -275,10 +249,7 @@ class TestDocumentAnonymizer:
         """Test AnonymizationResult to_dict()"""
         output_file = tmp_path / "anonymized.txt"
 
-        result = anonymizer_redaction.anonymize(
-            pii_document_path,
-            str(output_file)
-        )
+        result = anonymizer_redaction.anonymize(pii_document_path, str(output_file))
 
         result_dict = result.to_dict()
 
@@ -292,11 +263,7 @@ class TestDocumentAnonymizer:
         """Test batch anonymization"""
         output_dir = tmp_path / "batch_output"
 
-        results = anonymizer_redaction.batch_anonymize(
-            str(sample_docs_dir),
-            str(output_dir),
-            file_pattern="*.txt"
-        )
+        results = anonymizer_redaction.batch_anonymize(str(sample_docs_dir), str(output_dir), file_pattern="*.txt")
 
         assert isinstance(results, list)
         assert output_dir.exists()
@@ -311,18 +278,11 @@ class TestDocumentAnonymizer:
 
         # 1. Anonymize with reversible=True
         result = anonymizer_redaction.anonymize(
-            pii_document_path,
-            str(anonymized_file),
-            reversible=True,
-            mapping_file=str(mapping_file)
+            pii_document_path, str(anonymized_file), reversible=True, mapping_file=str(mapping_file)
         )
 
         # 2. De-anonymize
-        anonymizer_redaction.deanonymize(
-            str(anonymized_file),
-            str(mapping_file),
-            str(deanonymized_file)
-        )
+        anonymizer_redaction.deanonymize(str(anonymized_file), str(mapping_file), str(deanonymized_file))
 
         assert deanonymized_file.exists()
 
@@ -339,10 +299,7 @@ class TestDocumentAnonymizer:
 
         output_file = tmp_path / "anonymized_no_pii.txt"
 
-        result = anonymizer_redaction.anonymize(
-            str(no_pii_doc),
-            str(output_file)
-        )
+        result = anonymizer_redaction.anonymize(str(no_pii_doc), str(output_file))
 
         # Should complete successfully
         assert result.pii_detected == 0
@@ -356,10 +313,7 @@ class TestDocumentAnonymizer:
         output_file = tmp_path / "anonymized_empty.txt"
 
         # Should not crash
-        result = anonymizer_redaction.anonymize(
-            str(empty_doc),
-            str(output_file)
-        )
+        result = anonymizer_redaction.anonymize(str(empty_doc), str(output_file))
 
         assert result.pii_detected == 0
 
@@ -369,7 +323,7 @@ class TestDocumentAnonymizer:
 
         pii_items = [
             PIIItem(text="Max", type="PERSON", start=11, end=14, confidence=1.0),
-            PIIItem(text="max@example.com", type="EMAIL", start=32, end=47, confidence=1.0)
+            PIIItem(text="max@example.com", type="EMAIL", start=32, end=47, confidence=1.0),
         ]
 
         anonymized_text, mapping = anonymizer_redaction._anonymize_text(text, pii_items)
@@ -387,10 +341,7 @@ class TestDocumentAnonymizerIntegration:
 
     def test_full_gdpr_workflow(self, pii_document_path, tmp_path):
         """Test complete GDPR compliance workflow"""
-        anonymizer = DocumentAnonymizer(
-            strategy=AnonymizationStrategy.MASKING,
-            compliance_mode=ComplianceMode.GDPR
-        )
+        anonymizer = DocumentAnonymizer(strategy=AnonymizationStrategy.MASKING, compliance_mode=ComplianceMode.GDPR)
 
         # 1. Scan for PII
         pii_items = anonymizer.scan_pii(pii_document_path)
@@ -401,11 +352,7 @@ class TestDocumentAnonymizerIntegration:
         mapping_file = tmp_path / "gdpr_mapping.enc"
 
         result = anonymizer.anonymize(
-            pii_document_path,
-            str(output_file),
-            reversible=True,
-            mapping_file=str(mapping_file),
-            audit_log=True
+            pii_document_path, str(output_file), reversible=True, mapping_file=str(mapping_file), audit_log=True
         )
 
         # 3. Verify results
@@ -421,7 +368,7 @@ class TestDocumentAnonymizerIntegration:
             AnonymizationStrategy.MASKING,
             AnonymizationStrategy.REPLACEMENT,
             AnonymizationStrategy.PSEUDONYMIZATION,
-            AnonymizationStrategy.GENERALIZATION
+            AnonymizationStrategy.GENERALIZATION,
         ]
 
         results = []
@@ -430,10 +377,7 @@ class TestDocumentAnonymizerIntegration:
             anonymizer = DocumentAnonymizer(strategy=strategy)
             output_file = tmp_path / f"anonymized_{strategy.value}.txt"
 
-            result = anonymizer.anonymize(
-                pii_document_path,
-                str(output_file)
-            )
+            result = anonymizer.anonymize(pii_document_path, str(output_file))
 
             results.append(result)
             assert output_file.exists()

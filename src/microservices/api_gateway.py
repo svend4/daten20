@@ -20,23 +20,24 @@ Dependencies:
 - jwt (for JWT authentication)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable, Pattern
-from enum import Enum
-from datetime import datetime, timedelta
-import threading
-import time
-import re
 import hashlib
 import json
 import logging
+import re
+import threading
+import time
 from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Pattern
 
 logger = logging.getLogger(__name__)
 
 
 class Protocol(str, Enum):
     """API protocols"""
+
     REST = "rest"
     GRPC = "grpc"
     GRAPHQL = "graphql"
@@ -45,6 +46,7 @@ class Protocol(str, Enum):
 
 class AuthMethod(str, Enum):
     """Authentication methods"""
+
     NONE = "none"
     API_KEY = "api_key"
     JWT = "jwt"
@@ -54,6 +56,7 @@ class AuthMethod(str, Enum):
 
 class HTTPMethod(str, Enum):
     """HTTP methods"""
+
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -65,6 +68,7 @@ class HTTPMethod(str, Enum):
 
 class RateLimitAlgorithm(str, Enum):
     """Rate limiting algorithms"""
+
     TOKEN_BUCKET = "token_bucket"
     SLIDING_WINDOW = "sliding_window"
     FIXED_WINDOW = "fixed_window"
@@ -73,6 +77,7 @@ class RateLimitAlgorithm(str, Enum):
 @dataclass
 class Route:
     """API route configuration"""
+
     path_pattern: str
     service_name: str
     methods: List[HTTPMethod] = field(default_factory=lambda: [HTTPMethod.GET])
@@ -89,7 +94,7 @@ class Route:
         # Convert path pattern to regex
         # /users/{id} -> ^/users/(?P<id>[^/]+)$
         pattern = self.path_pattern
-        pattern = re.sub(r'\{(\w+)\}', r'(?P<\1>[^/]+)', pattern)
+        pattern = re.sub(r"\{(\w+)\}", r"(?P<\1>[^/]+)", pattern)
         self.compiled_pattern = re.compile(f"^{pattern}$")
 
     def matches(self, path: str, method: HTTPMethod) -> Optional[Dict[str, str]]:
@@ -116,6 +121,7 @@ class Route:
 @dataclass
 class APIKey:
     """API key for authentication"""
+
     key: str
     tenant_id: str
     name: str
@@ -139,6 +145,7 @@ class APIKey:
 @dataclass
 class RateLimitConfig:
     """Rate limit configuration"""
+
     max_requests: int
     window_seconds: int
     algorithm: RateLimitAlgorithm = RateLimitAlgorithm.TOKEN_BUCKET
@@ -147,6 +154,7 @@ class RateLimitConfig:
 @dataclass
 class Request:
     """API request"""
+
     method: HTTPMethod
     path: str
     headers: Dict[str, str] = field(default_factory=dict)
@@ -160,6 +168,7 @@ class Request:
 @dataclass
 class Response:
     """API response"""
+
     status_code: int
     body: Any
     headers: Dict[str, str] = field(default_factory=dict)
@@ -362,24 +371,25 @@ class AuthManager:
             # return payload
 
             # Simplified validation for demonstration
-            parts = token.split('.')
+            parts = token.split(".")
             if len(parts) != 3:
                 return None
 
             # Decode payload (base64)
             import base64
+
             payload_encoded = parts[1]
             # Add padding if needed
             padding = 4 - len(payload_encoded) % 4
             if padding != 4:
-                payload_encoded += '=' * padding
+                payload_encoded += "=" * padding
 
             payload_bytes = base64.urlsafe_b64decode(payload_encoded)
-            payload = json.loads(payload_bytes.decode('utf-8'))
+            payload = json.loads(payload_bytes.decode("utf-8"))
 
             # Check expiration
-            if 'exp' in payload:
-                exp = payload['exp']
+            if "exp" in payload:
+                exp = payload["exp"]
                 if time.time() > exp:
                     return None
 
@@ -440,12 +450,8 @@ class ResponseCache:
 
     def _make_cache_key(self, request: Request) -> str:
         """Generate cache key from request"""
-        key_parts = [
-            request.method.value,
-            request.path,
-            json.dumps(request.query_params, sort_keys=True)
-        ]
-        key_str = '|'.join(key_parts)
+        key_parts = [request.method.value, request.path, json.dumps(request.query_params, sort_keys=True)]
+        key_str = "|".join(key_parts)
         return hashlib.md5(key_str.encode()).hexdigest()
 
 
@@ -457,11 +463,7 @@ class APIGateway:
     Handles routing, auth, rate limiting, caching, and protocol translation.
     """
 
-    def __init__(
-        self,
-        jwt_secret: Optional[str] = None,
-        enable_caching: bool = True
-    ):
+    def __init__(self, jwt_secret: Optional[str] = None, enable_caching: bool = True):
         self.router = Router()
         self.auth_manager = AuthManager()
         self.rate_limiter = SlidingWindowRateLimiter(max_requests=100, window_seconds=60)
@@ -506,11 +508,7 @@ class APIGateway:
             rate_limit = route.rate_limit or 100
 
             if not self.rate_limiter.is_allowed(client_id):
-                return Response(
-                    status_code=429,
-                    body={"error": "Rate limit exceeded"},
-                    headers={"Retry-After": "60"}
-                )
+                return Response(status_code=429, body={"error": "Rate limit exceeded"}, headers={"Retry-After": "60"})
 
             # 4. Cache check (only for GET requests)
             if request.method == HTTPMethod.GET and self.cache:
@@ -563,20 +561,11 @@ class APIGateway:
 
     def _make_cache_key(self, request: Request) -> str:
         """Generate cache key from request"""
-        key_parts = [
-            request.method.value,
-            request.path,
-            json.dumps(request.query_params, sort_keys=True)
-        ]
-        key_str = '|'.join(key_parts)
+        key_parts = [request.method.value, request.path, json.dumps(request.query_params, sort_keys=True)]
+        key_str = "|".join(key_parts)
         return hashlib.md5(key_str.encode()).hexdigest()
 
-    def _forward_to_service(
-        self,
-        route: Route,
-        request: Request,
-        path_params: Dict[str, str]
-    ) -> Response:
+    def _forward_to_service(self, route: Route, request: Request, path_params: Dict[str, str]) -> Response:
         """
         Forward request to backend service
 
@@ -604,12 +593,7 @@ class APIGateway:
 
         return Response(
             status_code=200,
-            body={
-                "service": route.service_name,
-                "path": request.path,
-                "params": path_params,
-                "message": "Success"
-            }
+            body={"service": route.service_name, "path": request.path, "params": path_params, "message": "Success"},
         )
 
     def _increment_request_count(self):
@@ -629,7 +613,7 @@ class APIGateway:
                 "total_requests": self._request_count,
                 "total_errors": self._error_count,
                 "error_rate": self._error_count / self._request_count if self._request_count > 0 else 0,
-                "routes_count": len(self.router.routes)
+                "routes_count": len(self.router.routes),
             }
 
 
@@ -655,29 +639,28 @@ if __name__ == "__main__":
     gateway = get_api_gateway()
 
     # Add some routes
-    gateway.add_route(Route(
-        path_pattern="/api/v1/users/{id}",
-        service_name="user-service",
-        methods=[HTTPMethod.GET, HTTPMethod.PUT],
-        auth_method=AuthMethod.JWT,
-        rate_limit=100
-    ))
+    gateway.add_route(
+        Route(
+            path_pattern="/api/v1/users/{id}",
+            service_name="user-service",
+            methods=[HTTPMethod.GET, HTTPMethod.PUT],
+            auth_method=AuthMethod.JWT,
+            rate_limit=100,
+        )
+    )
 
-    gateway.add_route(Route(
-        path_pattern="/api/v1/products",
-        service_name="product-service",
-        methods=[HTTPMethod.GET, HTTPMethod.POST],
-        auth_method=AuthMethod.API_KEY,
-        rate_limit=200
-    ))
+    gateway.add_route(
+        Route(
+            path_pattern="/api/v1/products",
+            service_name="product-service",
+            methods=[HTTPMethod.GET, HTTPMethod.POST],
+            auth_method=AuthMethod.API_KEY,
+            rate_limit=200,
+        )
+    )
 
     # Add API key
-    api_key = APIKey(
-        key="test-api-key-12345",
-        tenant_id="tenant-1",
-        name="Test Application",
-        scopes=["read", "write"]
-    )
+    api_key = APIKey(key="test-api-key-12345", tenant_id="tenant-1", name="Test Application", scopes=["read", "write"])
     gateway.auth_manager.add_api_key(api_key)
 
     # Test request
@@ -685,7 +668,7 @@ if __name__ == "__main__":
         method=HTTPMethod.GET,
         path="/api/v1/products",
         headers={"X-API-Key": "test-api-key-12345"},
-        client_ip="192.168.1.100"
+        client_ip="192.168.1.100",
     )
 
     response = gateway.handle_request(request)
@@ -695,8 +678,10 @@ if __name__ == "__main__":
     request2 = Request(
         method=HTTPMethod.GET,
         path="/api/v1/users/123",
-        headers={"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTIzIiwiZXhwIjoxOTAwMDAwMDAwfQ.signature"},
-        client_ip="192.168.1.101"
+        headers={
+            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTIzIiwiZXhwIjoxOTAwMDAwMDAwfQ.signature"
+        },
+        client_ip="192.168.1.101",
     )
 
     response2 = gateway.handle_request(request2)

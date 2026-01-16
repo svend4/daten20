@@ -12,16 +12,17 @@ Provides integrations with major payment providers:
 - Generic payment processing
 """
 
-from typing import Optional, List, Dict, Any
+import hashlib
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import uuid
-import hashlib
+from typing import Any, Dict, List, Optional
 
 
 class PaymentProvider(str, Enum):
     """Supported payment providers"""
+
     STRIPE = "stripe"
     PAYPAL = "paypal"
     SQUARE = "square"
@@ -35,6 +36,7 @@ class PaymentProvider(str, Enum):
 
 class PaymentMethod(str, Enum):
     """Payment methods"""
+
     CARD = "card"
     BANK_TRANSFER = "bank_transfer"
     SEPA_DEBIT = "sepa_debit"
@@ -49,6 +51,7 @@ class PaymentMethod(str, Enum):
 
 class PaymentStatus(str, Enum):
     """Payment status"""
+
     PENDING = "pending"
     PROCESSING = "processing"
     SUCCEEDED = "succeeded"
@@ -60,6 +63,7 @@ class PaymentStatus(str, Enum):
 
 class Currency(str, Enum):
     """Supported currencies"""
+
     EUR = "EUR"
     USD = "USD"
     GBP = "GBP"
@@ -71,6 +75,7 @@ class Currency(str, Enum):
 @dataclass
 class PaymentGatewayConfig:
     """Payment gateway configuration"""
+
     id: str
     provider: PaymentProvider
     name: str
@@ -88,6 +93,7 @@ class PaymentGatewayConfig:
 @dataclass
 class PaymentCustomer:
     """Payment customer"""
+
     id: Optional[str] = None
     email: str = ""
     name: Optional[str] = None
@@ -99,6 +105,7 @@ class PaymentCustomer:
 @dataclass
 class PaymentIntent:
     """Payment intent/transaction"""
+
     id: str
     provider: PaymentProvider
     amount: float
@@ -117,6 +124,7 @@ class PaymentIntent:
 @dataclass
 class Refund:
     """Payment refund"""
+
     id: str
     payment_id: str
     amount: float
@@ -130,6 +138,7 @@ class Refund:
 @dataclass
 class Subscription:
     """Recurring subscription"""
+
     id: str
     customer_id: str
     amount: float
@@ -155,7 +164,7 @@ class StripeConnector:
         amount: float,
         currency: Currency,
         customer: Optional[PaymentCustomer] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> PaymentIntent:
         """Create Stripe payment intent"""
         # In production, use stripe library
@@ -182,7 +191,7 @@ class StripeConnector:
             metadata=metadata or {},
             provider_transaction_id=stripe_id,
             fee=amount * 0.029 + 0.30,  # Stripe fee: 2.9% + $0.30
-            net_amount=amount - (amount * 0.029 + 0.30)
+            net_amount=amount - (amount * 0.029 + 0.30),
         )
 
         print(f"[Stripe] Created payment intent: {stripe_id} for {amount} {currency.value}")
@@ -195,12 +204,7 @@ class StripeConnector:
         print(f"[Stripe] Confirmed payment: {payment_id}")
         return True
 
-    def create_refund(
-        self,
-        payment_id: str,
-        amount: Optional[float] = None,
-        reason: Optional[str] = None
-    ) -> Refund:
+    def create_refund(self, payment_id: str, amount: Optional[float] = None, reason: Optional[str] = None) -> Refund:
         """Create refund"""
         # stripe.Refund.create(
         #     payment_intent=payment_id,
@@ -218,7 +222,7 @@ class StripeConnector:
             currency=Currency.EUR,
             reason=reason,
             status=PaymentStatus.PROCESSING,
-            provider_refund_id=stripe_refund_id
+            provider_refund_id=stripe_refund_id,
         )
 
         print(f"[Stripe] Created refund: {stripe_refund_id}")
@@ -258,14 +262,11 @@ class PayPalConnector:
         self.config = config
         self.client_id = config.api_key
         self.secret = config.secret_key
-        self.base_url = "https://api-m.paypal.com" if config.environment == "production" else "https://api-m.sandbox.paypal.com"
+        self.base_url = (
+            "https://api-m.paypal.com" if config.environment == "production" else "https://api-m.sandbox.paypal.com"
+        )
 
-    def create_order(
-        self,
-        amount: float,
-        currency: Currency,
-        description: Optional[str] = None
-    ) -> PaymentIntent:
+    def create_order(self, amount: float, currency: Currency, description: Optional[str] = None) -> PaymentIntent:
         """Create PayPal order"""
         # In production, use paypalrestsdk or requests
         # POST /v2/checkout/orders
@@ -282,7 +283,7 @@ class PayPalConnector:
             description=description,
             provider_transaction_id=paypal_order_id,
             fee=amount * 0.0349 + 0.49,  # PayPal fee: 3.49% + $0.49
-            net_amount=amount - (amount * 0.0349 + 0.49)
+            net_amount=amount - (amount * 0.0349 + 0.49),
         )
 
         print(f"[PayPal] Created order: {paypal_order_id} for {amount} {currency.value}")
@@ -295,11 +296,7 @@ class PayPalConnector:
         print(f"[PayPal] Captured order: {order_id}")
         return True
 
-    def create_refund(
-        self,
-        capture_id: str,
-        amount: Optional[float] = None
-    ) -> Refund:
+    def create_refund(self, capture_id: str, amount: Optional[float] = None) -> Refund:
         """Create PayPal refund"""
         # POST /v2/payments/captures/{capture_id}/refund
 
@@ -312,7 +309,7 @@ class PayPalConnector:
             amount=amount or 0.0,
             currency=Currency.EUR,
             status=PaymentStatus.PROCESSING,
-            provider_refund_id=paypal_refund_id
+            provider_refund_id=paypal_refund_id,
         )
 
         print(f"[PayPal] Created refund: {paypal_refund_id}")
@@ -325,14 +322,14 @@ class SquareConnector:
     def __init__(self, config: PaymentGatewayConfig):
         self.config = config
         self.access_token = config.api_key
-        self.base_url = "https://connect.squareup.com" if config.environment == "production" else "https://connect.squareupsandbox.com"
+        self.base_url = (
+            "https://connect.squareup.com"
+            if config.environment == "production"
+            else "https://connect.squareupsandbox.com"
+        )
 
     def create_payment(
-        self,
-        amount: float,
-        currency: Currency,
-        source_id: str,
-        customer: Optional[PaymentCustomer] = None
+        self, amount: float, currency: Currency, source_id: str, customer: Optional[PaymentCustomer] = None
     ) -> PaymentIntent:
         """Create Square payment"""
         # In production, use square SDK
@@ -351,18 +348,13 @@ class SquareConnector:
             status=PaymentStatus.PROCESSING,
             provider_transaction_id=square_payment_id,
             fee=amount * 0.029 + 0.30,  # Square fee: 2.9% + $0.30
-            net_amount=amount - (amount * 0.029 + 0.30)
+            net_amount=amount - (amount * 0.029 + 0.30),
         )
 
         print(f"[Square] Created payment: {square_payment_id} for {amount} {currency.value}")
         return payment
 
-    def create_refund(
-        self,
-        payment_id: str,
-        amount: float,
-        currency: Currency
-    ) -> Refund:
+    def create_refund(self, payment_id: str, amount: float, currency: Currency) -> Refund:
         """Create Square refund"""
         # POST /v2/refunds
 
@@ -375,7 +367,7 @@ class SquareConnector:
             amount=amount,
             currency=currency,
             status=PaymentStatus.PROCESSING,
-            provider_refund_id=square_refund_id
+            provider_refund_id=square_refund_id,
         )
 
         print(f"[Square] Created refund: {square_refund_id}")
@@ -427,7 +419,7 @@ class PaymentGateway:
         currency: Currency,
         customer: Optional[PaymentCustomer] = None,
         description: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Optional[PaymentIntent]:
         """Create payment"""
         connector = self.get_connector(gateway_id)
@@ -436,16 +428,12 @@ class PaymentGateway:
 
         try:
             if isinstance(connector, StripeConnector):
-                payment = connector.create_payment_intent(
-                    amount, currency, customer, metadata
-                )
+                payment = connector.create_payment_intent(amount, currency, customer, metadata)
             elif isinstance(connector, PayPalConnector):
                 payment = connector.create_order(amount, currency, description)
             elif isinstance(connector, SquareConnector):
                 # Square requires source_id (card token)
-                payment = connector.create_payment(
-                    amount, currency, "simulated_source_id", customer
-                )
+                payment = connector.create_payment(amount, currency, "simulated_source_id", customer)
             else:
                 return None
 
@@ -497,10 +485,7 @@ class PaymentGateway:
             return False
 
     def refund_payment(
-        self,
-        payment_id: str,
-        amount: Optional[float] = None,
-        reason: Optional[str] = None
+        self, payment_id: str, amount: Optional[float] = None, reason: Optional[str] = None
     ) -> Optional[Refund]:
         """Refund payment"""
         # Find payment
@@ -527,22 +512,11 @@ class PaymentGateway:
             refund_amount = amount or payment.amount
 
             if isinstance(connector, StripeConnector):
-                refund = connector.create_refund(
-                    payment.provider_transaction_id,
-                    refund_amount,
-                    reason
-                )
+                refund = connector.create_refund(payment.provider_transaction_id, refund_amount, reason)
             elif isinstance(connector, PayPalConnector):
-                refund = connector.create_refund(
-                    payment.provider_transaction_id,
-                    refund_amount
-                )
+                refund = connector.create_refund(payment.provider_transaction_id, refund_amount)
             elif isinstance(connector, SquareConnector):
-                refund = connector.create_refund(
-                    payment.provider_transaction_id,
-                    refund_amount,
-                    payment.currency
-                )
+                refund = connector.create_refund(payment.provider_transaction_id, refund_amount, payment.currency)
             else:
                 return None
 
@@ -568,19 +542,13 @@ class PaymentGateway:
         return None
 
     def get_payments(
-        self,
-        customer_email: Optional[str] = None,
-        status: Optional[PaymentStatus] = None,
-        limit: int = 50
+        self, customer_email: Optional[str] = None, status: Optional[PaymentStatus] = None, limit: int = 50
     ) -> List[PaymentIntent]:
         """Get payments with filters"""
         payments = self.payments
 
         if customer_email:
-            payments = [
-                p for p in payments
-                if p.customer and p.customer.email == customer_email
-            ]
+            payments = [p for p in payments if p.customer and p.customer.email == customer_email]
 
         if status:
             payments = [p for p in payments if p.status == status]
@@ -597,16 +565,16 @@ class PaymentGateway:
         total_refunded = sum(r.amount for r in self.refunds)
 
         return {
-            'total_payments': total_payments,
-            'successful_payments': successful_payments,
-            'failed_payments': len([p for p in self.payments if p.status == PaymentStatus.FAILED]),
-            'success_rate': (successful_payments / total_payments * 100) if total_payments > 0 else 0,
-            'total_revenue': total_revenue,
-            'total_fees': total_fees,
-            'net_revenue': total_revenue - total_fees - total_refunded,
-            'total_refunded': total_refunded,
-            'refund_count': len(self.refunds),
-            'active_gateways': len([c for c in self.configs.values() if c.enabled])
+            "total_payments": total_payments,
+            "successful_payments": successful_payments,
+            "failed_payments": len([p for p in self.payments if p.status == PaymentStatus.FAILED]),
+            "success_rate": (successful_payments / total_payments * 100) if total_payments > 0 else 0,
+            "total_revenue": total_revenue,
+            "total_fees": total_fees,
+            "net_revenue": total_revenue - total_fees - total_refunded,
+            "total_refunded": total_refunded,
+            "refund_count": len(self.refunds),
+            "active_gateways": len([c for c in self.configs.values() if c.enabled]),
         }
 
 

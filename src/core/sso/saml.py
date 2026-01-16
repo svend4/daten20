@@ -4,20 +4,21 @@ SSO SAML 2.0 Integration
 Provides SAML-based Single Sign-On authentication.
 """
 
-from typing import Optional, Dict, Any
-import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
-from dataclasses import dataclass
-from enum import Enum
 import base64
-import zlib
-from urllib.parse import urlencode, parse_qs
 import hashlib
 import uuid
+import xml.etree.ElementTree as ET
+import zlib
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, Optional
+from urllib.parse import parse_qs, urlencode
 
 
 class SAMLBinding(str, Enum):
     """SAML binding types"""
+
     HTTP_REDIRECT = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
     HTTP_POST = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
     HTTP_ARTIFACT = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact"
@@ -25,6 +26,7 @@ class SAMLBinding(str, Enum):
 
 class SAMLNameIDFormat(str, Enum):
     """Name ID format types"""
+
     PERSISTENT = "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
     TRANSIENT = "urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
     EMAIL = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
@@ -34,6 +36,7 @@ class SAMLNameIDFormat(str, Enum):
 @dataclass
 class SAMLConfig:
     """SAML Service Provider configuration"""
+
     entity_id: str
     acs_url: str  # Assertion Consumer Service URL
     slo_url: str  # Single Logout URL
@@ -47,6 +50,7 @@ class SAMLConfig:
 @dataclass
 class IdentityProvider:
     """Identity Provider configuration"""
+
     entity_id: str
     sso_url: str
     slo_url: str
@@ -59,6 +63,7 @@ class IdentityProvider:
 @dataclass
 class SAMLResponse:
     """Parsed SAML response"""
+
     name_id: str
     session_index: str
     attributes: Dict[str, Any]
@@ -87,18 +92,14 @@ class SAMLServiceProvider:
         """List all registered Identity Providers"""
         return [idp for idp in self.identity_providers.values() if idp.active]
 
-    def create_authn_request(
-        self,
-        idp_entity_id: str,
-        relay_state: Optional[str] = None
-    ) -> Dict[str, str]:
+    def create_authn_request(self, idp_entity_id: str, relay_state: Optional[str] = None) -> Dict[str, str]:
         """Create SAML Authentication Request"""
         idp = self.get_idp(idp_entity_id)
         if not idp:
             raise ValueError(f"Identity Provider not found: {idp_entity_id}")
 
         request_id = f"_{uuid.uuid4()}"
-        issue_instant = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+        issue_instant = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Build SAML AuthnRequest XML
         authn_request = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -119,30 +120,26 @@ class SAMLServiceProvider:
 
         if idp.binding == SAMLBinding.HTTP_REDIRECT:
             # Deflate and base64 encode for HTTP-Redirect
-            deflated = zlib.compress(authn_request.encode('utf-8'))[2:-4]
-            encoded = base64.b64encode(deflated).decode('utf-8')
+            deflated = zlib.compress(authn_request.encode("utf-8"))[2:-4]
+            encoded = base64.b64encode(deflated).decode("utf-8")
 
-            params = {'SAMLRequest': encoded}
+            params = {"SAMLRequest": encoded}
             if relay_state:
-                params['RelayState'] = relay_state
+                params["RelayState"] = relay_state
 
             redirect_url = f"{idp.sso_url}?{urlencode(params)}"
 
-            return {
-                'type': 'redirect',
-                'url': redirect_url,
-                'request_id': request_id
-            }
+            return {"type": "redirect", "url": redirect_url, "request_id": request_id}
         else:
             # Base64 encode for HTTP-POST
-            encoded = base64.b64encode(authn_request.encode('utf-8')).decode('utf-8')
+            encoded = base64.b64encode(authn_request.encode("utf-8")).decode("utf-8")
 
             return {
-                'type': 'post',
-                'url': idp.sso_url,
-                'saml_request': encoded,
-                'relay_state': relay_state or '',
-                'request_id': request_id
+                "type": "post",
+                "url": idp.sso_url,
+                "saml_request": encoded,
+                "relay_state": relay_state or "",
+                "request_id": request_id,
             }
 
     def parse_response(self, saml_response: str) -> SAMLResponse:
@@ -155,50 +152,47 @@ class SAMLServiceProvider:
             root = ET.fromstring(decoded)
 
             # Define namespaces
-            ns = {
-                'samlp': 'urn:oasis:names:tc:SAML:2.0:protocol',
-                'saml': 'urn:oasis:names:tc:SAML:2.0:assertion'
-            }
+            ns = {"samlp": "urn:oasis:names:tc:SAML:2.0:protocol", "saml": "urn:oasis:names:tc:SAML:2.0:assertion"}
 
             # Extract Issuer
-            issuer_elem = root.find('.//saml:Issuer', ns)
-            issuer = issuer_elem.text if issuer_elem is not None else ''
+            issuer_elem = root.find(".//saml:Issuer", ns)
+            issuer = issuer_elem.text if issuer_elem is not None else ""
 
             # Extract Assertion
-            assertion = root.find('.//saml:Assertion', ns)
+            assertion = root.find(".//saml:Assertion", ns)
             if assertion is None:
                 raise ValueError("No Assertion found in SAML Response")
 
             # Extract Subject
-            subject = assertion.find('.//saml:Subject', ns)
-            name_id_elem = subject.find('.//saml:NameID', ns)
-            name_id = name_id_elem.text if name_id_elem is not None else ''
+            subject = assertion.find(".//saml:Subject", ns)
+            name_id_elem = subject.find(".//saml:NameID", ns)
+            name_id = name_id_elem.text if name_id_elem is not None else ""
 
             # Extract SessionIndex
-            authn_statement = assertion.find('.//saml:AuthnStatement', ns)
-            session_index = authn_statement.get('SessionIndex', '') if authn_statement is not None else ''
+            authn_statement = assertion.find(".//saml:AuthnStatement", ns)
+            session_index = authn_statement.get("SessionIndex", "") if authn_statement is not None else ""
 
             # Extract Attributes
             attributes = {}
-            attr_statements = assertion.findall('.//saml:AttributeStatement', ns)
+            attr_statements = assertion.findall(".//saml:AttributeStatement", ns)
             for attr_statement in attr_statements:
-                attrs = attr_statement.findall('.//saml:Attribute', ns)
+                attrs = attr_statement.findall(".//saml:Attribute", ns)
                 for attr in attrs:
-                    attr_name = attr.get('Name', '')
-                    attr_values = attr.findall('.//saml:AttributeValue', ns)
+                    attr_name = attr.get("Name", "")
+                    attr_values = attr.findall(".//saml:AttributeValue", ns)
                     if len(attr_values) == 1:
                         attributes[attr_name] = attr_values[0].text
                     else:
                         attributes[attr_name] = [av.text for av in attr_values]
 
             # Extract Conditions
-            conditions = assertion.find('.//saml:Conditions', ns)
-            not_on_or_after_str = conditions.get('NotOnOrAfter', '') if conditions is not None else ''
-            not_on_or_after = datetime.strptime(not_on_or_after_str, '%Y-%m-%dT%H:%M:%SZ')
+            conditions = assertion.find(".//saml:Conditions", ns)
+            not_on_or_after_str = conditions.get("NotOnOrAfter", "") if conditions is not None else ""
+            not_on_or_after = datetime.strptime(not_on_or_after_str, "%Y-%m-%dT%H:%M:%SZ")
 
             # Extract Audience
-            audience_elem = conditions.find('.//saml:Audience', ns) if conditions is not None else None
-            audience = audience_elem.text if audience_elem is not None else ''
+            audience_elem = conditions.find(".//saml:Audience", ns) if conditions is not None else None
+            audience = audience_elem.text if audience_elem is not None else ""
 
             # Validate audience
             if audience != self.config.entity_id:
@@ -215,25 +209,20 @@ class SAMLServiceProvider:
                 issuer=issuer,
                 not_on_or_after=not_on_or_after,
                 audience=audience,
-                subject_confirmation_data={}
+                subject_confirmation_data={},
             )
 
         except ET.ParseError as e:
             raise ValueError(f"Failed to parse SAML Response: {e}")
 
-    def create_logout_request(
-        self,
-        idp_entity_id: str,
-        name_id: str,
-        session_index: str
-    ) -> Dict[str, str]:
+    def create_logout_request(self, idp_entity_id: str, name_id: str, session_index: str) -> Dict[str, str]:
         """Create SAML Logout Request"""
         idp = self.get_idp(idp_entity_id)
         if not idp:
             raise ValueError(f"Identity Provider not found: {idp_entity_id}")
 
         request_id = f"_{uuid.uuid4()}"
-        issue_instant = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+        issue_instant = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
         logout_request = f"""<?xml version="1.0" encoding="UTF-8"?>
 <samlp:LogoutRequest
@@ -249,21 +238,17 @@ class SAMLServiceProvider:
 </samlp:LogoutRequest>"""
 
         # Deflate and base64 encode
-        deflated = zlib.compress(logout_request.encode('utf-8'))[2:-4]
-        encoded = base64.b64encode(deflated).decode('utf-8')
+        deflated = zlib.compress(logout_request.encode("utf-8"))[2:-4]
+        encoded = base64.b64encode(deflated).decode("utf-8")
 
-        params = {'SAMLRequest': encoded}
+        params = {"SAMLRequest": encoded}
         redirect_url = f"{idp.slo_url}?{urlencode(params)}"
 
-        return {
-            'type': 'redirect',
-            'url': redirect_url,
-            'request_id': request_id
-        }
+        return {"type": "redirect", "url": redirect_url, "request_id": request_id}
 
     def get_metadata(self) -> str:
         """Generate SP metadata XML"""
-        valid_until = (datetime.utcnow() + timedelta(days=365)).strftime('%Y-%m-%dT%H:%M:%SZ')
+        valid_until = (datetime.utcnow() + timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         metadata = f"""<?xml version="1.0" encoding="UTF-8"?>
 <md:EntityDescriptor
@@ -293,17 +278,17 @@ class SAMLServiceProvider:
         """Map SAML attributes to user fields"""
         # Common attribute mappings
         attr_map = {
-            'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'email',
-            'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname': 'first_name',
-            'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname': 'last_name',
-            'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'full_name',
-            'email': 'email',
-            'givenName': 'first_name',
-            'sn': 'last_name',
-            'displayName': 'full_name',
-            'uid': 'username',
-            'groups': 'groups',
-            'role': 'role'
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress": "email",
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname": "first_name",
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname": "last_name",
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name": "full_name",
+            "email": "email",
+            "givenName": "first_name",
+            "sn": "last_name",
+            "displayName": "full_name",
+            "uid": "username",
+            "groups": "groups",
+            "role": "role",
         }
 
         user_data = {}
@@ -327,7 +312,7 @@ def get_saml_sp() -> SAMLServiceProvider:
         config = SAMLConfig(
             entity_id="https://dms.example.com/saml/metadata",
             acs_url="https://dms.example.com/saml/acs",
-            slo_url="https://dms.example.com/saml/slo"
+            slo_url="https://dms.example.com/saml/slo",
         )
         _saml_sp = SAMLServiceProvider(config)
 

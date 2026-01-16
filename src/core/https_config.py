@@ -5,14 +5,14 @@ Provides HTTPS/TLS configuration for production deployments.
 Includes SSL context setup, certificate management, and security headers.
 """
 
-import ssl
-import os
-from pathlib import Path
-from typing import Optional, Dict, Tuple
-from datetime import datetime, timedelta
 import logging
+import os
+import ssl
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, Optional, Tuple
 
-logger = logging.getLogger('dms.https_config')
+logger = logging.getLogger("dms.https_config")
 
 
 class HTTPSConfig:
@@ -30,8 +30,8 @@ class HTTPSConfig:
             cert_path: Path to SSL certificate file
             key_path: Path to SSL private key file
         """
-        self.cert_path = cert_path or os.getenv('SSL_CERT_PATH', 'certs/cert.pem')
-        self.key_path = key_path or os.getenv('SSL_KEY_PATH', 'certs/key.pem')
+        self.cert_path = cert_path or os.getenv("SSL_CERT_PATH", "certs/cert.pem")
+        self.key_path = key_path or os.getenv("SSL_KEY_PATH", "certs/key.pem")
 
     def create_ssl_context(self, protocol: int = ssl.PROTOCOL_TLS_SERVER) -> ssl.SSLContext:
         """
@@ -61,9 +61,7 @@ class HTTPSConfig:
         context.maximum_version = ssl.TLSVersion.TLSv1_3  # TLS 1.3 preferred
 
         # Cipher suite (strong ciphers only)
-        context.set_ciphers(
-            'ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS'
-        )
+        context.set_ciphers("ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS")
 
         # Load certificate and key
         try:
@@ -95,10 +93,9 @@ class HTTPSConfig:
         """
         return {
             # HTTPS enforcement
-            'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-
+            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
             # Content security
-            'Content-Security-Policy': (
+            "Content-Security-Policy": (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
                 "style-src 'self' 'unsafe-inline'; "
@@ -107,31 +104,19 @@ class HTTPSConfig:
                 "connect-src 'self'; "
                 "frame-ancestors 'none'"
             ),
-
             # XSS protection
-            'X-Content-Type-Options': 'nosniff',
-            'X-Frame-Options': 'DENY',
-            'X-XSS-Protection': '1; mode=block',
-
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY",
+            "X-XSS-Protection": "1; mode=block",
             # Referrer policy
-            'Referrer-Policy': 'strict-origin-when-cross-origin',
-
+            "Referrer-Policy": "strict-origin-when-cross-origin",
             # Permissions policy
-            'Permissions-Policy': (
-                'geolocation=(), '
-                'microphone=(), '
-                'camera=(), '
-                'payment=(), '
-                'usb=(), '
-                'magnetometer=()'
-            )
+            "Permissions-Policy": (
+                "geolocation=(), " "microphone=(), " "camera=(), " "payment=(), " "usb=(), " "magnetometer=()"
+            ),
         }
 
-    def generate_self_signed_cert(
-        self,
-        days_valid: int = 365,
-        common_name: str = 'localhost'
-    ) -> Tuple[str, str]:
+    def generate_self_signed_cert(self, days_valid: int = 365, common_name: str = "localhost") -> Tuple[str, str]:
         """
         Generate self-signed certificate for development.
 
@@ -147,67 +132,66 @@ class HTTPSConfig:
         """
         try:
             from cryptography import x509
-            from cryptography.x509.oid import NameOID
-            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives import hashes, serialization
             from cryptography.hazmat.primitives.asymmetric import rsa
-            from cryptography.hazmat.primitives import serialization
+            from cryptography.x509.oid import NameOID
         except ImportError:
             raise ImportError(
-                "cryptography package required for certificate generation. "
-                "Install with: pip install cryptography"
+                "cryptography package required for certificate generation. " "Install with: pip install cryptography"
             )
 
         # Generate private key
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048
-        )
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
         # Generate certificate
-        subject = issuer = x509.Name([
-            x509.NameAttribute(NameOID.COUNTRY_NAME, 'DE'),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, 'NRW'),
-            x509.NameAttribute(NameOID.LOCALITY_NAME, 'Cologne'),
-            x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'DMS Dev'),
-            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
-        ])
+        subject = issuer = x509.Name(
+            [
+                x509.NameAttribute(NameOID.COUNTRY_NAME, "DE"),
+                x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "NRW"),
+                x509.NameAttribute(NameOID.LOCALITY_NAME, "Cologne"),
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "DMS Dev"),
+                x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+            ]
+        )
 
-        cert = x509.CertificateBuilder().subject_name(
-            subject
-        ).issuer_name(
-            issuer
-        ).public_key(
-            private_key.public_key()
-        ).serial_number(
-            x509.random_serial_number()
-        ).not_valid_before(
-            datetime.utcnow()
-        ).not_valid_after(
-            datetime.utcnow() + timedelta(days=days_valid)
-        ).add_extension(
-            x509.SubjectAlternativeName([
-                x509.DNSName(common_name),
-                x509.DNSName('localhost'),
-                x509.DNSName('127.0.0.1'),
-            ]),
-            critical=False,
-        ).sign(private_key, hashes.SHA256())
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(private_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.utcnow())
+            .not_valid_after(datetime.utcnow() + timedelta(days=days_valid))
+            .add_extension(
+                x509.SubjectAlternativeName(
+                    [
+                        x509.DNSName(common_name),
+                        x509.DNSName("localhost"),
+                        x509.DNSName("127.0.0.1"),
+                    ]
+                ),
+                critical=False,
+            )
+            .sign(private_key, hashes.SHA256())
+        )
 
         # Create certs directory
         cert_dir = Path(self.cert_path).parent
         cert_dir.mkdir(parents=True, exist_ok=True)
 
         # Write certificate
-        with open(self.cert_path, 'wb') as f:
+        with open(self.cert_path, "wb") as f:
             f.write(cert.public_bytes(serialization.Encoding.PEM))
 
         # Write private key
-        with open(self.key_path, 'wb') as f:
-            f.write(private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.NoEncryption()
-            ))
+        with open(self.key_path, "wb") as f:
+            f.write(
+                private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.TraditionalOpenSSL,
+                    encryption_algorithm=serialization.NoEncryption(),
+                )
+            )
 
         logger.info(f"Self-signed certificate generated: {self.cert_path}")
         return self.cert_path, self.key_path
@@ -233,7 +217,7 @@ class HTTPSConfig:
             return None
 
         try:
-            with open(self.cert_path, 'rb') as f:
+            with open(self.cert_path, "rb") as f:
                 cert_data = f.read()
 
             cert = x509.load_pem_x509_certificate(cert_data, default_backend())
@@ -265,6 +249,7 @@ def configure_flask_https(app, https_config: HTTPSConfig):
         app: Flask application
         https_config: HTTPSConfig instance
     """
+
     # Add security headers to all responses
     @app.after_request
     def add_security_headers(response):
@@ -278,18 +263,19 @@ def configure_flask_https(app, https_config: HTTPSConfig):
     @app.before_request
     def force_https():
         """Redirect HTTP to HTTPS in production."""
-        from flask import request, redirect
+        from flask import redirect, request
 
-        if app.config.get('ENV') == 'production':
-            if request.url.startswith('http://'):
-                url = request.url.replace('http://', 'https://', 1)
+        if app.config.get("ENV") == "production":
+            if request.url.startswith("http://"):
+                url = request.url.replace("http://", "https://", 1)
                 return redirect(url, code=301)
 
     logger.info("Flask HTTPS configuration applied")
 
 
-def run_https_server(app, host: str = '0.0.0.0', port: int = 5443,
-                     cert_path: Optional[str] = None, key_path: Optional[str] = None):
+def run_https_server(
+    app, host: str = "0.0.0.0", port: int = 5443, cert_path: Optional[str] = None, key_path: Optional[str] = None
+):
     """
     Run Flask app with HTTPS.
 
@@ -318,16 +304,11 @@ def run_https_server(app, host: str = '0.0.0.0', port: int = 5443,
 
     # Run server
     logger.info(f"Starting HTTPS server on {host}:{port}")
-    app.run(
-        host=host,
-        port=port,
-        ssl_context=ssl_context,
-        debug=False  # Never debug in HTTPS mode
-    )
+    app.run(host=host, port=port, ssl_context=ssl_context, debug=False)  # Never debug in HTTPS mode
 
 
 # Example usage
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Configure logging
     logging.basicConfig(level=logging.INFO)
 

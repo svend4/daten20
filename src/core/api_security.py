@@ -5,18 +5,19 @@ Provides rate limiting, CORS configuration, and API key management.
 Protects API endpoints from abuse and unauthorized access.
 """
 
-from flask import request, jsonify
-from functools import wraps
-from typing import Optional, Dict, Callable, List
-from datetime import datetime, timedelta
-from collections import defaultdict
-import time
 import hashlib
+import logging
 import secrets
 import sqlite3
-import logging
+import time
+from collections import defaultdict
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import Callable, Dict, List, Optional
 
-logger = logging.getLogger('dms.api_security')
+from flask import jsonify, request
+
+logger = logging.getLogger("dms.api_security")
 
 
 class RateLimiter:
@@ -32,15 +33,12 @@ class RateLimiter:
         """
         self.rate = rate
         self.per = per
-        self.buckets: Dict[str, Dict] = defaultdict(lambda: {
-            'tokens': rate,
-            'last_update': time.time()
-        })
+        self.buckets: Dict[str, Dict] = defaultdict(lambda: {"tokens": rate, "last_update": time.time()})
 
     def _get_identifier(self) -> str:
         """Get identifier for rate limiting (IP + User)."""
         ip = request.remote_addr
-        user_id = getattr(request, 'user_id', None)
+        user_id = getattr(request, "user_id", None)
 
         if user_id:
             return f"user:{user_id}"
@@ -49,12 +47,12 @@ class RateLimiter:
     def _refill_tokens(self, bucket: Dict):
         """Refill tokens based on elapsed time."""
         now = time.time()
-        elapsed = now - bucket['last_update']
+        elapsed = now - bucket["last_update"]
 
         # Calculate tokens to add
         tokens_to_add = (elapsed / self.per) * self.rate
-        bucket['tokens'] = min(self.rate, bucket['tokens'] + tokens_to_add)
-        bucket['last_update'] = now
+        bucket["tokens"] = min(self.rate, bucket["tokens"] + tokens_to_add)
+        bucket["last_update"] = now
 
     def is_allowed(self, identifier: Optional[str] = None) -> bool:
         """
@@ -72,8 +70,8 @@ class RateLimiter:
         bucket = self.buckets[identifier]
         self._refill_tokens(bucket)
 
-        if bucket['tokens'] >= 1:
-            bucket['tokens'] -= 1
+        if bucket["tokens"] >= 1:
+            bucket["tokens"] -= 1
             return True
 
         return False
@@ -86,7 +84,7 @@ class RateLimiter:
         bucket = self.buckets[identifier]
         self._refill_tokens(bucket)
 
-        if bucket['tokens'] >= self.rate:
+        if bucket["tokens"] >= self.rate:
             return 0
 
         # Time to refill 1 token
@@ -97,7 +95,7 @@ class RateLimiter:
 class APIKeyManager:
     """Manage API keys for authentication."""
 
-    def __init__(self, db_path: str = 'data/db/api_keys.db'):
+    def __init__(self, db_path: str = "data/db/api_keys.db"):
         """
         Initialize API key manager.
 
@@ -112,7 +110,8 @@ class APIKeyManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS api_keys (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 key_hash TEXT UNIQUE NOT NULL,
@@ -125,18 +124,15 @@ class APIKeyManager:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 expires_at TIMESTAMP
             )
-        ''')
+        """
+        )
 
         conn.commit()
         conn.close()
         logger.info("API keys database initialized")
 
     def generate_key(
-        self,
-        user_id: int,
-        name: str,
-        scopes: Optional[List[str]] = None,
-        expires_in_days: Optional[int] = None
+        self, user_id: int, name: str, scopes: Optional[List[str]] = None, expires_in_days: Optional[int] = None
     ) -> str:
         """
         Generate new API key.
@@ -163,10 +159,13 @@ class APIKeyManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO api_keys (key_hash, key_prefix, user_id, name, scopes, expires_at)
             VALUES (?, ?, ?, ?, ?, ?)
-        ''', (key_hash, key_prefix, user_id, name, ','.join(scopes or []), expires_at))
+        """,
+            (key_hash, key_prefix, user_id, name, ",".join(scopes or []), expires_at),
+        )
 
         conn.commit()
         conn.close()
@@ -190,10 +189,13 @@ class APIKeyManager:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT * FROM api_keys
             WHERE key_hash = ? AND enabled = 1
-        ''', (key_hash,))
+        """,
+            (key_hash,),
+        )
 
         row = cursor.fetchone()
 
@@ -202,28 +204,31 @@ class APIKeyManager:
             return None
 
         # Check expiration
-        if row['expires_at']:
-            expires_at = datetime.fromisoformat(row['expires_at'])
+        if row["expires_at"]:
+            expires_at = datetime.fromisoformat(row["expires_at"])
             if datetime.now() > expires_at:
                 logger.warning(f"Expired API key used: {row['key_prefix']}")
                 conn.close()
                 return None
 
         # Update last used
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE api_keys
             SET last_used = CURRENT_TIMESTAMP
             WHERE id = ?
-        ''', (row['id'],))
+        """,
+            (row["id"],),
+        )
 
         conn.commit()
         conn.close()
 
         return {
-            'id': row['id'],
-            'user_id': row['user_id'],
-            'name': row['name'],
-            'scopes': row['scopes'].split(',') if row['scopes'] else []
+            "id": row["id"],
+            "user_id": row["user_id"],
+            "name": row["name"],
+            "scopes": row["scopes"].split(",") if row["scopes"] else [],
         }
 
     def revoke_key(self, key_id: int):
@@ -231,11 +236,14 @@ class APIKeyManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE api_keys
             SET enabled = 0
             WHERE id = ?
-        ''', (key_id,))
+        """,
+            (key_id,),
+        )
 
         conn.commit()
         conn.close()
@@ -245,25 +253,12 @@ class APIKeyManager:
 
 # CORS Configuration
 CORS_CONFIG = {
-    'origins': [
-        'http://localhost:3000',
-        'http://localhost:5000',
-        'https://yourdomain.com'
-    ],
-    'methods': ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    'allow_headers': [
-        'Content-Type',
-        'Authorization',
-        'X-API-Key',
-        'X-Requested-With'
-    ],
-    'expose_headers': [
-        'Content-Range',
-        'X-Content-Range',
-        'X-Total-Count'
-    ],
-    'max_age': 3600,
-    'supports_credentials': True
+    "origins": ["http://localhost:3000", "http://localhost:5000", "https://yourdomain.com"],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization", "X-API-Key", "X-Requested-With"],
+    "expose_headers": ["Content-Range", "X-Content-Range", "X-Total-Count"],
+    "max_age": 3600,
+    "supports_credentials": True,
 }
 
 
@@ -281,6 +276,7 @@ def configure_cors(app):
 
 
 # Decorators
+
 
 def rate_limit(rate: int = 100, per: int = 3600):
     """
@@ -304,12 +300,9 @@ def rate_limit(rate: int = 100, per: int = 3600):
             if not limiter.is_allowed():
                 reset_time = limiter.get_reset_time()
 
-                response = jsonify({
-                    'error': 'Rate limit exceeded',
-                    'retry_after': int(reset_time)
-                })
+                response = jsonify({"error": "Rate limit exceeded", "retry_after": int(reset_time)})
                 response.status_code = 429
-                response.headers['Retry-After'] = str(int(reset_time))
+                response.headers["Retry-After"] = str(int(reset_time))
 
                 logger.warning(f"Rate limit exceeded for {request.remote_addr}")
                 return response
@@ -317,6 +310,7 @@ def rate_limit(rate: int = 100, per: int = 3600):
             return func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
@@ -333,14 +327,15 @@ def require_api_key(scopes: Optional[List[str]] = None):
         def endpoint():
             ...
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Get API key from header
-            api_key = request.headers.get('X-API-Key')
+            api_key = request.headers.get("X-API-Key")
 
             if not api_key:
-                return jsonify({'error': 'API key required'}), 401
+                return jsonify({"error": "API key required"}), 401
 
             # Verify key
             key_manager = get_api_key_manager()
@@ -348,16 +343,16 @@ def require_api_key(scopes: Optional[List[str]] = None):
 
             if not key_info:
                 logger.warning(f"Invalid API key from {request.remote_addr}")
-                return jsonify({'error': 'Invalid API key'}), 401
+                return jsonify({"error": "Invalid API key"}), 401
 
             # Check scopes
             if scopes:
-                key_scopes = set(key_info['scopes'])
+                key_scopes = set(key_info["scopes"])
                 required_scopes = set(scopes)
 
                 if not required_scopes.issubset(key_scopes):
                     logger.warning(f"Insufficient scopes for API key {key_info['id']}")
-                    return jsonify({'error': 'Insufficient permissions'}), 403
+                    return jsonify({"error": "Insufficient permissions"}), 403
 
             # Attach key info to request
             request.api_key_info = key_info
@@ -365,6 +360,7 @@ def require_api_key(scopes: Optional[List[str]] = None):
             return func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
@@ -390,17 +386,19 @@ class RequestTracker:
 
     def track(self, endpoint: str, method: str, status_code: int, duration: float):
         """Track request."""
-        self.requests.append({
-            'endpoint': endpoint,
-            'method': method,
-            'status_code': status_code,
-            'duration': duration,
-            'timestamp': datetime.now()
-        })
+        self.requests.append(
+            {
+                "endpoint": endpoint,
+                "method": method,
+                "status_code": status_code,
+                "duration": duration,
+                "timestamp": datetime.now(),
+            }
+        )
 
         # Keep only recent requests
         if len(self.requests) > self.max_history:
-            self.requests = self.requests[-self.max_history:]
+            self.requests = self.requests[-self.max_history :]
 
     def get_stats(self) -> Dict:
         """Get request statistics."""
@@ -408,20 +406,20 @@ class RequestTracker:
             return {}
 
         total = len(self.requests)
-        avg_duration = sum(r['duration'] for r in self.requests) / total
+        avg_duration = sum(r["duration"] for r in self.requests) / total
 
         by_endpoint = defaultdict(int)
         by_status = defaultdict(int)
 
         for req in self.requests:
-            by_endpoint[req['endpoint']] += 1
-            by_status[req['status_code']] += 1
+            by_endpoint[req["endpoint"]] += 1
+            by_status[req["status_code"]] += 1
 
         return {
-            'total_requests': total,
-            'avg_duration_ms': round(avg_duration * 1000, 2),
-            'by_endpoint': dict(by_endpoint),
-            'by_status': dict(by_status)
+            "total_requests": total,
+            "avg_duration_ms": round(avg_duration * 1000, 2),
+            "by_endpoint": dict(by_endpoint),
+            "by_status": dict(by_status),
         }
 
 

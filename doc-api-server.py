@@ -57,44 +57,50 @@ Version: 1.0.0
 
 import argparse
 import json
+import logging
 import os
 import uuid
-from pathlib import Path
-from typing import Dict, Any, List, Optional
 from datetime import datetime
-import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 try:
-    from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, BackgroundTasks, Header
-    from fastapi.responses import JSONResponse, FileResponse
-    from fastapi.middleware.cors import CORSMiddleware
-    from pydantic import BaseModel, Field
     import uvicorn
+    from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, UploadFile
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import FileResponse, JSONResponse
+    from pydantic import BaseModel, Field
+
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
     print("WARNING: FastAPI not installed. Install with: pip install fastapi uvicorn[standard] python-multipart")
 
-# Import our modules
-from src.core.parser import DocumentParser
 from src.core.database import DocumentDatabase
 from src.core.logging_config import setup_logging
-from src.ml.ner import NEREngine, EntityType
-from src.ml.classifier import TfidfSVMClassifier, DocumentCategory
+
+# Import our modules
+from src.core.parser import DocumentParser
+from src.ml.classifier import DocumentCategory, TfidfSVMClassifier
+from src.ml.knowledge_graph import GraphFormat, KnowledgeGraphBuilder
+from src.ml.ner import EntityType, NEREngine
 from src.ml.relation_extractor import RelationExtractor, RelationType
-from src.ml.knowledge_graph import KnowledgeGraphBuilder, GraphFormat
 
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
 
 # FastAPI app setup
-app = FastAPI(
-    title="Document Intelligence API",
-    description="AI-powered document analysis and processing API",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-) if FASTAPI_AVAILABLE else None
+app = (
+    FastAPI(
+        title="Document Intelligence API",
+        description="AI-powered document analysis and processing API",
+        version="1.0.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+    )
+    if FASTAPI_AVAILABLE
+    else None
+)
 
 if app:
     # CORS middleware
@@ -109,13 +115,16 @@ if app:
 
 # Pydantic models for request/response validation
 if FASTAPI_AVAILABLE:
+
     class TextInput(BaseModel):
         """Text input for extraction endpoints."""
+
         text: str = Field(..., description="Input text to process")
         options: Optional[Dict[str, Any]] = Field(default={}, description="Processing options")
 
     class EntityResponse(BaseModel):
         """Entity extraction response."""
+
         text: str
         type: str
         start: int
@@ -124,6 +133,7 @@ if FASTAPI_AVAILABLE:
 
     class RelationResponse(BaseModel):
         """Relation extraction response."""
+
         source: str
         source_type: str
         relation: str
@@ -133,12 +143,14 @@ if FASTAPI_AVAILABLE:
 
     class ClassificationResponse(BaseModel):
         """Document classification response."""
+
         category: str
         confidence: float
         probabilities: Optional[Dict[str, float]] = None
 
     class DocumentResponse(BaseModel):
         """Document processing response."""
+
         document_id: str
         filename: str
         processed_at: str
@@ -150,6 +162,7 @@ if FASTAPI_AVAILABLE:
 
     class BatchJobResponse(BaseModel):
         """Batch job response."""
+
         job_id: str
         status: str
         total_documents: int
@@ -160,6 +173,7 @@ if FASTAPI_AVAILABLE:
 
     class HealthResponse(BaseModel):
         """Health check response."""
+
         status: str
         version: str
         uptime: float
@@ -169,6 +183,7 @@ if FASTAPI_AVAILABLE:
 # Global components
 class APIComponents:
     """Global API components."""
+
     def __init__(self):
         self.parser = DocumentParser()
         self.database = DocumentDatabase("data/api_documents.db")
@@ -181,12 +196,7 @@ class APIComponents:
         self.batch_jobs: Dict[str, Dict] = {}
 
         # Statistics
-        self.stats = {
-            "total_requests": 0,
-            "documents_processed": 0,
-            "entities_extracted": 0,
-            "relations_extracted": 0
-        }
+        self.stats = {"total_requests": 0, "documents_processed": 0, "entities_extracted": 0, "relations_extracted": 0}
 
         # Create upload directory
         os.makedirs("data/api_uploads", exist_ok=True)
@@ -205,6 +215,7 @@ components = APIComponents() if FASTAPI_AVAILABLE else None
 
 # API Routes
 if FASTAPI_AVAILABLE:
+
     @app.get("/", tags=["Root"])
     async def root():
         """API root endpoint."""
@@ -215,7 +226,7 @@ if FASTAPI_AVAILABLE:
             "redoc": "/redoc",
             "openapi_spec": "/openapi.json",
             "unified_docs": "http://localhost:5000/api/docs",
-            "health": "/api/v1/health"
+            "health": "/api/v1/health",
         }
 
     @app.get("/api/v1/health", response_model=HealthResponse, tags=["System"])
@@ -230,8 +241,8 @@ if FASTAPI_AVAILABLE:
                 "ner": "operational",
                 "classifier": "operational",
                 "relation_extractor": "operational",
-                "knowledge_graph": "operational"
-            }
+                "knowledge_graph": "operational",
+            },
         }
 
     @app.get("/api/v1/stats", tags=["System"])
@@ -241,9 +252,7 @@ if FASTAPI_AVAILABLE:
 
     @app.post("/api/v1/documents", response_model=DocumentResponse, tags=["Documents"])
     async def upload_document(
-        file: UploadFile = File(...),
-        build_graph: bool = False,
-        x_api_key: Optional[str] = Header(None)
+        file: UploadFile = File(...), build_graph: bool = False, x_api_key: Optional[str] = Header(None)
     ):
         """
         Upload and process a document.
@@ -299,20 +308,14 @@ if FASTAPI_AVAILABLE:
                 "text_length": len(text),
                 "word_count": len(text.split()),
                 "entity_count": len(entities),
-                "relation_count": len(relations)
+                "relation_count": len(relations),
             },
             "classification": {
-                "category": classification.category.value if hasattr(classification, 'category') else "UNKNOWN",
-                "confidence": getattr(classification, 'confidence', 0.0)
+                "category": classification.category.value if hasattr(classification, "category") else "UNKNOWN",
+                "confidence": getattr(classification, "confidence", 0.0),
             },
             "entities": [
-                {
-                    "text": e.text,
-                    "type": e.type.value,
-                    "start": e.start,
-                    "end": e.end,
-                    "confidence": e.confidence
-                }
+                {"text": e.text, "type": e.type.value, "start": e.start, "end": e.end, "confidence": e.confidence}
                 for e in entities
             ],
             "relations": [
@@ -322,11 +325,11 @@ if FASTAPI_AVAILABLE:
                     "relation": r.relation_type.value,
                     "target": r.target_entity,
                     "target_type": r.target_type.value,
-                    "confidence": r.confidence
+                    "confidence": r.confidence,
                 }
                 for r in relations
             ],
-            "knowledge_graph": knowledge_graph
+            "knowledge_graph": knowledge_graph,
         }
 
         components.stats["documents_processed"] += 1
@@ -334,10 +337,7 @@ if FASTAPI_AVAILABLE:
         return response
 
     @app.post("/api/v1/extract/entities", response_model=List[EntityResponse], tags=["Extraction"])
-    async def extract_entities(
-        input_data: TextInput,
-        entity_types: Optional[str] = None
-    ):
+    async def extract_entities(input_data: TextInput, entity_types: Optional[str] = None):
         """
         Extract named entities from text.
 
@@ -364,13 +364,7 @@ if FASTAPI_AVAILABLE:
         components.stats["entities_extracted"] += len(entities)
 
         return [
-            {
-                "text": e.text,
-                "type": e.type.value,
-                "start": e.start,
-                "end": e.end,
-                "confidence": e.confidence
-            }
+            {"text": e.text, "type": e.type.value, "start": e.start, "end": e.end, "confidence": e.confidence}
             for e in entities
         ]
 
@@ -397,7 +391,7 @@ if FASTAPI_AVAILABLE:
                 "relation": r.relation_type.value,
                 "target": r.target_entity,
                 "target_type": r.target_type.value,
-                "confidence": r.confidence
+                "confidence": r.confidence,
             }
             for r in relations
         ]
@@ -418,16 +412,13 @@ if FASTAPI_AVAILABLE:
         classification = components.classifier.predict(input_data.text)
 
         return {
-            "category": classification.category.value if hasattr(classification, 'category') else "UNKNOWN",
-            "confidence": getattr(classification, 'confidence', 0.0),
-            "probabilities": getattr(classification, 'probabilities', None)
+            "category": classification.category.value if hasattr(classification, "category") else "UNKNOWN",
+            "confidence": getattr(classification, "confidence", 0.0),
+            "probabilities": getattr(classification, "probabilities", None),
         }
 
     @app.post("/api/v1/graph/build", tags=["Knowledge Graph"])
-    async def build_knowledge_graph(
-        input_data: TextInput,
-        export_format: str = "json"
-    ):
+    async def build_knowledge_graph(input_data: TextInput, export_format: str = "json"):
         """
         Build knowledge graph from text.
 
@@ -447,7 +438,7 @@ if FASTAPI_AVAILABLE:
             "json": GraphFormat.JSON,
             "cypher": GraphFormat.CYPHER,
             "graphml": GraphFormat.GRAPHML,
-            "adjacency": GraphFormat.ADJACENCY
+            "adjacency": GraphFormat.ADJACENCY,
         }
 
         graph_format = format_map.get(export_format.lower(), GraphFormat.JSON)
@@ -460,10 +451,7 @@ if FASTAPI_AVAILABLE:
             return {"format": export_format, "data": exported}
 
     @app.post("/api/v1/batch/process", response_model=BatchJobResponse, tags=["Batch"])
-    async def batch_process(
-        background_tasks: BackgroundTasks,
-        files: List[UploadFile] = File(...)
-    ):
+    async def batch_process(background_tasks: BackgroundTasks, files: List[UploadFile] = File(...)):
         """
         Submit batch processing job.
 
@@ -485,7 +473,7 @@ if FASTAPI_AVAILABLE:
             "failed": 0,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
-            "results": []
+            "results": [],
         }
 
         components.batch_jobs[job_id] = job
@@ -529,7 +517,8 @@ def main():
         print("Install with: pip install fastapi uvicorn[standard] python-multipart")
         return
 
-    print(f"""
+    print(
+        f"""
 ╔════════════════════════════════════════════════════════════════╗
 ║        Document Intelligence API v1.0.0                        ║
 ╠════════════════════════════════════════════════════════════════╣
@@ -544,7 +533,8 @@ def main():
 ║  Mode:   {'Production' if args.production else 'Development'}
 ║  Auth:   {'Enabled' if args.api_key else 'Disabled'}
 ╚════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     # Run uvicorn server
     uvicorn.run(
@@ -552,7 +542,7 @@ def main():
         host=args.host,
         port=args.port,
         workers=args.workers if args.production else 1,
-        reload=not args.production
+        reload=not args.production,
     )
 
 
