@@ -146,7 +146,7 @@ class TestDashboardBuilder(unittest.TestCase):
 
         self.assertEqual(len(self.builder.widgets), 1)
         self.assertEqual(self.builder.widgets[0]["type"], "kpi")
-        self.assertEqual(self.builder.widgets[0]["data"]["name"], "Test KPI")
+        self.assertEqual(self.builder.widgets[0]["kpi"].name, "Test KPI")
 
     def test_add_chart_widget(self):
         """Test adding chart widget to dashboard"""
@@ -162,7 +162,7 @@ class TestDashboardBuilder(unittest.TestCase):
 
         self.assertEqual(len(self.builder.widgets), 1)
         self.assertEqual(self.builder.widgets[0]["type"], "chart")
-        self.assertEqual(self.builder.widgets[0]["data"].title, "Test Chart")
+        self.assertEqual(self.builder.widgets[0]["chart"].title, "Test Chart")
 
     def test_build_dashboard(self):
         """Test building complete dashboard configuration"""
@@ -174,7 +174,7 @@ class TestDashboardBuilder(unittest.TestCase):
 
         self.assertIn("widgets", dashboard_config)
         self.assertIn("layout", dashboard_config)
-        self.assertIn("metadata", dashboard_config)
+        self.assertIn("created_at", dashboard_config)
         self.assertEqual(len(dashboard_config["widgets"]), 1)
 
 
@@ -183,42 +183,77 @@ class TestReportGenerator(unittest.TestCase):
 
     def setUp(self):
         self.generator = ReportGenerator()
+        from src.analytics.bi_dashboard import Report
+
+        self.test_report = Report(
+            id="test-report-123",
+            name="Test Report",
+            description="Test Description",
+            kpis=[
+                KPI("MRR", 1000.0, "EUR", 5.0, "up"),
+                KPI("ARR", 12000.0, "EUR", 5.0, "up")
+            ],
+            charts=[],
+            filters={},
+            created_at=datetime.now(),
+            created_by="test_user",
+            format=ReportFormat.PDF
+        )
 
     def test_generate_report_pdf(self):
         """Test PDF report generation"""
-        # Mock data
-        kpis = [KPI("MRR", 1000.0, "EUR", 5.0, "up"), KPI("ARR", 12000.0, "EUR", 5.0, "up")]
+        result = self.generator.generate_pdf(self.test_report)
 
-        # This will fail without actual implementation
-        # but tests the interface
-        with patch.object(self.generator, "_generate_pdf") as mock_pdf:
-            mock_pdf.return_value = b"PDF_DATA"
-
-            result = self.generator.generate_report(
-                format=ReportFormat.PDF, kpis=kpis, include_kpis=True, include_charts=False
-            )
-
-            mock_pdf.assert_called_once()
+        # PDF should be bytes
+        self.assertIsInstance(result, bytes)
+        # PDF should have content
+        self.assertGreater(len(result), 0)
+        # PDF should start with PDF header
+        self.assertTrue(result.startswith(b'%PDF'))
 
     def test_generate_report_excel(self):
         """Test Excel report generation"""
-        kpis = [KPI("MRR", 1000.0, "EUR", 5.0, "up")]
+        result = self.generator.generate_excel(self.test_report)
 
-        with patch.object(self.generator, "_generate_excel") as mock_excel:
-            mock_excel.return_value = b"EXCEL_DATA"
-
-            result = self.generator.generate_report(format=ReportFormat.EXCEL, kpis=kpis, include_kpis=True)
-
-            mock_excel.assert_called_once()
+        # Excel should be bytes
+        self.assertIsInstance(result, bytes)
+        # Excel should have content
+        self.assertGreater(len(result), 0)
 
     def test_generate_report_json(self):
         """Test JSON report generation"""
-        kpis = [KPI("MRR", 1000.0, "EUR", 5.0, "up")]
-
-        result = self.generator.generate_report(format=ReportFormat.JSON, kpis=kpis, include_kpis=True)
+        result = self.generator.generate_json(self.test_report)
 
         # JSON generation should work without mocking
+        self.assertIsInstance(result, str)
+        # Should be valid JSON
+        import json
+        parsed = json.loads(result)
+        self.assertEqual(parsed["id"], "test-report-123")
+        self.assertEqual(parsed["name"], "Test Report")
+
+    def test_generate_report_powerpoint(self):
+        """Test PowerPoint report generation"""
+        result = self.generator.generate_powerpoint(self.test_report)
+
+        # PowerPoint should be bytes
         self.assertIsInstance(result, bytes)
+        # PowerPoint should have content
+        self.assertGreater(len(result), 0)
+        # PowerPoint files start with PK (ZIP format)
+        self.assertTrue(result.startswith(b'PK'))
+
+    def test_generate_report_csv(self):
+        """Test CSV report generation"""
+        result = self.generator.generate_csv(self.test_report)
+
+        # CSV should be string
+        self.assertIsInstance(result, str)
+        # Should contain header
+        self.assertIn("KPI,Value,Unit", result)
+        # Should contain KPI data
+        self.assertIn("MRR", result)
+        self.assertIn("ARR", result)
 
 
 class TestReportScheduler(unittest.TestCase):
@@ -227,32 +262,39 @@ class TestReportScheduler(unittest.TestCase):
     def setUp(self):
         self.dashboard = Mock()
         self.scheduler = ReportScheduler(parent_dashboard=self.dashboard)
+        from src.analytics.bi_dashboard import ScheduledReport
+
+        self.test_scheduled_report = ScheduledReport(
+            id="test-scheduled-123",
+            report_id="report-456",
+            name="Weekly Report",
+            frequency=ReportFrequency.WEEKLY,
+            recipients=["user@example.com"],
+            format=ReportFormat.PDF,
+            filters={},
+            enabled=True
+        )
 
     def test_schedule_report(self):
         """Test scheduling a new report"""
-        report_id = self.scheduler.schedule_report(
-            name="Weekly Report",
-            frequency=ReportFrequency.WEEKLY,
-            format=ReportFormat.PDF,
-            recipients=["user@example.com"],
-        )
+        self.scheduler.schedule_report(self.test_scheduled_report)
 
-        self.assertIsInstance(report_id, str)
-        self.assertIn(report_id, self.scheduler.scheduled_reports)
+        self.assertIn(self.test_scheduled_report.id, self.scheduler.scheduled_reports)
+        scheduled = self.scheduler.scheduled_reports[self.test_scheduled_report.id]
+        self.assertEqual(scheduled.name, "Weekly Report")
+        self.assertIsNotNone(scheduled.next_run)
 
     def test_unschedule_report(self):
         """Test unscheduling a report"""
-        report_id = self.scheduler.schedule_report(
-            name="Test Report", frequency=ReportFrequency.DAILY, format=ReportFormat.PDF, recipients=[]
-        )
+        self.scheduler.schedule_report(self.test_scheduled_report)
+        self.assertIn(self.test_scheduled_report.id, self.scheduler.scheduled_reports)
 
-        result = self.scheduler.unschedule_report(report_id)
-        self.assertTrue(result)
-        self.assertNotIn(report_id, self.scheduler.scheduled_reports)
+        self.scheduler.unschedule_report(self.test_scheduled_report.id)
+        self.assertNotIn(self.test_scheduled_report.id, self.scheduler.scheduled_reports)
 
     def test_calculate_next_run_daily(self):
         """Test next run calculation for daily frequency"""
-        next_run = self.scheduler.calculate_next_run(ReportFrequency.DAILY)
+        next_run = self.scheduler._calculate_next_run(ReportFrequency.DAILY)
         expected = datetime.now() + timedelta(days=1)
 
         # Check if next run is approximately tomorrow
@@ -260,21 +302,96 @@ class TestReportScheduler(unittest.TestCase):
 
     def test_calculate_next_run_weekly(self):
         """Test next run calculation for weekly frequency"""
-        next_run = self.scheduler.calculate_next_run(ReportFrequency.WEEKLY)
+        next_run = self.scheduler._calculate_next_run(ReportFrequency.WEEKLY)
         expected = datetime.now() + timedelta(weeks=1)
 
         self.assertAlmostEqual(next_run.timestamp(), expected.timestamp(), delta=3600)  # Within 1 hour
 
     def test_list_scheduled_reports(self):
         """Test listing all scheduled reports"""
-        self.scheduler.schedule_report("Report 1", ReportFrequency.DAILY, ReportFormat.PDF, [])
-        self.scheduler.schedule_report("Report 2", ReportFrequency.WEEKLY, ReportFormat.EXCEL, [])
+        from src.analytics.bi_dashboard import ScheduledReport
 
-        reports = self.scheduler.list_scheduled_reports()
+        report1 = ScheduledReport(
+            id="report-1",
+            report_id="r1",
+            name="Report 1",
+            frequency=ReportFrequency.DAILY,
+            recipients=[],
+            format=ReportFormat.PDF,
+            filters={}
+        )
+        report2 = ScheduledReport(
+            id="report-2",
+            report_id="r2",
+            name="Report 2",
+            frequency=ReportFrequency.WEEKLY,
+            recipients=[],
+            format=ReportFormat.EXCEL,
+            filters={}
+        )
+
+        self.scheduler.schedule_report(report1)
+        self.scheduler.schedule_report(report2)
+
+        reports = self.scheduler.scheduled_reports
 
         self.assertEqual(len(reports), 2)
-        self.assertTrue(all("id" in r for r in reports))
-        self.assertTrue(all("name" in r for r in reports))
+        self.assertIn("report-1", reports)
+        self.assertIn("report-2", reports)
+
+    def test_get_execution_history(self):
+        """Test getting execution history"""
+        # Initially empty
+        history = self.scheduler.get_execution_history()
+        self.assertEqual(len(history), 0)
+
+        # Add some executions manually for testing
+        self.scheduler.execution_history.append({
+            "report_id": "test-report",
+            "executed_at": datetime.now(),
+            "status": "success"
+        })
+
+        history = self.scheduler.get_execution_history()
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["status"], "success")
+
+    def test_get_execution_history_with_filter(self):
+        """Test getting execution history with report filter"""
+        # Add multiple executions
+        self.scheduler.execution_history.append({
+            "report_id": "report-1",
+            "executed_at": datetime.now(),
+            "status": "success"
+        })
+        self.scheduler.execution_history.append({
+            "report_id": "report-2",
+            "executed_at": datetime.now(),
+            "status": "failed"
+        })
+
+        # Filter by report ID
+        history = self.scheduler.get_execution_history(report_id="report-1")
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["report_id"], "report-1")
+
+    def test_calculate_next_run_monthly(self):
+        """Test next run calculation for monthly frequency"""
+        next_run = self.scheduler._calculate_next_run(ReportFrequency.MONTHLY)
+        expected = datetime.now() + timedelta(days=30)
+
+        # Should be approximately 30 days from now
+        delta_seconds = abs((next_run - expected).total_seconds())
+        self.assertLess(delta_seconds, 3600)  # Within 1 hour
+
+    def test_calculate_next_run_quarterly(self):
+        """Test next run calculation for quarterly frequency"""
+        next_run = self.scheduler._calculate_next_run(ReportFrequency.QUARTERLY)
+        expected = datetime.now() + timedelta(days=90)
+
+        # Should be approximately 90 days from now
+        delta_seconds = abs((next_run - expected).total_seconds())
+        self.assertLess(delta_seconds, 7200)  # Within 2 hours
 
 
 class TestBIDashboard(unittest.TestCase):
@@ -305,6 +422,84 @@ class TestBIDashboard(unittest.TestCase):
         self.assertIsNotNone(self.dashboard.dashboard_builder)
         self.assertIsNotNone(self.dashboard.report_generator)
         self.assertIsNotNone(self.dashboard.report_scheduler)
+
+    def test_create_custom_report(self):
+        """Test creating custom report"""
+        kpis = [KPI("Test KPI", 100.0, "EUR", 5.0, "up")]
+        charts = []
+
+        report = self.dashboard.create_custom_report(
+            name="Custom Report",
+            description="Test Description",
+            kpis=kpis,
+            charts=charts,
+            filters={},
+            created_by="test_user"
+        )
+
+        self.assertIsNotNone(report.id)
+        self.assertEqual(report.name, "Custom Report")
+        self.assertIn(report.id, self.dashboard.reports)
+
+    def test_export_report_pdf(self):
+        """Test exporting report as PDF"""
+        kpis = [KPI("Test", 100.0, "EUR", 5.0, "up")]
+        report = self.dashboard.create_custom_report(
+            name="Test Report",
+            description="Test",
+            kpis=kpis,
+            charts=[],
+            filters={},
+            created_by="test_user"
+        )
+
+        pdf_data = self.dashboard.export_report(report.id, ReportFormat.PDF)
+
+        self.assertIsInstance(pdf_data, bytes)
+        self.assertGreater(len(pdf_data), 0)
+        self.assertTrue(pdf_data.startswith(b'%PDF'))
+
+    def test_export_report_excel(self):
+        """Test exporting report as Excel"""
+        kpis = [KPI("Test", 100.0, "EUR", 5.0, "up")]
+        report = self.dashboard.create_custom_report(
+            name="Test Report",
+            description="Test",
+            kpis=kpis,
+            charts=[],
+            filters={},
+            created_by="test_user"
+        )
+
+        excel_data = self.dashboard.export_report(report.id, ReportFormat.EXCEL)
+
+        self.assertIsInstance(excel_data, bytes)
+        self.assertGreater(len(excel_data), 0)
+
+    def test_schedule_report(self):
+        """Test scheduling a report"""
+        kpis = [KPI("Test", 100.0, "EUR", 5.0, "up")]
+        report = self.dashboard.create_custom_report(
+            name="Test Report",
+            description="Test",
+            kpis=kpis,
+            charts=[],
+            filters={},
+            created_by="test_user"
+        )
+
+        scheduled = self.dashboard.schedule_report(
+            report_id=report.id,
+            name="Weekly Scheduled Report",
+            frequency=ReportFrequency.WEEKLY,
+            recipients=["user@example.com"],
+            format=ReportFormat.PDF,
+            filters={}
+        )
+
+        self.assertIsNotNone(scheduled.id)
+        self.assertEqual(scheduled.name, "Weekly Scheduled Report")
+        self.assertIn(scheduled.id, self.dashboard.report_scheduler.scheduled_reports)
 
 
 class TestChartData(unittest.TestCase):
