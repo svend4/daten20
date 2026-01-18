@@ -67,6 +67,8 @@ python-dotenv>=1.0.0
 
 # Caching (optional - for production)
 redis>=5.0.0
+Flask-Session>=0.6.0
+# Server-side session management with Redis backend
 # For Redis caching support
 
 # API Documentation
@@ -102,6 +104,8 @@ Pillow>=10.0.0
 # Image processing for QR codes
 Flask-CORS>=4.0.0
 # CORS support
+Flask-Compress>=1.15
+# Response compression (gzip, deflate, brotli)
 Flask-SocketIO>=5.3.0
 # WebSockets for real-time notifications
 graphene>=3.3.0
@@ -450,6 +454,8 @@ onnxruntime==1.16.3
 sqlalchemy==2.0.23
 alembic==1.13.1
 psycopg2-binary==2.9.9
+PyMySQL==1.1.0
+# MySQL/MariaDB support
 
 # Async Database Support
 asyncpg==0.29.0
