@@ -53,6 +53,15 @@ except ImportError:
     SentenceTransformer = None
     TRANSFORMERS_AVAILABLE = False
 
+# Import embedding cache
+try:
+    from src.ml.embedding_cache import EmbeddingCache, create_embedding_cache
+    EMBEDDING_CACHE_AVAILABLE = True
+except ImportError:
+    EmbeddingCache = None
+    create_embedding_cache = None
+    EMBEDDING_CACHE_AVAILABLE = False
+
 logger = logging.getLogger("dms.semantic_search")
 
 
@@ -117,6 +126,9 @@ class SemanticSearchEngine:
         index_path: Optional[str] = None,
         cache_embeddings: bool = True,
         use_gpu: bool = False,
+        redis_url: Optional[str] = None,
+        cache_ttl: int = 3600,
+        memory_cache_size: int = 1000,
     ):
         """
         Initialize semantic search engine
@@ -126,17 +138,37 @@ class SemanticSearchEngine:
             index_path: Path to save/load FAISS index
             cache_embeddings: Whether to cache computed embeddings
             use_gpu: Use GPU for encoding (requires CUDA)
+            redis_url: Redis URL for distributed caching (optional)
+            cache_ttl: Cache TTL in seconds (default: 1 hour)
+            memory_cache_size: In-memory cache size (default: 1000)
         """
         self.model_name = model_name
         self.index_path = index_path
         self.cache_embeddings = cache_embeddings
         self.use_gpu = use_gpu
+        self.redis_url = redis_url
+        self.cache_ttl = cache_ttl
 
         # Initialize model (lazy loading)
         self._model = None
         self._index = None
         self._document_store: Dict[str, Dict] = {}
-        self._embedding_cache: Dict[str, np.ndarray] = {}
+
+        # Initialize embedding cache
+        if cache_embeddings and EMBEDDING_CACHE_AVAILABLE:
+            self._embedding_cache = create_embedding_cache(
+                redis_url=redis_url,
+                memory_cache_size=memory_cache_size,
+                default_ttl=cache_ttl,
+            )
+            logger.info("Using advanced embedding cache (Redis + in-memory)")
+        elif cache_embeddings:
+            # Fallback to simple dict cache
+            self._embedding_cache: Dict[str, np.ndarray] = {}
+            logger.info("Using simple in-memory cache (embedding_cache module not available)")
+        else:
+            self._embedding_cache = None
+            logger.info("Embedding caching disabled")
 
         logger.info(f"Initialized SemanticSearchEngine with model: {model_name}")
 
@@ -188,43 +220,85 @@ class SemanticSearchEngine:
             numpy array of embeddings (n_texts, embedding_dim)
         """
         # Check cache first
-        if self.cache_embeddings:
-            cached_embeddings = []
-            uncached_texts = []
-            uncached_indices = []
+        if self.cache_embeddings and self._embedding_cache is not None:
+            # Use advanced embedding cache if available
+            if EMBEDDING_CACHE_AVAILABLE and isinstance(self._embedding_cache, EmbeddingCache):
+                cached_embeddings = self._embedding_cache.get_batch(texts)
+                uncached_texts = []
+                uncached_indices = []
 
-            for i, text in enumerate(texts):
-                if text in self._embedding_cache:
-                    cached_embeddings.append((i, self._embedding_cache[text]))
-                else:
-                    uncached_texts.append(text)
-                    uncached_indices.append(i)
+                for i, (text, cached_emb) in enumerate(zip(texts, cached_embeddings)):
+                    if cached_emb is None:
+                        uncached_texts.append(text)
+                        uncached_indices.append(i)
 
-            # If all cached, return early
-            if not uncached_texts:
-                embeddings = np.zeros((len(texts), len(cached_embeddings[0][1])))
+                # If all cached, return early
+                if not uncached_texts:
+                    return np.array([emb for emb in cached_embeddings])
+
+                # Encode uncached texts
+                new_embeddings = self.model.encode(
+                    uncached_texts, batch_size=batch_size, show_progress_bar=show_progress, convert_to_numpy=True
+                )
+
+                # Update cache (batch operation)
+                self._embedding_cache.set_batch(uncached_texts, new_embeddings)
+
+                # Combine cached and new embeddings
+                all_embeddings = np.zeros((len(texts), new_embeddings.shape[1]))
+                cached_idx = 0
+                uncached_idx = 0
+
+                for i in range(len(texts)):
+                    if i in uncached_indices:
+                        all_embeddings[i] = new_embeddings[uncached_idx]
+                        uncached_idx += 1
+                    else:
+                        all_embeddings[i] = cached_embeddings[cached_idx]
+                        cached_idx += 1
+                        # Skip None entries
+                        while cached_idx < len(cached_embeddings) and cached_embeddings[cached_idx] is None:
+                            cached_idx += 1
+
+                return all_embeddings
+
+            else:
+                # Fallback to simple dict-based cache
+                cached_embeddings = []
+                uncached_texts = []
+                uncached_indices = []
+
+                for i, text in enumerate(texts):
+                    if text in self._embedding_cache:
+                        cached_embeddings.append((i, self._embedding_cache[text]))
+                    else:
+                        uncached_texts.append(text)
+                        uncached_indices.append(i)
+
+                # If all cached, return early
+                if not uncached_texts:
+                    embeddings = np.zeros((len(texts), len(cached_embeddings[0][1])))
+                    for idx, emb in cached_embeddings:
+                        embeddings[idx] = emb
+                    return embeddings
+
+                # Encode uncached texts
+                new_embeddings = self.model.encode(
+                    uncached_texts, batch_size=batch_size, show_progress_bar=show_progress, convert_to_numpy=True
+                )
+
+                # Update cache
+                for text, emb in zip(uncached_texts, new_embeddings):
+                    self._embedding_cache[text] = emb
+
+                # Combine cached and new embeddings
+                all_embeddings = np.zeros((len(texts), new_embeddings.shape[1]))
                 for idx, emb in cached_embeddings:
-                    embeddings[idx] = emb
-                return embeddings
+                    all_embeddings[idx] = emb
+                for idx, emb in zip(uncached_indices, new_embeddings):
+                    all_embeddings[idx] = emb
 
-        # Encode uncached texts
-        if self.cache_embeddings and uncached_texts:
-            new_embeddings = self.model.encode(
-                uncached_texts, batch_size=batch_size, show_progress_bar=show_progress, convert_to_numpy=True
-            )
-
-            # Update cache
-            for text, emb in zip(uncached_texts, new_embeddings):
-                self._embedding_cache[text] = emb
-
-            # Combine cached and new embeddings
-            all_embeddings = np.zeros((len(texts), new_embeddings.shape[1]))
-            for idx, emb in cached_embeddings:
-                all_embeddings[idx] = emb
-            for idx, emb in zip(uncached_indices, new_embeddings):
-                all_embeddings[idx] = emb
-
-            return all_embeddings
+                return all_embeddings
         else:
             # No caching, encode all
             return self.model.encode(texts, batch_size=batch_size, show_progress_bar=show_progress, convert_to_numpy=True)
@@ -490,12 +564,44 @@ class SemanticSearchEngine:
 
     def clear_cache(self) -> None:
         """Clear embedding cache"""
-        self._embedding_cache.clear()
-        logger.info("Cleared embedding cache")
+        if self._embedding_cache is not None:
+            if EMBEDDING_CACHE_AVAILABLE and isinstance(self._embedding_cache, EmbeddingCache):
+                self._embedding_cache.clear()
+            else:
+                self._embedding_cache.clear()
+            logger.info("Cleared embedding cache")
+
+    def get_cache_metrics(self) -> Optional[Dict[str, Any]]:
+        """
+        Get embedding cache metrics
+
+        Returns:
+            Cache metrics dictionary or None if caching disabled
+        """
+        if self._embedding_cache is None:
+            return None
+
+        if EMBEDDING_CACHE_AVAILABLE and isinstance(self._embedding_cache, EmbeddingCache):
+            metrics = self._embedding_cache.get_metrics()
+            size_info = self._embedding_cache.get_size()
+            return {
+                **metrics.to_dict(),
+                **size_info,
+            }
+        else:
+            # Simple dict cache
+            return {
+                "cache_size": len(self._embedding_cache),
+                "cache_type": "simple_dict",
+            }
 
 
 def create_search_engine(
-    model_name: str = "all-MiniLM-L6-v2", index_path: Optional[str] = None, use_gpu: bool = False
+    model_name: str = "all-MiniLM-L6-v2",
+    index_path: Optional[str] = None,
+    use_gpu: bool = False,
+    redis_url: Optional[str] = None,
+    cache_ttl: int = 3600,
 ) -> SemanticSearchEngine:
     """
     Factory function to create semantic search engine
@@ -504,11 +610,19 @@ def create_search_engine(
         model_name: Sentence-transformer model name
         index_path: Path to save/load index
         use_gpu: Use GPU for encoding
+        redis_url: Redis URL for distributed caching
+        cache_ttl: Cache TTL in seconds
 
     Returns:
         Configured SemanticSearchEngine instance
     """
-    return SemanticSearchEngine(model_name=model_name, index_path=index_path, use_gpu=use_gpu)
+    return SemanticSearchEngine(
+        model_name=model_name,
+        index_path=index_path,
+        use_gpu=use_gpu,
+        redis_url=redis_url,
+        cache_ttl=cache_ttl,
+    )
 
 
 # Convenience functions for quick usage
