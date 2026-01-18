@@ -279,7 +279,8 @@ class Database:
             service.updated_at = datetime.now()
             service.version += 1
 
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 config_json = service.to_json()
@@ -312,8 +313,6 @@ class Database:
                     (service.id, service.version, config_json, f"Updated to version {service.version}"),
                 )
 
-                conn.commit()
-
             logger.info(f"Service updated successfully: ID={service.id}, version={service.version}")
             return True
         except Exception as e:
@@ -332,10 +331,10 @@ class Database:
         """
         try:
             logger.info(f"Deleting service: ID={service_id}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM services WHERE id = ?", (service_id,))
-                conn.commit()
 
                 deleted = cursor.rowcount > 0
                 if deleted:
@@ -373,7 +372,8 @@ class Database:
             filter_str = ", ".join(filters) if filters else "no filters"
             logger.debug(f"Listing services: limit={limit}, offset={offset}, {filter_str}")
 
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 query = "SELECT config_json FROM services WHERE 1=1"
@@ -414,7 +414,8 @@ class Database:
             Total count of services matching filters
         """
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 query = "SELECT COUNT(*) FROM services WHERE 1=1"
@@ -450,7 +451,8 @@ class Database:
         """
         try:
             logger.debug(f"Searching services with query: '{query}'")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 cursor.execute(
@@ -484,7 +486,8 @@ class Database:
         """
         try:
             logger.debug(f"Retrieving version history for service: ID={service_id}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 cursor.execute(
@@ -516,7 +519,8 @@ class Database:
         """
         try:
             logger.debug("Retrieving database statistics")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 # Total services
@@ -575,7 +579,8 @@ class Database:
         """
         try:
             logger.info(f"Creating subscription: {subscription_id} for tenant {tenant_id}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 cursor.execute(
@@ -586,8 +591,6 @@ class Database:
                 """,
                     (subscription_id, tenant_id, status, billing_cycle, amount, currency, json.dumps(metadata or {})),
                 )
-
-                conn.commit()
 
             logger.info(f"Subscription created successfully: {subscription_id}")
             return True
@@ -624,7 +627,8 @@ class Database:
             filter_str = ", ".join(filters_log) if filters_log else "no filters"
             logger.debug(f"Fetching subscriptions: {filter_str}")
 
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 query = "SELECT id, tenant_id, status, billing_cycle, amount, currency, created_at, metadata_json FROM subscriptions WHERE 1=1"
@@ -680,7 +684,8 @@ class Database:
         """
         try:
             logger.info(f"Updating subscription {subscription_id} status to: {status}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 cursor.execute(
@@ -692,7 +697,6 @@ class Database:
                     (status, subscription_id),
                 )
 
-                conn.commit()
                 updated = cursor.rowcount > 0
 
                 if updated:
@@ -717,10 +721,10 @@ class Database:
         """
         try:
             logger.info(f"Deleting subscription: {subscription_id}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM subscriptions WHERE id = ?", (subscription_id,))
-                conn.commit()
 
                 deleted = cursor.rowcount > 0
                 if deleted:
