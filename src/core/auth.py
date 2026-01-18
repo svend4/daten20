@@ -222,6 +222,10 @@ class AuthManager:
             logger.info("Migrating database: Adding account_locked_until column")
             cursor.execute("ALTER TABLE users ADD COLUMN account_locked_until TIMESTAMP")
 
+        if "last_login" not in columns:
+            logger.info("Migrating database: Adding last_login column")
+            cursor.execute("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
+
         conn.commit()
 
         # Create refresh tokens table
@@ -518,10 +522,10 @@ class AuthManager:
             password_hash=row["password_hash"],
             role=Role(row["role"]),
             is_active=bool(row["is_active"]),
-            password_must_change=bool(row.get("password_must_change", 0)),
+            password_must_change=bool(row["password_must_change"]) if "password_must_change" in row.keys() else False,
             failed_login_attempts=0,  # Reset after successful auth
             account_locked_until=None,
-            created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None,
+            created_at=datetime.fromisoformat(row["created_at"]) if ("created_at" in row.keys() and row["created_at"]) else None,
         )
 
         logger.info(f"User authenticated: {username}")
@@ -547,10 +551,10 @@ class AuthManager:
             password_hash=row["password_hash"],
             role=Role(row["role"]),
             is_active=bool(row["is_active"]),
-            password_must_change=bool(row.get("password_must_change", 0)),
-            failed_login_attempts=row.get("failed_login_attempts", 0),
-            account_locked_until=datetime.fromisoformat(row["account_locked_until"]) if row.get("account_locked_until") else None,
-            created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None,
+            password_must_change=bool(row["password_must_change"]) if "password_must_change" in row.keys() else False,
+            failed_login_attempts=row["failed_login_attempts"] if "failed_login_attempts" in row.keys() else 0,
+            account_locked_until=datetime.fromisoformat(row["account_locked_until"]) if ("account_locked_until" in row.keys() and row["account_locked_until"]) else None,
+            created_at=datetime.fromisoformat(row["created_at"]) if ("created_at" in row.keys() and row["created_at"]) else None,
         )
 
     def _update_last_login(self, user_id: int):
