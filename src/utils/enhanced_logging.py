@@ -149,9 +149,9 @@ class ColoredFormatter(logging.Formatter):
 
             # Add icon if enabled
             if self.show_icons:
-                formatted = f"{timestamp} {icon}  {level} {name} {Colors.ARROW} {message}"
+                formatted = f"{timestamp} {icon}  {level} {name} {Icons.ARROW} {message}"
             else:
-                formatted = f"{timestamp} {level} {name} {Colors.ARROW} {message}"
+                formatted = f"{timestamp} {level} {name} {Icons.ARROW} {message}"
         else:
             timestamp = self.formatTime(record, "%H:%M:%S")
             formatted = f"{timestamp} {record.levelname:8s} {record.name} → {record.getMessage()}"
