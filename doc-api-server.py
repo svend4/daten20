@@ -86,6 +86,15 @@ from src.ml.knowledge_graph import GraphFormat, KnowledgeGraphBuilder
 from src.ml.ner import EntityType, NEREngine
 from src.ml.relation_extractor import RelationExtractor, RelationType
 
+# Import rate limiting
+from src.core.rate_limiter import (
+    FastAPIRateLimitMiddleware,
+    RateLimiter,
+    RateLimitTier,
+    RedisRateLimiter,
+    create_rate_limit_dependency,
+)
+
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
 
@@ -111,6 +120,18 @@ if app:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Rate limiting middleware
+    # Use FREE tier by default (100 req/min)
+    # Can be configured via environment variable or CLI args
+    rate_limit_tier = os.getenv("RATE_LIMIT_TIER", "FREE")
+    use_redis = os.getenv("USE_REDIS_RATE_LIMIT", "false").lower() == "true"
+
+    api_rate_limiter = RateLimitTier.get_limiter(rate_limit_tier, use_redis=use_redis)
+    logger.info(f"Rate limiting enabled: {rate_limit_tier} tier ({api_rate_limiter.requests} req/{api_rate_limiter.window}s)")
+
+    # Add rate limiting middleware
+    app.add_middleware(FastAPIRateLimitMiddleware, limiter=api_rate_limiter)
 
 
 # Pydantic models for request/response validation
@@ -510,12 +531,34 @@ def main():
     parser.add_argument("--api-key", help="API key for authentication")
     parser.add_argument("--workers", type=int, default=1, help="Number of worker processes")
 
+    # Rate limiting options
+    parser.add_argument(
+        "--rate-limit-tier",
+        choices=["free", "basic", "premium", "enterprise"],
+        default=os.getenv("RATE_LIMIT_TIER", "free").lower(),
+        help="Rate limit tier: free (100/min), basic (500/min), premium (2000/min), enterprise (10000/min)",
+    )
+    parser.add_argument(
+        "--use-redis-rate-limit",
+        action="store_true",
+        default=os.getenv("USE_REDIS_RATE_LIMIT", "false").lower() == "true",
+        help="Use Redis for distributed rate limiting (requires Redis running)",
+    )
+
     args = parser.parse_args()
+
+    # Set environment variables for rate limiting (used in middleware setup)
+    os.environ["RATE_LIMIT_TIER"] = args.rate_limit_tier.upper()
+    os.environ["USE_REDIS_RATE_LIMIT"] = str(args.use_redis_rate_limit).lower()
 
     if not FASTAPI_AVAILABLE:
         print("ERROR: FastAPI is required to run the API server")
         print("Install with: pip install fastapi uvicorn[standard] python-multipart")
         return
+
+    # Get rate limit info
+    tier_config = getattr(RateLimitTier, args.rate_limit_tier.upper(), RateLimitTier.FREE)
+    rate_limit_info = f"{tier_config['requests']}/{tier_config['window']}s"
 
     print(
         f"""
@@ -527,11 +570,13 @@ def main():
 ║  📊 Entity & relation extraction                               ║
 ║  🕸️  Knowledge graph construction                              ║
 ║  📚 OpenAPI/Swagger documentation                              ║
+║  🛡️  Rate limiting: {args.rate_limit_tier.upper()} ({rate_limit_info}){'  ║' if len(rate_limit_info) <= 20 else ''}
 ╠════════════════════════════════════════════════════════════════╣
 ║  Server: http://{args.host}:{args.port}
 ║  Docs:   http://{args.host}:{args.port}/docs
 ║  Mode:   {'Production' if args.production else 'Development'}
 ║  Auth:   {'Enabled' if args.api_key else 'Disabled'}
+║  Redis:  {'Enabled' if args.use_redis_rate_limit else 'Disabled'}
 ╚════════════════════════════════════════════════════════════════╝
     """
     )
