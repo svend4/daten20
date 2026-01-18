@@ -399,21 +399,104 @@ class DocumentAnonymizer:
             return f"[{entity_type}]"
 
     def _save_mapping(self, mapping: Dict[str, str], mapping_file: str) -> None:
-        """Save mapping to encrypted file."""
-        # In production, use proper encryption (e.g., Fernet, AES)
-        # For now, use base64 encoding as placeholder
-        encoded = base64.b64encode(json.dumps(mapping).encode()).decode()
+        """
+        Save mapping to encrypted file.
 
-        with open(mapping_file, "w") as f:
-            f.write(encoded)
+        Uses Fernet symmetric encryption (AES-128-CBC with HMAC).
+        Encryption key is derived from environment variable or generated.
+        """
+        try:
+            from cryptography.fernet import Fernet
+
+            # Get or generate encryption key
+            key_str = os.getenv("ANONYMIZATION_MAPPING_KEY")
+            if key_str:
+                key = key_str.encode()
+            else:
+                # Generate new key and save to key file
+                key = Fernet.generate_key()
+                key_file = f"{mapping_file}.key"
+                with open(key_file, "wb") as f:
+                    f.write(key)
+                os.chmod(key_file, 0o600)  # Owner read/write only
+                logger.warning(
+                    f"Generated new encryption key: {key_file}\n"
+                    f"IMPORTANT: Keep this key secure! Without it, mapping cannot be decrypted.\n"
+                    f"Set ANONYMIZATION_MAPPING_KEY environment variable to reuse this key."
+                )
+
+            # Encrypt mapping
+            cipher = Fernet(key)
+            mapping_json = json.dumps(mapping, indent=2)
+            encrypted_data = cipher.encrypt(mapping_json.encode())
+
+            # Write encrypted mapping
+            with open(mapping_file, "wb") as f:
+                f.write(encrypted_data)
+
+            logger.info(f"Mapping encrypted and saved to: {mapping_file}")
+
+        except ImportError:
+            # Fallback to base64 if cryptography not available
+            logger.warning(
+                "cryptography package not installed. Using base64 encoding (NOT secure!).\n"
+                "Install cryptography for proper encryption: pip install cryptography"
+            )
+            encoded = base64.b64encode(json.dumps(mapping).encode()).decode()
+            with open(mapping_file, "w") as f:
+                f.write(encoded)
 
     def _load_mapping(self, mapping_file: str) -> Dict[str, str]:
-        """Load mapping from encrypted file."""
-        with open(mapping_file, "r") as f:
-            encoded = f.read()
+        """
+        Load mapping from encrypted file.
 
-        decoded = base64.b64decode(encoded).decode()
-        return json.loads(decoded)
+        Requires encryption key from environment or key file.
+        """
+        try:
+            from cryptography.fernet import Fernet
+
+            # Try to load encryption key
+            key_str = os.getenv("ANONYMIZATION_MAPPING_KEY")
+            if key_str:
+                key = key_str.encode()
+            else:
+                # Try to load from key file
+                key_file = f"{mapping_file}.key"
+                if os.path.exists(key_file):
+                    with open(key_file, "rb") as f:
+                        key = f.read().strip()
+                else:
+                    raise ValueError(
+                        f"Encryption key not found. Set ANONYMIZATION_MAPPING_KEY "
+                        f"environment variable or ensure {key_file} exists."
+                    )
+
+            # Decrypt mapping
+            cipher = Fernet(key)
+            with open(mapping_file, "rb") as f:
+                encrypted_data = f.read()
+
+            decrypted_data = cipher.decrypt(encrypted_data)
+            mapping = json.loads(decrypted_data.decode())
+
+            logger.info(f"Mapping decrypted from: {mapping_file}")
+            return mapping
+
+        except ImportError:
+            # Fallback to base64
+            logger.warning("cryptography package not installed. Using base64 decoding.")
+            with open(mapping_file, "r") as f:
+                encoded = f.read()
+            decoded = base64.b64decode(encoded).decode()
+            return json.loads(decoded)
+        except Exception as e:
+            logger.error(f"Failed to decrypt mapping: {e}")
+            raise ValueError(
+                f"Cannot decrypt mapping file. Possible causes:\n"
+                f"1. Wrong encryption key\n"
+                f"2. Corrupted mapping file\n"
+                f"3. Missing key file: {mapping_file}.key"
+            )
 
     def _create_audit_trail(
         self, original_file: str, anonymized_file: str, pii_items: List[PIIItem]
