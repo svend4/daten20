@@ -102,6 +102,9 @@ class User(UserMixin):
         password_hash: str,
         role: Role = Role.VIEWER,
         is_active: bool = True,
+        password_must_change: bool = False,
+        failed_login_attempts: int = 0,
+        account_locked_until: Optional[datetime] = None,
         created_at: Optional[datetime] = None,
     ):
         self.id = id
@@ -111,6 +114,9 @@ class User(UserMixin):
         self.role = role
         # UserMixin provides is_active property, store in private variable
         self._is_active = is_active
+        self.password_must_change = password_must_change
+        self.failed_login_attempts = failed_login_attempts
+        self.account_locked_until = account_locked_until
         self.created_at = created_at or datetime.now()
 
     @property
@@ -190,12 +196,33 @@ class AuthManager:
                 password_hash TEXT NOT NULL,
                 role TEXT DEFAULT 'viewer',
                 is_active INTEGER DEFAULT 1,
+                password_must_change INTEGER DEFAULT 0,
+                failed_login_attempts INTEGER DEFAULT 0,
+                account_locked_until TIMESTAMP,
                 last_login TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """
         )
+
+        # Migrate existing databases: Add new security columns if they don't exist
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [col[1] for col in cursor.fetchall()]
+
+        if "password_must_change" not in columns:
+            logger.info("Migrating database: Adding password_must_change column")
+            cursor.execute("ALTER TABLE users ADD COLUMN password_must_change INTEGER DEFAULT 0")
+
+        if "failed_login_attempts" not in columns:
+            logger.info("Migrating database: Adding failed_login_attempts column")
+            cursor.execute("ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0")
+
+        if "account_locked_until" not in columns:
+            logger.info("Migrating database: Adding account_locked_until column")
+            cursor.execute("ALTER TABLE users ADD COLUMN account_locked_until TIMESTAMP")
+
+        conn.commit()
 
         # Create refresh tokens table
         cursor.execute(
@@ -237,21 +264,107 @@ class AuthManager:
         """
         )
 
-        # Create default admin user if none exists
-        cursor.execute("SELECT COUNT(*) FROM users WHERE role = ?", (Role.ADMIN.value,))
-        if cursor.fetchone()[0] == 0:
-            admin_password_hash = self.bcrypt.generate_password_hash("admin").decode("utf-8")
+        # Create default admin user if none exists, or update weak admin password
+        cursor.execute("SELECT id, username, password_hash FROM users WHERE role = ?", (Role.ADMIN.value,))
+        admin_row = cursor.fetchone()
+
+        if admin_row is None:
+            # No admin exists, create one with secure random password
+            import secrets
+            import string
+
+            # Generate secure random password (16 characters)
+            alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+            random_password = ''.join(secrets.choice(alphabet) for _ in range(16))
+
+            admin_password_hash = self.bcrypt.generate_password_hash(random_password).decode("utf-8")
             cursor.execute(
                 """
-                INSERT INTO users (username, email, password_hash, role)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO users (username, email, password_hash, role, password_must_change)
+                VALUES (?, ?, ?, ?, 1)
             """,
                 ("admin", "admin@dms.local", admin_password_hash, Role.ADMIN.value),
             )
-            logger.info("Created default admin user (username: admin, password: admin)")
+            logger.warning("=" * 80)
+            logger.warning("SECURITY: Default admin user created")
+            logger.warning(f"Username: admin")
+            logger.warning(f"Password: {random_password}")
+            logger.warning("IMPORTANT: Change this password immediately after first login!")
+            logger.warning("=" * 80)
+        else:
+            # Check if existing admin has default weak password "admin"
+            admin_id, admin_username, admin_hash = admin_row
+            if self.bcrypt.check_password_hash(admin_hash, "admin"):
+                import secrets
+                import string
+
+                # Generate new secure random password
+                alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+                random_password = ''.join(secrets.choice(alphabet) for _ in range(16))
+                new_hash = self.bcrypt.generate_password_hash(random_password).decode("utf-8")
+
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET password_hash = ?, password_must_change = 1, failed_login_attempts = 0
+                    WHERE id = ?
+                    """,
+                    (new_hash, admin_id),
+                )
+                logger.warning("=" * 80)
+                logger.warning("SECURITY WARNING: Default admin password detected and changed!")
+                logger.warning(f"Username: {admin_username}")
+                logger.warning(f"New Password: {random_password}")
+                logger.warning("IMPORTANT: Update your login credentials!")
+                logger.warning("=" * 80)
 
         conn.commit()
         conn.close()
+
+    def validate_password_strength(self, password: str) -> tuple[bool, Optional[str]]:
+        """
+        Validate password strength according to security policy.
+
+        Args:
+            password: Password to validate
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        # Minimum length requirement
+        if len(password) < 8:
+            return False, "Password must be at least 8 characters long"
+
+        # Check complexity requirements
+        has_upper = any(c.isupper() for c in password)
+        has_lower = any(c.islower() for c in password)
+        has_digit = any(c.isdigit() for c in password)
+        has_special = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password)
+
+        if not (has_upper and has_lower and has_digit and has_special):
+            return False, "Password must contain uppercase, lowercase, digit, and special character"
+
+        # Check against common weak passwords
+        weak_passwords = [
+            "password", "password123", "123456", "12345678", "qwerty",
+            "abc123", "monkey", "1234567", "letmein", "trustno1",
+            "dragon", "baseball", "iloveyou", "master", "sunshine",
+            "ashley", "bailey", "passw0rd", "shadow", "123123",
+            "654321", "superman", "qazwsx", "michael", "football",
+            "admin", "admin123", "root", "test", "test123",
+            "welcome", "welcome123", "changeme", "default"
+        ]
+
+        if password.lower() in weak_passwords:
+            return False, "Password is too common and easily guessable"
+
+        # Check for sequential characters
+        sequences = ["012", "123", "234", "345", "456", "567", "678", "789",
+                    "abc", "bcd", "cde", "def", "efg", "fgh", "ghi", "hij"]
+        if any(seq in password.lower() for seq in sequences):
+            return False, "Password contains sequential characters"
+
+        return True, None
 
     def create_user(self, username: str, email: str, password: str, role: Role = Role.VIEWER) -> Optional[User]:
         """
@@ -267,6 +380,12 @@ class AuthManager:
             Created user or None if failed
         """
         try:
+            # Validate password strength
+            is_valid, error_msg = self.validate_password_strength(password)
+            if not is_valid:
+                logger.error(f"Password validation failed for {username}: {error_msg}")
+                return None
+
             password_hash = self.bcrypt.generate_password_hash(password).decode("utf-8")
 
             conn = sqlite3.connect(self.db_path)
@@ -317,19 +436,80 @@ class AuthManager:
         )
 
         row = cursor.fetchone()
-        conn.close()
 
         if not row:
+            conn.close()
             logger.warning(f"Authentication failed: user not found: {username}")
             return None
 
+        # Check if account is locked
+        if row["account_locked_until"]:
+            locked_until = datetime.fromisoformat(row["account_locked_until"])
+            if locked_until > datetime.utcnow():
+                conn.close()
+                logger.warning(f"Authentication failed: account locked until {locked_until}: {username}")
+                return None
+            else:
+                # Lock expired, reset failed attempts
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET failed_login_attempts = 0, account_locked_until = NULL
+                    WHERE id = ?
+                    """,
+                    (row["id"],),
+                )
+                conn.commit()
+
         # Verify password
         if not self.bcrypt.check_password_hash(row["password_hash"], password):
-            logger.warning(f"Authentication failed: invalid password for {username}")
-            return None
+            # Increment failed login attempts
+            failed_attempts = row["failed_login_attempts"] + 1
+
+            # Lock account after 5 failed attempts (30 minutes)
+            if failed_attempts >= 5:
+                lock_until = datetime.utcnow() + timedelta(minutes=30)
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET failed_login_attempts = ?, account_locked_until = ?
+                    WHERE id = ?
+                    """,
+                    (failed_attempts, lock_until.isoformat(), row["id"]),
+                )
+                conn.commit()
+                conn.close()
+                logger.warning(f"Account locked due to failed login attempts: {username}")
+                return None
+            else:
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET failed_login_attempts = ?
+                    WHERE id = ?
+                    """,
+                    (failed_attempts, row["id"]),
+                )
+                conn.commit()
+                conn.close()
+                logger.warning(f"Authentication failed: invalid password for {username} (attempt {failed_attempts}/5)")
+                return None
+
+        # Reset failed login attempts on successful authentication
+        cursor.execute(
+            """
+            UPDATE users
+            SET failed_login_attempts = 0, account_locked_until = NULL
+            WHERE id = ?
+            """,
+            (row["id"],),
+        )
+        conn.commit()
 
         # Update last login
         self._update_last_login(row["id"])
+
+        conn.close()
 
         user = User(
             id=row["id"],
@@ -338,6 +518,9 @@ class AuthManager:
             password_hash=row["password_hash"],
             role=Role(row["role"]),
             is_active=bool(row["is_active"]),
+            password_must_change=bool(row.get("password_must_change", 0)),
+            failed_login_attempts=0,  # Reset after successful auth
+            account_locked_until=None,
             created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None,
         )
 
@@ -364,6 +547,9 @@ class AuthManager:
             password_hash=row["password_hash"],
             role=Role(row["role"]),
             is_active=bool(row["is_active"]),
+            password_must_change=bool(row.get("password_must_change", 0)),
+            failed_login_attempts=row.get("failed_login_attempts", 0),
+            account_locked_until=datetime.fromisoformat(row["account_locked_until"]) if row.get("account_locked_until") else None,
             created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None,
         )
 
