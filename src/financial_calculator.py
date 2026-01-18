@@ -4,17 +4,26 @@ Financial Calculator - Финансовый калькулятор
 
 Расчет стоимости услуг с учетом всех социальных отчислений,
 умлаг, надбавок и региональных коэффициентов.
+
+Улучшения v1.0.1:
+- Добавлено кэширование расчетов
+- Добавлен экспорт результатов в JSON/YAML
+- Улучшена производительность повторных расчетов
 """
 
 import argparse
+import hashlib
+import json
 import sys
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from src.core.cache import get_cache_manager
+from src.core.currency import CurrencyConverter, get_currency_converter
 from src.core.financial_validation import FinancialValidator
 from src.core.input_validation import InputValidator, ValidationError
 from src.models.financial import CostBreakdown, FinancialParameters, InsuranceRates, ServiceCost, Surcharges, Umlages
@@ -34,17 +43,75 @@ from src.utils.formatting import (
 )
 from src.utils.helpers import format_currency, format_percentage, load_config, round_currency
 
+try:
+    import yaml
+    YAML_AVAILABLE = True
+except ImportError:
+    YAML_AVAILABLE = False
+
 
 class FinancialCalculator:
-    """Main Financial Calculator class"""
+    """Main Financial Calculator class with caching and multi-currency support"""
 
-    def __init__(self):
-        """Initialize calculator"""
+    def __init__(self, enable_cache: bool = True, currency: str = "EUR"):
+        """
+        Initialize calculator
+
+        Args:
+            enable_cache: Enable caching of calculation results (default: True)
+            currency: Base currency for calculations (default: EUR)
+        """
         self.validator = FinancialValidator()
+        self.enable_cache = enable_cache
+        self.currency = currency.upper()
+
+        # Initialize cache if enabled
+        if enable_cache:
+            self.cache = get_cache_manager()
+        else:
+            self.cache = None
+
+        # Initialize currency converter
+        self.currency_converter = get_currency_converter(base_currency=self.currency)
+
+    def _generate_cache_key(self, params: FinancialParameters, suffix: str = "") -> str:
+        """Generate cache key from parameters"""
+        # Create a dict of all parameters for hashing
+        params_dict = {
+            'brutto_rate': float(params.brutto_rate),
+            'insurance_rates': {
+                'kv_er': float(params.insurance_rates.kv_er),
+                'kv_zusatz_er': float(params.insurance_rates.kv_zusatz_er),
+                'pv_er': float(params.insurance_rates.pv_er),
+                'pv_er_sn': float(params.insurance_rates.pv_er_sn),
+                'rv_er': float(params.insurance_rates.rv_er),
+                'av_er': float(params.insurance_rates.av_er),
+                'uv_er': float(params.insurance_rates.uv_er),
+            },
+            'umlages': {
+                'u1': float(params.umlages.u1),
+                'u2': float(params.umlages.u2),
+                'u3': float(params.umlages.u3),
+            },
+            'use_umlages': params.use_umlages,
+            'vacation_reserve_percent': float(params.vacation_reserve_percent),
+            'materials_per_hour': float(params.materials_per_hour),
+            'admin_percent': float(params.admin_percent),
+            'admin_per_hour': float(params.admin_per_hour),
+            'region_coefficient': float(params.region_coefficient),
+            'is_saxony': params.is_saxony,
+            'surcharge_base': params.surcharge_base,
+        }
+
+        # Convert to JSON string and hash
+        params_json = json.dumps(params_dict, sort_keys=True)
+        params_hash = hashlib.md5(params_json.encode()).hexdigest()
+
+        return f"financial_calc:{params_hash}:{suffix}"
 
     def calculate_hourly_rate(self, params: FinancialParameters) -> CostBreakdown:
         """
-        Calculate hourly rate with full breakdown
+        Calculate hourly rate with full breakdown (with caching)
 
         Args:
             params: Financial parameters
@@ -57,6 +124,13 @@ class FinancialCalculator:
         """
         # Validate all financial parameters comprehensively
         self.validator.validate_financial_parameters(params)
+
+        # Try to get from cache
+        cache_key = self._generate_cache_key(params, "hourly_rate")
+        if self.enable_cache and self.cache:
+            cached_result = self.cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
 
         breakdown = CostBreakdown(brutto_rate=params.brutto_rate)
 
@@ -124,6 +198,10 @@ class FinancialCalculator:
 
         # Round to 2 decimal places
         breakdown.final_hourly_rate = round_currency(float(breakdown.final_hourly_rate))
+
+        # Cache the result
+        if self.enable_cache and self.cache:
+            self.cache.set(cache_key, breakdown, timeout=3600)  # 1 hour
 
         return breakdown
 
@@ -365,11 +443,136 @@ class FinancialCalculator:
             print(info("Стоимость одинаковая в обоих режимах"))
         print()
 
+    def convert_result(self, amount: Decimal, to_currency: str) -> Decimal:
+        """
+        Convert calculation result to another currency
+
+        Args:
+            amount: Amount in base currency
+            to_currency: Target currency code
+
+        Returns:
+            Converted amount
+        """
+        return self.currency_converter.convert(amount, self.currency, to_currency)
+
+    def show_multi_currency(self, amount: Decimal, currencies: Optional[list] = None) -> None:
+        """
+        Show amount in multiple currencies
+
+        Args:
+            amount: Amount in base currency
+            currencies: List of currency codes (None = show all supported)
+        """
+        if currencies is None:
+            currencies = self.currency_converter.get_supported_currencies()
+
+        print(section(f"КОНВЕРТАЦИЯ ВАЛЮТ (База: {self.currency})"))
+
+        rows = []
+        for currency in currencies:
+            if currency == self.currency:
+                rows.append([currency, self.currency_converter.format_amount(amount, currency), "(база)"])
+            else:
+                try:
+                    converted = self.convert_result(amount, currency)
+                    rows.append([currency, self.currency_converter.format_amount(converted, currency), ""])
+                except ValueError as e:
+                    rows.append([currency, "не поддерживается", ""])
+
+        headers = ["Валюта", "Сумма", ""]
+        print(table(headers, rows))
+        print()
+
+    def export_result(self, breakdown: CostBreakdown, output_file: str, format: str = 'auto') -> None:
+        """
+        Export calculation result to JSON or YAML file
+
+        Args:
+            breakdown: Cost breakdown to export
+            output_file: Output file path
+            format: Output format ('json', 'yaml', 'auto')
+        """
+        # Auto-detect format from extension
+        if format == 'auto':
+            ext = Path(output_file).suffix.lower()
+            if ext in ['.yaml', '.yml']:
+                format = 'yaml'
+            else:
+                format = 'json'
+
+        # Convert breakdown to dict
+        data = {
+            'brutto_rate': float(breakdown.brutto_rate),
+            'insurance_contributions': {
+                'kv': float(breakdown.kv_contribution),
+                'pv': float(breakdown.pv_contribution),
+                'rv': float(breakdown.rv_contribution),
+                'av': float(breakdown.av_contribution),
+                'uv': float(breakdown.uv_contribution),
+                'total': float(breakdown.total_insurance)
+            },
+            'umlages': {
+                'u1': float(breakdown.u1_contribution),
+                'u2': float(breakdown.u2_contribution),
+                'u3': float(breakdown.u3_contribution),
+                'total': float(breakdown.total_umlages)
+            },
+            'vacation_reserve': float(breakdown.vacation_reserve),
+            'materials_cost': float(breakdown.materials_cost),
+            'admin_cost': float(breakdown.admin_cost),
+            'base_hourly_cost': float(breakdown.base_hourly_cost),
+            'region_coefficient': float(breakdown.region_coefficient),
+            'total_surcharge': float(breakdown.total_surcharge),
+            'final_hourly_rate': float(breakdown.final_hourly_rate),
+            'calculation_mode': breakdown.calculation_mode,
+            'surcharges_applied': {k: float(v) for k, v in breakdown.surcharges_applied.items()}
+        }
+
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                if format == 'yaml':
+                    if not YAML_AVAILABLE:
+                        print(error("PyYAML не установлен. Установите: pip install pyyaml"))
+                        return
+                    yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+                else:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+
+            print(success(f"Результат экспортирован в {output_file} ({format.upper()})"))
+        except Exception as e:
+            print(error(f"Ошибка при экспорте: {e}"))
+
+    def get_cache_stats(self) -> None:
+        """Show cache statistics"""
+        if not self.enable_cache or not self.cache:
+            print(warning("Кэширование отключено"))
+            return
+
+        stats = self.cache.get_stats()
+        print(section("СТАТИСТИКА КЭША"))
+        print(key_value("Бэкенд", stats['backend']))
+        print(key_value("Попаданий", str(stats['hits'])))
+        print(key_value("Промахов", str(stats['misses'])))
+        print(key_value("Всего запросов", str(stats['total_requests'])))
+        print(key_value("Процент попаданий", f"{stats['hit_rate']}%"))
+        print()
+
+    def clear_cache(self) -> None:
+        """Clear calculator cache"""
+        if not self.enable_cache or not self.cache:
+            print(warning("Кэширование отключено"))
+            return
+
+        self.cache.clear()
+        print(success("Кэш очищен"))
+
 
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
-        description="Финансовый калькулятор стоимости услуг", formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Финансовый калькулятор стоимости услуг (v1.0.1 с кэшированием)",
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
     parser.add_argument("--brutto", type=float, default=25.0, help="Ставка брутто €/ч (по умолчанию: 25.0)")
@@ -404,10 +607,37 @@ def main():
 
     parser.add_argument("--detailed", action="store_true", help="Показать детальный расчет")
 
+    # Export options
+    parser.add_argument("--export", metavar="FILE", help="Экспортировать результат в JSON/YAML")
+    parser.add_argument("--export-format", choices=['json', 'yaml', 'auto'], default='auto',
+                       help="Формат экспорта (по умолчанию: auto)")
+
+    # Cache options
+    parser.add_argument("--no-cache", action="store_true", help="Отключить кэширование")
+    parser.add_argument("--cache-stats", action="store_true", help="Показать статистику кэша")
+    parser.add_argument("--clear-cache", action="store_true", help="Очистить кэш")
+
+    # Currency options
+    parser.add_argument("--currency", choices=['EUR', 'USD', 'GBP', 'CHF', 'PLN', 'CZK', 'RUB'],
+                       default='EUR', help="Базовая валюта расчета (по умолчанию: EUR)")
+    parser.add_argument("--show-currencies", action="store_true",
+                       help="Показать результат в нескольких валютах")
+    parser.add_argument("--convert-to", action="append",
+                       help="Конвертировать результат в указанную валюту")
+
     args = parser.parse_args()
 
     # Create calculator
-    calc = FinancialCalculator()
+    calc = FinancialCalculator(enable_cache=not args.no_cache, currency=args.currency)
+
+    # Handle cache-only commands
+    if args.clear_cache:
+        calc.clear_cache()
+        return
+
+    if args.cache_stats and not any([args.hours, args.mode == "compare"]):
+        calc.get_cache_stats()
+        return
 
     # Validate CLI arguments
     try:
@@ -457,6 +687,16 @@ def main():
             print(key_value("Ставка за час", format_currency(float(cost.hourly_rate))))
             print(bold(key_value("ИТОГО", format_currency(float(cost.total_cost)))))
             print()
+
+            # Export if requested
+            if args.export:
+                calc.export_result(cost.breakdown, args.export, format=args.export_format)
+
+            # Show currency conversions if requested
+            if args.show_currencies:
+                calc.show_multi_currency(cost.total_cost)
+            elif args.convert_to:
+                calc.show_multi_currency(cost.total_cost, currencies=args.convert_to)
         else:
             # Calculate hourly rate only
             if args.surcharge:
@@ -465,6 +705,20 @@ def main():
                 breakdown = calc.calculate_hourly_rate(params)
 
             calc.print_breakdown(breakdown, args.detailed)
+
+            # Export if requested
+            if args.export:
+                calc.export_result(breakdown, args.export, format=args.export_format)
+
+            # Show currency conversions if requested
+            if args.show_currencies:
+                calc.show_multi_currency(breakdown.final_hourly_rate)
+            elif args.convert_to:
+                calc.show_multi_currency(breakdown.final_hourly_rate, currencies=args.convert_to)
+
+    # Show cache stats at the end if requested
+    if args.cache_stats and not args.clear_cache:
+        calc.get_cache_stats()
 
 
 if __name__ == "__main__":

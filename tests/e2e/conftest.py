@@ -90,7 +90,7 @@ def page(context: BrowserContext):
 
 
 # Application-specific fixtures
-@pytest.fixture
+@pytest.fixture(scope="session")
 def base_url():
     """
     Base URL for the application.

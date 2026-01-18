@@ -377,12 +377,299 @@ def start_cleanup_task(limiter: RateLimiter, interval: int = 3600):
     logger.info(f"Started rate limiter cleanup task (interval: {interval}s)")
 
 
+# Redis-backed rate limiter for distributed systems
+class RedisRateLimiter:
+    """
+    Redis-backed rate limiter for distributed systems.
+
+    Uses Redis for centralized rate limiting across multiple servers.
+    """
+
+    def __init__(self, requests: int = 100, window: int = 60, redis_client=None, prefix: str = "rate_limit"):
+        """
+        Initialize Redis rate limiter.
+
+        Args:
+            requests: Maximum requests allowed
+            window: Time window in seconds
+            redis_client: Redis client instance (optional)
+            prefix: Key prefix for Redis
+        """
+        self.requests = requests
+        self.window = window
+        self.prefix = prefix
+        self.redis_client = redis_client
+
+        if self.redis_client is None:
+            try:
+                import redis
+                self.redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+                # Test connection
+                self.redis_client.ping()
+                logger.info("Connected to Redis for rate limiting")
+            except Exception as e:
+                logger.warning(f"Redis not available, falling back to in-memory: {e}")
+                self.fallback_limiter = RateLimiter(requests, window)
+                self.redis_client = None
+
+    def _get_key(self, client_id: str) -> str:
+        """Get Redis key for client."""
+        return f"{self.prefix}:{client_id}"
+
+    def is_allowed(self, client_id: str) -> tuple[bool, Optional[int]]:
+        """
+        Check if request is allowed.
+
+        Args:
+            client_id: Client identifier
+
+        Returns:
+            (is_allowed, retry_after_seconds)
+        """
+        if self.redis_client is None:
+            return self.fallback_limiter.is_allowed(client_id)
+
+        try:
+            key = self._get_key(client_id)
+            now = time.time()
+
+            # Use Redis sorted set to store timestamps
+            # Remove old entries
+            self.redis_client.zremrangebyscore(key, 0, now - self.window)
+
+            # Count current requests
+            current_requests = self.redis_client.zcard(key)
+
+            if current_requests >= self.requests:
+                # Get oldest request to calculate retry_after
+                oldest = self.redis_client.zrange(key, 0, 0, withscores=True)
+                if oldest:
+                    oldest_time = oldest[0][1]
+                    retry_after = int(oldest_time + self.window - now) + 1
+                    return False, retry_after
+                return False, self.window
+
+            # Add new request
+            self.redis_client.zadd(key, {str(now): now})
+
+            # Set expiration
+            self.redis_client.expire(key, self.window * 2)
+
+            return True, None
+
+        except Exception as e:
+            logger.error(f"Redis rate limiter error: {e}")
+            # Fallback to allowing request on error
+            return True, None
+
+    def reset(self, client_id: str):
+        """Reset rate limit for client."""
+        if self.redis_client is None:
+            self.fallback_limiter.reset(client_id)
+            return
+
+        try:
+            key = self._get_key(client_id)
+            self.redis_client.delete(key)
+        except Exception as e:
+            logger.error(f"Redis reset error: {e}")
+
+    def get_remaining(self, client_id: str) -> int:
+        """Get remaining requests for client."""
+        if self.redis_client is None:
+            return self.fallback_limiter.get_remaining(client_id)
+
+        try:
+            key = self._get_key(client_id)
+            now = time.time()
+
+            # Remove old entries
+            self.redis_client.zremrangebyscore(key, 0, now - self.window)
+
+            # Count current requests
+            current_requests = self.redis_client.zcard(key)
+
+            return max(0, self.requests - current_requests)
+
+        except Exception as e:
+            logger.error(f"Redis get_remaining error: {e}")
+            return self.requests
+
+
+# FastAPI middleware for rate limiting
+class FastAPIRateLimitMiddleware:
+    """
+    FastAPI middleware for rate limiting.
+
+    Usage:
+        app.add_middleware(FastAPIRateLimitMiddleware, limiter=limiter)
+    """
+
+    def __init__(self, app, limiter: RateLimiter, key_func=None):
+        """
+        Initialize middleware.
+
+        Args:
+            app: FastAPI application
+            limiter: RateLimiter instance
+            key_func: Optional function to extract client ID from request
+        """
+        self.app = app
+        self.limiter = limiter
+        self.key_func = key_func or self._default_key_func
+
+    def _default_key_func(self, request) -> str:
+        """Default function to extract client ID from request."""
+        # Priority: API key > User ID > IP
+        api_key = request.headers.get("X-API-Key")
+        if api_key:
+            return f"api_key:{api_key}"
+
+        # Try to get user from request state (set by auth middleware)
+        user_id = getattr(request.state, "user_id", None)
+        if user_id:
+            return f"user:{user_id}"
+
+        # Fallback to IP + User-Agent
+        ip = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("User-Agent", "")[:50]
+        return f"ip:{ip}:{user_agent}"
+
+    async def __call__(self, scope, receive, send):
+        """Process request with rate limiting."""
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        from starlette.requests import Request
+        from starlette.responses import JSONResponse
+
+        request = Request(scope, receive)
+
+        # Get client ID
+        client_id = self.key_func(request)
+
+        # Check rate limit
+        is_allowed, retry_after = self.limiter.is_allowed(client_id)
+
+        if not is_allowed:
+            # Return 429 response
+            response = JSONResponse(
+                status_code=429,
+                content={
+                    "error": "rate_limit_exceeded",
+                    "message": "Too many requests. Please try again later.",
+                    "retry_after": retry_after
+                },
+                headers={"Retry-After": str(retry_after)} if retry_after else {}
+            )
+            await response(scope, receive, send)
+            return
+
+        # Add rate limit headers
+        remaining = self.limiter.get_remaining(client_id)
+
+        async def send_with_headers(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.append((b"X-RateLimit-Limit", str(self.limiter.requests).encode()))
+                headers.append((b"X-RateLimit-Remaining", str(remaining).encode()))
+                headers.append((b"X-RateLimit-Reset", str(int(time.time() + self.limiter.window)).encode()))
+                message["headers"] = headers
+            await send(message)
+
+        await self.app(scope, receive, send_with_headers)
+
+
+# FastAPI dependency for rate limiting
+def create_rate_limit_dependency(limiter: RateLimiter, key_func=None):
+    """
+    Create FastAPI dependency for rate limiting.
+
+    Usage:
+        rate_limit_dep = create_rate_limit_dependency(limiter)
+
+        @app.get("/api/data")
+        async def get_data(rate_limit: None = Depends(rate_limit_dep)):
+            return {"data": "value"}
+    """
+    async def rate_limit_dependency(request):
+        """Check rate limit for request."""
+        # Get client ID
+        if key_func:
+            client_id = key_func(request)
+        else:
+            api_key = request.headers.get("X-API-Key")
+            if api_key:
+                client_id = f"api_key:{api_key}"
+            else:
+                ip = request.client.host if request.client else "unknown"
+                user_agent = request.headers.get("User-Agent", "")[:50]
+                client_id = f"ip:{ip}:{user_agent}"
+
+        # Check rate limit
+        is_allowed, retry_after = limiter.is_allowed(client_id)
+
+        if not is_allowed:
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "rate_limit_exceeded",
+                    "message": "Too many requests. Please try again later.",
+                    "retry_after": retry_after
+                },
+                headers={"Retry-After": str(retry_after)} if retry_after else {}
+            )
+
+        return None
+
+    return rate_limit_dependency
+
+
+# Rate limit tiers configuration
+class RateLimitTier:
+    """Rate limit tier configuration."""
+
+    FREE = {"requests": 100, "window": 60, "name": "Free"}  # 100 req/min
+    BASIC = {"requests": 500, "window": 60, "name": "Basic"}  # 500 req/min
+    PREMIUM = {"requests": 2000, "window": 60, "name": "Premium"}  # 2000 req/min
+    ENTERPRISE = {"requests": 10000, "window": 60, "name": "Enterprise"}  # 10000 req/min
+
+    @classmethod
+    def get_limiter(cls, tier: str, use_redis: bool = False) -> RateLimiter:
+        """
+        Get rate limiter for tier.
+
+        Args:
+            tier: Tier name (free, basic, premium, enterprise)
+            use_redis: Whether to use Redis backend
+
+        Returns:
+            RateLimiter instance
+        """
+        tier_config = getattr(cls, tier.upper(), cls.FREE)
+
+        if use_redis:
+            return RedisRateLimiter(
+                requests=tier_config["requests"],
+                window=tier_config["window"],
+                prefix=f"rate_limit:{tier.lower()}"
+            )
+        else:
+            return RateLimiter(
+                requests=tier_config["requests"],
+                window=tier_config["window"]
+            )
+
+
 # Example usage
 if __name__ == "__main__":
-    # Test rate limiter
+    # Test in-memory rate limiter
+    print("=" * 60)
+    print("Testing in-memory rate limiter (5 requests per 10 seconds)...")
+    print("=" * 60)
     limiter = RateLimiter(requests=5, window=10)
-
-    print("Testing rate limiter (5 requests per 10 seconds)...")
 
     for i in range(10):
         is_allowed, retry_after = limiter.is_allowed("test_client")
@@ -394,3 +681,27 @@ if __name__ == "__main__":
             print(f"Request {i+1}: ❌ Rate limit exceeded (retry after: {retry_after}s)")
 
         time.sleep(1)
+
+    print("\n" + "=" * 60)
+    print("Testing Redis rate limiter...")
+    print("=" * 60)
+
+    # Test Redis rate limiter
+    redis_limiter = RedisRateLimiter(requests=5, window=10)
+
+    for i in range(7):
+        is_allowed, retry_after = redis_limiter.is_allowed("test_redis_client")
+        remaining = redis_limiter.get_remaining("test_redis_client")
+
+        if is_allowed:
+            print(f"Request {i+1}: ✅ Allowed (remaining: {remaining})")
+        else:
+            print(f"Request {i+1}: ❌ Rate limit exceeded (retry after: {retry_after}s)")
+
+    print("\n" + "=" * 60)
+    print("Testing rate limit tiers...")
+    print("=" * 60)
+
+    for tier_name in ["FREE", "BASIC", "PREMIUM", "ENTERPRISE"]:
+        limiter_tier = RateLimitTier.get_limiter(tier_name)
+        print(f"{tier_name}: {limiter_tier.requests} requests per {limiter_tier.window} seconds")

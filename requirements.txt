@@ -301,15 +301,21 @@ scikit-learn>=1.3.0
 # docker>=7.0.0
 # For Docker API client
 
-# Distributed tracing (optional - for production)
-# opentelemetry-api>=1.21.0
+# Distributed tracing (Phase 4 - TASK 38)
+opentelemetry-api>=1.22.0
 # OpenTelemetry API
-# opentelemetry-sdk>=1.21.0
+opentelemetry-sdk>=1.22.0
 # OpenTelemetry SDK
-# opentelemetry-instrumentation-flask>=0.42b0
+opentelemetry-instrumentation-flask>=0.42b0
 # Flask instrumentation
-# jaeger-client>=4.8.0
-# For Jaeger tracing
+opentelemetry-instrumentation-requests>=0.42b0
+# Requests instrumentation
+opentelemetry-instrumentation-sqlalchemy>=0.42b0
+# SQLAlchemy instrumentation
+opentelemetry-exporter-jaeger>=1.22.0
+# Jaeger exporter
+opentelemetry-exporter-otlp>=1.22.0
+# OTLP exporter for OpenTelemetry Collector
 
 # Advanced monitoring (optional - for production)
 # statsd>=4.0.0
