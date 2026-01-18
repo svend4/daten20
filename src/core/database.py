@@ -402,6 +402,42 @@ class Database:
             logger.error(f"Error listing services: {e}", exc_info=True)
             raise
 
+    def count_services(self, region: Optional[str] = None, service_type: Optional[str] = None) -> int:
+        """
+        Count total services with optional filters
+
+        Args:
+            region: Filter by region
+            service_type: Filter by service type
+
+        Returns:
+            Total count of services matching filters
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                query = "SELECT COUNT(*) FROM services WHERE 1=1"
+                params = []
+
+                if region:
+                    query += " AND region = ?"
+                    params.append(region)
+
+                if service_type:
+                    query += " AND service_type = ?"
+                    params.append(service_type)
+
+                cursor.execute(query, params)
+                count = cursor.fetchone()[0]
+
+            logger.debug(f"Counted {count} services")
+            return count
+
+        except Exception as e:
+            logger.error(f"Failed to count services: {e}")
+            return 0
+
     def search_services(self, query: str) -> List[Service]:
         """
         Search services by name or target group
