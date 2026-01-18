@@ -1,0 +1,259 @@
+name: Database Migrations
+
+on:
+  push:
+    branches: ["main", "develop", "claude/**"]
+    paths:
+      - "alembic/versions/**"
+      - "src/core/db_models.py"
+      - "alembic/env.py"
+      - "alembic.ini"
+  pull_request:
+    branches: ["main", "develop"]
+    paths:
+      - "alembic/versions/**"
+      - "src/core/db_models.py"
+      - "alembic/env.py"
+      - "alembic.ini"
+
+jobs:
+  check-migrations:
+    name: Check Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install alembic==1.13.1 black
+
+      - name: Check Alembic installation
+        run: |
+          alembic --version
+
+      - name: Verify migration files exist
+        run: |
+          if [ ! -d "alembic/versions" ]; then
+            echo "Error: alembic/versions directory not found"
+            exit 1
+          fi
+          migration_count=$(find alembic/versions -name "*.py" -type f | wc -l)
+          echo "Found $migration_count migration files"
+          if [ "$migration_count" -eq 0 ]; then
+            echo "Warning: No migration files found"
+          fi
+
+      - name: Check migration file naming
+        run: |
+          for file in alembic/versions/*.py; do
+            if [ -f "$file" ]; then
+              basename=$(basename "$file")
+              # Check if follows naming convention: YYYYMMDD_HHMM_revision_description.py
+              if ! echo "$basename" | grep -qE '^[0-9]{8}_[0-9]{4}_[a-f0-9]+_.*\.py$'; then
+                echo "Warning: Migration file $basename does not follow naming convention"
+              fi
+            fi
+          done
+
+      - name: Validate migration syntax
+        run: |
+          for file in alembic/versions/*.py; do
+            if [ -f "$file" ]; then
+              python -m py_compile "$file"
+            fi
+          done
+
+      - name: Check for upgrade/downgrade functions
+        run: |
+          for file in alembic/versions/*.py; do
+            if [ -f "$file" ]; then
+              if ! grep -q "def upgrade" "$file"; then
+                echo "Error: Missing upgrade() function in $file"
+                exit 1
+              fi
+              if ! grep -q "def downgrade" "$file"; then
+                echo "Error: Missing downgrade() function in $file"
+                exit 1
+              fi
+            fi
+          done
+
+      - name: Test migration upgrade (SQLite)
+        run: |
+          # Create test database directory
+          mkdir -p data
+
+          # Run migrations
+          alembic upgrade head
+
+          echo "✓ Migrations applied successfully"
+
+      - name: Test migration downgrade
+        run: |
+          # Get current revision
+          current=$(alembic current | grep -oP '[a-f0-9]+' | head -1 || echo "none")
+          echo "Current revision: $current"
+
+          if [ "$current" != "none" ]; then
+            # Downgrade one step
+            alembic downgrade -1
+            echo "✓ Downgrade successful"
+
+            # Upgrade back to head
+            alembic upgrade head
+            echo "✓ Re-upgrade successful"
+          else
+            echo "No migrations to test downgrade"
+          fi
+
+      - name: Check for migration conflicts
+        run: |
+          # Check if there are multiple heads
+          head_count=$(alembic heads 2>/dev/null | wc -l)
+          if [ "$head_count" -gt 1 ]; then
+            echo "Error: Multiple migration heads detected!"
+            echo "This indicates a branching conflict."
+            alembic heads
+            exit 1
+          fi
+          echo "✓ No migration conflicts detected"
+
+      - name: Verify current state
+        run: |
+          alembic current
+          echo "✓ Database is in consistent state"
+
+      - name: Generate migration report
+        if: always()
+        run: |
+          echo "## Migration Status Report" > migration_report.md
+          echo "" >> migration_report.md
+          echo "**Date:** $(date)" >> migration_report.md
+          echo "" >> migration_report.md
+          echo "### Current Version" >> migration_report.md
+          echo "\`\`\`" >> migration_report.md
+          alembic current >> migration_report.md 2>&1 || echo "No version found" >> migration_report.md
+          echo "\`\`\`" >> migration_report.md
+          echo "" >> migration_report.md
+          echo "### Migration History" >> migration_report.md
+          echo "\`\`\`" >> migration_report.md
+          alembic history | head -20 >> migration_report.md 2>&1 || echo "No history" >> migration_report.md
+          echo "\`\`\`" >> migration_report.md
+          echo "" >> migration_report.md
+          echo "### Migration Files" >> migration_report.md
+          find alembic/versions -name "*.py" -type f | wc -l | xargs echo "Total:" >> migration_report.md
+          cat migration_report.md
+
+      - name: Upload migration report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: migration-report
+          path: migration_report.md
+
+  test-with-postgres:
+    name: Test Migrations (PostgreSQL)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install alembic==1.13.1 psycopg2-binary
+
+      - name: Test migrations with PostgreSQL
+        env:
+          SQLALCHEMY_DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+        run: |
+          # Run migrations
+          alembic upgrade head
+
+          # Verify
+          alembic current
+
+          echo "✓ PostgreSQL migrations successful"
+
+  lint-migrations:
+    name: Lint Migration Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install linting tools
+        run: |
+          pip install black flake8
+
+      - name: Check code formatting with Black
+        run: |
+          black --check alembic/versions/ || {
+            echo "Migration files are not formatted with Black"
+            echo "Run: black alembic/versions/"
+            exit 1
+          }
+
+      - name: Lint with flake8
+        run: |
+          flake8 alembic/versions/ --max-line-length=120 --extend-ignore=E203,W503 || {
+            echo "Migration files have linting issues"
+            exit 1
+          }
+
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [check-migrations, test-with-postgres, lint-migrations]
+    if: failure()
+
+    steps:
+      - name: Send notification
+        run: |
+          echo "⚠️ Migration checks failed!"
+          echo "Please review the migration files and fix any issues."
