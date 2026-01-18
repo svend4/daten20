@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+
+{% block title %}API Gateway Dashboard - DMS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .metric-card.success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    .metric-card.warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .metric-card.info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .metric-value {
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .metric-label {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+
+    .chart-container {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .route-card {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #0d6efd;
+        transition: box-shadow 0.2s ease;
+    }
+
+    .route-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .route-card.inactive {
+        border-left-color: #6c757d;
+        opacity: 0.7;
+    }
+
+    .route-card.maintenance {
+        border-left-color: #ffc107;
+    }
+
+    .method-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-right: 5px;
+    }
+
+    .method-badge.GET {
+        background-color: #d1f4e0;
+        color: #198754;
+    }
+
+    .method-badge.POST {
+        background-color: #cfe2ff;
+        color: #0d6efd;
+    }
+
+    .method-badge.PUT {
+        background-color: #fff3cd;
+        color: #ffc107;
+    }
+
+    .method-badge.DELETE {
+        background-color: #f8d7da;
+        color: #dc3545;
+    }
+
+    .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+
+    .status-indicator.active {
+        background-color: #198754;
+        box-shadow: 0 0 8px #198754;
+        animation: pulse-green 2s infinite;
+    }
+
+    .status-indicator.inactive {
+        background-color: #6c757d;
+    }
+
+    .status-indicator.maintenance {
+        background-color: #ffc107;
+        animation: pulse-yellow 2s infinite;
+    }
+
+    @keyframes pulse-green {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    @keyframes pulse-yellow {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    .log-viewer {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        padding: 15px;
+        border-radius: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .log-entry {
+        padding: 5px 0;
+        border-bottom: 1px solid #333;
+    }
+
+    .log-entry:last-child {
+        border-bottom: none;
+    }
+
+    .log-timestamp {
+        color: #9cdcfe;
+    }
+
+    .log-method {
+        color: #4ec9b0;
+        font-weight: 600;
+    }
+
+    .log-status-200 {
+        color: #4ec9b0;
+    }
+
+    .log-status-400 {
+        color: #ce9178;
+    }
+
+    .log-status-500 {
+        color: #f48771;
+    }
+
+    .latency-badge {
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 3px;
+    }
+
+    .latency-fast {
+        background-color: #d1f4e0;
+        color: #198754;
+    }
+
+    .latency-medium {
+        background-color: #fff3cd;
+        color: #ffc107;
+    }
+
+    .latency-slow {
+        background-color: #f8d7da;
+        color: #dc3545;
+    }
+
+    .api-key-card {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 3px solid #0d6efd;
+    }
+
+    .api-key-value {
+        font-family: 'Courier New', monospace;
+        background-color: #fff;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 13px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5">
+                <i class="bi bi-hdd-network"></i> API Gateway Dashboard
+            </h1>
+            <p class="text-muted">Monitor and manage API routes, rate limits, and analytics</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-outline-primary" onclick="refreshMetrics()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+            <button class="btn btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#addRouteModal">
+                <i class="bi bi-plus-circle"></i> Add Route
+            </button>
+        </div>
+    </div>
+
+    <!-- Real-time Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">{{ metrics.total_requests }}</div>
+                <div class="metric-label">
+                    <i class="bi bi-bar-chart"></i> Total Requests (1h)
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card success">
+                <div class="metric-value">{{ metrics.requests_per_minute|round(1) }}/min</div>
+                <div class="metric-label">
+                    <i class="bi bi-speedometer"></i> Request Rate
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card info">
+                <div class="metric-value">{{ metrics.avg_latency_ms|round(0) }}ms</div>
+                <div class="metric-label">
+                    <i class="bi bi-clock-history"></i> Avg Latency
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card {% if metrics.error_rate > 5 %}warning{% else %}success{% endif %}">
+                <div class="metric-value">{{ metrics.error_rate|round(1) }}%</div>
+                <div class="metric-label">
+                    <i class="bi bi-exclamation-triangle"></i> Error Rate
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="bi bi-graph-up"></i> Request Timeline
+                </h5>
+                <canvas id="requestChart" height="80"></canvas>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="bi bi-pie-chart"></i> Status Codes
+                </h5>
+                <canvas id="statusChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3" id="gatewayTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="routes-tab" data-bs-toggle="tab" data-bs-target="#routes" type="button">
+                <i class="bi bi-signpost-split"></i> Routes
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button">
+                <i class="bi bi-journal-text"></i> Request Logs
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="apikeys-tab" data-bs-toggle="tab" data-bs-target="#apikeys" type="button">
+                <i class="bi bi-key"></i> API Keys
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="circuit-tab" data-bs-toggle="tab" data-bs-target="#circuit" type="button">
+                <i class="bi bi-diagram-3"></i> Circuit Breakers
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="gatewayTabsContent">
+        <!-- Routes Tab -->
+        <div class="tab-pane fade show active" id="routes" role="tabpanel">
+            <div class="row">
+                {% for route in routes %}
+                <div class="col-md-6 mb-3">
+                    <div class="route-card {{ route.status }}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-1">
+                                    <span class="status-indicator {{ route.status }}"></span>
+                                    {{ route.path }}
+                                </h6>
+                                <p class="text-muted small mb-2">{{ route.description }}</p>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" onclick="editRoute('{{ route.path }}')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteRoute('{{ route.path }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            {% for method in route.methods %}
+                            <span class="method-badge {{ method }}">{{ method }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <div class="small">
+                            <div class="mb-1">
+                                <i class="bi bi-arrow-right"></i>
+                                <code>{{ route.backend_url }}</code>
+                            </div>
+                            <div class="d-flex gap-3 text-muted">
+                                <span><i class="bi bi-clock"></i> {{ route.timeout }}s</span>
+                                {% if route.rate_limit %}
+                                <span><i class="bi bi-speedometer2"></i> {{ route.rate_limit }} req/min</span>
+                                {% endif %}
+                                {% if route.circuit_breaker_enabled %}
+                                <span><i class="bi bi-shield-check"></i> Circuit Breaker</span>
+                                {% endif %}
+                                {% if route.auth_required %}
+                                <span><i class="bi bi-lock"></i> Auth Required</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Route Stats -->
+                        <div class="mt-3 pt-2 border-top">
+                            <div class="d-flex justify-content-between text-muted small">
+                                <span>Requests (1h): <strong>{{ route.request_count }}</strong></span>
+                                <span>Avg Latency: <strong>{{ route.avg_latency }}ms</strong></span>
+                                <span>Success Rate: <strong>{{ route.success_rate }}%</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Request Logs Tab -->
+        <div class="tab-pane fade" id="logs" role="tabpanel">
+            <div class="mb-3">
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="logLevel" id="logAll" checked>
+                    <label class="btn btn-outline-primary" for="logAll">All</label>
+
+                    <input type="radio" class="btn-check" name="logLevel" id="log2xx">
+                    <label class="btn btn-outline-success" for="log2xx">2xx</label>
+
+                    <input type="radio" class="btn-check" name="logLevel" id="log4xx">
+                    <label class="btn btn-outline-warning" for="log4xx">4xx</label>
+
+                    <input type="radio" class="btn-check" name="logLevel" id="log5xx">
+                    <label class="btn btn-outline-danger" for="log5xx">5xx</label>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearLogs()">
+                    <i class="bi bi-trash"></i> Clear Logs
+                </button>
+                <button class="btn btn-sm btn-outline-primary ms-2" onclick="exportLogs()">
+                    <i class="bi bi-download"></i> Export
+                </button>
+            </div>
+
+            <div class="log-viewer" id="logViewer">
+                {% for log in logs %}
+                <div class="log-entry">
+                    <span class="log-timestamp">[{{ log.timestamp }}]</span>
+                    <span class="log-method">{{ log.method }}</span>
+                    <span>{{ log.path }}</span>
+                    <span class="log-status-{{ log.status_code // 100 }}00">{{ log.status_code }}</span>
+                    <span class="latency-badge {% if log.latency_ms < 100 %}latency-fast{% elif log.latency_ms < 500 %}latency-medium{% else %}latency-slow{% endif %}">
+                        {{ log.latency_ms|round(0) }}ms
+                    </span>
+                    <span class="text-muted">{{ log.client_ip }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- API Keys Tab -->
+        <div class="tab-pane fade" id="apikeys" role="tabpanel">
+            <div class="mb-3">
+                <button class="btn btn-primary" onclick="generateApiKey()">
+                    <i class="bi bi-plus-circle"></i> Generate New Key
+                </button>
+            </div>
+
+            <div class="row">
+                {% for key in api_keys %}
+                <div class="col-md-6 mb-3">
+                    <div class="api-key-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-0">{{ key.name }}</h6>
+                                <small class="text-muted">Created: {{ key.created_at }}</small>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" onclick="copyApiKey('{{ key.key }}')">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="revokeApiKey('{{ key.key }}')">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="api-key-value mb-2">
+                            <code>{{ key.key_display }}</code>
+                        </div>
+
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>
+                                {% if key.active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </span>
+                            <span>Usage: {{ key.request_count }} requests</span>
+                            <span>Last used: {{ key.last_used }}</span>
+                        </div>
+
+                        {% if key.scopes %}
+                        <div class="mt-2">
+                            <small class="text-muted">Scopes:</small>
+                            {% for scope in key.scopes %}
+                            <span class="badge bg-secondary me-1">{{ scope }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Circuit Breakers Tab -->
+        <div class="tab-pane fade" id="circuit" role="tabpanel">
+            <div class="row">
+                {% for backend, state in circuit_breakers.items() %}
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h6 class="mb-0">{{ backend }}</h6>
+                                    <small class="text-muted">Backend Service</small>
+                                </div>
+                                <span class="badge {% if state.is_open %}bg-danger{% else %}bg-success{% endif %}">
+                                    {{ 'OPEN' if state.is_open else 'CLOSED' }}
+                                </span>
+                            </div>
+
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="text-muted small">Failures</div>
+                                    <div class="h4 {% if state.failures > 3 %}text-danger{% endif %}">
+                                        {{ state.failures }}
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted small">Last Failure</div>
+                                    <div class="small">
+                                        {{ state.last_failure_time or 'Never' }}
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted small">Last Success</div>
+                                    <div class="small">
+                                        {{ state.last_success_time or 'Never' }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-outline-primary w-100" onclick="resetCircuitBreaker('{{ backend }}')">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Reset Circuit Breaker
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize Charts
+const requestChartCtx = document.getElementById('requestChart').getContext('2d');
+const requestChart = new Chart(requestChartCtx, {
+    type: 'line',
+    data: {
+        labels: {{ request_timeline_labels|tojson }},
+        datasets: [{
+            label: 'Requests',
+            data: {{ request_timeline_data|tojson }},
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.3,
+            fill: true,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+const statusChartCtx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(statusChartCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['2xx Success', '4xx Client Error', '5xx Server Error'],
+        datasets: [{
+            data: {{ status_distribution|tojson }},
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(255, 99, 132, 0.8)'
+            ]
+        }]
+    }
+});
+
+// Refresh metrics
+function refreshMetrics() {
+    location.reload();
+}
+
+// Route management
+function editRoute(path) {
+    console.log('Edit route:', path);
+    // TODO: Open edit modal
+}
+
+function deleteRoute(path) {
+    if (confirm(`Delete route ${path}?`)) {
+        fetch(`/admin/gateway/routes/${encodeURIComponent(path)}`, {
+            method: 'DELETE'
+        }).then(() => location.reload());
+    }
+}
+
+// API Key management
+function generateApiKey() {
+    const name = prompt('Enter API key name:');
+    if (name) {
+        fetch('/admin/gateway/api-keys', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: name})
+        }).then(() => location.reload());
+    }
+}
+
+function copyApiKey(key) {
+    navigator.clipboard.writeText(key);
+    alert('API key copied to clipboard!');
+}
+
+function revokeApiKey(key) {
+    if (confirm('Revoke this API key?')) {
+        fetch(`/admin/gateway/api-keys/${key}`, {
+            method: 'DELETE'
+        }).then(() => location.reload());
+    }
+}
+
+// Circuit breaker management
+function resetCircuitBreaker(backend) {
+    fetch(`/admin/gateway/circuit-breakers/${encodeURIComponent(backend)}/reset`, {
+        method: 'POST'
+    }).then(() => location.reload());
+}
+
+// Log management
+function clearLogs() {
+    if (confirm('Clear all logs?')) {
+        document.getElementById('logViewer').innerHTML = '';
+    }
+}
+
+function exportLogs() {
+    // TODO: Export logs to file
+    alert('Exporting logs...');
+}
+
+// Auto-refresh every 10 seconds
+setInterval(() => {
+    refreshMetrics();
+}, 10000);
+</script>
+{% endblock %}
