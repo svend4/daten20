@@ -141,16 +141,57 @@ class BackupManager:
 
         # Extract backup safely (prevent path traversal attacks)
         with tarfile.open(actual_backup_path, "r:gz") as tar:
+            # Get absolute base directory for extraction
+            base_dir = os.path.abspath("data")  # Restrict to data directory
+            os.makedirs(base_dir, exist_ok=True)
+
             # Validate and filter members before extraction
             safe_members = []
             for member in tar.getmembers():
-                # Prevent path traversal by checking if the path is within current directory
-                member_path = os.path.normpath(os.path.join(".", member.name))
-                if not member_path.startswith("."):
-                    raise ValueError(f"Unsafe path in tar file: {member.name}")
+                import urllib.parse
+
+                # Decode URL-encoded paths to detect obfuscated traversals
+                decoded_name = urllib.parse.unquote(member.name)
+                # Double decode to catch double-encoded attacks
+                decoded_name = urllib.parse.unquote(decoded_name)
+
+                # Check for any path traversal patterns in decoded name
+                if ".." in decoded_name:
+                    raise ValueError(f"Unsafe path: Path traversal attempt detected in {member.name}")
+
+                # Check for multiple dots with slashes (evasion technique)
+                import re
+                if re.search(r'\.\./|\.\.\\|\.\.\.\.|\.\.\.', decoded_name):
+                    raise ValueError(f"Unsafe path: Suspicious path pattern in {member.name}")
+
+                # Prevent path traversal by validating absolute path
+                # Remove any leading path components that try to escape
+                member_path = os.path.normpath(member.name).lstrip(os.sep)
+
+                # Check for relative path components (handle both / and \ separators)
+                path_parts = member_path.replace("\\", "/").split("/")
+                if ".." in path_parts:
+                    raise ValueError(f"Unsafe path: Path traversal attempt detected in {member.name}")
+
+                # Check for absolute paths (including Windows-style)
+                if os.path.isabs(member.name) or re.match(r'^[A-Za-z]:\\', member.name):
+                    raise ValueError(f"Unsafe path: Absolute path not allowed in {member.name}")
+
+                # Resolve full path and verify it's within base directory
+                full_path = os.path.abspath(os.path.join(base_dir, member_path))
+                if not full_path.startswith(base_dir + os.sep) and full_path != base_dir:
+                    raise ValueError(f"Unsafe path escapes base directory: {member.name}")
+
+                # Additional check for symlinks that might escape
+                if member.issym() or member.islnk():
+                    link_target = member.linkname
+                    if os.path.isabs(link_target) or ".." in link_target:
+                        raise ValueError(f"Unsafe symlink detected: {member.name} -> {link_target}")
+
                 safe_members.append(member)
-            # Extract only validated members (paths verified above to prevent traversal)
-            tar.extractall(".", members=safe_members)  # nosec B202
+
+            # Extract only validated members to base directory
+            tar.extractall(base_dir, members=safe_members)  # nosec B202
 
         logger.info("Backup restored successfully")
 
