@@ -98,14 +98,141 @@ from src.core.rate_limiter import (
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
 
+# OpenAPI metadata
+if FASTAPI_AVAILABLE:
+    tags_metadata = [
+        {
+            "name": "Root",
+            "description": "Root endpoints for API information and navigation",
+        },
+        {
+            "name": "System",
+            "description": "System health checks and statistics",
+        },
+        {
+            "name": "Documents",
+            "description": "Document upload, retrieval, and management operations",
+        },
+        {
+            "name": "Extraction",
+            "description": "Entity and relation extraction from text using NLP",
+        },
+        {
+            "name": "Classification",
+            "description": "Document classification and categorization",
+        },
+        {
+            "name": "Knowledge Graph",
+            "description": "Knowledge graph construction and visualization",
+        },
+        {
+            "name": "Batch",
+            "description": "Batch processing operations for multiple documents",
+        },
+    ]
+
+    api_description = """
+# Document Intelligence API
+
+**AI-powered document analysis and processing platform**
+
+## Features
+
+This API provides comprehensive document intelligence capabilities:
+
+### 🔍 **Entity Extraction**
+- Named Entity Recognition (NER) with spaCy
+- Support for PERSON, ORG, LOCATION, DATE, and more
+- Confidence scores for each entity
+- Custom entity types support
+
+### 🔗 **Relation Extraction**
+- Extract relationships between entities
+- Multiple relation types (WORKS_FOR, LOCATED_IN, etc.)
+- Graph-based relationship modeling
+
+### 📊 **Document Classification**
+- Multi-category classification
+- TF-IDF + SVM classifier
+- Confidence scores and probability distributions
+- Support for custom categories
+
+### 🕸️ **Knowledge Graphs**
+- Automatic knowledge graph construction
+- Multiple export formats (GraphML, JSON, DOT)
+- Visualization-ready outputs
+
+### ⚡ **Batch Processing**
+- Process multiple documents asynchronously
+- Job status tracking
+- Background task execution
+
+## Rate Limiting
+
+API requests are rate-limited based on your tier:
+- **FREE:** 100 requests/minute
+- **BASIC:** 500 requests/minute
+- **PREMIUM:** 2,000 requests/minute
+- **ENTERPRISE:** 10,000 requests/minute
+
+Rate limit information is included in response headers:
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Remaining requests in window
+- `X-RateLimit-Reset`: Time when limit resets (Unix timestamp)
+
+## Authentication
+
+API key authentication can be enabled in production mode.
+Include your API key in the request header:
+
+```
+X-API-Key: your_api_key_here
+```
+
+## Getting Started
+
+1. Upload a document via `/api/v1/documents`
+2. Extract entities with `/api/v1/extract/entities`
+3. Classify the document with `/api/v1/classify`
+4. Build a knowledge graph with `/api/v1/graph/build`
+
+For detailed examples, see the endpoint documentation below.
+    """
+
+    # Security schemes for OpenAPI
+    from fastapi.security import APIKeyHeader
+
+    api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
 # FastAPI app setup
 app = (
     FastAPI(
         title="Document Intelligence API",
-        description="AI-powered document analysis and processing API",
+        description=api_description,
         version="1.0.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        openapi_tags=tags_metadata,
+        contact={
+            "name": "Document Management System Team",
+            "url": "https://github.com/yourusername/daten20",
+            "email": "support@docmanagement.example.com",
+        },
+        license_info={
+            "name": "MIT License",
+            "url": "https://opensource.org/licenses/MIT",
+        },
+        terms_of_service="https://example.com/terms/",
+        servers=[
+            {
+                "url": "http://localhost:8000",
+                "description": "Local development server"
+            },
+            {
+                "url": "https://api.example.com",
+                "description": "Production server"
+            }
+        ]
     )
     if FASTAPI_AVAILABLE
     else None
@@ -140,65 +267,216 @@ if FASTAPI_AVAILABLE:
     class TextInput(BaseModel):
         """Text input for extraction endpoints."""
 
-        text: str = Field(..., description="Input text to process")
-        options: Optional[Dict[str, Any]] = Field(default={}, description="Processing options")
+        text: str = Field(
+            ...,
+            description="Input text to process",
+            min_length=1,
+            max_length=1000000,
+            example="Apple Inc. was founded by Steve Jobs in Cupertino, California."
+        )
+        options: Optional[Dict[str, Any]] = Field(
+            default={},
+            description="Processing options (e.g., entity_types, min_confidence)",
+            example={"entity_types": ["PERSON", "ORG"], "min_confidence": 0.7}
+        )
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "text": "Apple Inc. was founded by Steve Jobs in Cupertino, California.",
+                    "options": {"entity_types": ["PERSON", "ORG", "GPE"]}
+                }
+            }
 
     class EntityResponse(BaseModel):
         """Entity extraction response."""
 
-        text: str
-        type: str
-        start: int
-        end: int
-        confidence: float
+        text: str = Field(..., description="The extracted entity text", example="Apple Inc.")
+        type: str = Field(..., description="Entity type (PERSON, ORG, GPE, etc.)", example="ORG")
+        start: int = Field(..., description="Start character position in text", example=0, ge=0)
+        end: int = Field(..., description="End character position in text", example=10, ge=0)
+        confidence: float = Field(..., description="Confidence score (0.0-1.0)", example=0.95, ge=0.0, le=1.0)
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "text": "Apple Inc.",
+                    "type": "ORG",
+                    "start": 0,
+                    "end": 10,
+                    "confidence": 0.95
+                }
+            }
 
     class RelationResponse(BaseModel):
         """Relation extraction response."""
 
-        source: str
-        source_type: str
-        relation: str
-        target: str
-        target_type: str
-        confidence: float
+        source: str = Field(..., description="Source entity text", example="Steve Jobs")
+        source_type: str = Field(..., description="Source entity type", example="PERSON")
+        relation: str = Field(..., description="Relation type", example="FOUNDED")
+        target: str = Field(..., description="Target entity text", example="Apple Inc.")
+        target_type: str = Field(..., description="Target entity type", example="ORG")
+        confidence: float = Field(..., description="Confidence score (0.0-1.0)", example=0.89, ge=0.0, le=1.0)
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "source": "Steve Jobs",
+                    "source_type": "PERSON",
+                    "relation": "FOUNDED",
+                    "target": "Apple Inc.",
+                    "target_type": "ORG",
+                    "confidence": 0.89
+                }
+            }
 
     class ClassificationResponse(BaseModel):
         """Document classification response."""
 
-        category: str
-        confidence: float
-        probabilities: Optional[Dict[str, float]] = None
+        category: str = Field(..., description="Predicted category", example="TECHNOLOGY")
+        confidence: float = Field(..., description="Confidence score (0.0-1.0)", example=0.92, ge=0.0, le=1.0)
+        probabilities: Optional[Dict[str, float]] = Field(
+            None,
+            description="Probability distribution for all categories",
+            example={
+                "TECHNOLOGY": 0.92,
+                "BUSINESS": 0.05,
+                "SCIENCE": 0.02,
+                "OTHER": 0.01
+            }
+        )
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "category": "TECHNOLOGY",
+                    "confidence": 0.92,
+                    "probabilities": {
+                        "TECHNOLOGY": 0.92,
+                        "BUSINESS": 0.05,
+                        "SCIENCE": 0.02
+                    }
+                }
+            }
 
     class DocumentResponse(BaseModel):
         """Document processing response."""
 
-        document_id: str
-        filename: str
-        processed_at: str
-        statistics: Dict[str, Any]
+        document_id: str = Field(..., description="Unique document identifier", example="doc_abc123")
+        filename: str = Field(..., description="Original filename", example="annual_report.pdf")
+        processed_at: str = Field(..., description="Processing timestamp (ISO 8601)", example="2026-01-18T12:00:00Z")
+        statistics: Dict[str, Any] = Field(
+            ...,
+            description="Document statistics",
+            example={
+                "word_count": 1250,
+                "char_count": 7890,
+                "sentences": 45,
+                "paragraphs": 12
+            }
+        )
         classification: ClassificationResponse
-        entities: List[EntityResponse]
-        relations: List[RelationResponse]
-        knowledge_graph: Optional[Dict[str, Any]] = None
+        entities: List[EntityResponse] = Field(..., description="Extracted entities")
+        relations: List[RelationResponse] = Field(..., description="Extracted relations")
+        knowledge_graph: Optional[Dict[str, Any]] = Field(
+            None,
+            description="Knowledge graph representation",
+            example={"nodes": 15, "edges": 23, "format": "graphml"}
+        )
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "document_id": "doc_abc123",
+                    "filename": "annual_report.pdf",
+                    "processed_at": "2026-01-18T12:00:00Z",
+                    "statistics": {
+                        "word_count": 1250,
+                        "char_count": 7890,
+                        "sentences": 45
+                    },
+                    "classification": {
+                        "category": "TECHNOLOGY",
+                        "confidence": 0.92
+                    },
+                    "entities": [
+                        {
+                            "text": "Apple Inc.",
+                            "type": "ORG",
+                            "start": 0,
+                            "end": 10,
+                            "confidence": 0.95
+                        }
+                    ],
+                    "relations": [
+                        {
+                            "source": "Steve Jobs",
+                            "source_type": "PERSON",
+                            "relation": "FOUNDED",
+                            "target": "Apple Inc.",
+                            "target_type": "ORG",
+                            "confidence": 0.89
+                        }
+                    ]
+                }
+            }
 
     class BatchJobResponse(BaseModel):
         """Batch job response."""
 
-        job_id: str
-        status: str
-        total_documents: int
-        processed: int
-        failed: int
-        created_at: str
-        updated_at: str
+        job_id: str = Field(..., description="Unique job identifier", example="job_xyz789")
+        status: str = Field(..., description="Job status", example="processing", pattern="^(pending|processing|completed|failed)$")
+        total_documents: int = Field(..., description="Total documents in batch", example=100, ge=0)
+        processed: int = Field(..., description="Number of processed documents", example=45, ge=0)
+        failed: int = Field(..., description="Number of failed documents", example=2, ge=0)
+        created_at: str = Field(..., description="Job creation timestamp", example="2026-01-18T12:00:00Z")
+        updated_at: str = Field(..., description="Last update timestamp", example="2026-01-18T12:05:30Z")
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "job_id": "job_xyz789",
+                    "status": "processing",
+                    "total_documents": 100,
+                    "processed": 45,
+                    "failed": 2,
+                    "created_at": "2026-01-18T12:00:00Z",
+                    "updated_at": "2026-01-18T12:05:30Z"
+                }
+            }
 
     class HealthResponse(BaseModel):
         """Health check response."""
 
-        status: str
-        version: str
-        uptime: float
-        components: Dict[str, str]
+        status: str = Field(..., description="Overall health status", example="healthy", pattern="^(healthy|degraded|unhealthy)$")
+        version: str = Field(..., description="API version", example="1.0.0")
+        uptime: float = Field(..., description="Uptime in seconds", example=3600.5, ge=0.0)
+        components: Dict[str, str] = Field(
+            ...,
+            description="Component health status",
+            example={
+                "parser": "operational",
+                "ner": "operational",
+                "classifier": "operational",
+                "database": "operational"
+            }
+        )
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "status": "healthy",
+                    "version": "1.0.0",
+                    "uptime": 3600.5,
+                    "components": {
+                        "parser": "operational",
+                        "ner": "operational",
+                        "classifier": "operational",
+                        "relation_extractor": "operational",
+                        "knowledge_graph": "operational"
+                    }
+                }
+            }
 
 
 # Global components
