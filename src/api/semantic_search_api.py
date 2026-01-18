@@ -430,4 +430,7 @@ if __name__ == "__main__":
             print(f"{methods:10} {rule.rule}")
 
     print("\nStarting development server on http://localhost:5001...")
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    # Debug mode controlled by environment variable for security
+    import os
+    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    app.run(host="0.0.0.0", port=5001, debug=debug_mode)

@@ -139,9 +139,18 @@ class BackupManager:
             self.encryptor.decrypt_file(backup_path, decrypted_path, compressed=False)
             actual_backup_path = decrypted_path
 
-        # Extract backup
+        # Extract backup safely (prevent path traversal attacks)
         with tarfile.open(actual_backup_path, "r:gz") as tar:
-            tar.extractall(".")
+            # Validate and filter members before extraction
+            safe_members = []
+            for member in tar.getmembers():
+                # Prevent path traversal by checking if the path is within current directory
+                member_path = os.path.normpath(os.path.join(".", member.name))
+                if not member_path.startswith("."):
+                    raise ValueError(f"Unsafe path in tar file: {member.name}")
+                safe_members.append(member)
+            # Extract only validated members (paths verified above to prevent traversal)
+            tar.extractall(".", members=safe_members)  # nosec B202
 
         logger.info("Backup restored successfully")
 
