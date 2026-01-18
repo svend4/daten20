@@ -809,8 +809,9 @@ def main():
     # Create necessary directories
     os.makedirs("data/exports", exist_ok=True)
 
-    # Run server
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    # Run server (debug mode controlled by environment variable)
+    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    app.run(debug=debug_mode, host="0.0.0.0", port=5000)
 
 
 if __name__ == "__main__":

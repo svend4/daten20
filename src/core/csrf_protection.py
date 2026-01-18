@@ -364,4 +364,7 @@ if __name__ == "__main__":
     print("\nTry submitting forms with and without CSRF tokens")
     print("=" * 60 + "\n")
 
-    app.run(debug=True, port=5000)
+    # Debug mode controlled by environment variable for security
+    import os
+    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    app.run(debug=debug_mode, port=5000)

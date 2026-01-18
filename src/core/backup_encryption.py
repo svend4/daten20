@@ -328,7 +328,16 @@ class BackupEncryption:
         output_path.mkdir(parents=True, exist_ok=True)
 
         with tarfile.open(fileobj=tar_buffer, mode="r:gz") as tar:
-            tar.extractall(output_path)
+            # Validate and filter members before extraction (prevent path traversal)
+            safe_members = []
+            for member in tar.getmembers():
+                # Prevent path traversal by checking if the path is within output directory
+                member_path = os.path.normpath(os.path.join(output_path, member.name))
+                if not member_path.startswith(str(output_path)):
+                    raise ValueError(f"Unsafe path in tar file: {member.name}")
+                safe_members.append(member)
+            # Extract only validated members (paths verified above to prevent traversal)
+            tar.extractall(output_path, members=safe_members)  # nosec B202
 
         logger.info(f"Backup restored: {backup_file} -> {output_dir} " f"(timestamp: {metadata.get('timestamp')})")
         return metadata
