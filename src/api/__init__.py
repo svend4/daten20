@@ -1,30 +1,27 @@
 """
 API Module
+==========
 
-REST API endpoints for the Document Management System.
+FastAPI endpoints and utilities for Document Management System.
+
+Modules:
+- async_endpoints: Fully async API endpoints with Celery support
 """
 
-from flask import Flask
+from .async_endpoints import (
+    BatchJobResponse,
+    DocumentResponse,
+    TaskStatusResponse,
+    TextInput,
+    benchmark_async_vs_sync,
+    register_async_endpoints,
+)
 
-__version__ = "1.0.0"
-
-
-def register_blueprints(app: Flask):
-    """
-    Register all API blueprints with the Flask app
-
-    Args:
-        app: Flask application instance
-    """
-    # Import blueprints
-    try:
-        from src.api.semantic_search_api import semantic_search_bp
-        app.register_blueprint(semantic_search_bp)
-    except ImportError:
-        pass
-
-    try:
-        from src.api.translation_api import translation_bp
-        app.register_blueprint(translation_bp)
-    except ImportError:
-        pass
+__all__ = [
+    "register_async_endpoints",
+    "DocumentResponse",
+    "TextInput",
+    "BatchJobResponse",
+    "TaskStatusResponse",
+    "benchmark_async_vs_sync",
+]
