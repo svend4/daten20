@@ -184,11 +184,14 @@ class TestInsuranceRates:
         """Test default insurance rates"""
         rates = InsuranceRates()
 
-        assert rates.kv_er == Decimal("0")
-        assert rates.pv_er == Decimal("0")
-        assert rates.rv_er == Decimal("0")
-        assert rates.av_er == Decimal("0")
-        assert rates.uv_er == Decimal("0")
+        # Model has realistic German insurance rate defaults
+        assert rates.kv_er == Decimal("7.3")
+        assert rates.kv_zusatz_er == Decimal("0.8")
+        assert rates.pv_er == Decimal("1.525")
+        assert rates.pv_er_sn == Decimal("2.025")
+        assert rates.rv_er == Decimal("9.3")
+        assert rates.av_er == Decimal("1.2")
+        assert rates.uv_er == Decimal("1.3")
 
     def test_custom_rates(self):
         """Test custom insurance rates"""
@@ -219,9 +222,10 @@ class TestUmlages:
         """Test default Umlages"""
         umlages = Umlages()
 
-        assert umlages.u1 == Decimal("0")
-        assert umlages.u2 == Decimal("0")
-        assert umlages.u3 == Decimal("0")
+        # Model has realistic German Umlage defaults
+        assert umlages.u1 == Decimal("0.9")
+        assert umlages.u2 == Decimal("0.4")
+        assert umlages.u3 == Decimal("0.09")
 
     def test_custom_umlages(self):
         """Test custom Umlages"""
@@ -241,12 +245,19 @@ class TestFinancialParameters:
 
     def test_default_parameters(self):
         """Test default financial parameters"""
-        params = FinancialParameters()
+        # brutto_rate is required parameter
+        params = FinancialParameters(brutto_rate=Decimal("25.00"))
 
-        assert params.brutto_rate == Decimal("0")
+        # Check defaults for optional parameters
+        assert params.brutto_rate == Decimal("25.00")
         assert params.materials_per_month == Decimal("0")
+        assert params.materials_per_hour == Decimal("0")
         assert params.admin_percent == Decimal("0")
+        assert params.admin_per_hour == Decimal("0")
         assert params.region_coefficient == Decimal("1.0")
+        # Insurance rates and umlages have their own defaults
+        assert isinstance(params.insurance_rates, InsuranceRates)
+        assert isinstance(params.umlages, Umlages)
 
     def test_complete_parameters(self):
         """Test complete financial parameters"""
@@ -386,25 +397,35 @@ class TestCostBreakdown:
 
     def test_default_cost_breakdown(self):
         """Test default cost breakdown"""
-        breakdown = CostBreakdown()
+        # brutto_rate is required parameter
+        breakdown = CostBreakdown(brutto_rate=Decimal("25.00"))
 
-        assert breakdown.netto == Decimal("0")
-        assert breakdown.brutto == Decimal("0")
+        # Check required field
+        assert breakdown.brutto_rate == Decimal("25.00")
+        # Check defaults
+        assert breakdown.total_insurance == Decimal("0")
+        assert breakdown.total_umlages == Decimal("0")
+        assert breakdown.materials_cost == Decimal("0")
+        assert breakdown.admin_cost == Decimal("0")
+        assert breakdown.final_hourly_rate == Decimal("0")
 
     def test_complete_cost_breakdown(self):
         """Test complete cost breakdown"""
         breakdown = CostBreakdown(
-            netto=Decimal("20.00"),
-            brutto=Decimal("25.00"),
-            social_contributions=Decimal("3.00"),
-            materials=Decimal("2.00"),
-            admin_overhead=Decimal("1.00"),
-            # hourly_rate=HourlyRate(base_rate=Decimal("25.00"))  # HourlyRate does not exist
+            brutto_rate=Decimal("25.00"),
+            total_insurance=Decimal("5.00"),
+            total_umlages=Decimal("0.35"),
+            materials_cost=Decimal("2.00"),
+            admin_cost=Decimal("1.50"),
+            final_hourly_rate=Decimal("33.85")
         )
 
-        assert breakdown.netto == Decimal("20.00")
-        assert breakdown.brutto == Decimal("25.00")
-        assert breakdown.social_contributions == Decimal("3.00")
+        assert breakdown.brutto_rate == Decimal("25.00")
+        assert breakdown.total_insurance == Decimal("5.00")
+        assert breakdown.total_umlages == Decimal("0.35")
+        assert breakdown.materials_cost == Decimal("2.00")
+        assert breakdown.admin_cost == Decimal("1.50")
+        assert breakdown.final_hourly_rate == Decimal("33.85")
 
 
 # NOTE: Template, TemplateVariable classes do not exist yet - tests commented out

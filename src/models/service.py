@@ -49,7 +49,7 @@ class Service:
 
     id: Optional[int] = None
     basic_info: BasicInfo = field(default_factory=BasicInfo)
-    financial: FinancialParameters = field(default_factory=FinancialParameters)
+    financial: FinancialParameters = field(default_factory=lambda: FinancialParameters(brutto_rate=0))
     system_settings: SystemSettings = field(default_factory=SystemSettings)
     funding: Funding = field(default_factory=Funding)
 
