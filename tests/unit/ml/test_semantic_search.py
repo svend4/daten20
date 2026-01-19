@@ -92,7 +92,7 @@ class TestSemanticSearchEngine:
         """Test indexing documents"""
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
-        mock_model.encode.return_value = np.random.rand(3, 384).astype(np.float32)
+        mock_model.encode.side_effect = lambda texts, **kwargs: np.random.rand(len(texts), 384).astype(np.float32)
         mock_st.return_value = mock_model
 
         mock_index = Mock()
@@ -112,7 +112,8 @@ class TestSemanticSearchEngine:
         """Test basic search"""
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
-        mock_model.encode.return_value = np.random.rand(3, 384).astype(np.float32)
+        # Make encode return correct number of embeddings based on input
+        mock_model.encode.side_effect = lambda texts, **kwargs: np.random.rand(len(texts), 384).astype(np.float32)
         mock_st.return_value = mock_model
 
         mock_index = Mock()
@@ -134,7 +135,7 @@ class TestSemanticSearchEngine:
         """Test getting index statistics"""
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
-        mock_model.encode.return_value = np.random.rand(3, 384).astype(np.float32)
+        mock_model.encode.side_effect = lambda texts, **kwargs: np.random.rand(len(texts), 384).astype(np.float32)
         mock_st.return_value = mock_model
 
         mock_index = Mock()
@@ -156,7 +157,7 @@ class TestSemanticSearchEngine:
         """Test saving index"""
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
-        mock_model.encode.return_value = np.random.rand(3, 384).astype(np.float32)
+        mock_model.encode.side_effect = lambda texts, **kwargs: np.random.rand(len(texts), 384).astype(np.float32)
         mock_st.return_value = mock_model
 
         mock_index = Mock()
@@ -181,17 +182,18 @@ class TestSemanticSearchEngine:
         """Test clearing embedding cache"""
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
-        mock_model.encode.return_value = np.random.rand(2, 384).astype(np.float32)
+        mock_model.encode.side_effect = lambda texts, **kwargs: np.random.rand(len(texts), 384).astype(np.float32)
         mock_st.return_value = mock_model
         mock_faiss.IndexFlatL2.return_value = Mock()
 
         engine = SemanticSearchEngine(cache_embeddings=True)
         engine.encode_texts(["text1", "text2"])
 
-        assert len(engine._embedding_cache) > 0
+        # Check cache has items (use memory_cache.size())
+        assert engine._embedding_cache.memory_cache.size() > 0
 
         engine.clear_cache()
-        assert len(engine._embedding_cache) == 0
+        assert engine._embedding_cache.memory_cache.size() == 0
 
 
 @patch("src.ml.semantic_search.TRANSFORMERS_AVAILABLE", True)
