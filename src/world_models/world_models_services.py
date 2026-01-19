@@ -112,14 +112,28 @@ class State:
 
 @dataclass
 class Transition:
-    """State transition"""
+    """State transition - flexible to accept both state IDs and state vectors"""
 
-    from_state: str
+    # Can be either state ID (str) or state vector (Any)
+    state: Any  # From state (ID or vector)
     action: Any
-    to_state: str
+    next_state: Any  # To state (ID or vector)
     reward: float
     done: bool
-    timestamp: datetime
+    timestamp: datetime = None  # Optional, will be set to now() if not provided
+
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = datetime.now()
+
+    # Aliases for backward compatibility
+    @property
+    def from_state(self):
+        return self.state
+
+    @property
+    def to_state(self):
+        return self.next_state
 
 
 @dataclass
@@ -222,7 +236,11 @@ class WorldModelLearning:
         self.state_encoder_params: Dict[str, Any] = {}
 
     async def learn_world_model(
-        self, experiences: List[Transition], model_type: ModelType = ModelType.STOCHASTIC, num_epochs: int = 10
+        self,
+        model_id: str,
+        experiences: List[Transition],
+        model_type: ModelType = ModelType.STOCHASTIC,
+        num_epochs: int = 10,
     ) -> WorldModel:
         """
         Learn world model from experiences.
@@ -256,7 +274,7 @@ class WorldModelLearning:
         reward_params = {"accuracy": random.uniform(0.80, 0.90), "architecture": "mlp"}
 
         model = WorldModel(
-            model_id=f"model_{datetime.now().timestamp()}",
+            model_id=model_id,  # Use provided model_id
             model_type=model_type,
             latent_dim=self.latent_dim,
             transition_params=transition_params,
@@ -284,12 +302,12 @@ class WorldModelLearning:
 
         # Generate latent representation
         latent = [random.gauss(0, 1) for _ in range(self.latent_dim)]
-        latent = latent / (norm(latent) + 1e-8)
+        latent = normalize(latent)
 
         return latent
 
     async def predict_next_state(
-        self, current_state: Any, action: Any, model_id: str
+        self, state: Any, action: Any, model_id: str
     ) -> Tuple[Any, float]:
         """
         Predict next latent state given current state and action.
@@ -305,9 +323,16 @@ class WorldModelLearning:
         # Simulate transition model inference
         await asyncio.sleep(0.00001)  # <10ms
 
+        # Convert state to list if needed
+        if isinstance(state, list):
+            current_state = state
+        else:
+            current_state = [random.gauss(0, 1) for _ in range(self.latent_dim)]
+
         if model_id not in self.models:
             # Default prediction
-            next_state = current_state + [random.gauss(0, 1) for _ in range(self.latent_dim)] * 0.1
+            noise = [random.gauss(0, 1) * 0.1 for _ in range(len(current_state))]
+            next_state = [s + n for s, n in zip(current_state, noise)]
             reward = 0.0
         else:
             model = self.models[model_id]
@@ -315,8 +340,9 @@ class WorldModelLearning:
             # Apply transition dynamics (simplified)
             # In practice: neural network forward pass
             noise_scale = 0.05 if model.model_type == ModelType.STOCHASTIC else 0.0
-            next_state = current_state + [random.gauss(0, 1) for _ in range(self.latent_dim)] * noise_scale
-            next_state = next_state / (norm(next_state) + 1e-8)
+            noise = [random.gauss(0, 1) * noise_scale for _ in range(len(current_state))]
+            next_state = [s + n for s, n in zip(current_state, noise)]
+            next_state = normalize(next_state)
 
             # Predict reward (simplified)
             reward = random.uniform(-1.0, 1.0)
