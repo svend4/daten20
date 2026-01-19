@@ -45,12 +45,14 @@ from .edge_ai_services import (  # Enums; Data Classes; Service Classes; Singlet
     DeviceMetrics,
     DeviceTier,
     DistributedEdgeTraining,
+    EdgeAIConfig,
     EdgeAnalyticsPipeline,
     EdgeCloudSynchronization,
     EdgeDevice,
     EdgeDeviceManager,
     EdgeInferenceOptimizer,
     EdgeOrchestrationSystem,
+    IntegratedEdgeAISystem,
     ModelCompressionEngine,
     OptimizationTarget,
     PlacementStrategy,
@@ -60,6 +62,7 @@ from .edge_ai_services import (  # Enums; Data Classes; Service Classes; Singlet
     TrainingMode,
     WorkloadPlacement,
     get_distributed_edge_training,
+    get_edge_ai_system,
     get_edge_analytics_pipeline,
     get_edge_cloud_synchronization,
     get_edge_device_manager,
@@ -84,6 +87,7 @@ __all__ = [
     "CompressedModel",
     "WorkloadPlacement",
     "SyncOperation",
+    "EdgeAIConfig",
     # Service Classes
     "EdgeDeviceManager",
     "DistributedEdgeTraining",
@@ -92,6 +96,8 @@ __all__ = [
     "EdgeOrchestrationSystem",
     "EdgeCloudSynchronization",
     "EdgeAnalyticsPipeline",
+    # Integrated System
+    "IntegratedEdgeAISystem",
     # Singleton Getters
     "get_edge_device_manager",
     "get_distributed_edge_training",
@@ -100,4 +106,5 @@ __all__ = [
     "get_edge_orchestration_system",
     "get_edge_cloud_synchronization",
     "get_edge_analytics_pipeline",
+    "get_edge_ai_system",
 ]
