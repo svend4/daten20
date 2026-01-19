@@ -16,13 +16,33 @@ This module provides 7 core systems:
 """
 
 import asyncio
+import math
+import random
+import statistics
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
+
+# Helper functions to replace numpy
+def norm(vector: List[float]) -> float:
+    """Calculate L2 norm of a vector"""
+    return math.sqrt(sum(x**2 for x in vector))
+
+
+def normalize(vector: List[float]) -> List[float]:
+    """Normalize a vector to unit length"""
+    vec_norm = norm(vector)
+    if vec_norm == 0:
+        return vector
+    return [x / vec_norm for x in vector]
+
+
+def argsort(lst: List[float]) -> List[int]:
+    """Return indices that would sort the list"""
+    return sorted(range(len(lst)), key=lambda i: lst[i])
 
 # ============================================================================
 # Enums
@@ -85,7 +105,7 @@ class State:
 
     state_id: str
     observation: Any
-    latent_state: np.ndarray
+    latent_state: Any
     timestamp: datetime
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -123,7 +143,7 @@ class Prediction:
     prediction_id: str
     prediction_type: PredictionType
     horizon: int
-    predicted_states: List[np.ndarray]
+    predicted_states: List[Any]
     predicted_rewards: List[float]
     confidence: float
     uncertainty: float
@@ -227,13 +247,13 @@ class WorldModelLearning:
 
         # Learn transition model: s_{t+1} = f(s_t, a_t)
         transition_params = {
-            "accuracy": np.random.uniform(0.85, 0.92),
+            "accuracy": random.uniform(0.85, 0.92),
             "latent_dim": self.latent_dim,
             "architecture": "recurrent_state_space_model",
         }
 
         # Learn reward model: r_t = g(s_t, a_t)
-        reward_params = {"accuracy": np.random.uniform(0.80, 0.90), "architecture": "mlp"}
+        reward_params = {"accuracy": random.uniform(0.80, 0.90), "architecture": "mlp"}
 
         model = WorldModel(
             model_id=f"model_{datetime.now().timestamp()}",
@@ -249,7 +269,7 @@ class WorldModelLearning:
 
         return model
 
-    async def encode_state(self, observation: Any) -> np.ndarray:
+    async def encode_state(self, observation: Any) -> Any:
         """
         Encode high-dimensional observation into latent state.
 
@@ -263,14 +283,14 @@ class WorldModelLearning:
         await asyncio.sleep(0.001)
 
         # Generate latent representation
-        latent = np.random.randn(self.latent_dim).astype(np.float32)
-        latent = latent / (np.linalg.norm(latent) + 1e-8)
+        latent = [random.gauss(0, 1) for _ in range(self.latent_dim)]
+        latent = latent / (norm(latent) + 1e-8)
 
         return latent
 
     async def predict_next_state(
-        self, current_state: np.ndarray, action: Any, model_id: str
-    ) -> Tuple[np.ndarray, float]:
+        self, current_state: Any, action: Any, model_id: str
+    ) -> Tuple[Any, float]:
         """
         Predict next latent state given current state and action.
 
@@ -287,7 +307,7 @@ class WorldModelLearning:
 
         if model_id not in self.models:
             # Default prediction
-            next_state = current_state + np.random.randn(self.latent_dim) * 0.1
+            next_state = current_state + [random.gauss(0, 1) for _ in range(self.latent_dim)] * 0.1
             reward = 0.0
         else:
             model = self.models[model_id]
@@ -295,11 +315,11 @@ class WorldModelLearning:
             # Apply transition dynamics (simplified)
             # In practice: neural network forward pass
             noise_scale = 0.05 if model.model_type == ModelType.STOCHASTIC else 0.0
-            next_state = current_state + np.random.randn(self.latent_dim) * noise_scale
-            next_state = next_state / (np.linalg.norm(next_state) + 1e-8)
+            next_state = current_state + [random.gauss(0, 1) for _ in range(self.latent_dim)] * noise_scale
+            next_state = next_state / (norm(next_state) + 1e-8)
 
             # Predict reward (simplified)
-            reward = np.random.uniform(-1.0, 1.0)
+            reward = random.uniform(-1.0, 1.0)
 
         return next_state, reward
 
@@ -339,7 +359,7 @@ class PredictiveLearning:
 
     async def predict_trajectory(
         self,
-        initial_state: np.ndarray,
+        initial_state: Any,
         action_sequence: Optional[List[Any]] = None,
         horizon: int = 10,
         model_id: str = None,
@@ -387,7 +407,7 @@ class PredictiveLearning:
             base_confidence = 0.50
 
         # Add some variation
-        confidence = base_confidence + np.random.uniform(-0.05, 0.05)
+        confidence = base_confidence + random.uniform(-0.05, 0.05)
         uncertainty = 1.0 - confidence
 
         prediction_type = PredictionType.CONDITIONAL if action_sequence else PredictionType.UNCONDITIONAL
@@ -408,7 +428,7 @@ class PredictiveLearning:
         return prediction
 
     async def forecast_distribution(
-        self, initial_state: np.ndarray, horizon: int, num_samples: int = 100
+        self, initial_state: Any, horizon: int, num_samples: int = 100
     ) -> Dict[str, Any]:
         """
         Forecast distribution of future states (stochastic prediction).
@@ -429,14 +449,14 @@ class PredictiveLearning:
 
         # Compute statistics
         # Stack trajectories: (num_samples, horizon+1, latent_dim)
-        traj_array = np.array(trajectories)
+        traj_array = trajectories
 
         mean_trajectory = traj_array.mean(axis=0)
         std_trajectory = traj_array.std(axis=0)
 
         # Quantiles for prediction intervals
-        lower_quantile = np.percentile(traj_array, 5, axis=0)
-        upper_quantile = np.percentile(traj_array, 95, axis=0)
+        lower_quantile = statistics.quantiles(traj_array, n=100)[5]
+        upper_quantile = statistics.quantiles(traj_array, n=100)[95]
 
         distribution = {
             "mean": mean_trajectory,
@@ -448,7 +468,7 @@ class PredictiveLearning:
 
         return distribution
 
-    async def evaluate_prediction_accuracy(self, prediction: Prediction, actual_trajectory: List[np.ndarray]) -> float:
+    async def evaluate_prediction_accuracy(self, prediction: Prediction, actual_trajectory: List[Any]) -> float:
         """
         Evaluate prediction accuracy against actual trajectory.
 
@@ -460,15 +480,15 @@ class PredictiveLearning:
             Accuracy score (0-1)
         """
         # Compute mean squared error
-        pred_states = np.array(prediction.predicted_states)
-        actual_states = np.array(actual_trajectory)
+        pred_states = prediction.predicted_states
+        actual_states = actual_trajectory
 
         # Truncate to shorter length
         min_len = min(len(pred_states), len(actual_states))
         pred_states = pred_states[:min_len]
         actual_states = actual_states[:min_len]
 
-        mse = np.mean((pred_states - actual_states) ** 2)
+        mse = statistics.mean((pred_states - actual_states) ** 2)
 
         # Convert to accuracy (1 - normalized error)
         accuracy = 1.0 / (1.0 + mse)
@@ -499,8 +519,8 @@ class ModelBasedPlanning:
 
     async def plan(
         self,
-        current_state: np.ndarray,
-        goal_state: Optional[np.ndarray],
+        current_state: Any,
+        goal_state: Optional[Any],
         algorithm: PlanningAlgorithm = PlanningAlgorithm.CEM,
         horizon: int = 10,
         num_simulations: int = 100,
@@ -537,7 +557,7 @@ class ModelBasedPlanning:
         return plan
 
     async def _random_shooting(
-        self, current_state: np.ndarray, goal_state: Optional[np.ndarray], horizon: int, num_simulations: int
+        self, current_state: Any, goal_state: Optional[Any], horizon: int, num_simulations: int
     ) -> Plan:
         """Random shooting planning algorithm"""
         # Simulate random action sequences
@@ -549,7 +569,7 @@ class ModelBasedPlanning:
 
         for _ in range(num_simulations):
             # Sample random action sequence
-            actions = [np.random.randn(4) for _ in range(horizon)]  # Example: 4D action space
+            actions = [[random.gauss(0, 1) for _ in range(4)] for _ in range(horizon)]  # Example: 4D action space
 
             # Rollout using world model
             trajectory = await self.predictive_service.predict_trajectory(current_state, actions, horizon)
@@ -558,7 +578,7 @@ class ModelBasedPlanning:
             if goal_state is not None:
                 # Goal-reaching: negative distance to goal
                 final_state = trajectory.predicted_states[-1]
-                value = -np.linalg.norm(final_state - goal_state)
+                value = -norm(final_state - goal_state)
             else:
                 # Reward maximization
                 value = sum(trajectory.predicted_rewards)
@@ -582,8 +602,8 @@ class ModelBasedPlanning:
 
     async def _cross_entropy_method(
         self,
-        current_state: np.ndarray,
-        goal_state: Optional[np.ndarray],
+        current_state: Any,
+        goal_state: Optional[Any],
         horizon: int,
         num_simulations: int,
         num_iterations: int = 5,
@@ -594,8 +614,8 @@ class ModelBasedPlanning:
 
         # Initialize action distribution (mean and std)
         action_dim = 4  # Example
-        mean_actions = [np.zeros(action_dim) for _ in range(horizon)]
-        std_actions = [np.ones(action_dim) for _ in range(horizon)]
+        mean_actions = [[0.0] * action_dim for _ in range(horizon)]
+        std_actions = [[1.0] * action_dim for _ in range(horizon)]
 
         for iteration in range(num_iterations):
             # Sample action sequences from current distribution
@@ -605,7 +625,7 @@ class ModelBasedPlanning:
             for _ in range(num_simulations // num_iterations):
                 actions = []
                 for h in range(horizon):
-                    action = mean_actions[h] + std_actions[h] * np.random.randn(action_dim)
+                    action = mean_actions[h] + std_actions[h] * [random.gauss(0, 1) for _ in range(action_dim)]
                     actions.append(action)
 
                 # Evaluate
@@ -613,7 +633,7 @@ class ModelBasedPlanning:
 
                 if goal_state is not None:
                     final_state = trajectory.predicted_states[-1]
-                    value = -np.linalg.norm(final_state - goal_state)
+                    value = -norm(final_state - goal_state)
                 else:
                     value = sum(trajectory.predicted_rewards)
 
@@ -621,12 +641,12 @@ class ModelBasedPlanning:
                 values.append(value)
 
             # Select elite samples (top 20%)
-            elite_indices = np.argsort(values)[-int(len(values) * 0.2) :]
+            elite_indices = argsort(values)[-int(len(values) * 0.2) :]
             elite_sequences = [sampled_sequences[i] for i in elite_indices]
 
             # Update distribution
             for h in range(horizon):
-                elite_actions_h = np.array([seq[h] for seq in elite_sequences])
+                elite_actions_h = [seq[h] for seq in elite_sequences]
                 mean_actions[h] = elite_actions_h.mean(axis=0)
                 std_actions[h] = elite_actions_h.std(axis=0)
 
@@ -646,7 +666,7 @@ class ModelBasedPlanning:
         return plan
 
     async def _model_predictive_control(
-        self, current_state: np.ndarray, goal_state: Optional[np.ndarray], horizon: int
+        self, current_state: Any, goal_state: Optional[Any], horizon: int
     ) -> Plan:
         """Model Predictive Control (receding horizon)"""
         # Simplified MPC: similar to CEM but replan at each step
@@ -659,14 +679,14 @@ class ModelBasedPlanning:
         return plan
 
     async def _monte_carlo_tree_search(
-        self, current_state: np.ndarray, goal_state: Optional[np.ndarray], num_simulations: int
+        self, current_state: Any, goal_state: Optional[Any], num_simulations: int
     ) -> Plan:
         """Monte Carlo Tree Search"""
         # Simplified MCTS
         await asyncio.sleep(0.0001)
 
         # Build search tree (simplified: just do random rollouts)
-        best_actions = [np.random.randn(4) for _ in range(10)]
+        best_actions = [[random.gauss(0, 1) for _ in range(4)] for _ in range(10)]
         best_value = 0.0
 
         plan = Plan(
@@ -689,7 +709,7 @@ class ModelBasedPlanning:
             Speedup factor (100-1000x typical)
         """
         # Mental simulation is much faster than real environment
-        speedup = np.random.uniform(100, 1000)
+        speedup = random.uniform(100, 1000)
         return speedup
 
 
@@ -735,24 +755,24 @@ class ImaginationLearning:
 
         for i in range(num_trajectories):
             # Start from random or replay state
-            initial_state = np.random.randn(self.world_model_service.latent_dim)
-            initial_state = initial_state / (np.linalg.norm(initial_state) + 1e-8)
+            initial_state = [random.gauss(0, 1) for _ in range(self.world_model_service.latent_dim)]
+            initial_state = initial_state / (norm(initial_state) + 1e-8)
 
             # Generate trajectory
             if purpose == "exploration":
                 # Random actions for exploration
-                actions = [np.random.randn(4) for _ in range(horizon)]
+                actions = [[random.gauss(0, 1) for _ in range(4)] for _ in range(horizon)]
             elif purpose == "goal-seeking":
                 # Actions toward goal (simplified)
-                actions = [np.random.randn(4) * 0.5 for _ in range(horizon)]
+                actions = [[random.gauss(0, 1) for _ in range(4)] * 0.5 for _ in range(horizon)]
             else:
-                actions = [np.random.randn(4) for _ in range(horizon)]
+                actions = [[random.gauss(0, 1) for _ in range(4)] for _ in range(horizon)]
 
             prediction = await self.predictive_service.predict_trajectory(initial_state, actions, horizon)
 
             # Assess plausibility
             # In practice: check against learned world model consistency
-            plausibility = np.random.uniform(0.75, 0.90)  # >80% plausible
+            plausibility = random.uniform(0.75, 0.90)  # >80% plausible
 
             trajectory = ImaginedTrajectory(
                 trajectory_id=f"imagine_{i}_{datetime.now().timestamp()}",
@@ -786,17 +806,17 @@ class ImaginationLearning:
         await asyncio.sleep(0.005)
 
         # Calculate performance gain
-        sample_efficiency_gain = np.random.uniform(5, 10)  # 5-10x fewer real samples
+        sample_efficiency_gain = random.uniform(5, 10)  # 5-10x fewer real samples
 
         # Policy performance on imagined data
         # Achieves 90%+ of real-data performance
-        imagined_performance = np.random.uniform(0.90, 0.95)
+        imagined_performance = random.uniform(0.90, 0.95)
 
         stats = {
             "sample_efficiency_gain": sample_efficiency_gain,
             "imagined_performance": imagined_performance,
             "num_trajectories": len(imagined_trajectories),
-            "training_speedup": np.random.uniform(2, 5),
+            "training_speedup": random.uniform(2, 5),
         }
 
         return stats
@@ -851,7 +871,7 @@ class ImaginationLearning:
             Efficiency multiplier (5-10x typical)
         """
         # Imagination reduces need for real environment interactions
-        efficiency_gain = np.random.uniform(5, 10)
+        efficiency_gain = random.uniform(5, 10)
         return efficiency_gain
 
 
@@ -899,13 +919,13 @@ class CausalReasoning:
             for j, var2 in enumerate(variables):
                 if i != j:
                     # Probability of causal edge
-                    if np.random.random() < 0.3:  # Sparse graph
+                    if random.random() < 0.3:  # Sparse graph
                         edges.append((var1, var2))
                         # Edge weight represents causal strength
-                        edge_weights[(var1, var2)] = np.random.uniform(0.1, 0.9)
+                        edge_weights[(var1, var2)] = random.uniform(0.1, 0.9)
 
         # Discovery confidence (>80% accuracy)
-        confidence = np.random.uniform(0.80, 0.90)
+        confidence = random.uniform(0.80, 0.90)
 
         graph = CausalGraph(
             graph_id=f"causal_{datetime.now().timestamp()}",
@@ -953,7 +973,7 @@ class CausalReasoning:
             if has_path:
                 # Simulate intervention effect
                 # In practice: Use structural equations
-                effect = np.random.uniform(-1.0, 1.0)
+                effect = random.uniform(-1.0, 1.0)
                 outcomes[node] = effect
 
         # Record intervention
@@ -1009,7 +1029,7 @@ class CausalReasoning:
 
             if has_path:
                 # Apply causal effect
-                causal_effect = np.random.uniform(-0.5, 0.5)
+                causal_effect = random.uniform(-0.5, 0.5)
                 counterfactual_value = base_value + causal_effect
             else:
                 counterfactual_value = base_value
@@ -1092,7 +1112,7 @@ class UncertaintyAwarePrediction:
         confidence_level = 0.90
         z_score = 1.645  # 90% confidence
 
-        total_uncertainty = np.sqrt(aleatoric**2 + epistemic**2)
+        total_uncertainty = math.sqrt(aleatoric**2 + epistemic**2)
         interval_width = z_score * total_uncertainty
 
         lower_bound = mean_pred - interval_width
@@ -1110,7 +1130,7 @@ class UncertaintyAwarePrediction:
         return estimate
 
     async def ensemble_predict(
-        self, initial_state: np.ndarray, horizon: int, predictive_service: PredictiveLearning
+        self, initial_state: Any, horizon: int, predictive_service: PredictiveLearning
     ) -> Tuple[Prediction, float]:
         """
         Predict using ensemble of models for uncertainty estimation.
@@ -1133,10 +1153,10 @@ class UncertaintyAwarePrediction:
         # Aggregate predictions
         # Mean prediction
         all_states = [p.predicted_states for p in predictions]
-        mean_states = np.mean(all_states, axis=0)
+        mean_states = statistics.mean(all_states, axis=0)
 
         # Ensemble disagreement (epistemic uncertainty)
-        disagreement = np.std(all_states, axis=0).mean()
+        disagreement = statistics.pstdev(all_states, axis=0).mean()
 
         # Create ensemble prediction
         ensemble_pred = Prediction(
@@ -1153,7 +1173,7 @@ class UncertaintyAwarePrediction:
         return ensemble_pred, disagreement
 
     async def detect_out_of_distribution(
-        self, state: np.ndarray, training_states: List[np.ndarray]
+        self, state: Any, training_states: List[Any]
     ) -> Tuple[bool, float]:
         """
         Detect if state is out-of-distribution.
@@ -1171,8 +1191,8 @@ class UncertaintyAwarePrediction:
         if len(training_states) == 0:
             return True, 1.0
 
-        training_array = np.array(training_states)
-        distances = np.linalg.norm(training_array - state, axis=1)
+        training_array = training_states
+        distances = norm(training_array - state, axis=1)
         min_distance = distances.min()
 
         # Threshold for OOD detection
@@ -1203,10 +1223,10 @@ class UncertaintyAwarePrediction:
         # Compare predicted confidence with actual accuracy
 
         # Simplified: assume confidence matches accuracy reasonably well
-        calibration_error = np.random.uniform(0.08, 0.15)  # <15%
+        calibration_error = random.uniform(0.08, 0.15)  # <15%
 
         # Coverage: % of outcomes within prediction intervals
-        coverage = np.random.uniform(0.85, 0.92)  # ~90% for 90% intervals
+        coverage = random.uniform(0.85, 0.92)  # ~90% for 90% intervals
 
         metrics = {"calibration_error": calibration_error, "coverage": coverage, "num_predictions": len(predictions)}
 
@@ -1258,12 +1278,12 @@ class ContinuousModelRefinement:
             # Compare with actual
             # In practice: actual computation
             # Here: simulated
-            accuracy = np.random.uniform(0.75, 0.90)
+            accuracy = random.uniform(0.75, 0.90)
             accuracies.append(accuracy)
 
         metrics = {
-            "mean_accuracy": np.mean(accuracies),
-            "std_accuracy": np.std(accuracies),
+            "mean_accuracy": statistics.mean(accuracies),
+            "std_accuracy": statistics.pstdev(accuracies),
             "num_samples": len(validation_data),
             "timestamp": datetime.now().timestamp(),
         }
@@ -1291,19 +1311,19 @@ class ContinuousModelRefinement:
         error_values = [e[2] for e in errors]
 
         # Find high-error regions
-        high_error_threshold = np.percentile(error_values, 90)
+        high_error_threshold = sorted(error_values)[int(len(error_values) * 0.9)]
         high_error_count = sum(1 for e in error_values if e > high_error_threshold)
 
         # Systematic bias detection
-        mean_error = np.mean(error_values)
+        mean_error = statistics.mean(error_values)
         has_bias = abs(mean_error) > 0.1
 
         analysis = {
             "mean_error": mean_error,
-            "max_error": np.max(error_values),
+            "max_error": max(error_values),
             "high_error_count": high_error_count,
             "has_systematic_bias": has_bias,
-            "error_std": np.std(error_values),
+            "error_std": statistics.pstdev(error_values),
         }
 
         self.error_analysis.append(analysis)
@@ -1334,7 +1354,7 @@ class ContinuousModelRefinement:
 
         # Improvement in accuracy
         accuracy_before = model.validation_accuracy
-        accuracy_after = accuracy_before + np.random.uniform(0.0, 0.05)  # Incremental improvement
+        accuracy_after = accuracy_before + random.uniform(0.0, 0.05)  # Incremental improvement
         accuracy_after = min(accuracy_after, 0.95)
 
         model.validation_accuracy = accuracy_after
@@ -1389,8 +1409,8 @@ class ContinuousModelRefinement:
         await asyncio.sleep(0.01)
 
         # Simulate adaptation
-        episodes_needed = np.random.randint(50, 100)  # <100 episodes
-        final_accuracy = np.random.uniform(0.80, 0.90)
+        episodes_needed = random.randint(50, 100)  # <100 episodes
+        final_accuracy = random.uniform(0.80, 0.90)
 
         stats = {
             "episodes_needed": episodes_needed,
@@ -1487,14 +1507,14 @@ class IntegratedWorldModelsSystem:
         """
         # Step 1: Learn world model from experiences
         model_id = f"model_{datetime.now().timestamp()}"
-        model = await self.world_model.learn_model(
+        model = await self.world_model.learn_world_model(
             model_id=model_id,
             data=experiences,
             model_type=self.config.default_model_type,
         )
 
         # Step 2: Predict future trajectories
-        current_state = experiences[-1] if experiences else {"state": np.random.randn(10)}
+        current_state = experiences[-1] if experiences else {"state": [random.gauss(0, 1) for _ in range(10)]}
         predictions = []
         for h in range(self.config.prediction_horizon):
             pred = await self.predictive.predict(
@@ -1509,8 +1529,8 @@ class IntegratedWorldModelsSystem:
         # Step 3: Plan using model-based planning
         plan = await self.planning.plan(
             model_id=model_id,
-            current_state=experiences[-1] if experiences else {"state": np.random.randn(10)},
-            goal_state=goal_state or {"state": np.random.randn(10)},
+            current_state=experiences[-1] if experiences else {"state": [random.gauss(0, 1) for _ in range(10)]},
+            goal_state=goal_state or {"state": [random.gauss(0, 1) for _ in range(10)]},
             horizon=self.config.planning_horizon,
             algorithm=self.config.default_planning_algorithm,
             num_simulations=planning_budget,
@@ -1528,7 +1548,7 @@ class IntegratedWorldModelsSystem:
             error_data.append({
                 "predicted": pred,
                 "actual": pred,  # In real setting, would be actual observed state
-                "error": np.random.uniform(0.01, 0.1),
+                "error": random.uniform(0.01, 0.1),
             })
 
         refinement_result = await self.refinement.detect_model_errors(
@@ -1571,8 +1591,8 @@ class IntegratedWorldModelsSystem:
         # Step 1: Generate imagined trajectories
         imagined_trajectories = []
         for _ in range(num_imagined_rollouts):
-            start_state = {"state": np.random.randn(self.config.latent_dim)}
-            trajectory = await self.imagination.imagine_trajectory(
+            start_state = {"state": [random.gauss(0, 1) for _ in range(self.config.latent_dim)]}
+            trajectory = await self.imagination.dream(
                 model_id=model_id,
                 start_state=start_state,
                 num_steps=20,
@@ -1587,7 +1607,7 @@ class IntegratedWorldModelsSystem:
 
         # Step 3: Evaluate imagination quality
         imagination_rewards = [t.total_reward for t in imagined_trajectories]
-        avg_imagined_reward = np.mean(imagination_rewards)
+        avg_imagined_reward = statistics.mean(imagination_rewards)
 
         # Step 4: Check if model refinement needed
         imagination_quality = await self.uncertainty.estimate_uncertainty(
@@ -1632,7 +1652,7 @@ class IntegratedWorldModelsSystem:
         """
         # Step 1: Build causal graph
         graph_id = f"graph_{datetime.now().timestamp()}"
-        causal_graph = await self.causal.build_causal_graph(
+        causal_graph = await self.causal.discover_causal_graph(
             graph_id=graph_id,
             observational_data=causal_graph_data,
         )
@@ -1698,27 +1718,27 @@ class IntegratedWorldModelsSystem:
         benchmarks = []
 
         if self.world_model:
-            model = await self.world_model.learn_model("bench_model", [{"state": np.random.randn(10)}], ModelType.DETERMINISTIC)
+            model = await self.world_model.learn_world_model("bench_model", [{"state": [random.gauss(0, 1) for _ in range(10)]}], ModelType.DETERMINISTIC)
             benchmarks.append({"subsystem": "world_model_learning", "operations": 1, "status": "ok"})
 
         if self.predictive:
-            await self.predictive.predict("model_1", {"state": np.random.randn(10)}, 5, PredictionType.MULTI_STEP)
+            await self.predictive.predict("model_1", {"state": [random.gauss(0, 1) for _ in range(10)]}, 5, PredictionType.MULTI_STEP)
             benchmarks.append({"subsystem": "predictive_learning", "operations": 1, "status": "ok"})
 
         if self.planning:
-            await self.planning.plan("model_1", {"state": np.random.randn(10)}, {"state": np.random.randn(10)}, 5, PlanningAlgorithm.RANDOM_SHOOTING, 10)
+            await self.planning.plan("model_1", {"state": [random.gauss(0, 1) for _ in range(10)]}, {"state": [random.gauss(0, 1) for _ in range(10)]}, 5, PlanningAlgorithm.RANDOM_SHOOTING, 10)
             benchmarks.append({"subsystem": "model_based_planning", "operations": 1, "status": "ok"})
 
         if self.imagination:
-            await self.imagination.imagine_trajectory("model_1", {"state": np.random.randn(10)}, 10)
+            await self.imagination.dream("model_1", {"state": [random.gauss(0, 1) for _ in range(10)]}, 10)
             benchmarks.append({"subsystem": "imagination_learning", "operations": 1, "status": "ok"})
 
         if self.causal:
-            await self.causal.build_causal_graph("graph_1", [{"x": 1, "y": 2}])
+            await self.causal.discover_causal_graph("graph_1", [{"x": 1, "y": 2}])
             benchmarks.append({"subsystem": "causal_reasoning", "operations": 1, "status": "ok"})
 
         if self.uncertainty:
-            await self.uncertainty.estimate_uncertainty([{"state": np.random.randn(10)}], UncertaintyType.EPISTEMIC)
+            await self.uncertainty.estimate_uncertainty([{"state": [random.gauss(0, 1) for _ in range(10)]}], UncertaintyType.EPISTEMIC)
             benchmarks.append({"subsystem": "uncertainty_prediction", "operations": 1, "status": "ok"})
 
         if self.refinement:

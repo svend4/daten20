@@ -19,7 +19,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import numpy as np
+import random
+import statistics
 
 # ============================================================================
 # Data Structures
@@ -242,12 +243,12 @@ class UniversalTaskUnderstandingService:
             constraints=constraints,
             success_criteria=success_criteria,
             context=context or {},
-            understanding_confidence=np.random.uniform(0.95, 0.99),  # >95%
-            estimated_difficulty=np.random.uniform(0.3, 0.9),
+            understanding_confidence=random.uniform(0.95, 0.99),  # >95%
+            estimated_difficulty=random.uniform(0.3, 0.9),
         )
 
         self.understood_tasks[task.task_id] = task
-        self.understanding_accuracy = np.random.uniform(0.95, 0.98)
+        self.understanding_accuracy = random.uniform(0.95, 0.98)
 
         return task
 
@@ -383,10 +384,10 @@ class CrossDomainTransferService:
         adapted_knowledge = self._adapt_knowledge(knowledge, source_domain, target_domain)
 
         # Estimate performance gain
-        performance_gain = similarity * np.random.uniform(5.0, 10.0)  # 5-10x speedup
+        performance_gain = similarity * random.uniform(5.0, 10.0)  # 5-10x speedup
 
         # Validate transfer
-        validation_accuracy = np.random.uniform(0.50, 0.80)  # 50-80% retention
+        validation_accuracy = random.uniform(0.50, 0.80)  # 50-80% retention
 
         mapping = TransferMapping(
             mapping_id=f"transfer_{source_domain}_to_{target_domain}",
@@ -400,7 +401,7 @@ class CrossDomainTransferService:
         )
 
         self.transfer_mappings[mapping.mapping_id] = mapping
-        self.transfer_success_rate = np.random.uniform(0.75, 0.85)
+        self.transfer_success_rate = random.uniform(0.75, 0.85)
 
         return mapping
 
@@ -444,7 +445,7 @@ class CrossDomainTransferService:
         adapted = knowledge.copy()
         adapted["adapted_from"] = source_domain
         adapted["adapted_to"] = target_domain
-        adapted["adaptation_confidence"] = np.random.uniform(0.7, 0.9)
+        adapted["adaptation_confidence"] = random.uniform(0.7, 0.9)
 
         return adapted
 
@@ -500,7 +501,7 @@ class AbstractReasoningService:
             trace = await self._general_reasoning(problem, reasoning_type)
 
         self.reasoning_traces[trace.trace_id] = trace
-        self.reasoning_accuracy = np.random.uniform(0.85, 0.95)  # >85% accuracy
+        self.reasoning_accuracy = random.uniform(0.85, 0.95)  # >85% accuracy
 
         return trace
 
@@ -522,11 +523,11 @@ class AbstractReasoningService:
             trace_id=f"reasoning_{datetime.now().timestamp()}",
             reasoning_type=ReasoningType.ANALOGICAL,
             steps=steps,
-            confidence=np.random.uniform(0.85, 0.95),
+            confidence=random.uniform(0.85, 0.95),
             abstraction_level=3,
             patterns_used=patterns,
             conclusion="Analogical mapping successful",
-            correctness_score=np.random.uniform(0.85, 0.95),
+            correctness_score=random.uniform(0.85, 0.95),
         )
 
     async def _logical_reasoning(self, problem: Dict[str, Any]) -> ReasoningTrace:
@@ -547,11 +548,11 @@ class AbstractReasoningService:
             trace_id=f"reasoning_{datetime.now().timestamp()}",
             reasoning_type=ReasoningType.LOGICAL,
             steps=steps,
-            confidence=np.random.uniform(0.90, 0.98),
+            confidence=random.uniform(0.90, 0.98),
             abstraction_level=2,
             patterns_used=patterns,
             conclusion="Logical inference valid",
-            correctness_score=np.random.uniform(0.90, 0.98),
+            correctness_score=random.uniform(0.90, 0.98),
         )
 
     async def _spatial_reasoning(self, problem: Dict[str, Any]) -> ReasoningTrace:
@@ -572,11 +573,11 @@ class AbstractReasoningService:
             trace_id=f"reasoning_{datetime.now().timestamp()}",
             reasoning_type=ReasoningType.SPATIAL,
             steps=steps,
-            confidence=np.random.uniform(0.80, 0.92),
+            confidence=random.uniform(0.80, 0.92),
             abstraction_level=2,
             patterns_used=patterns,
             conclusion="Spatial reasoning complete",
-            correctness_score=np.random.uniform(0.80, 0.92),
+            correctness_score=random.uniform(0.80, 0.92),
         )
 
     async def _relational_reasoning(self, problem: Dict[str, Any]) -> ReasoningTrace:
@@ -597,11 +598,11 @@ class AbstractReasoningService:
             trace_id=f"reasoning_{datetime.now().timestamp()}",
             reasoning_type=ReasoningType.RELATIONAL,
             steps=steps,
-            confidence=np.random.uniform(0.85, 0.93),
+            confidence=random.uniform(0.85, 0.93),
             abstraction_level=3,
             patterns_used=patterns,
             conclusion="Relational inference successful",
-            correctness_score=np.random.uniform(0.85, 0.93),
+            correctness_score=random.uniform(0.85, 0.93),
         )
 
     async def _general_reasoning(self, problem: Dict[str, Any], reasoning_type: ReasoningType) -> ReasoningTrace:
@@ -612,11 +613,11 @@ class AbstractReasoningService:
             trace_id=f"reasoning_{datetime.now().timestamp()}",
             reasoning_type=reasoning_type,
             steps=["Analyze problem", "Apply reasoning", "Generate solution"],
-            confidence=np.random.uniform(0.80, 0.90),
+            confidence=random.uniform(0.80, 0.90),
             abstraction_level=2,
             patterns_used=["general_pattern"],
             conclusion="Reasoning complete",
-            correctness_score=np.random.uniform(0.80, 0.90),
+            correctness_score=random.uniform(0.80, 0.90),
         )
 
 
@@ -674,9 +675,9 @@ class MetaCognitiveControlService:
 
         # Assess resource usage
         resource_usage = {
-            "computation": np.random.uniform(0.3, 0.8),
-            "memory": np.random.uniform(0.2, 0.6),
-            "time": np.random.uniform(0.4, 0.9),
+            "computation": random.uniform(0.3, 0.8),
+            "memory": random.uniform(0.2, 0.6),
+            "time": random.uniform(0.4, 0.9),
         }
 
         # Decide if adaptation needed
@@ -694,7 +695,7 @@ class MetaCognitiveControlService:
         )
 
         self.cognitive_states[state.state_id] = state
-        self.error_detection_rate = np.random.uniform(0.90, 0.95)  # >90%
+        self.error_detection_rate = random.uniform(0.90, 0.95)  # >90%
 
         return state
 
@@ -718,7 +719,7 @@ class MetaCognitiveControlService:
         else:
             strategy = "systematic_search"
 
-        self.strategy_selection_accuracy = np.random.uniform(0.85, 0.92)  # >85%
+        self.strategy_selection_accuracy = random.uniform(0.85, 0.92)  # >85%
 
         return strategy
 
@@ -734,7 +735,7 @@ class MetaCognitiveControlService:
             errors.append("Low efficiency")
 
         # Simulate >90% detection rate
-        if np.random.random() < 0.90 and len(errors) == 0:
+        if random.random() < 0.90 and len(errors) == 0:
             # Correctly detect no errors
             pass
 
@@ -744,7 +745,7 @@ class MetaCognitiveControlService:
         """Estimate confidence in current approach"""
         # Calibrated confidence with ECE < 0.05
         base_confidence = performance.get("confidence", 0.8)
-        calibration_adjustment = np.random.uniform(-0.05, 0.05)  # ECE < 0.05
+        calibration_adjustment = random.uniform(-0.05, 0.05)  # ECE < 0.05
 
         return float(np.clip(base_confidence + calibration_adjustment, 0.5, 0.98))
 
@@ -842,13 +843,13 @@ class CommonSenseReasoningService:
         # Apply reasoning
         conclusion = self._infer_conclusion(situation, query, relevant_knowledge)
 
-        self.commonsense_accuracy = np.random.uniform(0.80, 0.90)  # >80% accuracy
+        self.commonsense_accuracy = random.uniform(0.80, 0.90)  # >80% accuracy
 
         return {
             "domain": domain,
             "relevant_knowledge": [k.statement for k in relevant_knowledge[:3]],
             "conclusion": conclusion,
-            "confidence": np.random.uniform(0.80, 0.95),
+            "confidence": random.uniform(0.80, 0.95),
         }
 
     async def physical_reasoning(self, scenario: str) -> Dict[str, Any]:
@@ -857,8 +858,8 @@ class CommonSenseReasoningService:
 
         return {
             "prediction": "Physical outcome predicted",
-            "confidence": np.random.uniform(0.85, 0.95),
-            "accuracy": np.random.uniform(0.80, 0.90),  # >80% PIQA accuracy
+            "confidence": random.uniform(0.85, 0.95),
+            "accuracy": random.uniform(0.80, 0.90),  # >80% PIQA accuracy
         }
 
     async def social_reasoning(self, scenario: str) -> Dict[str, Any]:
@@ -867,8 +868,8 @@ class CommonSenseReasoningService:
 
         return {
             "prediction": "Social outcome predicted",
-            "confidence": np.random.uniform(0.85, 0.95),
-            "accuracy": np.random.uniform(0.85, 0.92),  # >85% Social IQa
+            "confidence": random.uniform(0.85, 0.95),
+            "accuracy": random.uniform(0.85, 0.92),  # >85% Social IQa
         }
 
     def _identify_domain(self, situation: str) -> str:
@@ -987,7 +988,7 @@ class FlexibleGoalManagementService:
 
         prioritized = sorted(active, key=priority_score, reverse=True)
 
-        self.prioritization_accuracy = np.random.uniform(0.85, 0.92)  # >85%
+        self.prioritization_accuracy = random.uniform(0.85, 0.92)  # >85%
 
         return prioritized
 
@@ -1039,10 +1040,10 @@ class FlexibleGoalManagementService:
 
             # Simulate conflict detection
             if new_goal.goal_type == GoalType.AVOIDANCE and existing_goal.goal_type == GoalType.ACHIEVEMENT:
-                if np.random.random() < 0.2:  # 20% chance of conflict
+                if random.random() < 0.2:  # 20% chance of conflict
                     conflicts.append(existing_goal.goal_id)
             elif abs(new_goal.priority - existing_goal.priority) < 0.1:
-                if np.random.random() < 0.15:  # Resource competition
+                if random.random() < 0.15:  # Resource competition
                     conflicts.append(existing_goal.goal_id)
 
         return conflicts
@@ -1117,8 +1118,8 @@ class GeneralProblemSolvingService:
             problem_category=category,
             solution=solution,
             method_used=method,
-            correctness_confidence=np.random.uniform(0.90, 0.98),  # >90%
-            optimality_score=np.random.uniform(0.75, 0.95),
+            correctness_confidence=random.uniform(0.90, 0.98),  # >90%
+            optimality_score=random.uniform(0.75, 0.95),
             learned_patterns=learned_patterns,
             solving_time_ms=solving_time,
         )
@@ -1147,9 +1148,9 @@ class GeneralProblemSolvingService:
         await asyncio.sleep(0.02)
 
         return {
-            "optimal_value": np.random.uniform(80, 100),
+            "optimal_value": random.uniform(80, 100),
             "solution_vector": np.random.randn(5).tolist(),
-            "iterations": int(np.random.uniform(10, 50)),
+            "iterations": int(random.uniform(10, 50)),
         }
 
     async def _solve_planning(self, problem: Dict[str, Any], method: str) -> Any:
@@ -1158,7 +1159,7 @@ class GeneralProblemSolvingService:
 
         return {
             "plan": ["action1", "action2", "action3"],
-            "expected_reward": np.random.uniform(70, 95),
+            "expected_reward": random.uniform(70, 95),
             "plan_length": 3,
         }
 
@@ -1166,7 +1167,7 @@ class GeneralProblemSolvingService:
         """Solve general problems"""
         await asyncio.sleep(0.01)
 
-        return {"solution": "general_solution", "confidence": np.random.uniform(0.85, 0.95)}
+        return {"solution": "general_solution", "confidence": random.uniform(0.85, 0.95)}
 
     def _categorize_problem(self, problem: Dict[str, Any]) -> ProblemCategory:
         """Categorize problem type"""
@@ -1507,11 +1508,11 @@ class IntegratedAGISystem:
             )
 
         # Calculate overall transfer performance
-        avg_speedup = np.mean([gain["gain"] for result in results for gain in result.get("transfer_gains", [])]) if any(
+        avg_speedup = statistics.mean([gain["gain"] for result in results for gain in result.get("transfer_gains", [])]) if any(
             result.get("transfer_gains") for result in results
         ) else 1.0
 
-        avg_retention = np.mean([gain["retention"] for result in results for gain in result.get("transfer_gains", [])]) if any(
+        avg_retention = statistics.mean([gain["retention"] for result in results for gain in result.get("transfer_gains", [])]) if any(
             result.get("transfer_gains") for result in results
         ) else 0.0
 
@@ -1603,7 +1604,7 @@ class IntegratedAGISystem:
                 )
 
             # 6. Make progress on goal
-            progress_increment = np.random.uniform(0.1, 0.3)
+            progress_increment = random.uniform(0.1, 0.3)
             new_progress = min(current_goal.progress + progress_increment, 1.0)
             await self.goals.update_progress(current_goal.goal_id, new_progress)
 

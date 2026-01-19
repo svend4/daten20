@@ -15,9 +15,11 @@ Total: 48 tests
 """
 
 import asyncio
-import numpy as np
+import random
+import statistics
 import pytest
 from datetime import datetime
+from typing import List
 
 from src.world_models import (
     # Enums
@@ -50,17 +52,26 @@ from src.world_models import (
 )
 
 
+# Helper function to replace randn()
+def randn(size: int) -> List[float]:
+    """Generate random numbers from standard normal distribution (mean=0, std=1)"""
+    return [random.gauss(0, 1) for _ in range(size)]
+
+
 class TestWorldModelLearning:
     """Test World Model Learning subsystem"""
 
     @pytest.mark.asyncio
     async def test_learn_deterministic_model(self):
         wm_service = WorldModelLearning()
-        experiences = [{"state": np.random.randn(10), "action": 1, "reward": 0.5}]
+        experiences = [
+            Transition(state=randn(10), action="action_1", next_state=randn(10), reward=0.5, done=False)
+            for _ in range(10)
+        ]
 
-        model = await wm_service.learn_model(
+        model = await wm_service.learn_world_model(
             model_id="det_model_1",
-            data=experiences,
+            experiences=experiences,
             model_type=ModelType.DETERMINISTIC,
         )
 
@@ -71,11 +82,14 @@ class TestWorldModelLearning:
     @pytest.mark.asyncio
     async def test_learn_stochastic_model(self):
         wm_service = WorldModelLearning()
-        experiences = [{"state": np.random.randn(10)} for _ in range(20)]
+        experiences = [
+            Transition(state=randn(10), action=f"action_{i}", next_state=randn(10), reward=0.5, done=False)
+            for i in range(20)
+        ]
 
-        model = await wm_service.learn_model(
+        model = await wm_service.learn_world_model(
             model_id="stoch_model_1",
-            data=experiences,
+            experiences=experiences,
             model_type=ModelType.STOCHASTIC,
         )
 
@@ -84,24 +98,21 @@ class TestWorldModelLearning:
     @pytest.mark.asyncio
     async def test_encode_state(self):
         wm_service = WorldModelLearning()
-        observation = np.random.randn(64)
+        observation = randn(64)
 
-        state = await wm_service.encode_state(
-            model_id="model_1",
-            observation=observation,
-        )
+        state = await wm_service.encode_state(observation=observation)
 
         assert state is not None
 
     @pytest.mark.asyncio
     async def test_predict_next_state(self):
         wm_service = WorldModelLearning()
-        current_state = {"state": np.random.randn(10)}
+        current_state = randn(10)
 
         next_state = await wm_service.predict_next_state(
-            model_id="model_1",
-            current_state=current_state,
+            state=current_state,
             action="action_1",
+            model_id="model_1",
         )
 
         assert next_state is not None
@@ -115,42 +126,46 @@ class TestPredictiveLearning:
         wm_service = WorldModelLearning()
         pred_service = PredictiveLearning(wm_service)
 
-        current_state = {"state": np.random.randn(10)}
-        prediction = await pred_service.predict(
+        current_state = randn(10)
+        prediction = await pred_service.predict_trajectory(
+            initial_state=current_state,
+            action_sequence=["action_1"],
+            horizon=1,
             model_id="model_1",
-            current_state=current_state,
-            prediction_horizon=1,
-            prediction_type=PredictionType.SINGLE_STEP,
         )
 
         assert prediction is not None
+        assert prediction.horizon == 1
 
     @pytest.mark.asyncio
     async def test_multi_step_prediction(self):
         wm_service = WorldModelLearning()
         pred_service = PredictiveLearning(wm_service)
 
-        prediction = await pred_service.predict(
+        prediction = await pred_service.predict_trajectory(
+            initial_state=randn(10),
+            action_sequence=None,  # Unconditional
+            horizon=5,
             model_id="model_1",
-            current_state={"state": np.random.randn(10)},
-            prediction_horizon=5,
-            prediction_type=PredictionType.MULTI_STEP,
         )
 
         assert prediction is not None
+        assert prediction.horizon == 5
 
     @pytest.mark.asyncio
     async def test_forecast_trajectory(self):
         wm_service = WorldModelLearning()
         pred_service = PredictiveLearning(wm_service)
 
-        trajectory = await pred_service.forecast_trajectory(
-            model_id="model_1",
-            start_state={"state": np.random.randn(10)},
+        trajectory = await pred_service.predict_trajectory(
+            initial_state=randn(10),
             action_sequence=["a1", "a2", "a3"],
+            horizon=3,
+            model_id="model_1",
         )
 
         assert trajectory is not None
+        assert len(trajectory.predicted_states) > 0
 
 
 class TestModelBasedPlanning:
@@ -164,8 +179,8 @@ class TestModelBasedPlanning:
 
         plan = await planning.plan(
             model_id="model_1",
-            current_state={"state": np.random.randn(10)},
-            goal_state={"state": np.random.randn(10)},
+            current_state={"state": randn(10)},
+            goal_state={"state": randn(10)},
             horizon=5,
             algorithm=PlanningAlgorithm.RANDOM_SHOOTING,
             num_simulations=10,
@@ -181,8 +196,8 @@ class TestModelBasedPlanning:
 
         plan = await planning.plan(
             model_id="model_1",
-            current_state={"state": np.random.randn(10)},
-            goal_state={"state": np.random.randn(10)},
+            current_state={"state": randn(10)},
+            goal_state={"state": randn(10)},
             horizon=5,
             algorithm=PlanningAlgorithm.CEM,
             num_simulations=20,
@@ -206,7 +221,7 @@ class TestModelBasedPlanning:
         result = await planning.simulate_plan(
             model_id="model_1",
             plan=plan,
-            start_state={"state": np.random.randn(10)},
+            start_state={"state": randn(10)},
         )
 
         assert result is not None
@@ -223,7 +238,7 @@ class TestImaginationLearning:
 
         trajectory = await imagination.imagine_trajectory(
             model_id="model_1",
-            start_state={"state": np.random.randn(10)},
+            start_state={"state": randn(10)},
             num_steps=10,
         )
 
@@ -235,7 +250,7 @@ class TestImaginationLearning:
         pred_service = PredictiveLearning(wm_service)
         imagination = ImaginationLearning(wm_service, pred_service)
 
-        imagined_data = [{"state": np.random.randn(10), "reward": 0.5}]
+        imagined_data = [{"state": randn(10), "reward": 0.5}]
         result = await imagination.learn_from_imagination(
             imagined_data=imagined_data,
             learning_objective="maximize_reward",
@@ -291,7 +306,7 @@ class TestUncertaintyAwarePrediction:
     @pytest.mark.asyncio
     async def test_estimate_epistemic_uncertainty(self):
         uncertainty = UncertaintyAwarePrediction()
-        predictions = [{"state": np.random.randn(10)} for _ in range(5)]
+        predictions = [{"state": randn(10)} for _ in range(5)]
 
         estimate = await uncertainty.estimate_uncertainty(
             predictions=predictions,
@@ -305,7 +320,7 @@ class TestUncertaintyAwarePrediction:
         uncertainty = UncertaintyAwarePrediction()
 
         estimate = await uncertainty.estimate_uncertainty(
-            predictions=[{"state": np.random.randn(10)}],
+            predictions=[{"state": randn(10)}],
             uncertainty_type=UncertaintyType.ALEATORIC,
         )
 
@@ -320,7 +335,7 @@ class TestContinuousModelRefinement:
         wm_service = WorldModelLearning()
         refinement = ContinuousModelRefinement(wm_service)
 
-        error_data = [{"predicted": np.array([1, 2]), "actual": np.array([1.1, 2.1])}]
+        error_data = [{"predicted": [1, 2], "actual": [1.1, 2.1]}]
         result = await refinement.detect_model_errors(
             model_id="model_1",
             error_data=error_data,
@@ -335,7 +350,7 @@ class TestContinuousModelRefinement:
 
         result = await refinement.refine_model(
             model_id="model_1",
-            refinement_data=[{"state": np.random.randn(10)}],
+            refinement_data=[{"state": randn(10)}],
         )
 
         assert result is not None
@@ -362,13 +377,13 @@ class TestIntegratedWorldModelsSystem:
         system = IntegratedWorldModelsSystem()
 
         experiences = [
-            {"state": np.random.randn(10), "action": i, "reward": 0.5}
+            {"state": randn(10), "action": i, "reward": 0.5}
             for i in range(10)
         ]
 
         result = await system.learn_and_plan_from_experience(
             experiences=experiences,
-            goal_state={"state": np.random.randn(10)},
+            goal_state={"state": randn(10)},
             planning_budget=50,
         )
 

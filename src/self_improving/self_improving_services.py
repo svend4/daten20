@@ -6,7 +6,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-import numpy as np
+import random
+import statistics
 
 
 # Enums
@@ -78,7 +79,7 @@ class RecursiveSelfImprovement:
         self.iterations += 1
 
         # Simulate performance gain with diminishing returns
-        gain = np.random.uniform(0.10, 0.30) * (0.95 ** self.iterations)
+        gain = random.uniform(0.10, 0.30) * (0.95 ** self.iterations)
         self.current_performance *= (1.0 + gain)
 
         improvement = Improvement(
@@ -172,19 +173,19 @@ class NeuralArchitectureSearch:
         best_arch = None
 
         for i in range(min(search_budget, 20)):  # Limit for simulation
-            perf = np.random.uniform(0.85, 0.95) + i * 0.001  # Slight improvement
+            perf = random.uniform(0.85, 0.95) + i * 0.001  # Slight improvement
             if perf > best_perf:
                 best_perf = perf
                 best_arch = Architecture(
                     arch_id=f"arch_{datetime.now().timestamp()}_{i}",
                     structure={
-                        "layers": np.random.randint(8, 20),
-                        "width": int(2 ** np.random.randint(6, 10)),  # 64-512
+                        "layers": random.randint(8, 20),
+                        "width": int(2 ** random.randint(6, 10)),  # 64-512
                         "activation": "relu",
                         "normalization": "layer_norm",
                     },
                     performance=perf,
-                    efficiency=np.random.uniform(0.7, 0.9),
+                    efficiency=random.uniform(0.7, 0.9),
                 )
 
         self.architectures[best_arch.arch_id] = best_arch
@@ -210,14 +211,14 @@ class NeuralArchitectureSearch:
 
         # Mutate architecture
         mutated_structure = parent_arch.structure.copy()
-        mutated_structure["layers"] = max(1, mutated_structure.get("layers", 10) + np.random.randint(-2, 3))
-        mutated_structure["width"] = max(32, mutated_structure.get("width", 256) + np.random.randint(-64, 65))
+        mutated_structure["layers"] = max(1, mutated_structure.get("layers", 10) + random.randint(-2, 3))
+        mutated_structure["width"] = max(32, mutated_structure.get("width", 256) + random.randint(-64, 65))
 
         mutated_arch = Architecture(
             arch_id=f"mutated_{parent_arch.arch_id}",
             structure=mutated_structure,
-            performance=parent_arch.performance + np.random.uniform(-0.05, 0.1),
-            efficiency=parent_arch.efficiency + np.random.uniform(-0.1, 0.1),
+            performance=parent_arch.performance + random.uniform(-0.05, 0.1),
+            efficiency=parent_arch.efficiency + random.uniform(-0.1, 0.1),
         )
 
         return mutated_arch
@@ -233,7 +234,7 @@ class NeuralArchitectureSearch:
         transferred = Architecture(
             arch_id=f"transferred_{source_arch.arch_id}",
             structure=source_arch.structure.copy(),
-            performance=source_arch.performance * np.random.uniform(0.8, 0.95),
+            performance=source_arch.performance * random.uniform(0.8, 0.95),
             efficiency=source_arch.efficiency,
         )
 
@@ -276,10 +277,10 @@ class HyperparameterOptimization:
             # Sample from search space
             lr = np.random.choice([0.0001, 0.001, 0.01, 0.1])
             batch_size = np.random.choice([16, 32, 64, 128])
-            dropout = np.random.uniform(0.1, 0.5)
+            dropout = random.uniform(0.1, 0.5)
 
             # Evaluate (simulated)
-            perf = 0.80 + trial * 0.005 + np.random.uniform(-0.05, 0.05)
+            perf = 0.80 + trial * 0.005 + random.uniform(-0.05, 0.05)
 
             if perf > best_perf:
                 best_perf = perf
@@ -365,7 +366,7 @@ class MetaLearningOptimization:
 
     async def meta_optimize(self) -> Dict[str, float]:
         await asyncio.sleep(0.02)
-        result = {"speedup": np.random.uniform(5.0, 10.0), "sample_efficiency": 0.6}
+        result = {"speedup": random.uniform(5.0, 10.0), "sample_efficiency": 0.6}
         self.optimizations.append(result)
         return result
 
