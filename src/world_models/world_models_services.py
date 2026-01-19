@@ -1507,7 +1507,7 @@ class IntegratedWorldModelsSystem:
         """
         # Step 1: Learn world model from experiences
         model_id = f"model_{datetime.now().timestamp()}"
-        model = await self.world_model.learn_model(
+        model = await self.world_model.learn_world_model(
             model_id=model_id,
             data=experiences,
             model_type=self.config.default_model_type,
@@ -1592,7 +1592,7 @@ class IntegratedWorldModelsSystem:
         imagined_trajectories = []
         for _ in range(num_imagined_rollouts):
             start_state = {"state": [random.gauss(0, 1) for _ in range(self.config.latent_dim)]}
-            trajectory = await self.imagination.imagine_trajectory(
+            trajectory = await self.imagination.dream(
                 model_id=model_id,
                 start_state=start_state,
                 num_steps=20,
@@ -1652,7 +1652,7 @@ class IntegratedWorldModelsSystem:
         """
         # Step 1: Build causal graph
         graph_id = f"graph_{datetime.now().timestamp()}"
-        causal_graph = await self.causal.build_causal_graph(
+        causal_graph = await self.causal.discover_causal_graph(
             graph_id=graph_id,
             observational_data=causal_graph_data,
         )
@@ -1718,7 +1718,7 @@ class IntegratedWorldModelsSystem:
         benchmarks = []
 
         if self.world_model:
-            model = await self.world_model.learn_model("bench_model", [{"state": [random.gauss(0, 1) for _ in range(10)]}], ModelType.DETERMINISTIC)
+            model = await self.world_model.learn_world_model("bench_model", [{"state": [random.gauss(0, 1) for _ in range(10)]}], ModelType.DETERMINISTIC)
             benchmarks.append({"subsystem": "world_model_learning", "operations": 1, "status": "ok"})
 
         if self.predictive:
@@ -1730,11 +1730,11 @@ class IntegratedWorldModelsSystem:
             benchmarks.append({"subsystem": "model_based_planning", "operations": 1, "status": "ok"})
 
         if self.imagination:
-            await self.imagination.imagine_trajectory("model_1", {"state": [random.gauss(0, 1) for _ in range(10)]}, 10)
+            await self.imagination.dream("model_1", {"state": [random.gauss(0, 1) for _ in range(10)]}, 10)
             benchmarks.append({"subsystem": "imagination_learning", "operations": 1, "status": "ok"})
 
         if self.causal:
-            await self.causal.build_causal_graph("graph_1", [{"x": 1, "y": 2}])
+            await self.causal.discover_causal_graph("graph_1", [{"x": 1, "y": 2}])
             benchmarks.append({"subsystem": "causal_reasoning", "operations": 1, "status": "ok"})
 
         if self.uncertainty:
