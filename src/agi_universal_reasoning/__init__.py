@@ -6,6 +6,7 @@ intellectual task through unified cognitive architecture.
 """
 
 from .agi_services import (  # Services; Enums; Data Structures; Singleton Getters
+    AGIConfig,
     AbstractReasoningService,
     CommonSenseKnowledge,
     CommonSenseReasoningService,
@@ -15,6 +16,7 @@ from .agi_services import (  # Services; Enums; Data Structures; Singleton Gette
     Goal,
     GoalStatus,
     GoalType,
+    IntegratedAGISystem,
     MetaCognitiveControlService,
     MetaCognitiveState,
     ProblemCategory,
@@ -25,6 +27,7 @@ from .agi_services import (  # Services; Enums; Data Structures; Singleton Gette
     TransferMapping,
     UniversalTask,
     UniversalTaskUnderstandingService,
+    get_agi_system,
     get_commonsense_service,
     get_goal_management_service,
     get_metacognition_service,
@@ -45,6 +48,8 @@ __all__ = [
     "CommonSenseReasoningService",
     "FlexibleGoalManagementService",
     "GeneralProblemSolvingService",
+    # Integrated System
+    "IntegratedAGISystem",
     # Enums
     "TaskType",
     "ReasoningType",
@@ -59,6 +64,7 @@ __all__ = [
     "CommonSenseKnowledge",
     "Goal",
     "ProblemSolution",
+    "AGIConfig",
     # Singleton Getters
     "get_task_understanding_service",
     "get_transfer_service",
@@ -67,6 +73,7 @@ __all__ = [
     "get_commonsense_service",
     "get_goal_management_service",
     "get_problem_solving_service",
+    "get_agi_system",
     # Version
     "__version__",
 ]

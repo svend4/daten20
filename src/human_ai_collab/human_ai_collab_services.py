@@ -1275,6 +1275,350 @@ class TrustTransparencyExplainability:
 
 
 # ============================================================================
+# Integrated System
+# ============================================================================
+
+
+@dataclass
+class HumanAICollabConfig:
+    """Configuration for Integrated Human-AI Collaboration System"""
+
+    # Enable subsystems
+    enable_task_management: bool = True
+    enable_intent_understanding: bool = True
+    enable_capability_matching: bool = True
+    enable_shared_models: bool = True
+    enable_mixed_initiative: bool = True
+    enable_augmentation: bool = True
+    enable_trust_transparency: bool = True
+
+    # Default settings
+    default_control_mode: ControlMode = ControlMode.COLLABORATIVE
+    default_augmentation_type: AugmentationType = AugmentationType.COGNITIVE
+    confidence_threshold: float = 0.7
+    trust_threshold: float = 0.8
+
+    # Collaboration parameters
+    max_context_history: int = 100
+    update_interval_sec: int = 5
+    enable_proactive_suggestions: bool = True
+
+
+class IntegratedHumanAICollabSystem:
+    """
+    Unified Human-AI Collaboration System.
+
+    Integrates all 7 subsystems for seamless human-AI cooperation:
+    1. Collaborative Task Management
+    2. Human Intent Understanding
+    3. AI Capability Matching
+    4. Shared Mental Models
+    5. Mixed-Initiative Control
+    6. Human Performance Augmentation
+    7. Trust, Transparency & Explainability
+    """
+
+    def __init__(self, config: Optional[HumanAICollabConfig] = None):
+        """Initialize integrated Human-AI collaboration system"""
+        self.config = config or HumanAICollabConfig()
+
+        # Initialize subsystems
+        self.task_mgmt = CollaborativeTaskManagement() if self.config.enable_task_management else None
+        self.intent = HumanIntentUnderstanding() if self.config.enable_intent_understanding else None
+        self.capability = AICapabilityMatching() if self.config.enable_capability_matching else None
+        self.mental_models = SharedMentalModels() if self.config.enable_shared_models else None
+        self.mixed_initiative = MixedInitiativeControl() if self.config.enable_mixed_initiative else None
+        self.augmentation = HumanPerformanceAugmentation() if self.config.enable_augmentation else None
+        self.trust = TrustTransparencyExplainability() if self.config.enable_trust_transparency else None
+
+    async def human_ai_task_execution(
+        self,
+        user_input: str,
+        user_history: Optional[List[Dict[str, Any]]] = None,
+        available_capabilities: Optional[List[Capability]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Complete human-AI task execution workflow.
+
+        Pipeline:
+        1. Understand human intent
+        2. Match to AI capabilities
+        3. Create collaborative task
+        4. Execute with mixed-initiative control
+        5. Augment human performance
+        6. Provide transparent explanations
+
+        Args:
+            user_input: User's natural language input
+            user_history: Historical interaction data
+            available_capabilities: AI capabilities to consider
+
+        Returns:
+            Execution result with task outcome and augmentation
+        """
+        user_history = user_history or []
+        available_capabilities = available_capabilities or []
+
+        # Step 1: Understand intent
+        intent = await self.intent.understand_intent(user_input, user_history)
+
+        # Step 2: Match capabilities
+        if not available_capabilities:
+            available_capabilities = [
+                Capability("text_generation", "Generate text", 0.9, ["nlp"], {}),
+                Capability("data_analysis", "Analyze data", 0.85, ["analytics"], {}),
+                Capability("code_generation", "Write code", 0.8, ["programming"], {}),
+            ]
+
+        matched = await self.capability.match_capabilities_to_need(
+            user_need=intent.text, available_capabilities=available_capabilities
+        )
+
+        best_capability = matched[0] if matched else available_capabilities[0]
+
+        # Step 3: Create collaborative task
+        task = await self.task_mgmt.create_task(
+            name=f"Task: {intent.text[:50]}",
+            description=intent.text,
+            assigned_role=TaskRole.COLLABORATIVE,
+        )
+
+        # Step 4: Execute with mixed-initiative control
+        control_decision = await self.mixed_initiative.decide_control_transfer(
+            current_mode=self.config.default_control_mode,
+            task_complexity=intent.confidence,
+            ai_confidence=best_capability.confidence_score,
+            user_expertise=0.7,
+        )
+
+        # Step 5: Augment performance
+        augmentation = await self.augmentation.provide_cognitive_augmentation(
+            user_task="Execute task", current_cognitive_load=0.6, available_aids=["completion", "suggestion"]
+        )
+
+        # Step 6: Generate explanation
+        explanation = await self.trust.generate_explanation(
+            model_output=f"Matched capability: {best_capability.name}",
+            explanation_type=ExplanationType.LOCAL,
+            target_audience="general",
+        )
+
+        # Update task status
+        await self.task_mgmt.update_task_status(task.task_id, "completed", progress=1.0)
+
+        return {
+            "task_id": task.task_id,
+            "intent": intent.intent_type.value,
+            "matched_capability": best_capability.name,
+            "control_mode": control_decision["recommended_mode"],
+            "augmentation_provided": augmentation.augmentation_type.value,
+            "explanation": explanation.content,
+            "confidence": best_capability.confidence_score,
+        }
+
+    async def adaptive_collaboration(
+        self,
+        task_description: str,
+        context: Dict[str, Any],
+        user_preferences: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Adapt collaboration strategy based on context and user.
+
+        Dynamically adjusts:
+        - Control mode (command vs. collaborative vs. delegated)
+        - Augmentation type
+        - Communication style
+        - Trust calibration
+
+        Args:
+            task_description: Description of the task
+            context: Current context (user state, environment, etc.)
+            user_preferences: User's collaboration preferences
+
+        Returns:
+            Adapted collaboration strategy
+        """
+        user_preferences = user_preferences or {}
+
+        # Create task
+        task = await self.task_mgmt.create_task(
+            name=task_description[:100], description=task_description, assigned_role=TaskRole.NEGOTIATED
+        )
+
+        # Update shared mental model
+        await self.mental_models.update_model(
+            model_id="current_task", model_data={"task": task_description, "context": context}
+        )
+
+        # Determine appropriate control mode
+        task_complexity = context.get("task_complexity", 0.5)
+        ai_confidence = context.get("ai_confidence", 0.8)
+        user_expertise = context.get("user_expertise", 0.7)
+
+        control_decision = await self.mixed_initiative.decide_control_transfer(
+            current_mode=self.config.default_control_mode,
+            task_complexity=task_complexity,
+            ai_confidence=ai_confidence,
+            user_expertise=user_expertise,
+        )
+
+        # Select augmentation
+        user_workload = context.get("cognitive_load", 0.5)
+        augmentation_type = self.config.default_augmentation_type
+
+        if user_workload > 0.7:
+            augmentation_type = AugmentationType.PRODUCTIVITY
+        elif task_complexity > 0.8:
+            augmentation_type = AugmentationType.COGNITIVE
+
+        # Synchronize understanding
+        sync_status = await self.mental_models.synchronize_understanding(
+            human_model={"preferences": user_preferences, "expertise": user_expertise},
+            ai_model={"confidence": ai_confidence, "capabilities": ["analysis", "generation"]},
+        )
+
+        return {
+            "task_id": task.task_id,
+            "recommended_control_mode": control_decision["recommended_mode"],
+            "augmentation_type": augmentation_type.value,
+            "model_alignment": sync_status["alignment_score"],
+            "adaptation_rationale": f"Adapted to complexity={task_complexity}, expertise={user_expertise}",
+        }
+
+    async def trust_calibration_workflow(
+        self, model_id: str, predictions: List[Tuple[Any, float, bool]]
+    ) -> Dict[str, Any]:
+        """
+        Calibrate user trust through transparency and uncertainty communication.
+
+        Workflow:
+        1. Measure trust metrics
+        2. Communicate uncertainty appropriately
+        3. Provide explanations
+        4. Update shared mental model
+        5. Recommend calibration actions
+
+        Args:
+            model_id: AI model identifier
+            predictions: List of (prediction, confidence, user_relied) tuples
+
+        Returns:
+            Trust calibration report
+        """
+        # Step 1: Measure trust
+        trust_metrics = await self.trust.measure_trust(
+            model_id=model_id,
+            ai_predictions=[(p[0], p[1]) for p in predictions],
+            actual_outcomes=[p[1] > 0.5 for p in predictions],
+            user_reliance_decisions=[p[2] for p in predictions],
+        )
+
+        # Step 2: Communicate uncertainty for each prediction
+        uncertainty_messages = []
+        for pred, conf, _ in predictions[:3]:  # Sample first 3
+            msg = await self.trust.communicate_uncertainty(prediction=pred, confidence=conf)
+            uncertainty_messages.append(msg)
+
+        # Step 3: Generate explanation
+        explanation = await self.trust.generate_explanation(
+            model_output=f"Model {model_id} predictions",
+            explanation_type=ExplanationType.GLOBAL,
+            target_audience="general",
+        )
+
+        # Step 4: Update mental model with trust info
+        await self.mental_models.update_model(
+            model_id=f"trust_{model_id}",
+            model_data={
+                "trust_metrics": {
+                    "appropriate_reliance": trust_metrics.appropriate_reliance,
+                    "calibration_error": trust_metrics.calibration_error,
+                },
+                "last_updated": datetime.now().isoformat(),
+            },
+        )
+
+        # Step 5: Recommend calibration
+        calibration_actions = []
+        if trust_metrics.over_trust_rate > 0.2:
+            calibration_actions.append("Increase uncertainty communication")
+            calibration_actions.append("Show more failure cases")
+        if trust_metrics.under_trust_rate > 0.2:
+            calibration_actions.append("Demonstrate successes")
+            calibration_actions.append("Provide confidence intervals")
+        if trust_metrics.calibration_error > 0.3:
+            calibration_actions.append("Improve confidence calibration")
+
+        return {
+            "trust_metrics": {
+                "appropriate_reliance": trust_metrics.appropriate_reliance,
+                "over_trust_rate": trust_metrics.over_trust_rate,
+                "under_trust_rate": trust_metrics.under_trust_rate,
+                "calibration_error": trust_metrics.calibration_error,
+            },
+            "uncertainty_messages_sample": uncertainty_messages,
+            "explanation": explanation.content,
+            "calibration_actions": calibration_actions,
+            "is_well_calibrated": trust_metrics.calibration_error < 0.2,
+        }
+
+    def get_system_status(self) -> Dict[str, Any]:
+        """Get current system status"""
+        return {
+            "task_management_enabled": self.task_mgmt is not None,
+            "intent_understanding_enabled": self.intent is not None,
+            "capability_matching_enabled": self.capability is not None,
+            "shared_models_enabled": self.mental_models is not None,
+            "mixed_initiative_enabled": self.mixed_initiative is not None,
+            "augmentation_enabled": self.augmentation is not None,
+            "trust_transparency_enabled": self.trust is not None,
+            "config": {
+                "default_control_mode": self.config.default_control_mode.value,
+                "confidence_threshold": self.config.confidence_threshold,
+                "trust_threshold": self.config.trust_threshold,
+            },
+        }
+
+    async def benchmark_performance(self) -> List[Dict[str, Any]]:
+        """Benchmark all subsystems"""
+        benchmarks = []
+
+        if self.task_mgmt:
+            # Create and complete a task
+            task = await self.task_mgmt.create_task("Benchmark task", "Test", TaskRole.AI)
+            await self.task_mgmt.update_task_status(task.task_id, "completed", 1.0)
+            benchmarks.append({"subsystem": "task_management", "operations": 2, "status": "ok"})
+
+        if self.intent:
+            await self.intent.understand_intent("test input", [])
+            benchmarks.append({"subsystem": "intent_understanding", "operations": 1, "status": "ok"})
+
+        if self.capability:
+            caps = [Capability("test", "Test capability", 0.9, ["test"], {})]
+            await self.capability.match_capabilities_to_need("test need", caps)
+            benchmarks.append({"subsystem": "capability_matching", "operations": 1, "status": "ok"})
+
+        if self.mental_models:
+            await self.mental_models.update_model("test_model", {"test": "data"})
+            benchmarks.append({"subsystem": "shared_models", "operations": 1, "status": "ok"})
+
+        if self.mixed_initiative:
+            await self.mixed_initiative.decide_control_transfer(ControlMode.COLLABORATIVE, 0.5, 0.8, 0.7)
+            benchmarks.append({"subsystem": "mixed_initiative", "operations": 1, "status": "ok"})
+
+        if self.augmentation:
+            await self.augmentation.provide_cognitive_augmentation("test", 0.5, ["hint"])
+            benchmarks.append({"subsystem": "augmentation", "operations": 1, "status": "ok"})
+
+        if self.trust:
+            await self.trust.generate_explanation("test output", ExplanationType.LOCAL, "general")
+            benchmarks.append({"subsystem": "trust_transparency", "operations": 1, "status": "ok"})
+
+        return benchmarks
+
+
+# ============================================================================
 # Singleton Getters
 # ============================================================================
 
@@ -1285,6 +1629,7 @@ _shared_mental_models_instance = None
 _mixed_initiative_instance = None
 _performance_augmentation_instance = None
 _trust_transparency_instance = None
+_integrated_human_ai_collab_instance = None
 
 
 def get_collaborative_task_management() -> CollaborativeTaskManagement:
@@ -1341,3 +1686,11 @@ def get_trust_transparency_explainability() -> TrustTransparencyExplainability:
     if _trust_transparency_instance is None:
         _trust_transparency_instance = TrustTransparencyExplainability()
     return _trust_transparency_instance
+
+
+def get_human_ai_collab_system(config: Optional[HumanAICollabConfig] = None) -> IntegratedHumanAICollabSystem:
+    """Get singleton instance of Integrated Human-AI Collaboration System"""
+    global _integrated_human_ai_collab_instance
+    if _integrated_human_ai_collab_instance is None:
+        _integrated_human_ai_collab_instance = IntegratedHumanAICollabSystem(config)
+    return _integrated_human_ai_collab_instance

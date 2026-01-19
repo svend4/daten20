@@ -22,12 +22,14 @@ __author__ = "Document Management System Team"
 from .continual_learning_services import (  # Core Systems; Enums; Data Classes; Singleton Getters
     CapabilityAssessment,
     ContinualLearningAlgorithms,
+    ContinualLearningConfig,
     ContinualLearningMethod,
     Curriculum,
     CurriculumLearning,
     CurriculumStrategy,
     Experience,
     ExperienceReplayConsolidation,
+    IntegratedContinualLearningSystem,
     KnowledgeAccumulationTransfer,
     LifelongMemorySystems,
     Memory,
@@ -40,6 +42,7 @@ from .continual_learning_services import (  # Core Systems; Enums; Data Classes;
     Task,
     TransferType,
     get_continual_learning,
+    get_continual_learning_system,
     get_curriculum_learning,
     get_knowledge_transfer,
     get_lifelong_memory,
@@ -58,6 +61,8 @@ __all__ = [
     "CurriculumLearning",
     "ExperienceReplayConsolidation",
     "SelfAssessmentCapabilityTracking",
+    # Integrated System
+    "IntegratedContinualLearningSystem",
     # Enums
     "ContinualLearningMethod",
     "MemoryType",
@@ -72,6 +77,7 @@ __all__ = [
     "MetaLearningState",
     "Curriculum",
     "CapabilityAssessment",
+    "ContinualLearningConfig",
     # Singleton Getters
     "get_continual_learning",
     "get_lifelong_memory",
@@ -80,4 +86,5 @@ __all__ = [
     "get_curriculum_learning",
     "get_replay_consolidation",
     "get_self_assessment",
+    "get_continual_learning_system",
 ]

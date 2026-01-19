@@ -1559,6 +1559,551 @@ class AIGovernanceAuditing:
 
 
 # ============================================================================
+# AI SAFETY CONFIGURATION
+# ============================================================================
+
+
+@dataclass
+class AISafetyConfig:
+    """Configuration for Integrated AI Safety System"""
+
+    # Adversarial Robustness
+    enable_adversarial_robustness: bool = True
+    default_attack_type: AttackType = AttackType.PGD
+    robustness_test_size: int = 1000
+
+    # Model Alignment
+    enable_alignment: bool = True
+    default_alignment_method: AlignmentMethod = AlignmentMethod.RLHF
+    alignment_iterations: int = 10
+
+    # Safety Monitoring
+    enable_safety_monitoring: bool = True
+    monitoring_interval_sec: int = 300
+    alert_threshold: float = 0.8
+
+    # Uncertainty Quantification
+    enable_uncertainty: bool = True
+    mc_dropout_samples: int = 100
+    uncertainty_threshold: float = 0.3
+
+    # Fairness & Bias
+    enable_fairness: bool = True
+    default_fairness_metric: FairnessMetric = FairnessMetric.DEMOGRAPHIC_PARITY
+    fairness_threshold: float = 0.1
+
+    # Privacy
+    enable_privacy: bool = True
+    default_privacy_mechanism: PrivacyMechanism = PrivacyMechanism.DIFFERENTIAL_PRIVACY
+    privacy_epsilon: float = 1.0
+
+    # Governance
+    enable_governance: bool = True
+    require_model_cards: bool = True
+    audit_frequency_days: int = 90
+
+
+# ============================================================================
+# INTEGRATED AI SAFETY SYSTEM
+# ============================================================================
+
+
+class IntegratedAISafetySystem:
+    """
+    Integrated AI Safety System - FULL IMPLEMENTATION
+
+    Unified system combining all 7 AI safety subsystems for comprehensive
+    safety, robustness, alignment, and trustworthiness:
+    1. AdversarialRobustnessSystem - Attack generation & defense (FGSM, PGD, C&W)
+    2. ModelAlignmentSystem - Value alignment (RLHF, constitutional AI)
+    3. SafetyMonitoringRedTeaming - Continuous monitoring & red-teaming
+    4. UncertaintyQuantification - OOD detection, epistemic uncertainty
+    5. FairnessBiasMitigation - Fairness metrics & bias reduction
+    6. PrivacyDifferentialPrivacy - Privacy-preserving training
+    7. AIGovernanceAuditing - Model cards, compliance, auditing
+
+    This system enables:
+    - Comprehensive adversarial testing and robustness evaluation
+    - Human value alignment with RLHF and constitutional AI
+    - Continuous safety monitoring with real-time alerts
+    - Uncertainty awareness and OOD detection
+    - Fairness guarantees across demographic groups
+    - Privacy-preserving machine learning (ε-differential privacy)
+    - Regulatory compliance and audit trails
+
+    Performance targets:
+    - Adversarial attack generation: <100ms per example
+    - Robustness evaluation: >90% certified accuracy
+    - Alignment training: <10 iterations for convergence
+    - Safety monitoring: <5s detection latency
+    - Fairness gap: <10% across all metrics
+    - Privacy budget: ε ≤ 1.0 for DP-SGD
+    """
+
+    def __init__(self, config: Optional[AISafetyConfig] = None):
+        """Initialize integrated AI safety system."""
+        self.config = config or AISafetyConfig()
+
+        # Initialize subsystems based on configuration
+        self.adversarial_robustness = (
+            AdversarialRobustnessSystem()
+            if self.config.enable_adversarial_robustness
+            else None
+        )
+        self.alignment = (
+            ModelAlignmentSystem() if self.config.enable_alignment else None
+        )
+        self.safety_monitoring = (
+            SafetyMonitoringRedTeaming()
+            if self.config.enable_safety_monitoring
+            else None
+        )
+        self.uncertainty = (
+            UncertaintyQuantification() if self.config.enable_uncertainty else None
+        )
+        self.fairness = (
+            FairnessBiasMitigation() if self.config.enable_fairness else None
+        )
+        self.privacy = (
+            PrivacyDifferentialPrivacy() if self.config.enable_privacy else None
+        )
+        self.governance = (
+            AIGovernanceAuditing() if self.config.enable_governance else None
+        )
+
+        self._lock = threading.Lock()
+        logger.info("Integrated AI Safety System initialized (FULL)")
+
+    async def comprehensive_safety_audit(
+        self,
+        model_id: str,
+        test_data: Any,
+        model_fn: Optional[Callable] = None,
+    ) -> Dict[str, Any]:
+        """
+        Perform comprehensive safety audit across all dimensions.
+
+        Tests adversarial robustness, alignment, uncertainty, fairness,
+        privacy, and generates governance report.
+        """
+        audit_result = {
+            "model_id": model_id,
+            "audit_timestamp": datetime.now().isoformat(),
+            "overall_safety_score": 0.0,
+            "subsystem_scores": {},
+            "vulnerabilities": [],
+            "recommendations": [],
+        }
+
+        scores = []
+
+        # 1. Adversarial Robustness Testing
+        if self.adversarial_robustness:
+            robustness_metrics = await self.adversarial_robustness.evaluate_robustness(
+                model_id=model_id,
+                test_dataset_size=self.config.robustness_test_size,
+            )
+            robustness_score = robustness_metrics.certified_accuracy
+            audit_result["subsystem_scores"]["adversarial_robustness"] = robustness_score
+            scores.append(robustness_score)
+
+            if robustness_score < 0.7:
+                audit_result["vulnerabilities"].append(
+                    "Low adversarial robustness (<70%)"
+                )
+                audit_result["recommendations"].append(
+                    "Implement adversarial training"
+                )
+
+        # 2. Alignment Assessment
+        if self.alignment:
+            alignment_result = await self.alignment.align_model(
+                model_id=model_id,
+                alignment_method=self.config.default_alignment_method,
+                human_feedback={"quality": 0.8},
+            )
+            alignment_score = alignment_result.alignment_score
+            audit_result["subsystem_scores"]["alignment"] = alignment_score
+            scores.append(alignment_score)
+
+            if alignment_score < 0.8:
+                audit_result["vulnerabilities"].append("Suboptimal value alignment")
+                audit_result["recommendations"].append(
+                    "Increase RLHF training iterations"
+                )
+
+        # 3. Uncertainty Calibration
+        if self.uncertainty:
+            uncertainty_est = await self.uncertainty.quantify_uncertainty(
+                model_id=model_id,
+                input_data=test_data,
+                method="mc_dropout",
+            )
+            calibration_score = 1.0 - uncertainty_est.epistemic_uncertainty
+            audit_result["subsystem_scores"]["uncertainty"] = calibration_score
+            scores.append(calibration_score)
+
+        # 4. Fairness Evaluation
+        if self.fairness:
+            fairness_report = await self.fairness.compute_fairness_metrics(
+                model_id=model_id,
+                test_data=test_data,
+                sensitive_attributes=["gender", "race"],
+            )
+            fairness_score = 1.0 - fairness_report.max_disparity
+            audit_result["subsystem_scores"]["fairness"] = fairness_score
+            scores.append(fairness_score)
+
+            if fairness_score < 0.9:
+                audit_result["vulnerabilities"].append(
+                    "Fairness disparities detected (>10%)"
+                )
+                audit_result["recommendations"].append("Apply bias mitigation")
+
+        # 5. Privacy Compliance
+        if self.privacy:
+            privacy_audit = await self.privacy.audit_privacy(
+                model_id=model_id,
+                training_data_size=10000,
+            )
+            privacy_score = 1.0 if privacy_audit.is_private else 0.5
+            audit_result["subsystem_scores"]["privacy"] = privacy_score
+            scores.append(privacy_score)
+
+        # 6. Governance Compliance
+        if self.governance:
+            governance_record = await self.governance.create_model_card(
+                model_id=model_id,
+                model_type="classifier",
+                intended_use="Production deployment",
+                training_data="Internal dataset",
+            )
+            governance_score = (
+                1.0
+                if governance_record.compliance_status == "compliant"
+                else 0.7
+            )
+            audit_result["subsystem_scores"]["governance"] = governance_score
+            scores.append(governance_score)
+
+        # Calculate overall safety score
+        if scores:
+            audit_result["overall_safety_score"] = sum(scores) / len(scores)
+
+        # Overall assessment
+        if audit_result["overall_safety_score"] >= 0.9:
+            audit_result["status"] = "SAFE - Approved for deployment"
+        elif audit_result["overall_safety_score"] >= 0.7:
+            audit_result["status"] = "ACCEPTABLE - Minor improvements needed"
+        else:
+            audit_result["status"] = "UNSAFE - Critical issues require resolution"
+
+        return audit_result
+
+    async def adversarial_stress_test(
+        self,
+        model_id: str,
+        input_data: Any,
+        attack_types: Optional[List[AttackType]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Perform comprehensive adversarial stress testing.
+
+        Tests model against multiple attack types and evaluates robustness.
+        """
+        if not self.adversarial_robustness:
+            return {"status": "error", "message": "Adversarial robustness not enabled"}
+
+        attack_types = attack_types or [
+            AttackType.FGSM,
+            AttackType.PGD,
+            AttackType.CARLINI_WAGNER,
+        ]
+
+        stress_test_result = {
+            "model_id": model_id,
+            "attacks_tested": len(attack_types),
+            "attack_results": {},
+            "overall_robustness": 0.0,
+        }
+
+        robustness_scores = []
+
+        for attack_type in attack_types:
+            # Generate adversarial example
+            adv_example = await self.adversarial_robustness.generate_adversarial_example(
+                input_data=input_data,
+                true_label=0,
+                model_prediction=0,
+                attack_type=attack_type,
+            )
+
+            # Evaluate defense
+            defense_result = await self.adversarial_robustness.defend_adversarial(
+                adversarial_input=adv_example.adversarial_data,
+                defense_method="adversarial_training",
+            )
+
+            attack_success_rate = 1.0 - adv_example.perturbation_norm
+            robustness_scores.append(attack_success_rate)
+
+            stress_test_result["attack_results"][attack_type.value] = {
+                "perturbation_norm": adv_example.perturbation_norm,
+                "defense_effective": defense_result.get("defended", False),
+                "robustness_score": attack_success_rate,
+            }
+
+        stress_test_result["overall_robustness"] = (
+            sum(robustness_scores) / len(robustness_scores)
+            if robustness_scores
+            else 0.0
+        )
+
+        return stress_test_result
+
+    async def align_with_human_values(
+        self,
+        model_id: str,
+        human_feedback: Dict[str, Any],
+        value_constraints: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Align model with human values using RLHF and constitutional AI.
+
+        Combines preference learning and rule-based constraints.
+        """
+        if not self.alignment:
+            return {"status": "error", "message": "Alignment system not enabled"}
+
+        alignment_result = {
+            "model_id": model_id,
+            "alignment_methods_applied": [],
+            "alignment_score": 0.0,
+            "value_violations": [],
+        }
+
+        # Step 1: Apply RLHF
+        rlhf_result = await self.alignment.align_model(
+            model_id=model_id,
+            alignment_method=AlignmentMethod.RLHF,
+            human_feedback=human_feedback,
+        )
+        alignment_result["alignment_methods_applied"].append("RLHF")
+        alignment_result["alignment_score"] = rlhf_result.alignment_score
+
+        # Step 2: Apply Constitutional AI if constraints provided
+        if value_constraints:
+            constitutional_result = await self.alignment.align_model(
+                model_id=model_id,
+                alignment_method=AlignmentMethod.CONSTITUTIONAL_AI,
+                human_feedback={"constraints": value_constraints},
+            )
+            alignment_result["alignment_methods_applied"].append("Constitutional AI")
+            alignment_result["value_constraints_enforced"] = len(value_constraints)
+
+        # Step 3: Verify alignment
+        verify_result = await self.alignment.verify_alignment(
+            model_id=model_id,
+            test_scenarios=["safety", "honesty", "helpfulness"],
+        )
+
+        alignment_result["verification_passed"] = verify_result.get("passed", False)
+        alignment_result["status"] = (
+            "success" if alignment_result["verification_passed"] else "needs_review"
+        )
+
+        return alignment_result
+
+    async def deploy_with_safety_monitoring(
+        self,
+        model_id: str,
+        deployment_environment: str = "production",
+    ) -> Dict[str, Any]:
+        """
+        Deploy model with continuous safety monitoring and red-teaming.
+
+        Sets up real-time monitoring, alert system, and periodic red-team tests.
+        """
+        if not self.safety_monitoring:
+            return {
+                "status": "error",
+                "message": "Safety monitoring not enabled",
+            }
+
+        deployment_result = {
+            "model_id": model_id,
+            "deployment_environment": deployment_environment,
+            "monitoring_enabled": True,
+            "red_teaming_scheduled": True,
+        }
+
+        # Configure monitoring
+        monitoring_result = await self.safety_monitoring.start_monitoring(
+            model_id=model_id,
+            monitoring_interval_sec=self.config.monitoring_interval_sec,
+        )
+        deployment_result["monitoring_id"] = monitoring_result.get("monitoring_id")
+
+        # Schedule red-team tests
+        redteam_result = await self.safety_monitoring.conduct_red_team_test(
+            model_id=model_id,
+            attack_scenarios=[
+                "adversarial_prompts",
+                "jailbreak_attempts",
+                "value_misalignment",
+            ],
+        )
+        deployment_result["initial_redteam_score"] = redteam_result.get(
+            "safety_score", 0.0
+        )
+
+        deployment_result["status"] = "deployed_with_monitoring"
+        return deployment_result
+
+    async def enforce_fairness_constraints(
+        self,
+        model_id: str,
+        test_data: Any,
+        protected_attributes: List[str],
+        fairness_threshold: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        Enforce fairness constraints and mitigate bias.
+
+        Evaluates fairness, detects bias, and applies mitigation strategies.
+        """
+        if not self.fairness:
+            return {"status": "error", "message": "Fairness system not enabled"}
+
+        fairness_result = {
+            "model_id": model_id,
+            "protected_attributes": protected_attributes,
+            "fairness_achieved": False,
+        }
+
+        # Compute fairness metrics
+        fairness_report = await self.fairness.compute_fairness_metrics(
+            model_id=model_id,
+            test_data=test_data,
+            sensitive_attributes=protected_attributes,
+        )
+
+        fairness_result["initial_max_disparity"] = fairness_report.max_disparity
+        fairness_result["group_disparities"] = fairness_report.group_disparities
+
+        # Apply mitigation if needed
+        threshold = fairness_threshold or self.config.fairness_threshold
+        if fairness_report.max_disparity > threshold:
+            mitigation_result = await self.fairness.mitigate_bias(
+                model_id=model_id,
+                mitigation_strategy="reweighting",
+                protected_attributes=protected_attributes,
+            )
+            fairness_result["mitigation_applied"] = True
+            fairness_result["post_mitigation_disparity"] = mitigation_result.get(
+                "new_disparity", fairness_report.max_disparity
+            )
+
+        fairness_result["fairness_achieved"] = (
+            fairness_result.get("post_mitigation_disparity", fairness_report.max_disparity)
+            <= threshold
+        )
+
+        return fairness_result
+
+    async def privacy_preserving_training(
+        self,
+        model_id: str,
+        training_data_size: int,
+        epsilon: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        Train model with differential privacy guarantees.
+
+        Applies DP-SGD and monitors privacy budget.
+        """
+        if not self.privacy:
+            return {"status": "error", "message": "Privacy system not enabled"}
+
+        epsilon = epsilon or self.config.privacy_epsilon
+
+        privacy_result = {
+            "model_id": model_id,
+            "privacy_mechanism": "differential_privacy",
+            "epsilon": epsilon,
+        }
+
+        # Apply differential privacy
+        dp_result = await self.privacy.apply_differential_privacy(
+            model_id=model_id,
+            training_data_size=training_data_size,
+            epsilon=epsilon,
+            delta=1e-5,
+        )
+
+        privacy_result["privacy_budget_used"] = dp_result.privacy_budget
+        privacy_result["training_complete"] = True
+
+        # Audit privacy
+        audit_result = await self.privacy.audit_privacy(
+            model_id=model_id,
+            training_data_size=training_data_size,
+        )
+
+        privacy_result["privacy_audit_passed"] = audit_result.is_private
+        privacy_result["status"] = "success" if audit_result.is_private else "warning"
+
+        return privacy_result
+
+    def get_system_status(self) -> Dict[str, Any]:
+        """Get status of all safety subsystems."""
+        return {
+            "adversarial_robustness_enabled": self.adversarial_robustness is not None,
+            "alignment_enabled": self.alignment is not None,
+            "safety_monitoring_enabled": self.safety_monitoring is not None,
+            "uncertainty_enabled": self.uncertainty is not None,
+            "fairness_enabled": self.fairness is not None,
+            "privacy_enabled": self.privacy is not None,
+            "governance_enabled": self.governance is not None,
+            "config": {
+                "default_attack_type": self.config.default_attack_type.value,
+                "alignment_method": self.config.default_alignment_method.value,
+                "fairness_threshold": self.config.fairness_threshold,
+                "privacy_epsilon": self.config.privacy_epsilon,
+            },
+        }
+
+    async def benchmark_performance(self) -> Dict[str, Any]:
+        """Benchmark performance of all safety subsystems."""
+        import time
+
+        benchmarks = {}
+
+        # Adversarial attack generation benchmark
+        if self.adversarial_robustness:
+            start = time.time()
+            dummy_data = np.random.randn(224, 224, 3)
+            await self.adversarial_robustness.generate_adversarial_example(
+                dummy_data, true_label=0, model_prediction=0,
+                attack_type=self.config.default_attack_type
+            )
+            attack_time = (time.time() - start) * 1000
+            benchmarks["adversarial_attack_generation_ms"] = attack_time
+
+        # Fairness computation benchmark
+        if self.fairness:
+            start = time.time()
+            dummy_test_data = {"features": np.random.randn(100, 10), "labels": np.random.randint(0, 2, 100)}
+            await self.fairness.compute_fairness_metrics(
+                "benchmark_model", dummy_test_data, sensitive_attributes=["attr1"]
+            )
+            fairness_time = (time.time() - start) * 1000
+            benchmarks["fairness_computation_ms"] = fairness_time
+
+        return benchmarks
+
+
+# ============================================================================
 # Singleton Instances
 # ============================================================================
 
@@ -1625,3 +2170,14 @@ def get_ai_governance_auditing() -> AIGovernanceAuditing:
     if _ai_governance_auditing is None:
         _ai_governance_auditing = AIGovernanceAuditing()
     return _ai_governance_auditing
+
+
+_integrated_ai_safety_system = None
+
+
+def get_ai_safety_system(config: Optional[AISafetyConfig] = None) -> IntegratedAISafetySystem:
+    """Get singleton instance of Integrated AI Safety System"""
+    global _integrated_ai_safety_system
+    if _integrated_ai_safety_system is None:
+        _integrated_ai_safety_system = IntegratedAISafetySystem(config)
+    return _integrated_ai_safety_system

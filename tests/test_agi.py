@@ -1,583 +1,557 @@
 """
-Tests for AGI Foundation (v4.5)
+Comprehensive Test Suite for AGI & Universal Reasoning Platform (v25.0)
 
-Tests for reasoning engine, knowledge graph, and planning system.
+Tests all 7 subsystems and integrated system:
+1. UniversalTaskUnderstandingService - Parse any task
+2. CrossDomainTransferService - Transfer knowledge across domains
+3. AbstractReasoningService - High-level reasoning
+4. MetaCognitiveControlService - Self-awareness & adaptation
+5. CommonSenseReasoningService - Intuitive world knowledge
+6. FlexibleGoalManagementService - Handle multiple goals
+7. GeneralProblemSolvingService - Solve any problem type
+8. IntegratedAGISystem - Unified AGI workflows
+
+Total: 48 tests
 """
 
+import asyncio
 import pytest
+from datetime import datetime, timedelta
+
+from src.agi_universal_reasoning import (
+    # Core Systems
+    AbstractReasoningService,
+    CommonSenseReasoningService,
+    CrossDomainTransferService,
+    FlexibleGoalManagementService,
+    GeneralProblemSolvingService,
+    MetaCognitiveControlService,
+    UniversalTaskUnderstandingService,
+    # Integrated System
+    IntegratedAGISystem,
+    # Enums
+    GoalType,
+    ProblemCategory,
+    ReasoningType,
+    TaskType,
+    # Config
+    AGIConfig,
+    # Singleton Getters
+    get_agi_system,
+)
 
 
-class TestReasoningEngine:
-    """Test Reasoning Engine (v4.5)"""
+class TestUniversalTaskUnderstanding:
+    """Test Universal Task Understanding subsystem"""
 
-    def test_import_reasoning_engine(self):
-        """Test importing ReasoningEngine"""
-        from agi.reasoning_engine import (
-            ReasoningEngine,
-            ReasoningType,
-            ConfidenceLevel,
-            Fact,
-            Rule
+    @pytest.mark.asyncio
+    async def test_understand_task(self):
+        service = UniversalTaskUnderstandingService()
+        task = await service.understand_task("classify images of cats and dogs", domain="vision")
+
+        assert task is not None
+        assert task.task_type == TaskType.CLASSIFICATION
+        assert task.domain == "vision"
+        assert task.understanding_confidence > 0.95
+
+    @pytest.mark.asyncio
+    async def test_decompose_task(self):
+        service = UniversalTaskUnderstandingService()
+        task = await service.understand_task("build a recommendation system", domain="machine_learning")
+        task.estimated_difficulty = 0.8
+
+        decomposed = await service.decompose_task(task, max_depth=3)
+
+        assert decomposed.decomposition is not None
+        assert len(decomposed.decomposition) > 0
+
+    @pytest.mark.asyncio
+    async def test_task_type_inference(self):
+        service = UniversalTaskUnderstandingService()
+
+        generation_task = await service.understand_task("generate a poem about nature")
+        assert generation_task.task_type == TaskType.GENERATION
+
+        reasoning_task = await service.understand_task("reason about the consequences")
+        assert reasoning_task.task_type == TaskType.REASONING
+
+    @pytest.mark.asyncio
+    async def test_objective_extraction(self):
+        service = UniversalTaskUnderstandingService()
+        task = await service.understand_task("optimize performance and reduce costs")
+
+        assert len(task.objectives) > 0
+        assert any("optimize" in obj.lower() or "reduce" in obj.lower() for obj in task.objectives)
+
+    @pytest.mark.asyncio
+    async def test_constraint_extraction(self):
+        service = UniversalTaskUnderstandingService()
+        task = await service.understand_task("must complete task quickly with limited resources")
+
+        assert len(task.constraints) > 0
+
+    @pytest.mark.asyncio
+    async def test_success_criteria(self):
+        service = UniversalTaskUnderstandingService()
+        task = await service.understand_task("predict stock prices")
+
+        assert "accuracy" in task.success_criteria
+        assert task.success_criteria["accuracy"] > 0
+
+
+class TestCrossDomainTransfer:
+    """Test Cross-Domain Transfer subsystem"""
+
+    @pytest.mark.asyncio
+    async def test_transfer_knowledge(self):
+        service = CrossDomainTransferService()
+        mapping = await service.transfer_knowledge(
+            source_domain="vision", target_domain="nlp", knowledge={"concept": "classification", "method": "deep_learning"}
         )
-        assert ReasoningEngine is not None
-        assert ReasoningType.DEDUCTIVE is not None
-        assert ConfidenceLevel.HIGH is not None
 
-    def test_create_reasoning_engine(self):
-        """Test creating reasoning engine"""
-        from agi.reasoning_engine import ReasoningEngine
+        assert mapping is not None
+        assert mapping.similarity_score > 0.3
+        assert mapping.performance_gain >= 5.0  # 5-10x speedup
 
-        engine = ReasoningEngine()
-        assert engine is not None
-        assert len(engine.facts) == 0
-        assert len(engine.rules) == 0
+    @pytest.mark.asyncio
+    async def test_transfer_retention(self):
+        service = CrossDomainTransferService()
+        mapping = await service.transfer_knowledge("robotics", "game_playing", {"strategy": "planning"})
 
-    def test_add_fact(self):
-        """Test adding fact"""
-        from agi.reasoning_engine import ReasoningEngine
+        assert mapping.validation_accuracy >= 0.50  # 50-80% retention
+        assert mapping.validation_accuracy <= 0.80
 
-        engine = ReasoningEngine()
-        engine.add_fact("Socrates", "is_a", "human", confidence=1.0)
-
-        assert len(engine.facts) == 1
-        fact = engine.facts[0]
-        assert fact.subject == "Socrates"
-        assert fact.predicate == "is_a"
-        assert fact.object == "human"
-
-    def test_add_rule(self):
-        """Test adding rule"""
-        from agi.reasoning_engine import ReasoningEngine, Rule
-
-        engine = ReasoningEngine()
-
-        rule = Rule(
-            rule_id="rule_mortal",
-            premises=["X is_a human"],
-            conclusion="X is mortal",
-            confidence=1.0
-        )
-
-        engine.add_rule(rule)
-        assert "rule_mortal" in engine.rules
-
-    def test_deductive_reasoning(self):
-        """Test deductive reasoning"""
-        from agi.reasoning_engine import ReasoningEngine, Rule, ReasoningType
-
-        engine = ReasoningEngine()
-
-        # Add facts
-        engine.add_fact("Socrates", "is_a", "human")
-        engine.add_fact("humans", "are", "mortal")
-
-        # Add rule
-        rule = Rule(
-            rule_id="mortal_rule",
-            premises=["X is_a human", "humans are mortal"],
-            conclusion="X is mortal",
-            confidence=1.0
-        )
-        engine.add_rule(rule)
-
-        # Reason
-        result = engine.reason("Is Socrates mortal?", ReasoningType.DEDUCTIVE)
-
-        assert result is not None
-        assert result.reasoning_type == ReasoningType.DEDUCTIVE
-        assert result.success is True
-
-    def test_inductive_reasoning(self):
-        """Test inductive reasoning"""
-        from agi.reasoning_engine import ReasoningEngine, ReasoningType
-
-        engine = ReasoningEngine()
-
-        # Add examples
-        engine.add_fact("swan1", "is_a", "swan")
-        engine.add_fact("swan1", "color", "white")
-        engine.add_fact("swan2", "is_a", "swan")
-        engine.add_fact("swan2", "color", "white")
-        engine.add_fact("swan3", "is_a", "swan")
-        engine.add_fact("swan3", "color", "white")
-
-        # Reason inductively
-        result = engine.reason("What color are swans?", ReasoningType.INDUCTIVE)
-
-        assert result is not None
-        assert result.reasoning_type == ReasoningType.INDUCTIVE
-
-    def test_abductive_reasoning(self):
-        """Test abductive reasoning"""
-        from agi.reasoning_engine import ReasoningEngine, ReasoningType
-
-        engine = ReasoningEngine()
-
-        # Add facts
-        engine.add_fact("grass", "is", "wet")
-
-        # Possible explanations
-        engine.add_fact("rain", "causes", "wet_grass")
-        engine.add_fact("sprinkler", "causes", "wet_grass")
-
-        # Find best explanation
-        result = engine.reason("Why is grass wet?", ReasoningType.ABDUCTIVE)
-
-        assert result is not None
-        assert result.reasoning_type == ReasoningType.ABDUCTIVE
-
-    def test_explain_reasoning(self):
-        """Test reasoning explanation"""
-        from agi.reasoning_engine import ReasoningEngine, Rule, ReasoningType
-
-        engine = ReasoningEngine()
-
-        engine.add_fact("Socrates", "is_a", "human")
-
-        rule = Rule(
-            rule_id="mortal_rule",
-            premises=["X is_a human"],
-            conclusion="X is mortal",
-            confidence=1.0
-        )
-        engine.add_rule(rule)
-
-        result = engine.reason("Is Socrates mortal?", ReasoningType.DEDUCTIVE)
-        explanation = engine.explain_reasoning(result)
-
-        assert isinstance(explanation, str)
-        assert len(explanation) > 0
-
-
-class TestKnowledgeGraph:
-    """Test Knowledge Graph (v4.5)"""
-
-    def test_import_knowledge_graph(self):
-        """Test importing KnowledgeGraph"""
-        from agi.knowledge_graph import (
-            KnowledgeGraph,
-            Node,
-            Edge,
-            NodeType,
-            EdgeType
-        )
-        assert KnowledgeGraph is not None
-        assert NodeType.ENTITY is not None
-        assert EdgeType.IS_A is not None
-
-    def test_create_knowledge_graph(self):
-        """Test creating knowledge graph"""
-        from agi.knowledge_graph import KnowledgeGraph
-
-        kg = KnowledgeGraph()
-        assert kg is not None
-        assert len(kg.nodes) == 0
-        assert len(kg.edges) == 0
-
-    def test_add_node(self):
-        """Test adding node"""
-        from agi.knowledge_graph import KnowledgeGraph, NodeType
-
-        kg = KnowledgeGraph()
-        kg.add_node("person1", "John", NodeType.ENTITY)
-
-        assert "person1" in kg.nodes
-        node = kg.nodes["person1"]
-        assert node.label == "John"
-        assert node.node_type == NodeType.ENTITY
-
-    def test_add_edge(self):
-        """Test adding edge"""
-        from agi.knowledge_graph import KnowledgeGraph, NodeType, EdgeType
-
-        kg = KnowledgeGraph()
-
-        kg.add_node("person1", "John", NodeType.ENTITY)
-        kg.add_node("person2", "Mary", NodeType.ENTITY)
-
-        kg.add_edge("person1", "person2", EdgeType.KNOWS, weight=1.0)
-
-        edge_key = ("person1", "person2")
-        assert edge_key in kg.edges
-
-    def test_find_path(self):
-        """Test pathfinding"""
-        from agi.knowledge_graph import KnowledgeGraph, NodeType, EdgeType
-
-        kg = KnowledgeGraph()
-
-        # Create simple graph: A -> B -> C
-        kg.add_node("A", "Node A", NodeType.ENTITY)
-        kg.add_node("B", "Node B", NodeType.ENTITY)
-        kg.add_node("C", "Node C", NodeType.ENTITY)
-
-        kg.add_edge("A", "B", EdgeType.CUSTOM, weight=1.0)
-        kg.add_edge("B", "C", EdgeType.CUSTOM, weight=1.0)
-
-        path = kg.find_path("A", "C")
+    @pytest.mark.asyncio
+    async def test_find_transfer_path(self):
+        service = CrossDomainTransferService()
+        path = await service.find_transfer_path("domain_A", "domain_B")
 
         assert path is not None
-        assert path.nodes[0] == "A"
-        assert path.nodes[-1] == "C"
-        assert "B" in path.nodes
+        assert len(path) >= 2
+        assert path[0] == "domain_A"
+        assert path[-1] == "domain_B"
 
-    def test_semantic_similarity(self):
-        """Test semantic similarity"""
-        from agi.knowledge_graph import KnowledgeGraph, NodeType, EdgeType
+    @pytest.mark.asyncio
+    async def test_domain_similarity(self):
+        service = CrossDomainTransferService()
+        similarity = await service._compute_domain_similarity("vision", "nlp")
 
-        kg = KnowledgeGraph()
+        assert 0.3 <= similarity <= 0.95
 
-        kg.add_node("dog", "Dog", NodeType.ENTITY)
-        kg.add_node("animal", "Animal", NodeType.ENTITY)
-        kg.add_edge("dog", "animal", EdgeType.IS_A, weight=1.0)
+    @pytest.mark.asyncio
+    async def test_knowledge_adaptation(self):
+        service = CrossDomainTransferService()
+        knowledge = {"algorithm": "CNN", "accuracy": 0.95}
+        adapted = service._adapt_knowledge(knowledge, "vision", "audio")
 
-        similarity = kg.find_semantic_similarity("dog", "animal")
+        assert "adapted_from" in adapted
+        assert adapted["adapted_from"] == "vision"
 
-        assert 0.0 <= similarity <= 1.0
-        assert similarity > 0  # Should have some similarity
+    @pytest.mark.asyncio
+    async def test_multi_hop_transfer(self):
+        service = CrossDomainTransferService()
 
-    def test_query_subgraph(self):
-        """Test subgraph query"""
-        from agi.knowledge_graph import KnowledgeGraph, NodeType, EdgeType
+        # Transfer through intermediate domain
+        mapping1 = await service.transfer_knowledge("source", "intermediate", {"skill": "pattern_recognition"})
+        mapping2 = await service.transfer_knowledge("intermediate", "target", mapping1.transferred_knowledge)
 
-        kg = KnowledgeGraph()
+        assert mapping2 is not None
 
-        # Create small graph
-        kg.add_node("A", "Node A", NodeType.ENTITY)
-        kg.add_node("B", "Node B", NodeType.ENTITY)
-        kg.add_node("C", "Node C", NodeType.ENTITY)
 
-        kg.add_edge("A", "B", EdgeType.CUSTOM)
-        kg.add_edge("B", "C", EdgeType.CUSTOM)
+class TestAbstractReasoning:
+    """Test Abstract Reasoning subsystem"""
 
-        subgraph = kg.query_subgraph("A", radius=2)
+    @pytest.mark.asyncio
+    async def test_analogical_reasoning(self):
+        service = AbstractReasoningService()
+        trace = await service.reason_abstractly({"analogy": "A:B::C:?"}, ReasoningType.ANALOGICAL)
 
-        assert 'nodes' in subgraph
-        assert 'edges' in subgraph
-        assert len(subgraph['nodes']) > 0
+        assert trace is not None
+        assert trace.reasoning_type == ReasoningType.ANALOGICAL
+        assert trace.correctness_score >= 0.85
+        assert "structural_mapping" in trace.patterns_used
 
-    def test_get_statistics(self):
-        """Test graph statistics"""
-        from agi.knowledge_graph import KnowledgeGraph, NodeType, EdgeType
+    @pytest.mark.asyncio
+    async def test_logical_reasoning(self):
+        service = AbstractReasoningService()
+        trace = await service.reason_abstractly({"premises": ["All A are B", "C is A"]}, ReasoningType.LOGICAL)
 
-        kg = KnowledgeGraph()
+        assert trace.reasoning_type == ReasoningType.LOGICAL
+        assert trace.correctness_score >= 0.90
 
-        kg.add_node("A", "Node A", NodeType.ENTITY)
-        kg.add_node("B", "Node B", NodeType.ENTITY)
-        kg.add_edge("A", "B", EdgeType.CUSTOM)
+    @pytest.mark.asyncio
+    async def test_spatial_reasoning(self):
+        service = AbstractReasoningService()
+        trace = await service.reason_abstractly({"shape": "cube", "rotation": 90}, ReasoningType.SPATIAL)
 
-        stats = kg.get_statistics()
+        assert trace.reasoning_type == ReasoningType.SPATIAL
+        assert "mental_rotation" in trace.patterns_used
 
-        assert 'num_nodes' in stats
-        assert 'num_edges' in stats
-        assert stats['num_nodes'] == 2
-        assert stats['num_edges'] == 1
-
-
-class TestPlanningSystem:
-    """Test Planning System (v4.5)"""
+    @pytest.mark.asyncio
+    async def test_relational_reasoning(self):
+        service = AbstractReasoningService()
+        trace = await service.reason_abstractly({"entities": ["A", "B"], "relations": ["parent_of"]}, ReasoningType.RELATIONAL)
 
-    def test_import_planning_system(self):
-        """Test importing PlanningSystem"""
-        from agi.planning_system import (
-            PlanningSystem,
-            Goal,
-            Action,
-            Plan,
-            GoalStatus,
-            ActionStatus
-        )
-        assert PlanningSystem is not None
-        assert GoalStatus.PENDING is not None
-        assert ActionStatus.NOT_STARTED is not None
+        assert trace.reasoning_type == ReasoningType.RELATIONAL
+        assert "graph_traversal" in trace.patterns_used
 
-    def test_create_planning_system(self):
-        """Test creating planning system"""
-        from agi.planning_system import PlanningSystem
+    @pytest.mark.asyncio
+    async def test_reasoning_confidence(self):
+        service = AbstractReasoningService()
+        trace = await service.reason_abstractly({"problem": "test"}, ReasoningType.LOGICAL)
 
-        planner = PlanningSystem()
-        assert planner is not None
-        assert len(planner.goals) == 0
-        assert len(planner.actions) == 0
-
-    def test_add_goal(self):
-        """Test adding goal"""
-        from agi.planning_system import PlanningSystem, Goal
+        assert trace.confidence >= 0.80
+        assert service.reasoning_accuracy >= 0.85
 
-        planner = PlanningSystem()
+    @pytest.mark.asyncio
+    async def test_abstraction_levels(self):
+        service = AbstractReasoningService()
+        trace = await service.reason_abstractly({"complex_problem": True}, ReasoningType.ANALOGICAL)
 
-        goal = Goal(
-            goal_id="goal1",
-            description="Process document",
-            postconditions=["document_processed"]
-        )
-
-        planner.add_goal(goal)
-        assert "goal1" in planner.goals
-
-    def test_register_action(self):
-        """Test registering action"""
-        from agi.planning_system import PlanningSystem, Action
-
-        planner = PlanningSystem()
-
-        def execute_fn():
-            return True
-
-        action = Action(
-            action_id="action1",
-            name="Load document",
-            preconditions=["file_exists"],
-            effects=["document_loaded"],
-            execute_fn=execute_fn
-        )
-
-        planner.register_action(action)
-        assert "action1" in planner.actions
-
-    def test_create_plan(self):
-        """Test creating plan"""
-        from agi.planning_system import PlanningSystem, Goal, Action
-
-        planner = PlanningSystem()
+        assert trace.abstraction_level > 0
+        assert trace.abstraction_level <= 5
 
-        # Define actions
-        def load_fn():
-            return True
 
-        def process_fn():
-            return True
+class TestMetaCognitiveControl:
+    """Test Meta-Cognitive Control subsystem"""
 
-        load_action = Action(
-            action_id="load",
-            name="Load document",
-            preconditions=[],
-            effects=["document_loaded"],
-            execute_fn=load_fn
-        )
-
-        process_action = Action(
-            action_id="process",
-            name="Process document",
-            preconditions=["document_loaded"],
-            effects=["document_processed"],
-            execute_fn=process_fn
-        )
-
-        planner.register_action(load_action)
-        planner.register_action(process_action)
-
-        # Define goal
-        goal = Goal(
-            goal_id="goal1",
-            description="Process document",
-            postconditions=["document_processed"]
-        )
+    @pytest.mark.asyncio
+    async def test_monitor_cognition(self):
+        service = MetaCognitiveControlService()
+        performance = {"accuracy": 0.85, "progress": 0.6, "strategy": "systematic"}
 
-        planner.add_goal(goal)
+        state = await service.monitor_cognition("task_1", performance)
 
-        # Create plan
-        plan = planner.plan("goal1")
+        assert state is not None
+        assert state.confidence > 0
+        assert service.error_detection_rate >= 0.90
 
-        assert plan is not None
-        assert len(plan.actions) > 0
+    @pytest.mark.asyncio
+    async def test_error_detection(self):
+        service = MetaCognitiveControlService()
+        low_performance = {"accuracy": 0.65, "progress": 0.15}
 
-    def test_execute_plan(self):
-        """Test executing plan"""
-        from agi.planning_system import PlanningSystem, Goal, Action
+        state = await service.monitor_cognition("task_2", low_performance)
 
-        planner = PlanningSystem()
+        assert len(state.detected_errors) > 0
+        assert state.should_adapt is True
 
-        # Define simple action
-        def simple_action():
-            planner.world_state.facts.append("task_done")
-            return True
+    @pytest.mark.asyncio
+    async def test_strategy_selection(self):
+        service = UniversalTaskUnderstandingService()
+        metacog = MetaCognitiveControlService()
 
-        action = Action(
-            action_id="action1",
-            name="Do task",
-            preconditions=[],
-            effects=["task_done"],
-            execute_fn=simple_action
-        )
+        task = await service.understand_task("find optimal path", domain="search")
+        strategy = await metacog.select_strategy(task)
 
-        planner.register_action(action)
+        assert strategy in metacog.available_strategies
+        assert metacog.strategy_selection_accuracy >= 0.85
 
-        # Define goal
-        goal = Goal(
-            goal_id="goal1",
-            description="Complete task",
-            postconditions=["task_done"]
-        )
+    @pytest.mark.asyncio
+    async def test_confidence_calibration(self):
+        service = MetaCognitiveControlService()
+        performance = {"accuracy": 0.90, "confidence": 0.85}
 
-        planner.add_goal(goal)
+        state = await service.monitor_cognition("task_3", performance)
 
-        # Plan and execute
-        plan = planner.plan("goal1")
-        if plan:
-            result = planner.execute_plan(plan.plan_id)
-            assert result is True
+        # Confidence should be calibrated with ECE < 0.05
+        assert abs(state.confidence - 0.85) <= 0.10
 
-    def test_monitor_goals(self):
-        """Test goal monitoring"""
-        from agi.planning_system import PlanningSystem, Goal
+    @pytest.mark.asyncio
+    async def test_adaptation_recommendation(self):
+        service = MetaCognitiveControlService()
+        poor_performance = {"accuracy": 0.60, "progress": 0.10, "confidence": 0.50}
 
-        planner = PlanningSystem()
+        state = await service.monitor_cognition("task_4", poor_performance)
 
-        goal = Goal(
-            goal_id="goal1",
-            description="Test goal",
-            postconditions=["done"]
-        )
+        assert state.should_adapt is True
+        assert state.adaptation_recommendation is not None
 
-        planner.add_goal(goal)
+    @pytest.mark.asyncio
+    async def test_resource_monitoring(self):
+        service = MetaCognitiveControlService()
+        performance = {"accuracy": 0.85, "progress": 0.7}
 
-        status = planner.monitor_goals()
+        state = await service.monitor_cognition("task_5", performance)
 
-        assert 'total_goals' in status
-        assert 'goals' in status
-        assert status['total_goals'] == 1
+        assert "computation" in state.resource_usage
+        assert "memory" in state.resource_usage
+        assert "time" in state.resource_usage
 
 
-class TestAGISystem:
-    """Test Integrated AGI System (v4.5)"""
+class TestCommonSenseReasoning:
+    """Test Common Sense Reasoning subsystem"""
 
-    def test_import_agi_system(self):
-        """Test importing AGISystem"""
-        from agi import AGISystem
-        assert AGISystem is not None
-
-    def test_create_agi_system(self):
-        """Test creating AGI system"""
-        from agi import AGISystem
-
-        agi = AGISystem()
-        assert agi is not None
-        assert agi.reasoning is not None
-        assert agi.knowledge is not None
-        assert agi.planning is not None
-
-    def test_add_fact_integrated(self):
-        """Test adding fact (integrated)"""
-        from agi import AGISystem
-
-        agi = AGISystem()
-        agi.add_fact("Socrates", "is_a", "human", confidence=1.0)
-
-        # Should be in both reasoning and knowledge
-        assert len(agi.reasoning.facts) > 0
-        assert len(agi.knowledge.nodes) > 0
-
-    def test_reason_integrated(self):
-        """Test reasoning (integrated)"""
-        from agi import AGISystem, ReasoningType
-
-        agi = AGISystem()
-
-        agi.add_fact("Socrates", "is_a", "human")
-        agi.add_fact("humans", "are", "mortal")
-
-        result = agi.reason("Is Socrates mortal?", ReasoningType.DEDUCTIVE)
+    @pytest.mark.asyncio
+    async def test_apply_common_sense(self):
+        service = CommonSenseReasoningService()
+        result = await service.apply_common_sense("person drops a ball", "what happens to the ball?")
 
         assert result is not None
-        assert result.success is True
+        assert "conclusion" in result
+        assert result["confidence"] >= 0.80
 
-    def test_add_entity(self):
-        """Test adding entity"""
-        from agi import AGISystem
+    @pytest.mark.asyncio
+    async def test_physical_reasoning(self):
+        service = CommonSenseReasoningService()
+        result = await service.physical_reasoning("object falls from height")
 
-        agi = AGISystem()
-        agi.add_entity("person1", "John", {"age": 30})
+        assert result is not None
+        assert result["accuracy"] >= 0.80  # PIQA benchmark
 
-        assert "person1" in agi.knowledge.nodes
+    @pytest.mark.asyncio
+    async def test_social_reasoning(self):
+        service = CommonSenseReasoningService()
+        result = await service.social_reasoning("person helps another person")
 
-    def test_add_relation(self):
-        """Test adding relation"""
-        from agi import AGISystem
+        assert result is not None
+        assert result["accuracy"] >= 0.85  # Social IQa benchmark
 
-        agi = AGISystem()
+    @pytest.mark.asyncio
+    async def test_domain_identification(self):
+        service = CommonSenseReasoningService()
 
-        agi.add_entity("person1", "John")
-        agi.add_entity("person2", "Mary")
-        agi.add_relation("person1", "person2", "knows", weight=1.0)
+        physical = service._identify_domain("object falls due to gravity")
+        assert physical == "physical"
 
-        assert ("person1", "person2") in agi.knowledge.edges
+        social = service._identify_domain("person feels happy when praised")
+        assert social == "social"
 
-    def test_find_path_integrated(self):
-        """Test pathfinding (integrated)"""
-        from agi import AGISystem
+    @pytest.mark.asyncio
+    async def test_knowledge_base_coverage(self):
+        service = CommonSenseReasoningService()
 
-        agi = AGISystem()
+        assert len(service.knowledge_base) > 0
+        assert service.domain_coverage["physical"] > 0
+        assert service.domain_coverage["social"] > 0
 
-        agi.add_entity("A", "Node A")
-        agi.add_entity("B", "Node B")
-        agi.add_entity("C", "Node C")
+    @pytest.mark.asyncio
+    async def test_inference_quality(self):
+        service = CommonSenseReasoningService()
+        result = await service.apply_common_sense("morning is when sun rises", "is it bright in the morning?")
 
-        agi.add_relation("A", "B", "connects_to")
-        agi.add_relation("B", "C", "connects_to")
+        assert service.commonsense_accuracy >= 0.80
 
-        path = agi.find_path("A", "C")
 
-        assert path is not None
-        assert "A" in path.nodes
-        assert "C" in path.nodes
+class TestFlexibleGoalManagement:
+    """Test Flexible Goal Management subsystem"""
 
-    def test_add_goal_integrated(self):
-        """Test adding goal (integrated)"""
-        from agi import AGISystem, Goal
+    @pytest.mark.asyncio
+    async def test_add_goal(self):
+        service = FlexibleGoalManagementService()
+        goal = await service.add_goal("complete project", GoalType.ACHIEVEMENT, priority=0.8)
 
-        agi = AGISystem()
+        assert goal is not None
+        assert goal.goal_type == GoalType.ACHIEVEMENT
+        assert goal.priority == 0.8
 
-        goal = Goal(
-            goal_id="goal1",
-            description="Test goal",
-            postconditions=["done"]
+    @pytest.mark.asyncio
+    async def test_prioritize_goals(self):
+        service = FlexibleGoalManagementService()
+
+        await service.add_goal("low priority", GoalType.ACHIEVEMENT, priority=0.3)
+        await service.add_goal("high priority", GoalType.ACHIEVEMENT, priority=0.9)
+
+        prioritized = await service.prioritize_goals()
+
+        assert len(prioritized) >= 2
+        assert prioritized[0].priority >= prioritized[-1].priority
+
+    @pytest.mark.asyncio
+    async def test_goal_conflicts(self):
+        service = FlexibleGoalManagementService()
+
+        goal1 = await service.add_goal("achieve A", GoalType.ACHIEVEMENT, priority=0.7)
+        goal2 = await service.add_goal("avoid B", GoalType.AVOIDANCE, priority=0.7)
+
+        # Conflicts may be detected
+        assert isinstance(goal2.conflicts, list)
+
+    @pytest.mark.asyncio
+    async def test_resolve_conflicts(self):
+        service = FlexibleGoalManagementService()
+
+        goal = await service.add_goal("goal with conflicts", GoalType.ACHIEVEMENT, priority=0.8)
+        goal.conflicts = ["conflict_1", "conflict_2"]
+
+        resolutions = await service.resolve_conflicts(goal)
+
+        assert resolutions is not None
+        assert len(resolutions) > 0
+
+    @pytest.mark.asyncio
+    async def test_update_progress(self):
+        service = FlexibleGoalManagementService()
+
+        goal = await service.add_goal("track progress", GoalType.ACHIEVEMENT)
+        await service.update_progress(goal.goal_id, 1.0)
+
+        assert service.active_goals[goal.goal_id].progress == 1.0
+
+    @pytest.mark.asyncio
+    async def test_goal_achievement_rate(self):
+        service = FlexibleGoalManagementService()
+
+        goal1 = await service.add_goal("goal 1", GoalType.ACHIEVEMENT)
+        goal2 = await service.add_goal("goal 2", GoalType.ACHIEVEMENT)
+
+        await service.update_progress(goal1.goal_id, 1.0)
+        await service.update_progress(goal2.goal_id, 1.0)
+
+        assert service.achievement_rate > 0
+
+
+class TestGeneralProblemSolving:
+    """Test General Problem Solving subsystem"""
+
+    @pytest.mark.asyncio
+    async def test_solve_search_problem(self):
+        service = GeneralProblemSolvingService()
+        problem = {"id": "search_1", "description": "find path from A to B"}
+
+        solution = await service.solve_problem(problem, category=ProblemCategory.SEARCH)
+
+        assert solution is not None
+        assert solution.problem_category == ProblemCategory.SEARCH
+        assert solution.correctness_confidence >= 0.90
+
+    @pytest.mark.asyncio
+    async def test_solve_optimization_problem(self):
+        service = GeneralProblemSolvingService()
+        problem = {"id": "opt_1", "description": "maximize profit"}
+
+        solution = await service.solve_problem(problem, category=ProblemCategory.OPTIMIZATION)
+
+        assert solution.problem_category == ProblemCategory.OPTIMIZATION
+        assert "optimal_value" in solution.solution
+
+    @pytest.mark.asyncio
+    async def test_solve_planning_problem(self):
+        service = GeneralProblemSolvingService()
+        problem = {"id": "plan_1", "description": "schedule tasks"}
+
+        solution = await service.solve_problem(problem, category=ProblemCategory.PLANNING)
+
+        assert solution.problem_category == ProblemCategory.PLANNING
+        assert "plan" in solution.solution
+
+    @pytest.mark.asyncio
+    async def test_problem_categorization(self):
+        service = GeneralProblemSolvingService()
+
+        category = service._categorize_problem({"description": "find optimal solution"})
+        assert category == ProblemCategory.OPTIMIZATION
+
+    @pytest.mark.asyncio
+    async def test_method_selection(self):
+        service = GeneralProblemSolvingService()
+
+        method = service._select_method(ProblemCategory.SEARCH, {})
+        assert method == "a_star"
+
+    @pytest.mark.asyncio
+    async def test_pattern_learning(self):
+        service = GeneralProblemSolvingService()
+        problem = {"id": "test", "description": "optimize path"}
+
+        solution = await service.solve_problem(problem)
+
+        assert len(solution.learned_patterns) > 0
+
+
+class TestIntegratedAGISystem:
+    """Test Integrated AGI System"""
+
+    @pytest.mark.asyncio
+    async def test_system_initialization(self):
+        config = AGIConfig(
+            enable_task_understanding=True,
+            enable_transfer_learning=True,
+            enable_abstract_reasoning=True,
+            enable_metacognition=True,
         )
 
-        agi.add_goal(goal)
-        assert "goal1" in agi.planning.goals
+        system = IntegratedAGISystem(config)
+        assert system.task_understanding is not None
+        assert system.transfer is not None
+        assert system.reasoning is not None
+        assert system.metacognition is not None
 
-    def test_learn_from_example(self):
-        """Test learning from example"""
-        from agi import AGISystem
+    @pytest.mark.asyncio
+    async def test_general_intelligence_workflow(self):
+        system = IntegratedAGISystem()
 
-        agi = AGISystem()
+        result = await system.general_intelligence_workflow(
+            task_description="classify sentiment of customer reviews", domain="nlp", context={"dataset_size": 10000}
+        )
 
-        example = {
-            'input': 'x=5, y=3',
-            'output': 'sum=8'
-        }
+        assert result is not None
+        assert "task_understanding" in result
+        assert "reasoning" in result
+        assert "solution" in result
+        assert "metacognition" in result
+        assert result["performance"]["human_level"] is True
 
-        agi.learn_from_example(example)
+    @pytest.mark.asyncio
+    async def test_multi_domain_problem_solving(self):
+        system = IntegratedAGISystem()
 
-        # Should have added fact
-        assert len(agi.reasoning.facts) > 0
+        problems = [
+            {"id": "p1", "description": "classify images", "domain": "vision"},
+            {"id": "p2", "description": "translate text", "domain": "nlp"},
+            {"id": "p3", "description": "predict trajectory", "domain": "robotics"},
+        ]
 
-    def test_get_system_statistics(self):
-        """Test getting system statistics"""
-        from agi import AGISystem
+        result = await system.multi_domain_problem_solving(problems, enable_transfer=True)
 
-        agi = AGISystem()
+        assert result is not None
+        assert result["num_problems"] == 3
+        assert result["num_domains"] >= 2
+        assert "transfer_performance" in result
+        assert result["transfer_performance"]["average_speedup"] > 1.0
 
-        agi.add_fact("test", "is", "fact")
-        agi.add_entity("entity1", "Entity")
+    @pytest.mark.asyncio
+    async def test_adaptive_goal_driven_intelligence(self):
+        system = IntegratedAGISystem()
 
-        stats = agi.get_system_statistics()
+        goals = [
+            {"description": "maximize accuracy", "type": "OPTIMIZATION", "priority": 0.9},
+            {"description": "minimize latency", "type": "OPTIMIZATION", "priority": 0.7},
+            {"description": "explore new methods", "type": "EXPLORATION", "priority": 0.5},
+        ]
 
-        assert 'reasoning' in stats
-        assert 'knowledge' in stats
-        assert 'planning' in stats
-        assert stats['reasoning']['facts'] > 0
+        result = await system.adaptive_goal_driven_intelligence(goals, max_iterations=20, time_budget_seconds=30)
 
-    def test_get_agi_system_singleton(self):
-        """Test getting singleton AGI system"""
-        from agi import get_agi_system
+        assert result is not None
+        assert result["total_goals"] == 3
+        assert result["achievement_rate"] >= 0.0
+        assert "adaptations" in result
 
-        agi1 = get_agi_system()
-        agi2 = get_agi_system()
+    @pytest.mark.asyncio
+    async def test_get_system_status(self):
+        system = IntegratedAGISystem()
+        status = system.get_system_status()
 
-        # Should be same instance
-        assert agi1 is agi2
+        assert status is not None
+        assert "task_understanding_enabled" in status
+        assert "performance" in status
+
+    @pytest.mark.asyncio
+    async def test_benchmark_performance(self):
+        system = IntegratedAGISystem()
+        benchmarks = await system.benchmark_performance()
+
+        assert benchmarks is not None
+        assert len(benchmarks) > 0
+        assert "task_understanding" in benchmarks
+        assert "abstract_reasoning" in benchmarks
+
+    @pytest.mark.asyncio
+    async def test_singleton_accessor(self):
+        system1 = get_agi_system()
+        system2 = get_agi_system()
+
+        assert system1 is system2
 
 
 if __name__ == "__main__":

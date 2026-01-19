@@ -31,10 +31,12 @@ from .human_ai_collab_services import (  # Core Systems; Enums; Data Classes; Si
     ControlMode,
     Explanation,
     ExplanationType,
+    HumanAICollabConfig,
     HumanIntentUnderstanding,
     HumanPerformanceAugmentation,
     Intent,
     IntentType,
+    IntegratedHumanAICollabSystem,
     MentalModel,
     MixedInitiativeControl,
     SharedMentalModels,
@@ -43,6 +45,7 @@ from .human_ai_collab_services import (  # Core Systems; Enums; Data Classes; Si
     TrustTransparencyExplainability,
     get_ai_capability_matching,
     get_collaborative_task_management,
+    get_human_ai_collab_system,
     get_human_intent_understanding,
     get_human_performance_augmentation,
     get_mixed_initiative_control,
@@ -60,6 +63,8 @@ __all__ = [
     "MixedInitiativeControl",
     "HumanPerformanceAugmentation",
     "TrustTransparencyExplainability",
+    # Integrated System
+    "IntegratedHumanAICollabSystem",
     # Enums
     "TaskRole",
     "IntentType",
@@ -74,6 +79,7 @@ __all__ = [
     "AugmentationResult",
     "Explanation",
     "TrustMetrics",
+    "HumanAICollabConfig",
     # Singleton Getters
     "get_collaborative_task_management",
     "get_human_intent_understanding",
@@ -82,4 +88,5 @@ __all__ = [
     "get_mixed_initiative_control",
     "get_human_performance_augmentation",
     "get_trust_transparency_explainability",
+    "get_human_ai_collab_system",
 ]
