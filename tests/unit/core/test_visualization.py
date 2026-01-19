@@ -35,7 +35,8 @@ class TestChartGenerator:
     @pytest.fixture
     def sample_services(self):
         """Create sample services for testing."""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         services = []
 
@@ -51,7 +52,7 @@ class TestChartGenerator:
                         target_group="Test",
                         region=region
                     ),
-                    financial=Financial(brutto_rate=rate),
+                    financial=FinancialParameters(brutto_rate=rate),
                     system_settings=SystemSettings(service_type="standard"),
                     created_at=datetime(2024, 1, 1) + timedelta(days=i)
                 )
@@ -132,13 +133,14 @@ class TestChartGenerator:
     @patch('matplotlib.pyplot.close')
     def test_generate_rate_distribution_no_rates(self, mock_close, mock_savefig, chart_generator):
         """Test rate distribution with services having no rates"""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         services = [
             Service(
                 id=1,
                 basic_info=BasicInfo(service_name="Test", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=0.0),  # Zero rate
+                financial=FinancialParameters(brutto_rate=0.0),  # Zero rate
                 system_settings=SystemSettings(service_type="standard")
             )
         ]
@@ -279,19 +281,20 @@ class TestComprehensiveReport:
     @pytest.fixture
     def sample_services(self):
         """Create sample services."""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         return [
             Service(
                 id=1,
                 basic_info=BasicInfo(service_name="Service 1", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=35.0),
+                financial=FinancialParameters(brutto_rate=35.0),
                 system_settings=SystemSettings(service_type="standard")
             ),
             Service(
                 id=2,
                 basic_info=BasicInfo(service_name="Service 2", target_group="T", region="Munich"),
-                financial=Financial(brutto_rate=45.0),
+                financial=FinancialParameters(brutto_rate=45.0),
                 system_settings=SystemSettings(service_type="premium")
             )
         ]
@@ -373,7 +376,8 @@ class TestVisualizationIntegration:
     @pytest.fixture
     def sample_services(self):
         """Create diverse sample services."""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         services = []
         regions = ["Berlin", "Munich", "Hamburg"] * 3
@@ -388,7 +392,7 @@ class TestVisualizationIntegration:
                         target_group="Elderly" if i % 2 == 0 else "Disabled",
                         region=regions[i]
                     ),
-                    financial=Financial(brutto_rate=rates[i]),
+                    financial=FinancialParameters(brutto_rate=rates[i]),
                     system_settings=SystemSettings(service_type="standard" if i % 2 == 0 else "premium"),
                     created_at=datetime(2024, 1, 1) + timedelta(days=i * 10)
                 )
@@ -497,7 +501,8 @@ class TestVisualizationIntegration:
     def test_chart_generation_with_unicode_data(self, mock_close, mock_savefig, tmp_path):
         """Test chart generation with Unicode characters (German umlauts)"""
         from src.core.visualization import ChartGenerator
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         generator = ChartGenerator(output_dir=tmp_path)
 
@@ -506,13 +511,13 @@ class TestVisualizationIntegration:
             Service(
                 id=1,
                 basic_info=BasicInfo(service_name="Pflege München", target_group="Ältere", region="München"),
-                financial=Financial(brutto_rate=35.0),
+                financial=FinancialParameters(brutto_rate=35.0),
                 system_settings=SystemSettings(service_type="standard")
             ),
             Service(
                 id=2,
                 basic_info=BasicInfo(service_name="Betreuung Köln", target_group="Behinderte", region="Köln"),
-                financial=Financial(brutto_rate=40.0),
+                financial=FinancialParameters(brutto_rate=40.0),
                 system_settings=SystemSettings(service_type="standard")
             )
         ]

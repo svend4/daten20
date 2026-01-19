@@ -215,10 +215,12 @@ class AnalyticsEngine:
                 # Apply scenario changes
                 if "brutto_rate_change" in scenario:
                     change = scenario["brutto_rate_change"]  # percentage
-                    modified_service.financial.brutto_rate *= 1 + change / 100
+                    from decimal import Decimal
+                    modified_service.financial.brutto_rate *= Decimal(str(1 + change / 100))
 
                 if "region_coefficient" in scenario:
-                    modified_service.financial.region_coefficient = scenario["region_coefficient"]
+                    from decimal import Decimal
+                    modified_service.financial.region_coefficient = Decimal(str(scenario["region_coefficient"]))
 
                 # Calculate
                 breakdown = self.calculator.calculate_hourly_rate(modified_service.financial)

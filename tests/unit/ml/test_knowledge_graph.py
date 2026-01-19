@@ -235,8 +235,9 @@ class TestKnowledgeGraph:
 
     def test_get_incoming_neighbors(self, graph, sample_nodes):
         """Test getting incoming neighbors"""
-        from src.ml.knowledge_graph import Edge
+        from src.ml.knowledge_graph import Edge, Node
         from src.ml.relation_extractor import RelationType
+        from src.ml.ner import EntityType
 
         # Build graph: max -> siemens, anna -> siemens
         graph.add_node(sample_nodes[0])
