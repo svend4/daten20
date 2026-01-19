@@ -11,6 +11,18 @@ import pytest
 pytestmark = pytest.mark.unit
 
 
+@pytest.fixture(autouse=True)
+def cleanup_loggers():
+    """Clean up logger handlers after each test"""
+    yield
+    # Clean up all loggers after test
+    for logger_name in list(logging.Logger.manager.loggerDict.keys()):
+        logger = logging.getLogger(logger_name)
+        for handler in logger.handlers[:]:
+            handler.close()
+            logger.removeHandler(handler)
+
+
 class TestColoredFormatter:
     """Tests for ColoredFormatter"""
 
@@ -115,7 +127,7 @@ class TestSetupLogger:
         """Test logger with custom log level"""
         from src.core.logger import setup_logger
 
-        logger = setup_logger("test_logger", log_level="DEBUG", enable_file=False)
+        logger = setup_logger("test_logger_custom_level", log_level="DEBUG", enable_file=False)
 
         assert logger.level == logging.DEBUG
 
@@ -124,7 +136,7 @@ class TestSetupLogger:
         from src.core.logger import setup_logger
 
         log_file = tmp_path / "test.log"
-        logger = setup_logger("test_logger", log_file=str(log_file))
+        logger = setup_logger("test_logger_with_file", log_file=str(log_file))
 
         logger.info("Test message")
 
@@ -170,7 +182,7 @@ class TestSetupLogger:
         log_file = tmp_path / "test.log"
         custom_format = "%(levelname)s: %(message)s"
 
-        logger = setup_logger("test_logger", log_file=str(log_file), log_format=custom_format)
+        logger = setup_logger("test_logger_custom_format", log_file=str(log_file), log_format=custom_format)
 
         logger.info("Test")
 
@@ -183,7 +195,7 @@ class TestSetupLogger:
 
         log_file = tmp_path / "nested" / "logs" / "test.log"
 
-        logger = setup_logger("test_logger", log_file=str(log_file))
+        logger = setup_logger("test_logger_creates_dir", log_file=str(log_file))
 
         logger.info("Message")
 
@@ -242,8 +254,9 @@ class TestLogContext:
         """Test LogContext adds context to log records"""
         from src.core.logger import LogContext, setup_logger
 
-        logger = setup_logger("test_ctx", enable_file=False)
+        logger = setup_logger("test_ctx_adds_context", enable_file=False)
         handler = Mock()
+        handler.level = logging.DEBUG  # Mock needs a level attribute
         logger.addHandler(handler)
 
         with LogContext(logger, request_id="req-456", user="test_user"):
@@ -294,7 +307,7 @@ class TestLogPerformanceDecorator:
         from src.core.logger import log_performance, setup_logger
 
         log_file = tmp_path / "perf.log"
-        logger = setup_logger("perf_test", log_file=str(log_file), enable_console=False)
+        logger = setup_logger("perf_test_failure", log_file=str(log_file), enable_console=False)
 
         @log_performance(logger, "failing_operation")
         def failing_func():

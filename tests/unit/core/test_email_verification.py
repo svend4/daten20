@@ -35,13 +35,16 @@ def temp_db():
             username TEXT UNIQUE NOT NULL,
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            email_verified INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
     # Add test user
     cursor.execute(
-        "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
-        ("testuser", "test@example.com", "hashed_password")
+        "INSERT INTO users (username, email, password_hash, email_verified, is_active) VALUES (?, ?, ?, ?, ?)",
+        ("testuser", "test@example.com", "hashed_password", 0, 1)
     )
     conn.commit()
     conn.close()
@@ -57,6 +60,7 @@ def mock_email_notifier():
     """Create mock email notifier"""
     notifier = Mock(spec=EmailNotifier)
     notifier.send_email.return_value = (True, "Email sent successfully")
+    notifier.enabled = True
     return notifier
 
 
@@ -68,6 +72,15 @@ def manager(temp_db, mock_email_notifier):
         email_notifier=mock_email_notifier,
         base_url="http://localhost:5000"
     )
+
+
+@pytest.fixture(autouse=True)
+def reset_singleton():
+    """Reset singleton instance before and after each test"""
+    from src.core import email_verification
+    email_verification._manager_instance = None
+    yield
+    email_verification._manager_instance = None
 
 
 class TestEmailVerificationManager:
@@ -139,19 +152,18 @@ class TestEmailVerificationTokens:
 
     def test_generate_verification_token(self, manager):
         """Test generating verification token"""
-        success, message, token = manager.generate_verification_token(
+        token = manager.generate_verification_token(
             user_id=1,
-            expiry_hours=24
+            email="test@example.com",
+            expires_in=24*3600  # 24 hours in seconds
         )
 
-        assert success is True
         assert token is not None
         assert len(token) > 0
-        assert "generated" in message.lower()
 
     def test_generate_verification_token_stores_in_database(self, manager):
         """Test that generated token is stored in database"""
-        success, message, token = manager.generate_verification_token(user_id=1)
+        token = manager.generate_verification_token(user_id=1, email="test@example.com")
 
         conn = sqlite3.connect(manager.db_path)
         cursor = conn.cursor()
@@ -168,8 +180,9 @@ class TestEmailVerificationTokens:
 
     def test_generate_verification_token_with_ip_address(self, manager):
         """Test generating token with IP address"""
-        success, message, token = manager.generate_verification_token(
+        token = manager.generate_verification_token(
             user_id=1,
+            email="test@example.com",
             ip_address="192.168.1.1"
         )
 
@@ -186,9 +199,10 @@ class TestEmailVerificationTokens:
 
     def test_generate_verification_token_sets_expiry(self, manager):
         """Test that token has correct expiry time"""
-        success, message, token = manager.generate_verification_token(
+        token = manager.generate_verification_token(
             user_id=1,
-            expiry_hours=24
+            email="test@example.com",
+            expires_in=24*3600
         )
 
         conn = sqlite3.connect(manager.db_path)
@@ -209,8 +223,9 @@ class TestEmailVerificationTokens:
     def test_send_verification_email_success(self, manager, mock_email_notifier):
         """Test sending verification email successfully"""
         success, message = manager.send_verification_email(
+            user_id=1,
             email="test@example.com",
-            user_id=1
+            username="testuser"
         )
 
         assert success is True
@@ -219,8 +234,9 @@ class TestEmailVerificationTokens:
     def test_send_verification_email_generates_token(self, manager, mock_email_notifier):
         """Test that sending email generates a token"""
         success, message = manager.send_verification_email(
+            user_id=1,
             email="test@example.com",
-            user_id=1
+            username="testuser"
         )
 
         conn = sqlite3.connect(manager.db_path)
@@ -237,7 +253,7 @@ class TestEmailVerificationTokens:
     def test_verify_email_success(self, manager):
         """Test successful email verification"""
         # Generate token first
-        success, message, token = manager.generate_verification_token(user_id=1)
+        token = manager.generate_verification_token(user_id=1, email="test@example.com")
 
         # Verify email
         verified, verify_message, user_id = manager.verify_email(token)
@@ -248,7 +264,7 @@ class TestEmailVerificationTokens:
 
     def test_verify_email_marks_as_verified(self, manager):
         """Test that verification updates verified_at timestamp"""
-        success, message, token = manager.generate_verification_token(user_id=1)
+        token = manager.generate_verification_token(user_id=1, email="test@example.com")
 
         manager.verify_email(token)
 
@@ -265,7 +281,7 @@ class TestEmailVerificationTokens:
 
     def test_verify_email_updates_user_table(self, manager):
         """Test that verification updates user's email_verified flag"""
-        success, message, token = manager.generate_verification_token(user_id=1)
+        token = manager.generate_verification_token(user_id=1, email="test@example.com")
 
         manager.verify_email(token)
 
@@ -291,9 +307,10 @@ class TestEmailVerificationTokens:
     def test_verify_email_expired_token(self, manager):
         """Test verification with expired token"""
         # Generate token that expires immediately
-        success, message, token = manager.generate_verification_token(
+        token = manager.generate_verification_token(
             user_id=1,
-            expiry_hours=-1  # Expired 1 hour ago
+            email="test@example.com",
+            expires_in=-3600  # Expired 1 hour ago
         )
 
         verified, verify_message, user_id = manager.verify_email(token)
@@ -303,7 +320,7 @@ class TestEmailVerificationTokens:
 
     def test_verify_email_already_verified(self, manager):
         """Test verifying an already verified token"""
-        success, message, token = manager.generate_verification_token(user_id=1)
+        token = manager.generate_verification_token(user_id=1, email="test@example.com")
 
         # Verify first time
         manager.verify_email(token)
@@ -315,7 +332,7 @@ class TestEmailVerificationTokens:
 
     def test_verify_email_with_ip_address(self, manager):
         """Test verification with IP address logging"""
-        success, message, token = manager.generate_verification_token(user_id=1)
+        token = manager.generate_verification_token(user_id=1, email="test@example.com")
 
         manager.verify_email(token, ip_address="192.168.1.1")
 
@@ -334,7 +351,7 @@ class TestEmailVerificationTokens:
     def test_is_email_verified_true(self, manager):
         """Test checking if email is verified (verified user)"""
         # Verify email first
-        success, message, token = manager.generate_verification_token(user_id=1)
+        token = manager.generate_verification_token(user_id=1, email="test@example.com")
         manager.verify_email(token)
 
         is_verified = manager.is_email_verified(user_id=1)
@@ -359,18 +376,18 @@ class TestPasswordResetTokens:
 
     def test_generate_password_reset_token(self, manager):
         """Test generating password reset token"""
-        success, message, token = manager.generate_password_reset_token(
+        token = manager.generate_password_reset_token(
             user_id=1,
-            expiry_hours=1
+            email="test@example.com",
+            expires_in=3600  # 1 hour in seconds
         )
 
-        assert success is True
         assert token is not None
         assert len(token) > 0
 
     def test_generate_password_reset_token_stores_in_database(self, manager):
         """Test that reset token is stored in database"""
-        success, message, token = manager.generate_password_reset_token(user_id=1)
+        token = manager.generate_password_reset_token(user_id=1, email="test@example.com")
 
         conn = sqlite3.connect(manager.db_path)
         cursor = conn.cursor()
@@ -387,8 +404,9 @@ class TestPasswordResetTokens:
 
     def test_generate_password_reset_token_with_ip(self, manager):
         """Test generating reset token with IP address"""
-        success, message, token = manager.generate_password_reset_token(
+        token = manager.generate_password_reset_token(
             user_id=1,
+            email="test@example.com",
             ip_address="192.168.1.1"
         )
 
@@ -418,12 +436,13 @@ class TestPasswordResetTokens:
             email="nonexistent@example.com"
         )
 
-        assert success is False
-        assert "not found" in message.lower() or "invalid" in message.lower()
+        # For security, should return True even for non-existent emails
+        assert success is True
+        assert "if the email exists" in message.lower()
 
     def test_verify_reset_token_valid(self, manager):
         """Test verifying valid reset token"""
-        success, message, token = manager.generate_password_reset_token(user_id=1)
+        token = manager.generate_password_reset_token(user_id=1, email="test@example.com")
 
         is_valid, verify_message, user_id = manager.verify_reset_token(token)
 
@@ -439,9 +458,10 @@ class TestPasswordResetTokens:
 
     def test_verify_reset_token_expired(self, manager):
         """Test verifying expired reset token"""
-        success, message, token = manager.generate_password_reset_token(
+        token = manager.generate_password_reset_token(
             user_id=1,
-            expiry_hours=-1  # Expired
+            email="test@example.com",
+            expires_in=-3600  # Expired 1 hour ago
         )
 
         is_valid, verify_message, user_id = manager.verify_reset_token(token)
@@ -451,10 +471,14 @@ class TestPasswordResetTokens:
 
     def test_verify_reset_token_already_used(self, manager):
         """Test verifying already used reset token"""
-        success, message, token = manager.generate_password_reset_token(user_id=1)
+        token = manager.generate_password_reset_token(user_id=1, email="test@example.com")
+
+        # Mock bcrypt
+        mock_bcrypt = Mock()
+        mock_bcrypt.generate_password_hash = Mock(return_value=b"hashed_password")
 
         # Use token for password reset
-        manager.reset_password(token, "new_password_123")
+        manager.reset_password(token, "new_password_123", mock_bcrypt)
 
         # Try to use again
         is_valid, verify_message, user_id = manager.verify_reset_token(token)
@@ -463,18 +487,23 @@ class TestPasswordResetTokens:
 
     def test_reset_password_success(self, manager):
         """Test successful password reset"""
-        success, message, token = manager.generate_password_reset_token(user_id=1)
+        token = manager.generate_password_reset_token(user_id=1, email="test@example.com")
+
+        # Mock bcrypt
+        mock_bcrypt = Mock()
+        mock_bcrypt.generate_password_hash = Mock(return_value=b"hashed_password")
 
         reset_success, reset_message = manager.reset_password(
             token=token,
-            new_password="new_secure_password_123"
+            new_password="new_secure_password_123",
+            bcrypt_instance=mock_bcrypt
         )
 
         assert reset_success is True
 
     def test_reset_password_updates_password(self, manager):
         """Test that password reset updates password in database"""
-        success, message, token = manager.generate_password_reset_token(user_id=1)
+        token = manager.generate_password_reset_token(user_id=1, email="test@example.com")
 
         # Get original password hash
         conn = sqlite3.connect(manager.db_path)
@@ -483,8 +512,12 @@ class TestPasswordResetTokens:
         original_hash = cursor.fetchone()[0]
         conn.close()
 
+        # Mock bcrypt
+        mock_bcrypt = Mock()
+        mock_bcrypt.generate_password_hash = Mock(return_value=b"new_hashed_password")
+
         # Reset password
-        manager.reset_password(token, "new_password_456")
+        manager.reset_password(token, "new_password_456", mock_bcrypt)
 
         # Get new password hash
         conn = sqlite3.connect(manager.db_path)
@@ -497,9 +530,13 @@ class TestPasswordResetTokens:
 
     def test_reset_password_marks_token_as_used(self, manager):
         """Test that password reset marks token as used"""
-        success, message, token = manager.generate_password_reset_token(user_id=1)
+        token = manager.generate_password_reset_token(user_id=1, email="test@example.com")
 
-        manager.reset_password(token, "new_password")
+        # Mock bcrypt
+        mock_bcrypt = Mock()
+        mock_bcrypt.generate_password_hash = Mock(return_value=b"hashed_password")
+
+        manager.reset_password(token, "new_password", mock_bcrypt)
 
         conn = sqlite3.connect(manager.db_path)
         cursor = conn.cursor()
@@ -514,9 +551,14 @@ class TestPasswordResetTokens:
 
     def test_reset_password_invalid_token(self, manager):
         """Test password reset with invalid token"""
+        # Mock bcrypt
+        mock_bcrypt = Mock()
+        mock_bcrypt.generate_password_hash = Mock(return_value=b"hashed_password")
+
         success, message = manager.reset_password(
             token="invalid_token",
-            new_password="new_password"
+            new_password="new_password",
+            bcrypt_instance=mock_bcrypt
         )
 
         assert success is False
@@ -524,12 +566,17 @@ class TestPasswordResetTokens:
 
     def test_reset_password_expired_token(self, manager):
         """Test password reset with expired token"""
-        success, message, token = manager.generate_password_reset_token(
+        token = manager.generate_password_reset_token(
             user_id=1,
-            expiry_hours=-1
+            email="test@example.com",
+            expires_in=-3600
         )
 
-        reset_success, reset_message = manager.reset_password(token, "new_password")
+        # Mock bcrypt
+        mock_bcrypt = Mock()
+        mock_bcrypt.generate_password_hash = Mock(return_value=b"hashed_password")
+
+        reset_success, reset_message = manager.reset_password(token, "new_password", mock_bcrypt)
 
         assert reset_success is False
         assert "expired" in reset_message.lower()
@@ -541,23 +588,24 @@ class TestTokenCleanup:
     def test_cleanup_expired_tokens(self, manager):
         """Test cleanup of expired tokens"""
         # Generate some expired tokens
-        manager.generate_verification_token(user_id=1, expiry_hours=-1)
-        manager.generate_password_reset_token(user_id=1, expiry_hours=-1)
+        manager.generate_verification_token(user_id=1, email="test@example.com", expires_in=-3600)
+        manager.generate_password_reset_token(user_id=1, email="test@example.com", expires_in=-3600)
 
         # Run cleanup
         result = manager.cleanup_expired_tokens()
 
-        assert "email_verification_tokens" in result
-        assert "password_reset_tokens" in result
-        assert result["email_verification_tokens"] >= 1
-        assert result["password_reset_tokens"] >= 1
+        assert "verification_tokens_deleted" in result
+        assert "reset_tokens_deleted" in result
+        assert result["verification_tokens_deleted"] >= 1
+        assert result["reset_tokens_deleted"] >= 1
 
     def test_cleanup_expired_tokens_keeps_valid(self, manager):
         """Test that cleanup keeps valid tokens"""
         # Generate valid token
-        success, message, token = manager.generate_verification_token(
+        token = manager.generate_verification_token(
             user_id=1,
-            expiry_hours=24
+            email="test@example.com",
+            expires_in=24*3600
         )
 
         # Run cleanup
@@ -578,9 +626,10 @@ class TestTokenCleanup:
     def test_cleanup_expired_tokens_removes_old(self, manager):
         """Test that cleanup removes old expired tokens"""
         # Generate expired token
-        success, message, token = manager.generate_verification_token(
+        token = manager.generate_verification_token(
             user_id=1,
-            expiry_hours=-24
+            email="test@example.com",
+            expires_in=-24*3600
         )
 
         # Run cleanup
@@ -602,29 +651,23 @@ class TestTokenCleanup:
 class TestHelperFunctions:
     """Tests for helper/utility functions"""
 
-    @patch('src.core.email_verification.EmailVerificationManager')
-    def test_get_email_verification_manager_singleton(self, mock_manager_class):
-        """Test get_email_verification_manager returns singleton"""
-        # Reset any cached instance
-        from src.core import email_verification
-        email_verification._manager_instance = None
-
-        instance1 = get_email_verification_manager()
-        instance2 = get_email_verification_manager()
-
-        # Should return same instance
-        assert instance1 is instance2
-
     def test_get_email_verification_manager_creates_instance(self):
         """Test get_email_verification_manager creates instance"""
-        # Reset cached instance
-        from src.core import email_verification
-        email_verification._manager_instance = None
-
         manager = get_email_verification_manager(db_path=":memory:")
 
         assert manager is not None
         assert isinstance(manager, EmailVerificationManager)
+
+    def test_get_email_verification_manager_singleton(self):
+        """Test get_email_verification_manager returns singleton"""
+        # Create first instance
+        instance1 = get_email_verification_manager(db_path=":memory:")
+        # Second call should return same instance
+        instance2 = get_email_verification_manager()
+
+        # Should return same instance
+        assert instance1 is instance2
+        assert isinstance(instance1, EmailVerificationManager)
 
 
 class TestEdgeCases:
@@ -633,10 +676,10 @@ class TestEdgeCases:
     def test_generate_token_for_nonexistent_user(self, manager):
         """Test generating token for nonexistent user"""
         # Should still work (token generation doesn't validate user exists)
-        success, message, token = manager.generate_verification_token(user_id=99999)
+        token = manager.generate_verification_token(user_id=99999, email="nonexistent@example.com")
 
         # Token should be generated, but verification might fail
-        assert success is True
+        assert token is not None
         assert token is not None
 
     def test_verify_email_empty_token(self, manager):
@@ -648,15 +691,23 @@ class TestEdgeCases:
 
     def test_reset_password_empty_token(self, manager):
         """Test password reset with empty token"""
-        success, message = manager.reset_password("", "new_password")
+        # Mock bcrypt
+        mock_bcrypt = Mock()
+        mock_bcrypt.generate_password_hash = Mock(return_value=b"hashed_password")
+
+        success, message = manager.reset_password("", "new_password", mock_bcrypt)
 
         assert success is False
 
     def test_reset_password_empty_password(self, manager):
         """Test password reset with empty password"""
-        success, message, token = manager.generate_password_reset_token(user_id=1)
+        token = manager.generate_password_reset_token(user_id=1, email="test@example.com")
 
-        reset_success, reset_message = manager.reset_password(token, "")
+        # Mock bcrypt
+        mock_bcrypt = Mock()
+        mock_bcrypt.generate_password_hash = Mock(return_value=b"hashed_password")
+
+        reset_success, reset_message = manager.reset_password(token, "", mock_bcrypt)
 
         # Should fail or succeed based on implementation
         # Testing that it handles empty password gracefully
@@ -664,14 +715,14 @@ class TestEdgeCases:
 
     def test_concurrent_token_generation(self, manager):
         """Test generating multiple tokens for same user"""
-        token1 = manager.generate_verification_token(user_id=1)
-        token2 = manager.generate_verification_token(user_id=1)
+        token1 = manager.generate_verification_token(user_id=1, email="test@example.com")
+        token2 = manager.generate_verification_token(user_id=1, email="test@example.com")
 
         # Both should succeed
-        assert token1[0] is True
-        assert token2[0] is True
+        assert token1 is not None
+        assert token2 is not None
         # Tokens should be different
-        assert token1[2] != token2[2]
+        assert token1 != token2
 
 
 if __name__ == "__main__":
