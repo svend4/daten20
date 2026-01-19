@@ -19,10 +19,21 @@ Components:
 - Device Protocols: MQTT, CoAP, HTTP, Modbus with protocol translation
 - IoT Security: X.509, PSK, JWT, ACL, firmware signing, encryption
 
-Version: 3.6.0
+Version: 3.6.0 (Complete)
 """
 
 __version__ = "3.6.0"
+
+# Unified IoT & Edge API
+from .iot_edge_api import (
+    IoTEdgeAPI,
+    IoTEdgeConfig,
+    IoTOperation,
+    get_iot_edge_api,
+    register_device,
+    publish_telemetry,
+    deploy_function,
+)
 
 # Device Manager
 from .device_manager import (
@@ -115,6 +126,15 @@ from .telemetry_pipeline import (
 )
 
 __all__ = [
+    # Unified API
+    'IoTEdgeAPI',
+    'IoTEdgeConfig',
+    'IoTOperation',
+    'get_iot_edge_api',
+    'register_device',
+    'publish_telemetry',
+    'deploy_function',
+
     # Device Manager
     "Device",
     "DeviceStatus",
