@@ -24,7 +24,9 @@ Example Usage:
 
 from .neurosymbolic_services import (  # Enums; Data Classes; Service Classes; Singleton Getters
     DifferentiableReasoner,
+    EmbeddingModel,
     HybridLearningSystem,
+    IntegratedNeurosymbolicSystem,
     KnowledgeGraphEmbedder,
     LogicalForm,
     LogicOperator,
@@ -33,34 +35,43 @@ from .neurosymbolic_services import (  # Enums; Data Classes; Service Classes; S
     Module,
     ModuleType,
     NeuralModuleNetwork,
+    NeurosymbolicConfig,
     Predicate,
     Program,
     ProgramSynthesisEngine,
     ReasoningMode,
     SemanticParser,
     SynthesisAlgorithm,
+    TNorm,
     Triple,
     get_differentiable_reasoner,
     get_hybrid_learning_system,
     get_knowledge_graph_embedder,
     get_logic_tensor_network,
     get_neural_module_network,
+    get_neurosymbolic_system,
     get_program_synthesis_engine,
     get_semantic_parser,
 )
 
 __version__ = "14.0.0"
 __all__ = [
+    # Enumerations
     "LogicOperator",
     "ModuleType",
     "SynthesisAlgorithm",
     "ReasoningMode",
+    "EmbeddingModel",
+    "TNorm",
+    # Dataclasses
     "Predicate",
     "LogicRule",
     "Module",
     "Program",
     "LogicalForm",
     "Triple",
+    "NeurosymbolicConfig",
+    # Subsystems
     "LogicTensorNetwork",
     "NeuralModuleNetwork",
     "ProgramSynthesisEngine",
@@ -68,6 +79,9 @@ __all__ = [
     "DifferentiableReasoner",
     "KnowledgeGraphEmbedder",
     "HybridLearningSystem",
+    # Integrated System
+    "IntegratedNeurosymbolicSystem",
+    # Singleton Getters
     "get_logic_tensor_network",
     "get_neural_module_network",
     "get_program_synthesis_engine",
@@ -75,4 +89,5 @@ __all__ = [
     "get_differentiable_reasoner",
     "get_knowledge_graph_embedder",
     "get_hybrid_learning_system",
+    "get_neurosymbolic_system",
 ]
