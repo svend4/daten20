@@ -41,6 +41,7 @@ from .ai_safety_services import (  # Core Systems; Enums; Data Classes; Singleto
     AdversarialExample,
     AdversarialRobustnessSystem,
     AIGovernanceAuditing,
+    AISafetyConfig,
     AlignmentMethod,
     AlignmentResult,
     AttackType,
@@ -48,6 +49,7 @@ from .ai_safety_services import (  # Core Systems; Enums; Data Classes; Singleto
     FairnessMetric,
     FairnessReport,
     GovernanceRecord,
+    IntegratedAISafetySystem,
     ModelAlignmentSystem,
     PrivacyAudit,
     PrivacyDifferentialPrivacy,
@@ -59,6 +61,7 @@ from .ai_safety_services import (  # Core Systems; Enums; Data Classes; Singleto
     UncertaintyQuantification,
     get_adversarial_robustness_system,
     get_ai_governance_auditing,
+    get_ai_safety_system,
     get_fairness_bias_mitigation,
     get_model_alignment_system,
     get_privacy_differential_privacy,
@@ -77,6 +80,8 @@ __all__ = [
     "FairnessBiasMitigation",
     "PrivacyDifferentialPrivacy",
     "AIGovernanceAuditing",
+    # Integrated System
+    "IntegratedAISafetySystem",
     # Enums
     "AttackType",
     "AlignmentMethod",
@@ -91,6 +96,7 @@ __all__ = [
     "FairnessReport",
     "PrivacyAudit",
     "GovernanceRecord",
+    "AISafetyConfig",
     # Singleton Getters
     "get_adversarial_robustness_system",
     "get_model_alignment_system",
@@ -99,4 +105,5 @@ __all__ = [
     "get_fairness_bias_mitigation",
     "get_privacy_differential_privacy",
     "get_ai_governance_auditing",
+    "get_ai_safety_system",
 ]
