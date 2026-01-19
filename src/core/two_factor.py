@@ -5,24 +5,25 @@ Provides TOTP-based two-factor authentication for enhanced security.
 Supports QR code generation, backup codes, and recovery options.
 """
 
+import base64
+import hashlib
+import io
+import logging
+import secrets
+import sqlite3
+from datetime import datetime
+from typing import List, Optional, Tuple
+
 import pyotp
 import qrcode
-import io
-import base64
-import secrets
-import hashlib
-from typing import Optional, List, Tuple
-from datetime import datetime
-import sqlite3
-import logging
 
-logger = logging.getLogger('dms.2fa')
+logger = logging.getLogger("dms.2fa")
 
 
 class TwoFactorAuth:
     """Manage two-factor authentication for users."""
 
-    def __init__(self, db_path: str = 'data/db/users.db'):
+    def __init__(self, db_path: str = "data/db/users.db"):
         """
         Initialize 2FA manager.
 
@@ -38,7 +39,8 @@ class TwoFactorAuth:
         cursor = conn.cursor()
 
         # 2FA secrets table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS two_factor_secrets (
                 user_id INTEGER PRIMARY KEY,
                 secret TEXT NOT NULL,
@@ -47,10 +49,12 @@ class TwoFactorAuth:
                 verified_at TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
-        ''')
+        """
+        )
 
         # Backup codes table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS backup_codes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -60,7 +64,8 @@ class TwoFactorAuth:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
-        ''')
+        """
+        )
 
         conn.commit()
         conn.close()
@@ -83,10 +88,13 @@ class TwoFactorAuth:
         cursor = conn.cursor()
 
         # Save secret (not enabled yet)
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO two_factor_secrets (user_id, secret, enabled)
             VALUES (?, ?, 0)
-        ''', (user_id, secret))
+        """,
+            (user_id, secret),
+        )
 
         conn.commit()
         conn.close()
@@ -135,7 +143,7 @@ class TwoFactorAuth:
 
         # Convert to base64
         buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
+        img.save(buffer, format="PNG")
         img_str = base64.b64encode(buffer.getvalue()).decode()
 
         return f"data:image/png;base64,{img_str}"
@@ -184,11 +192,14 @@ class TwoFactorAuth:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE two_factor_secrets
             SET enabled = 1, verified_at = CURRENT_TIMESTAMP
             WHERE user_id = ?
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         conn.commit()
         conn.close()
@@ -206,8 +217,8 @@ class TwoFactorAuth:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('DELETE FROM two_factor_secrets WHERE user_id = ?', (user_id,))
-        cursor.execute('DELETE FROM backup_codes WHERE user_id = ?', (user_id,))
+        cursor.execute("DELETE FROM two_factor_secrets WHERE user_id = ?", (user_id,))
+        cursor.execute("DELETE FROM backup_codes WHERE user_id = ?", (user_id,))
 
         conn.commit()
         conn.close()
@@ -219,10 +230,13 @@ class TwoFactorAuth:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT enabled FROM two_factor_secrets
             WHERE user_id = ?
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         row = cursor.fetchone()
         conn.close()
@@ -234,10 +248,13 @@ class TwoFactorAuth:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT secret FROM two_factor_secrets
             WHERE user_id = ?
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         row = cursor.fetchone()
         conn.close()
@@ -261,7 +278,7 @@ class TwoFactorAuth:
         cursor = conn.cursor()
 
         # Delete existing codes
-        cursor.execute('DELETE FROM backup_codes WHERE user_id = ?', (user_id,))
+        cursor.execute("DELETE FROM backup_codes WHERE user_id = ?", (user_id,))
 
         for _ in range(count):
             # Generate random code (8 characters)
@@ -271,10 +288,13 @@ class TwoFactorAuth:
             # Hash and store
             code_hash = hashlib.sha256(code.encode()).hexdigest()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO backup_codes (user_id, code_hash)
                 VALUES (?, ?)
-            ''', (user_id, code_hash))
+            """,
+                (user_id, code_hash),
+            )
 
         conn.commit()
         conn.close()
@@ -299,20 +319,26 @@ class TwoFactorAuth:
         cursor = conn.cursor()
 
         # Find unused code
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT id FROM backup_codes
             WHERE user_id = ? AND code_hash = ? AND used = 0
-        ''', (user_id, code_hash))
+        """,
+            (user_id, code_hash),
+        )
 
         row = cursor.fetchone()
 
         if row:
             # Mark as used
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE backup_codes
                 SET used = 1, used_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            ''', (row[0],))
+            """,
+                (row[0],),
+            )
 
             conn.commit()
             conn.close()
@@ -329,10 +355,13 @@ class TwoFactorAuth:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT COUNT(*) FROM backup_codes
             WHERE user_id = ? AND used = 0
-        ''', (user_id,))
+        """,
+            (user_id,),
+        )
 
         count = cursor.fetchone()[0]
         conn.close()
@@ -354,6 +383,7 @@ def get_two_factor_auth() -> TwoFactorAuth:
 
 # Helper functions
 
+
 def require_2fa(func):
     """
     Decorator to require 2FA verification.
@@ -365,13 +395,14 @@ def require_2fa(func):
             ...
     """
     from functools import wraps
-    from flask import session, redirect, url_for
+
+    from flask import redirect, session, url_for
 
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Check if 2FA is verified in session
-        if not session.get('2fa_verified'):
-            return redirect(url_for('auth.verify_2fa'))
+        if not session.get("2fa_verified"):
+            return redirect(url_for("auth.verify_2fa"))
 
         return func(*args, **kwargs)
 

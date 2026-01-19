@@ -14,18 +14,19 @@ Integrates with:
 - Neo4j for graph database storage
 """
 
-from typing import List, Dict, Set, Tuple, Optional, Any
-from dataclasses import dataclass, field
-from collections import defaultdict, deque
-from enum import Enum
 import json
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from .ner import NEREngine, Entity, EntityType
-from .relation_extractor import RelationExtractor, Relation, RelationType
+from .ner import Entity, EntityType, NEREngine
+from .relation_extractor import Relation, RelationExtractor, RelationType
 
 
 class GraphFormat(str, Enum):
     """Supported graph export formats"""
+
     JSON = "json"
     CYPHER = "cypher"
     GRAPHML = "graphml"
@@ -35,9 +36,10 @@ class GraphFormat(str, Enum):
 @dataclass
 class Node:
     """Graph node representing an entity"""
-    id: str              # Unique node identifier
-    text: str            # Entity text
-    type: EntityType     # Entity type (PERSON, ORG, LOCATION)
+
+    id: str  # Unique node identifier
+    text: str  # Entity text
+    type: EntityType  # Entity type (PERSON, ORG, LOCATION)
     properties: Dict[str, Any] = field(default_factory=dict)  # Additional properties
 
     def __hash__(self):
@@ -52,10 +54,11 @@ class Node:
 @dataclass
 class Edge:
     """Graph edge representing a relation"""
-    source: str          # Source node ID
-    target: str          # Target node ID
+
+    source: str  # Source node ID
+    target: str  # Target node ID
     relation: RelationType  # Relation type
-    confidence: float    # Confidence score
+    confidence: float  # Confidence score
     properties: Dict[str, Any] = field(default_factory=dict)  # Additional properties
 
     def __hash__(self):
@@ -162,7 +165,7 @@ class KnowledgeGraph:
 
         return None
 
-    def get_subgraph(self, node_id: str, depth: int = 1) -> 'KnowledgeGraph':
+    def get_subgraph(self, node_id: str, depth: int = 1) -> "KnowledgeGraph":
         """
         Extract subgraph around a node
 
@@ -208,10 +211,12 @@ class KnowledgeGraph:
 
         return subgraph
 
-    def query(self,
-              node_type: Optional[EntityType] = None,
-              relation_type: Optional[RelationType] = None,
-              min_confidence: float = 0.0) -> List[Tuple[Node, Optional[Edge], Optional[Node]]]:
+    def query(
+        self,
+        node_type: Optional[EntityType] = None,
+        relation_type: Optional[RelationType] = None,
+        min_confidence: float = 0.0,
+    ) -> List[Tuple[Node, Optional[Edge], Optional[Node]]]:
         """
         Query graph for nodes/edges matching criteria
 
@@ -296,25 +301,20 @@ class KnowledgeGraph:
     def _export_json(self) -> str:
         """Export as JSON"""
         data = {
-            'nodes': [
-                {
-                    'id': node.id,
-                    'text': node.text,
-                    'type': node.type.value,
-                    'properties': node.properties
-                }
+            "nodes": [
+                {"id": node.id, "text": node.text, "type": node.type.value, "properties": node.properties}
                 for node in self.nodes.values()
             ],
-            'edges': [
+            "edges": [
                 {
-                    'source': edge.source,
-                    'target': edge.target,
-                    'relation': edge.relation.value,
-                    'confidence': edge.confidence,
-                    'properties': edge.properties
+                    "source": edge.source,
+                    "target": edge.target,
+                    "relation": edge.relation.value,
+                    "confidence": edge.confidence,
+                    "properties": edge.properties,
                 }
                 for edge in self.edges
-            ]
+            ],
         }
         return json.dumps(data, indent=2, ensure_ascii=False)
 
@@ -324,25 +324,16 @@ class KnowledgeGraph:
 
         # Create nodes
         for node in self.nodes.values():
-            props = {
-                'text': node.text,
-                'type': node.type.value,
-                **node.properties
-            }
-            props_str = ', '.join(f"{k}: {json.dumps(v)}" for k, v in props.items())
-            queries.append(
-                f"CREATE (n{node.id.replace(' ', '_')}:Entity {{id: {json.dumps(node.id)}, {props_str}}})"
-            )
+            props = {"text": node.text, "type": node.type.value, **node.properties}
+            props_str = ", ".join(f"{k}: {json.dumps(v)}" for k, v in props.items())
+            queries.append(f"CREATE (n{node.id.replace(' ', '_')}:Entity {{id: {json.dumps(node.id)}, {props_str}}})")
 
         # Create relationships
         for edge in self.edges:
-            source_id = edge.source.replace(' ', '_')
-            target_id = edge.target.replace(' ', '_')
-            props = {
-                'confidence': edge.confidence,
-                **edge.properties
-            }
-            props_str = ', '.join(f"{k}: {json.dumps(v)}" for k, v in props.items())
+            source_id = edge.source.replace(" ", "_")
+            target_id = edge.target.replace(" ", "_")
+            props = {"confidence": edge.confidence, **edge.properties}
+            props_str = ", ".join(f"{k}: {json.dumps(v)}" for k, v in props.items())
 
             queries.append(
                 f"MATCH (s:Entity {{id: {json.dumps(edge.source)}}}), "
@@ -350,7 +341,7 @@ class KnowledgeGraph:
                 f"CREATE (s)-[:{edge.relation.value.upper()} {{{props_str}}}]->(t)"
             )
 
-        return '\n'.join(queries) + '\n'
+        return "\n".join(queries) + "\n"
 
     def _export_graphml(self) -> str:
         """Export as GraphML XML"""
@@ -360,36 +351,32 @@ class KnowledgeGraph:
 
         # Nodes
         for node in self.nodes.values():
-            node_id_safe = node.id.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+            node_id_safe = node.id.replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
             lines.append(f'    <node id="{node_id_safe}">')
             lines.append(f'      <data key="text">{node.text}</data>')
             lines.append(f'      <data key="type">{node.type.value}</data>')
-            lines.append('    </node>')
+            lines.append("    </node>")
 
         # Edges
         for i, edge in enumerate(self.edges):
-            source_safe = edge.source.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-            target_safe = edge.target.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+            source_safe = edge.source.replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+            target_safe = edge.target.replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
             lines.append(f'    <edge id="e{i}" source="{source_safe}" target="{target_safe}">')
             lines.append(f'      <data key="relation">{edge.relation.value}</data>')
             lines.append(f'      <data key="confidence">{edge.confidence}</data>')
-            lines.append('    </edge>')
+            lines.append("    </edge>")
 
-        lines.append('  </graph>')
-        lines.append('</graphml>')
+        lines.append("  </graph>")
+        lines.append("</graphml>")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
     def _export_adjacency(self) -> str:
         """Export as adjacency list (JSON)"""
         adjacency_data = {}
         for node_id, edges in self.adjacency.items():
             adjacency_data[node_id] = [
-                {
-                    'target': edge.target,
-                    'relation': edge.relation.value,
-                    'confidence': edge.confidence
-                }
+                {"target": edge.target, "relation": edge.relation.value, "confidence": edge.confidence}
                 for edge in edges
             ]
         return json.dumps(adjacency_data, indent=2, ensure_ascii=False)
@@ -411,13 +398,15 @@ class KnowledgeGraph:
         avg_degree = sum(degrees) / len(degrees) if degrees else 0
 
         return {
-            'num_nodes': len(self.nodes),
-            'num_edges': len(self.edges),
-            'entity_types': dict(entity_counts),
-            'relation_types': dict(relation_counts),
-            'avg_degree': round(avg_degree, 2),
-            'max_degree': max(degrees) if degrees else 0,
-            'density': round(len(self.edges) / (len(self.nodes) * (len(self.nodes) - 1)), 4) if len(self.nodes) > 1 else 0
+            "num_nodes": len(self.nodes),
+            "num_edges": len(self.edges),
+            "entity_types": dict(entity_counts),
+            "relation_types": dict(relation_counts),
+            "avg_degree": round(avg_degree, 2),
+            "max_degree": max(degrees) if degrees else 0,
+            "density": (
+                round(len(self.edges) / (len(self.nodes) * (len(self.nodes) - 1)), 4) if len(self.nodes) > 1 else 0
+            ),
         }
 
 
@@ -457,11 +446,7 @@ class KnowledgeGraphBuilder:
                 id=entity.text,
                 text=entity.text,
                 type=entity.type,
-                properties={
-                    'start': entity.start,
-                    'end': entity.end,
-                    'confidence': entity.confidence
-                }
+                properties={"start": entity.start, "end": entity.end, "confidence": entity.confidence},
             )
             graph.add_node(node)
 
@@ -476,11 +461,7 @@ class KnowledgeGraphBuilder:
                     target=relation.object.text,
                     relation=relation.relation,
                     confidence=relation.confidence,
-                    properties={
-                        'context': relation.context,
-                        'start': relation.start,
-                        'end': relation.end
-                    }
+                    properties={"context": relation.context, "start": relation.start, "end": relation.end},
                 )
 
                 # Only add edge if both nodes exist
@@ -489,10 +470,9 @@ class KnowledgeGraphBuilder:
 
         return graph
 
-    def build_from_entities_and_relations(self,
-                                         entities: List[Entity],
-                                         relations: List[Relation],
-                                         min_confidence: float = 0.5) -> KnowledgeGraph:
+    def build_from_entities_and_relations(
+        self, entities: List[Entity], relations: List[Relation], min_confidence: float = 0.5
+    ) -> KnowledgeGraph:
         """
         Build knowledge graph from pre-extracted entities and relations
 
@@ -512,11 +492,7 @@ class KnowledgeGraphBuilder:
                 id=entity.text,
                 text=entity.text,
                 type=entity.type,
-                properties={
-                    'start': entity.start,
-                    'end': entity.end,
-                    'confidence': entity.confidence
-                }
+                properties={"start": entity.start, "end": entity.end, "confidence": entity.confidence},
             )
             graph.add_node(node)
 
@@ -528,11 +504,7 @@ class KnowledgeGraphBuilder:
                     target=relation.object.text,
                     relation=relation.relation,
                     confidence=relation.confidence,
-                    properties={
-                        'context': relation.context,
-                        'start': relation.start,
-                        'end': relation.end
-                    }
+                    properties={"context": relation.context, "start": relation.start, "end": relation.end},
                 )
 
                 # Only add edge if both nodes exist

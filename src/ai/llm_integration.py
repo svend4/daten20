@@ -14,17 +14,18 @@ import json
 import logging
 import time
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, AsyncIterator, Dict, List, Optional, Union
-from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
 
 class LLMProvider(Enum):
     """Supported LLM providers."""
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     LOCAL = "local"
@@ -33,6 +34,7 @@ class LLMProvider(Enum):
 
 class ModelType(Enum):
     """LLM model types."""
+
     GPT4 = "gpt-4"
     GPT4_TURBO = "gpt-4-turbo-preview"
     GPT35_TURBO = "gpt-3.5-turbo"
@@ -46,6 +48,7 @@ class ModelType(Enum):
 @dataclass
 class LLMConfig:
     """Configuration for LLM client."""
+
     provider: LLMProvider
     api_key: Optional[str] = None
     model: str = "gpt-3.5-turbo"
@@ -68,6 +71,7 @@ class LLMConfig:
 @dataclass
 class TokenUsage:
     """Token usage statistics."""
+
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
@@ -77,6 +81,7 @@ class TokenUsage:
 @dataclass
 class LLMResponse:
     """Response from LLM."""
+
     content: str
     model: str
     provider: LLMProvider
@@ -162,10 +167,7 @@ class RateLimiter:
         now = time.time()
 
         # Clean old requests
-        self.requests[key] = [
-            ts for ts in self.requests[key]
-            if now - ts < self.window_seconds
-        ]
+        self.requests[key] = [ts for ts in self.requests[key] if now - ts < self.window_seconds]
 
         # Check limit
         if len(self.requests[key]) >= self.max_requests:
@@ -226,10 +228,7 @@ class BaseLLMClient(ABC):
 
     def __init__(self, config: LLMConfig):
         self.config = config
-        self.rate_limiter = RateLimiter(
-            config.rate_limit_requests,
-            config.rate_limit_window
-        )
+        self.rate_limiter = RateLimiter(config.rate_limit_requests, config.rate_limit_window)
         self.cache = ResponseCache(config.cache_ttl) if config.cache_enabled else None
 
     @abstractmethod
@@ -250,8 +249,7 @@ class BaseLLMClient(ABC):
         """Check if cost is within limit."""
         if estimated_cost > self.config.cost_limit_per_request:
             raise ValueError(
-                f"Estimated cost ${estimated_cost:.4f} exceeds limit "
-                f"${self.config.cost_limit_per_request:.4f}"
+                f"Estimated cost ${estimated_cost:.4f} exceeds limit " f"${self.config.cost_limit_per_request:.4f}"
             )
 
 
@@ -272,9 +270,7 @@ class OpenAIClient(BaseLLMClient):
         # Estimate cost
         prompt_tokens = TokenCounter.count_tokens(prompt, self.config.model)
         completion_tokens = kwargs.get("max_tokens", self.config.max_tokens)
-        estimated_cost = CostEstimator.estimate_cost(
-            self.config.model, prompt_tokens, completion_tokens
-        )
+        estimated_cost = CostEstimator.estimate_cost(self.config.model, prompt_tokens, completion_tokens)
         self._check_cost_limit(estimated_cost)
 
         # Make request (mock implementation)
@@ -291,9 +287,7 @@ class OpenAIClient(BaseLLMClient):
                 prompt_tokens=prompt_tokens,
                 completion_tokens=actual_completion_tokens,
                 total_tokens=prompt_tokens + actual_completion_tokens,
-                estimated_cost=CostEstimator.estimate_cost(
-                    self.config.model, prompt_tokens, actual_completion_tokens
-                )
+                estimated_cost=CostEstimator.estimate_cost(self.config.model, prompt_tokens, actual_completion_tokens),
             )
 
             response = LLMResponse(
@@ -302,7 +296,7 @@ class OpenAIClient(BaseLLMClient):
                 provider=LLMProvider.OPENAI,
                 usage=usage,
                 finish_reason="stop",
-                latency_ms=(time.time() - start_time) * 1000
+                latency_ms=(time.time() - start_time) * 1000,
             )
 
             # Cache response
@@ -344,9 +338,7 @@ class AnthropicClient(BaseLLMClient):
         # Estimate cost
         prompt_tokens = TokenCounter.count_tokens(prompt, self.config.model)
         completion_tokens = kwargs.get("max_tokens", self.config.max_tokens)
-        estimated_cost = CostEstimator.estimate_cost(
-            self.config.model, prompt_tokens, completion_tokens
-        )
+        estimated_cost = CostEstimator.estimate_cost(self.config.model, prompt_tokens, completion_tokens)
         self._check_cost_limit(estimated_cost)
 
         # Make request (mock implementation)
@@ -363,9 +355,7 @@ class AnthropicClient(BaseLLMClient):
                 prompt_tokens=prompt_tokens,
                 completion_tokens=actual_completion_tokens,
                 total_tokens=prompt_tokens + actual_completion_tokens,
-                estimated_cost=CostEstimator.estimate_cost(
-                    self.config.model, prompt_tokens, actual_completion_tokens
-                )
+                estimated_cost=CostEstimator.estimate_cost(self.config.model, prompt_tokens, actual_completion_tokens),
             )
 
             response = LLMResponse(
@@ -374,7 +364,7 @@ class AnthropicClient(BaseLLMClient):
                 provider=LLMProvider.ANTHROPIC,
                 usage=usage,
                 finish_reason="end_turn",
-                latency_ms=(time.time() - start_time) * 1000
+                latency_ms=(time.time() - start_time) * 1000,
             )
 
             # Cache response
@@ -430,7 +420,7 @@ class LocalLLMClient(BaseLLMClient):
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 total_tokens=prompt_tokens + completion_tokens,
-                estimated_cost=0.0  # Local is free
+                estimated_cost=0.0,  # Local is free
             )
 
             response = LLMResponse(
@@ -439,7 +429,7 @@ class LocalLLMClient(BaseLLMClient):
                 provider=LLMProvider.LOCAL,
                 usage=usage,
                 finish_reason="stop",
-                latency_ms=(time.time() - start_time) * 1000
+                latency_ms=(time.time() - start_time) * 1000,
             )
 
             # Cache response
@@ -526,7 +516,7 @@ class LLMClientFactory:
                     api_key=config.api_key,
                     model=config.model,
                     max_tokens=config.max_tokens,
-                    temperature=config.temperature
+                    temperature=config.temperature,
                 )
                 clients.append(LLMClientFactory.create(fallback_config))
             return FallbackLLMClient(config, clients)
@@ -552,24 +542,20 @@ class PromptTemplate:
 # Common prompt templates
 PROMPT_TEMPLATES = {
     "summarize": PromptTemplate(
-        "Summarize the following text in {num_points} bullet points:\n\n{text}",
-        ["text", "num_points"]
+        "Summarize the following text in {num_points} bullet points:\n\n{text}", ["text", "num_points"]
     ),
     "classify": PromptTemplate(
-        "Classify the following text into one of these categories: {categories}\n\nText: {text}",
-        ["text", "categories"]
+        "Classify the following text into one of these categories: {categories}\n\nText: {text}", ["text", "categories"]
     ),
     "extract_entities": PromptTemplate(
-        "Extract all named entities (people, organizations, locations) from this text:\n\n{text}",
-        ["text"]
+        "Extract all named entities (people, organizations, locations) from this text:\n\n{text}", ["text"]
     ),
     "sentiment": PromptTemplate(
-        "Analyze the sentiment (positive, negative, neutral) of this text:\n\n{text}",
-        ["text"]
+        "Analyze the sentiment (positive, negative, neutral) of this text:\n\n{text}", ["text"]
     ),
     "qa": PromptTemplate(
         "Answer this question based on the context:\n\nContext: {context}\n\nQuestion: {question}",
-        ["context", "question"]
+        ["context", "question"],
     ),
 }
 
@@ -578,19 +564,11 @@ PROMPT_TEMPLATES = {
 _llm_client: Optional[BaseLLMClient] = None
 
 
-def get_llm_client(
-    provider: str = "openai",
-    model: str = "gpt-3.5-turbo",
-    **kwargs
-) -> BaseLLMClient:
+def get_llm_client(provider: str = "openai", model: str = "gpt-3.5-turbo", **kwargs) -> BaseLLMClient:
     """Get or create LLM client."""
     global _llm_client
 
-    config = LLMConfig(
-        provider=LLMProvider(provider),
-        model=model,
-        **kwargs
-    )
+    config = LLMConfig(provider=LLMProvider(provider), model=model, **kwargs)
 
     _llm_client = LLMClientFactory.create(config)
     return _llm_client

@@ -1,0 +1,319 @@
+# Prometheus Alert Rules for Document Management System
+# Version: 1.0
+# Date: 2026-01-16
+
+groups:
+  # ==================== APPLICATION HEALTH ====================
+
+  - name: dms_application_health
+    interval: 30s
+    rules:
+      # Application is down
+      - alert: DMSApplicationDown
+        expr: up{job="dms-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "DMS Application is down"
+          description: "DMS application {{ $labels.instance }} has been down for more than 1 minute."
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(dms_errors_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanize }} errors/sec on {{ $labels.instance }}."
+
+      # Slow response time
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(dms_http_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "Slow HTTP response time"
+          description: "95th percentile response time is {{ $value | humanize }}s on {{ $labels.endpoint }}."
+
+      # High number of active requests
+      - alert: HighActiveRequests
+        expr: dms_http_requests_active > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High number of active requests"
+          description: "{{ $value }} active requests on {{ $labels.instance }}."
+
+  # ==================== DOCUMENT PROCESSING ====================
+
+  - name: dms_document_processing
+    interval: 30s
+    rules:
+      # High document processing failures
+      - alert: HighDocumentProcessingFailures
+        expr: rate(dms_documents_processed_total{status="error"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: document-processing
+        annotations:
+          summary: "High document processing failure rate"
+          description: "Document processing failure rate is {{ $value | humanize }}/sec for {{ $labels.operation }}."
+
+      # Slow document processing
+      - alert: SlowDocumentProcessing
+        expr: histogram_quantile(0.95, rate(dms_document_processing_duration_seconds_bucket[5m])) > 60
+        for: 10m
+        labels:
+          severity: warning
+          component: document-processing
+        annotations:
+          summary: "Slow document processing"
+          description: "95th percentile processing time is {{ $value | humanize }}s for {{ $labels.operation }}."
+
+      # Too many documents in processing
+      - alert: TooManyDocumentsProcessing
+        expr: dms_documents_processing_active > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: document-processing
+        annotations:
+          summary: "Too many documents in processing queue"
+          description: "{{ $value }} documents currently processing on {{ $labels.instance }}."
+
+  # ==================== DATABASE ====================
+
+  - name: dms_database
+    interval: 30s
+    rules:
+      # Database is down
+      - alert: DatabaseDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "Database {{ $labels.instance }} has been down for more than 1 minute."
+
+      # Slow database queries
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(dms_db_query_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries"
+          description: "95th percentile query time is {{ $value | humanize }}s for {{ $labels.operation }} on {{ $labels.table }}."
+
+      # High number of database connections
+      - alert: HighDatabaseConnections
+        expr: dms_db_connections_active > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of database connections"
+          description: "{{ $value }} active database connections on {{ $labels.instance }}."
+
+      # Database query errors
+      - alert: DatabaseQueryErrors
+        expr: rate(dms_db_queries_total{status="error"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database query error rate"
+          description: "Database query error rate is {{ $value | humanize }}/sec."
+
+  # ==================== CACHE ====================
+
+  - name: dms_cache
+    interval: 30s
+    rules:
+      # Cache is down
+      - alert: CacheDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache {{ $labels.instance }} has been down for more than 1 minute."
+
+      # Low cache hit rate
+      - alert: LowCacheHitRate
+        expr: dms_cache_hit_rate < 0.5
+        for: 10m
+        labels:
+          severity: info
+          component: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} for {{ $labels.cache_type }}."
+
+      # Cache memory usage high
+      - alert: HighCacheMemoryUsage
+        expr: dms_cache_size_bytes / (512 * 1024 * 1024) > 0.9  # 90% of 512MB
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "High cache memory usage"
+          description: "Cache {{ $labels.cache_type }} is using {{ $value | humanize }}B."
+
+  # ==================== ML/AI ====================
+
+  - name: dms_ml_ai
+    interval: 30s
+    rules:
+      # High ML inference failures
+      - alert: HighMLInferenceFailures
+        expr: rate(dms_ml_predictions_total{status="error"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: ml
+        annotations:
+          summary: "High ML inference failure rate"
+          description: "ML inference failure rate is {{ $value | humanize }}/sec for {{ $labels.model_name }}."
+
+      # Slow ML inference
+      - alert: SlowMLInference
+        expr: histogram_quantile(0.95, rate(dms_ml_inference_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: ml
+        annotations:
+          summary: "Slow ML inference"
+          description: "95th percentile inference time is {{ $value | humanize }}s for {{ $labels.model_name }}."
+
+  # ==================== SYSTEM RESOURCES ====================
+
+  - name: dms_system_resources
+    interval: 30s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}."
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }}."
+
+      # High disk usage
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value | humanize }}% on {{ $labels.instance }} ({{ $labels.mountpoint }})."
+
+      # Disk will fill in 4 hours
+      - alert: DiskWillFillSoon
+        expr: predict_linear(node_filesystem_avail_bytes[1h], 4 * 3600) < 0
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Disk will fill soon"
+          description: "Disk {{ $labels.mountpoint }} on {{ $labels.instance }} will fill in approximately 4 hours."
+
+      # High disk I/O
+      - alert: HighDiskIO
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High disk I/O"
+          description: "Disk I/O is high on {{ $labels.instance }} ({{ $labels.device }})."
+
+  # ==================== BUSINESS METRICS ====================
+
+  - name: dms_business_metrics
+    interval: 1m
+    rules:
+      # No active users
+      - alert: NoActiveUsers
+        expr: dms_users_active == 0
+        for: 10m
+        labels:
+          severity: info
+          component: business
+        annotations:
+          summary: "No active users"
+          description: "There are no active users for more than 10 minutes."
+
+      # High storage usage
+      - alert: HighStorageUsage
+        expr: dms_storage_used_bytes / (100 * 1024 * 1024 * 1024) > 0.9  # 90% of 100GB
+        for: 5m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "High storage usage"
+          description: "Storage {{ $labels.storage_type }} is using {{ $value | humanize }}B (>90%)."
+
+  # ==================== SECURITY ====================
+
+  - name: dms_security
+    interval: 30s
+    rules:
+      # Too many authentication failures
+      - alert: HighAuthenticationFailures
+        expr: rate(dms_errors_total{error_type="authentication_failed"}[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value | humanize }}/sec. Possible brute force attack."
+
+      # Suspicious activity (many errors from single IP)
+      - alert: SuspiciousActivity
+        expr: rate(dms_errors_total{error_type="forbidden"}[1m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "High rate of forbidden access attempts: {{ $value | humanize }}/sec."

@@ -4,17 +4,18 @@ Web Push Notifications
 Implements Web Push API for browser notifications.
 """
 
-from typing import Optional, Dict, Any, List
+import base64
+import json
+import secrets
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-import json
-import base64
-import secrets
+from typing import Any, Dict, List, Optional
 
 
 class NotificationUrgency(str, Enum):
     """Notification urgency levels"""
+
     VERY_LOW = "very-low"
     LOW = "low"
     NORMAL = "normal"
@@ -23,6 +24,7 @@ class NotificationUrgency(str, Enum):
 
 class NotificationAction(str, Enum):
     """Standard notification actions"""
+
     VIEW = "view"
     OPEN = "open"
     DISMISS = "dismiss"
@@ -33,6 +35,7 @@ class NotificationAction(str, Enum):
 @dataclass
 class PushSubscription:
     """Push subscription from browser"""
+
     endpoint: str
     keys: Dict[str, str]
     user_id: Optional[int] = None
@@ -44,6 +47,7 @@ class PushSubscription:
 @dataclass
 class NotificationPayload:
     """Push notification payload"""
+
     title: str
     body: str
     icon: Optional[str] = None
@@ -65,7 +69,7 @@ class WebPushManager:
         self,
         vapid_private_key: Optional[str] = None,
         vapid_public_key: Optional[str] = None,
-        vapid_subject: str = "mailto:admin@example.com"
+        vapid_subject: str = "mailto:admin@example.com",
     ):
         self.vapid_private_key = vapid_private_key or self._generate_vapid_keys()[0]
         self.vapid_public_key = vapid_public_key or self._generate_vapid_keys()[1]
@@ -81,8 +85,8 @@ class WebPushManager:
         """Generate VAPID keys for development"""
         # In production, use proper VAPID key generation
         # from pywebpush import generate_vapid_keys
-        private_key = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8')
-        public_key = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8')
+        private_key = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode("utf-8")
+        public_key = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode("utf-8")
         return private_key, public_key
 
     def get_public_key(self) -> str:
@@ -109,43 +113,36 @@ class WebPushManager:
 
     def get_subscriptions_for_user(self, user_id: int) -> List[PushSubscription]:
         """Get all subscriptions for a user"""
-        return [
-            sub for sub in self.subscriptions.values()
-            if sub.user_id == user_id
-        ]
+        return [sub for sub in self.subscriptions.values() if sub.user_id == user_id]
 
-    def send_notification(
-        self,
-        subscription: PushSubscription,
-        payload: NotificationPayload
-    ) -> bool:
+    def send_notification(self, subscription: PushSubscription, payload: NotificationPayload) -> bool:
         """Send push notification to a subscription"""
         try:
             # Build notification data
             notification_data = {
-                'title': payload.title,
-                'body': payload.body,
-                'icon': payload.icon or '/static/img/icon-192x192.png',
-                'badge': payload.badge or '/static/img/badge-72x72.png',
+                "title": payload.title,
+                "body": payload.body,
+                "icon": payload.icon or "/static/img/icon-192x192.png",
+                "badge": payload.badge or "/static/img/badge-72x72.png",
             }
 
             if payload.image:
-                notification_data['image'] = payload.image
+                notification_data["image"] = payload.image
 
             if payload.tag:
-                notification_data['tag'] = payload.tag
+                notification_data["tag"] = payload.tag
 
             if payload.data:
-                notification_data['data'] = payload.data
+                notification_data["data"] = payload.data
 
             if payload.actions:
-                notification_data['actions'] = payload.actions
+                notification_data["actions"] = payload.actions
 
             if payload.silent:
-                notification_data['silent'] = True
+                notification_data["silent"] = True
 
             if payload.require_interaction:
-                notification_data['requireInteraction'] = True
+                notification_data["requireInteraction"] = True
 
             # In real implementation with pywebpush:
             # from pywebpush import webpush
@@ -167,27 +164,31 @@ class WebPushManager:
             subscription.last_used = datetime.now()
 
             # Log notification
-            self.sent_notifications.append({
-                'endpoint': subscription.endpoint,
-                'user_id': subscription.user_id,
-                'payload': notification_data,
-                'sent_at': datetime.now(),
-                'status': 'sent'
-            })
+            self.sent_notifications.append(
+                {
+                    "endpoint": subscription.endpoint,
+                    "user_id": subscription.user_id,
+                    "payload": notification_data,
+                    "sent_at": datetime.now(),
+                    "status": "sent",
+                }
+            )
 
             print(f"[Push] Sent to {subscription.endpoint[:50]}...: {payload.title}")
             return True
 
         except Exception as e:
             print(f"Failed to send push notification: {e}")
-            self.sent_notifications.append({
-                'endpoint': subscription.endpoint,
-                'user_id': subscription.user_id,
-                'payload': payload.title,
-                'sent_at': datetime.now(),
-                'status': 'failed',
-                'error': str(e)
-            })
+            self.sent_notifications.append(
+                {
+                    "endpoint": subscription.endpoint,
+                    "user_id": subscription.user_id,
+                    "payload": payload.title,
+                    "sent_at": datetime.now(),
+                    "status": "failed",
+                    "error": str(e),
+                }
+            )
             return False
 
     def send_to_user(self, user_id: int, payload: NotificationPayload) -> int:
@@ -216,22 +217,22 @@ class WebPushManager:
         total = len(self.sent_notifications)
         if total == 0:
             return {
-                'total': 0,
-                'sent': 0,
-                'failed': 0,
-                'success_rate': 0.0,
-                'active_subscriptions': len(self.subscriptions)
+                "total": 0,
+                "sent": 0,
+                "failed": 0,
+                "success_rate": 0.0,
+                "active_subscriptions": len(self.subscriptions),
             }
 
-        sent = len([n for n in self.sent_notifications if n['status'] == 'sent'])
-        failed = len([n for n in self.sent_notifications if n['status'] == 'failed'])
+        sent = len([n for n in self.sent_notifications if n["status"] == "sent"])
+        failed = len([n for n in self.sent_notifications if n["status"] == "failed"])
 
         return {
-            'total': total,
-            'sent': sent,
-            'failed': failed,
-            'success_rate': (sent / total * 100) if total > 0 else 0.0,
-            'active_subscriptions': len(self.subscriptions)
+            "total": total,
+            "sent": sent,
+            "failed": failed,
+            "success_rate": (sent / total * 100) if total > 0 else 0.0,
+            "active_subscriptions": len(self.subscriptions),
         }
 
     # Convenience methods for common notifications
@@ -243,11 +244,8 @@ class WebPushManager:
             body=f"Service '{service_name}' created in {region}",
             icon="/static/img/service-icon.png",
             tag="service_created",
-            data={'type': 'service_created', 'service_name': service_name},
-            actions=[
-                {'action': 'view', 'title': 'View Service'},
-                {'action': 'dismiss', 'title': 'Dismiss'}
-            ]
+            data={"type": "service_created", "service_name": service_name},
+            actions=[{"action": "view", "title": "View Service"}, {"action": "dismiss", "title": "Dismiss"}],
         )
         return self.send_to_user(user_id, payload)
 
@@ -258,13 +256,10 @@ class WebPushManager:
             body=f"Please review and approve: {item_name}",
             icon="/static/img/approval-icon.png",
             tag="approval_required",
-            data={'type': 'approval_required', 'item': item_name},
+            data={"type": "approval_required", "item": item_name},
             urgency=NotificationUrgency.HIGH,
             require_interaction=True,
-            actions=[
-                {'action': 'view', 'title': 'Review'},
-                {'action': 'dismiss', 'title': 'Later'}
-            ]
+            actions=[{"action": "view", "title": "Review"}, {"action": "dismiss", "title": "Later"}],
         )
         return self.send_to_user(user_id, payload)
 
@@ -275,11 +270,8 @@ class WebPushManager:
             body=f"Your document '{doc_name}' is ready for download",
             icon="/static/img/document-icon.png",
             tag="document_ready",
-            data={'type': 'document_ready', 'document': doc_name},
-            actions=[
-                {'action': 'open', 'title': 'Download'},
-                {'action': 'dismiss', 'title': 'Later'}
-            ]
+            data={"type": "document_ready", "document": doc_name},
+            actions=[{"action": "open", "title": "Download"}, {"action": "dismiss", "title": "Later"}],
         )
         return self.send_to_user(user_id, payload)
 
@@ -290,9 +282,9 @@ class WebPushManager:
             body=message,
             icon="/static/img/alert-icon.png",
             tag="system_alert",
-            data={'type': 'system_alert'},
+            data={"type": "system_alert"},
             urgency=urgency,
-            require_interaction=(urgency == NotificationUrgency.HIGH)
+            require_interaction=(urgency == NotificationUrgency.HIGH),
         )
         return self.broadcast(payload)
 
@@ -303,7 +295,7 @@ class WebPushManager:
             body=f"{task_name} {'completed successfully' if success else 'failed'}",
             icon="/static/img/task-icon.png",
             tag="task_completed",
-            data={'type': 'task_completed', 'task': task_name, 'success': success}
+            data={"type": "task_completed", "task": task_name, "success": success},
         )
         return self.send_to_user(user_id, payload)
 
@@ -314,8 +306,8 @@ class WebPushManager:
             body=message,
             icon="/static/img/reminder-icon.png",
             tag="reminder",
-            data={'type': 'reminder'},
-            require_interaction=True
+            data={"type": "reminder"},
+            require_interaction=True,
         )
         return self.send_to_user(user_id, payload)
 
@@ -448,9 +440,7 @@ def get_push_manager() -> WebPushManager:
 
 
 def configure_push_manager(
-    vapid_private_key: str,
-    vapid_public_key: str,
-    vapid_subject: str = "mailto:admin@example.com"
+    vapid_private_key: str, vapid_public_key: str, vapid_subject: str = "mailto:admin@example.com"
 ):
     """Configure push manager"""
     global _push_manager

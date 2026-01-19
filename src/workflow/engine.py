@@ -10,16 +10,17 @@ Provides visual workflow designer and execution engine for business processes:
 - Workflow templates and monitoring
 """
 
-from typing import Optional, List, Dict, Any, Callable, Set
+import json
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-import uuid
-import json
+from typing import Any, Callable, Dict, List, Optional, Set
 
 
 class NodeType(str, Enum):
     """Workflow node types"""
+
     START = "start"
     END = "end"
     TASK = "task"
@@ -34,6 +35,7 @@ class NodeType(str, Enum):
 
 class TaskStatus(str, Enum):
     """Task execution status"""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -44,6 +46,7 @@ class TaskStatus(str, Enum):
 
 class WorkflowStatus(str, Enum):
     """Workflow instance status"""
+
     CREATED = "created"
     RUNNING = "running"
     PAUSED = "paused"
@@ -54,6 +57,7 @@ class WorkflowStatus(str, Enum):
 
 class AssignmentType(str, Enum):
     """Task assignment types"""
+
     USER = "user"
     ROLE = "role"
     GROUP = "group"
@@ -63,6 +67,7 @@ class AssignmentType(str, Enum):
 @dataclass
 class WorkflowNode:
     """Workflow node definition"""
+
     id: str
     type: NodeType
     name: str
@@ -74,6 +79,7 @@ class WorkflowNode:
 @dataclass
 class WorkflowTransition:
     """Transition between nodes"""
+
     id: str
     from_node: str
     to_node: str
@@ -84,6 +90,7 @@ class WorkflowTransition:
 @dataclass
 class WorkflowDefinition:
     """Workflow definition"""
+
     id: str
     name: str
     description: str
@@ -99,6 +106,7 @@ class WorkflowDefinition:
 @dataclass
 class TaskInstance:
     """Task instance in workflow execution"""
+
     id: str
     workflow_instance_id: str
     node_id: str
@@ -117,6 +125,7 @@ class TaskInstance:
 @dataclass
 class WorkflowInstance:
     """Workflow execution instance"""
+
     id: str
     workflow_id: str
     workflow_name: str
@@ -133,6 +142,7 @@ class WorkflowInstance:
 @dataclass
 class WorkflowTemplate:
     """Pre-built workflow template"""
+
     id: str
     name: str
     description: str
@@ -193,12 +203,7 @@ class WorkflowExecutor:
         """Register custom task handler"""
         self.task_handlers[node_type] = handler
 
-    def execute_node(
-        self,
-        workflow_def: WorkflowDefinition,
-        instance: WorkflowInstance,
-        node: WorkflowNode
-    ) -> bool:
+    def execute_node(self, workflow_def: WorkflowDefinition, instance: WorkflowInstance, node: WorkflowNode) -> bool:
         """Execute a workflow node"""
         # Get handler
         handler = self.task_handlers.get(node.type)
@@ -213,7 +218,7 @@ class WorkflowExecutor:
             node_id=node.id,
             node_name=node.name,
             status=TaskStatus.PENDING,
-            started_at=datetime.now()
+            started_at=datetime.now(),
         )
 
         instance.tasks.append(task)
@@ -238,22 +243,14 @@ class WorkflowExecutor:
             return False
 
     def _handle_start(
-        self,
-        workflow_def: WorkflowDefinition,
-        instance: WorkflowInstance,
-        node: WorkflowNode,
-        task: TaskInstance
+        self, workflow_def: WorkflowDefinition, instance: WorkflowInstance, node: WorkflowNode, task: TaskInstance
     ) -> bool:
         """Handle START node"""
         print(f"[Workflow] Starting workflow: {instance.workflow_name}")
         return True
 
     def _handle_end(
-        self,
-        workflow_def: WorkflowDefinition,
-        instance: WorkflowInstance,
-        node: WorkflowNode,
-        task: TaskInstance
+        self, workflow_def: WorkflowDefinition, instance: WorkflowInstance, node: WorkflowNode, task: TaskInstance
     ) -> bool:
         """Handle END node"""
         print(f"[Workflow] Completing workflow: {instance.workflow_name}")
@@ -262,24 +259,20 @@ class WorkflowExecutor:
         return True
 
     def _handle_task(
-        self,
-        workflow_def: WorkflowDefinition,
-        instance: WorkflowInstance,
-        node: WorkflowNode,
-        task: TaskInstance
+        self, workflow_def: WorkflowDefinition, instance: WorkflowInstance, node: WorkflowNode, task: TaskInstance
     ) -> bool:
         """Handle TASK node"""
         # Get assignment from config
         config = node.config
-        assigned_to = config.get('assigned_to')
-        assignment_type = AssignmentType(config.get('assignment_type', 'auto'))
+        assigned_to = config.get("assigned_to")
+        assignment_type = AssignmentType(config.get("assignment_type", "auto"))
 
         task.assigned_to = assigned_to
         task.assigned_type = assignment_type
 
         # Set due date if specified
-        if 'due_days' in config:
-            task.due_date = datetime.now() + timedelta(days=config['due_days'])
+        if "due_days" in config:
+            task.due_date = datetime.now() + timedelta(days=config["due_days"])
 
         print(f"[Workflow] Task created: {node.name} (assigned to: {assigned_to})")
 
@@ -289,11 +282,7 @@ class WorkflowExecutor:
         return assignment_type == AssignmentType.AUTO
 
     def _handle_decision(
-        self,
-        workflow_def: WorkflowDefinition,
-        instance: WorkflowInstance,
-        node: WorkflowNode,
-        task: TaskInstance
+        self, workflow_def: WorkflowDefinition, instance: WorkflowInstance, node: WorkflowNode, task: TaskInstance
     ) -> bool:
         """Handle DECISION node"""
         print(f"[Workflow] Evaluating decision: {node.name}")
@@ -301,14 +290,10 @@ class WorkflowExecutor:
         return True
 
     def _handle_script(
-        self,
-        workflow_def: WorkflowDefinition,
-        instance: WorkflowInstance,
-        node: WorkflowNode,
-        task: TaskInstance
+        self, workflow_def: WorkflowDefinition, instance: WorkflowInstance, node: WorkflowNode, task: TaskInstance
     ) -> bool:
         """Handle SCRIPT node"""
-        script = node.config.get('script', '')
+        script = node.config.get("script", "")
         print(f"[Workflow] Executing script: {node.name}")
 
         # In production, use sandboxed execution
@@ -317,16 +302,12 @@ class WorkflowExecutor:
         return True
 
     def _handle_email(
-        self,
-        workflow_def: WorkflowDefinition,
-        instance: WorkflowInstance,
-        node: WorkflowNode,
-        task: TaskInstance
+        self, workflow_def: WorkflowDefinition, instance: WorkflowInstance, node: WorkflowNode, task: TaskInstance
     ) -> bool:
         """Handle EMAIL node"""
-        to = node.config.get('to', '')
-        subject = node.config.get('subject', '')
-        body = node.config.get('body', '')
+        to = node.config.get("to", "")
+        subject = node.config.get("subject", "")
+        body = node.config.get("body", "")
 
         # Replace variables in email
         for var_name, var_value in instance.variables.items():
@@ -340,14 +321,10 @@ class WorkflowExecutor:
         return True
 
     def _handle_approval(
-        self,
-        workflow_def: WorkflowDefinition,
-        instance: WorkflowInstance,
-        node: WorkflowNode,
-        task: TaskInstance
+        self, workflow_def: WorkflowDefinition, instance: WorkflowInstance, node: WorkflowNode, task: TaskInstance
     ) -> bool:
         """Handle APPROVAL node"""
-        approver = node.config.get('approver')
+        approver = node.config.get("approver")
         task.assigned_to = approver
         task.assigned_type = AssignmentType.USER
 
@@ -357,24 +334,17 @@ class WorkflowExecutor:
         return False
 
     def _handle_timer(
-        self,
-        workflow_def: WorkflowDefinition,
-        instance: WorkflowInstance,
-        node: WorkflowNode,
-        task: TaskInstance
+        self, workflow_def: WorkflowDefinition, instance: WorkflowInstance, node: WorkflowNode, task: TaskInstance
     ) -> bool:
         """Handle TIMER node"""
-        duration_minutes = node.config.get('duration_minutes', 0)
+        duration_minutes = node.config.get("duration_minutes", 0)
         print(f"[Workflow] Timer set for {duration_minutes} minutes")
 
         # In production, schedule continuation
         return True
 
     def get_next_nodes(
-        self,
-        workflow_def: WorkflowDefinition,
-        current_node_id: str,
-        variables: Dict[str, Any]
+        self, workflow_def: WorkflowDefinition, current_node_id: str, variables: Dict[str, Any]
     ) -> List[str]:
         """Get next nodes based on transitions and conditions"""
         next_nodes = []
@@ -406,21 +376,12 @@ class WorkflowEngine:
         # Create default templates
         self._create_default_templates()
 
-    def create_workflow(
-        self,
-        name: str,
-        description: str,
-        created_by: Optional[int] = None
-    ) -> str:
+    def create_workflow(self, name: str, description: str, created_by: Optional[int] = None) -> str:
         """Create new workflow definition"""
         workflow_id = str(uuid.uuid4())
 
         workflow = WorkflowDefinition(
-            id=workflow_id,
-            name=name,
-            description=description,
-            version="1.0",
-            created_by=created_by
+            id=workflow_id, name=name, description=description, version="1.0", created_by=created_by
         )
 
         self.workflows[workflow_id] = workflow
@@ -433,7 +394,7 @@ class WorkflowEngine:
         name: str,
         description: str = "",
         config: Optional[Dict[str, Any]] = None,
-        position: Optional[Dict[str, int]] = None
+        position: Optional[Dict[str, int]] = None,
     ) -> str:
         """Add node to workflow"""
         if workflow_id not in self.workflows:
@@ -442,24 +403,14 @@ class WorkflowEngine:
         node_id = str(uuid.uuid4())
 
         node = WorkflowNode(
-            id=node_id,
-            type=node_type,
-            name=name,
-            description=description,
-            config=config or {},
-            position=position or {}
+            id=node_id, type=node_type, name=name, description=description, config=config or {}, position=position or {}
         )
 
         self.workflows[workflow_id].nodes.append(node)
         return node_id
 
     def add_transition(
-        self,
-        workflow_id: str,
-        from_node_id: str,
-        to_node_id: str,
-        condition: Optional[str] = None,
-        label: str = ""
+        self, workflow_id: str, from_node_id: str, to_node_id: str, condition: Optional[str] = None, label: str = ""
     ) -> str:
         """Add transition between nodes"""
         if workflow_id not in self.workflows:
@@ -468,21 +419,14 @@ class WorkflowEngine:
         transition_id = str(uuid.uuid4())
 
         transition = WorkflowTransition(
-            id=transition_id,
-            from_node=from_node_id,
-            to_node=to_node_id,
-            condition=condition,
-            label=label
+            id=transition_id, from_node=from_node_id, to_node=to_node_id, condition=condition, label=label
         )
 
         self.workflows[workflow_id].transitions.append(transition)
         return transition_id
 
     def start_workflow(
-        self,
-        workflow_id: str,
-        variables: Optional[Dict[str, Any]] = None,
-        started_by: Optional[int] = None
+        self, workflow_id: str, variables: Optional[Dict[str, Any]] = None, started_by: Optional[int] = None
     ) -> str:
         """Start workflow execution"""
         if workflow_id not in self.workflows:
@@ -511,7 +455,7 @@ class WorkflowEngine:
             status=WorkflowStatus.RUNNING,
             current_nodes=[start_node.id],
             variables=variables or {},
-            started_by=started_by
+            started_by=started_by,
         )
 
         self.instances[instance_id] = instance
@@ -561,21 +505,12 @@ class WorkflowEngine:
                     break
 
             # Get next nodes
-            next_node_ids = self.executor.get_next_nodes(
-                workflow_def,
-                current_node_id,
-                instance.variables
-            )
+            next_node_ids = self.executor.get_next_nodes(workflow_def, current_node_id, instance.variables)
 
             # Add to queue
             instance.current_nodes.extend(next_node_ids)
 
-    def complete_task(
-        self,
-        instance_id: str,
-        task_id: str,
-        result: Optional[Any] = None
-    ) -> bool:
+    def complete_task(self, instance_id: str, task_id: str, result: Optional[Any] = None) -> bool:
         """Complete a task and continue workflow"""
         if instance_id not in self.instances:
             return False
@@ -603,11 +538,7 @@ class WorkflowEngine:
 
             # Get node that was waiting
             workflow_def = self.workflows[instance.workflow_id]
-            next_node_ids = self.executor.get_next_nodes(
-                workflow_def,
-                task.node_id,
-                instance.variables
-            )
+            next_node_ids = self.executor.get_next_nodes(workflow_def, task.node_id, instance.variables)
 
             instance.current_nodes.extend(next_node_ids)
 
@@ -642,64 +573,63 @@ class WorkflowEngine:
         # Get pending tasks
         pending_tasks = [
             {
-                'id': t.id,
-                'name': t.node_name,
-                'assigned_to': t.assigned_to,
-                'due_date': t.due_date.isoformat() if t.due_date else None
+                "id": t.id,
+                "name": t.node_name,
+                "assigned_to": t.assigned_to,
+                "due_date": t.due_date.isoformat() if t.due_date else None,
             }
             for t in instance.tasks
             if t.status in [TaskStatus.PENDING, TaskStatus.IN_PROGRESS]
         ]
 
         return {
-            'instance_id': instance.id,
-            'workflow_name': instance.workflow_name,
-            'status': instance.status.value,
-            'started_at': instance.started_at.isoformat(),
-            'completed_at': instance.completed_at.isoformat() if instance.completed_at else None,
-            'tasks_total': len(instance.tasks),
-            'tasks_by_status': task_counts,
-            'pending_tasks': pending_tasks
+            "instance_id": instance.id,
+            "workflow_name": instance.workflow_name,
+            "status": instance.status.value,
+            "started_at": instance.started_at.isoformat(),
+            "completed_at": instance.completed_at.isoformat() if instance.completed_at else None,
+            "tasks_total": len(instance.tasks),
+            "tasks_by_status": task_counts,
+            "pending_tasks": pending_tasks,
         }
 
     def _create_default_templates(self):
         """Create default workflow templates"""
         # Template 1: Document Approval
         approval_workflow = self.create_workflow(
-            name="Document Approval",
-            description="Standard document approval process"
+            name="Document Approval", description="Standard document approval process"
         )
 
-        start_node = self.add_node(approval_workflow, NodeType.START, "Start", position={'x': 100, 'y': 100})
+        start_node = self.add_node(approval_workflow, NodeType.START, "Start", position={"x": 100, "y": 100})
         review_task = self.add_node(
             approval_workflow,
             NodeType.TASK,
             "Review Document",
             "Review document for accuracy",
-            config={'assigned_to': None, 'assignment_type': 'role', 'role': 'reviewer'},
-            position={'x': 300, 'y': 100}
+            config={"assigned_to": None, "assignment_type": "role", "role": "reviewer"},
+            position={"x": 300, "y": 100},
         )
         approve_task = self.add_node(
             approval_workflow,
             NodeType.APPROVAL,
             "Manager Approval",
             "Requires manager approval",
-            config={'approver': None},
-            position={'x': 500, 'y': 100}
+            config={"approver": None},
+            position={"x": 500, "y": 100},
         )
-        end_node = self.add_node(approval_workflow, NodeType.END, "End", position={'x': 700, 'y': 100})
+        end_node = self.add_node(approval_workflow, NodeType.END, "End", position={"x": 700, "y": 100})
 
         self.add_transition(approval_workflow, start_node, review_task)
         self.add_transition(approval_workflow, review_task, approve_task)
         self.add_transition(approval_workflow, approve_task, end_node)
 
-        self.templates['doc_approval'] = WorkflowTemplate(
-            id='doc_approval',
+        self.templates["doc_approval"] = WorkflowTemplate(
+            id="doc_approval",
             name="Document Approval",
             description="Multi-step document approval workflow",
             category="Approval",
             definition=self.workflows[approval_workflow],
-            icon="✅"
+            icon="✅",
         )
 
 

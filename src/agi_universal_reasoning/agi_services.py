@@ -14,19 +14,21 @@ Achieves human-level performance across any intellectual task.
 """
 
 import asyncio
-import numpy as np
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Tuple, Set
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+import numpy as np
 
 # ============================================================================
 # Data Structures
 # ============================================================================
 
+
 class TaskType(Enum):
     """Types of tasks the AGI can handle"""
+
     CLASSIFICATION = "classification"
     GENERATION = "generation"
     REASONING = "reasoning"
@@ -39,6 +41,7 @@ class TaskType(Enum):
 
 class ReasoningType(Enum):
     """Types of abstract reasoning"""
+
     ANALOGICAL = "analogical"
     LOGICAL = "logical"
     SPATIAL = "spatial"
@@ -50,6 +53,7 @@ class ReasoningType(Enum):
 
 class GoalType(Enum):
     """Types of goals in flexible goal management"""
+
     ACHIEVEMENT = "achievement"
     MAINTENANCE = "maintenance"
     AVOIDANCE = "avoidance"
@@ -61,6 +65,7 @@ class GoalType(Enum):
 
 class GoalStatus(Enum):
     """Status of goals"""
+
     ACTIVE = "active"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -69,6 +74,7 @@ class GoalStatus(Enum):
 
 class ProblemCategory(Enum):
     """Categories of problems for general solver"""
+
     SEARCH = "search"
     CONSTRAINT_SATISFACTION = "constraint_satisfaction"
     OPTIMIZATION = "optimization"
@@ -81,6 +87,7 @@ class ProblemCategory(Enum):
 @dataclass
 class UniversalTask:
     """Unified representation of any task"""
+
     task_id: str
     description: str
     domain: str
@@ -89,7 +96,7 @@ class UniversalTask:
     constraints: List[str]
     success_criteria: Dict[str, float]
     context: Dict[str, Any]
-    decomposition: Optional[List['UniversalTask']] = None
+    decomposition: Optional[List["UniversalTask"]] = None
     understanding_confidence: float = 0.0
     estimated_difficulty: float = 0.5
 
@@ -97,6 +104,7 @@ class UniversalTask:
 @dataclass
 class TransferMapping:
     """Knowledge transfer from source to target domain"""
+
     mapping_id: str
     source_domain: str
     target_domain: str
@@ -110,6 +118,7 @@ class TransferMapping:
 @dataclass
 class ReasoningTrace:
     """Trace of abstract reasoning process"""
+
     trace_id: str
     reasoning_type: ReasoningType
     steps: List[str]
@@ -123,6 +132,7 @@ class ReasoningTrace:
 @dataclass
 class MetaCognitiveState:
     """Current meta-cognitive state"""
+
     state_id: str
     current_strategy: str
     confidence: float
@@ -136,6 +146,7 @@ class MetaCognitiveState:
 @dataclass
 class CommonSenseKnowledge:
     """Common sense knowledge item"""
+
     knowledge_id: str
     domain: str  # physical, social, temporal, etc.
     statement: str
@@ -147,12 +158,13 @@ class CommonSenseKnowledge:
 @dataclass
 class Goal:
     """Goal in flexible goal management"""
+
     goal_id: str
     goal_type: GoalType
     description: str
     priority: float
     status: GoalStatus
-    subgoals: List['Goal'] = field(default_factory=list)
+    subgoals: List["Goal"] = field(default_factory=list)
     conflicts: List[str] = field(default_factory=list)
     progress: float = 0.0
     deadline: Optional[datetime] = None
@@ -161,6 +173,7 @@ class Goal:
 @dataclass
 class ProblemSolution:
     """Solution to a general problem"""
+
     solution_id: str
     problem_id: str
     problem_category: ProblemCategory
@@ -175,6 +188,7 @@ class ProblemSolution:
 # ============================================================================
 # 1. Universal Task Understanding System
 # ============================================================================
+
 
 class UniversalTaskUnderstandingService:
     """
@@ -202,8 +216,9 @@ class UniversalTaskUnderstandingService:
 
         self._initialized = True
 
-    async def understand_task(self, description: str, domain: str = "general",
-                             context: Optional[Dict[str, Any]] = None) -> UniversalTask:
+    async def understand_task(
+        self, description: str, domain: str = "general", context: Optional[Dict[str, Any]] = None
+    ) -> UniversalTask:
         """
         Parse and understand any task description.
 
@@ -228,7 +243,7 @@ class UniversalTaskUnderstandingService:
             success_criteria=success_criteria,
             context=context or {},
             understanding_confidence=np.random.uniform(0.95, 0.99),  # >95%
-            estimated_difficulty=np.random.uniform(0.3, 0.9)
+            estimated_difficulty=np.random.uniform(0.3, 0.9),
         )
 
         self.understood_tasks[task.task_id] = task
@@ -236,8 +251,7 @@ class UniversalTaskUnderstandingService:
 
         return task
 
-    async def decompose_task(self, task: UniversalTask,
-                            max_depth: int = 3) -> UniversalTask:
+    async def decompose_task(self, task: UniversalTask, max_depth: int = 3) -> UniversalTask:
         """
         Decompose complex task into manageable subtasks.
 
@@ -263,7 +277,7 @@ class UniversalTaskUnderstandingService:
                 success_criteria=task.success_criteria,
                 context=task.context,
                 understanding_confidence=task.understanding_confidence,
-                estimated_difficulty=task.estimated_difficulty / 2
+                estimated_difficulty=task.estimated_difficulty / 2,
             )
             subtasks.append(subtask)
 
@@ -318,17 +332,13 @@ class UniversalTaskUnderstandingService:
 
     def _define_success_criteria(self, task_type: TaskType) -> Dict[str, float]:
         """Define success criteria based on task type"""
-        return {
-            "accuracy": 0.90,
-            "completeness": 0.95,
-            "efficiency": 0.85,
-            "quality": 0.90
-        }
+        return {"accuracy": 0.90, "completeness": 0.95, "efficiency": 0.85, "quality": 0.90}
 
 
 # ============================================================================
 # 2. Cross-Domain Transfer System
 # ============================================================================
+
 
 class CrossDomainTransferService:
     """
@@ -356,8 +366,9 @@ class CrossDomainTransferService:
 
         self._initialized = True
 
-    async def transfer_knowledge(self, source_domain: str, target_domain: str,
-                                 knowledge: Dict[str, Any]) -> TransferMapping:
+    async def transfer_knowledge(
+        self, source_domain: str, target_domain: str, knowledge: Dict[str, Any]
+    ) -> TransferMapping:
         """
         Transfer knowledge from source to target domain.
 
@@ -385,7 +396,7 @@ class CrossDomainTransferService:
             transferred_knowledge=adapted_knowledge,
             adaptation_strategy="analogical_mapping",
             performance_gain=performance_gain,
-            validation_accuracy=validation_accuracy
+            validation_accuracy=validation_accuracy,
         )
 
         self.transfer_mappings[mapping.mapping_id] = mapping
@@ -393,8 +404,7 @@ class CrossDomainTransferService:
 
         return mapping
 
-    async def find_transfer_path(self, source_domain: str,
-                                 target_domain: str) -> List[str]:
+    async def find_transfer_path(self, source_domain: str, target_domain: str) -> List[str]:
         """
         Find optimal intermediate domains for transfer.
 
@@ -429,13 +439,12 @@ class CrossDomainTransferService:
         similarity = np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2) + 1e-8)
         return float(np.clip((similarity + 1) / 2, 0.3, 0.95))  # Scale to [0.3, 0.95]
 
-    def _adapt_knowledge(self, knowledge: Dict[str, Any],
-                        source_domain: str, target_domain: str) -> Dict[str, Any]:
+    def _adapt_knowledge(self, knowledge: Dict[str, Any], source_domain: str, target_domain: str) -> Dict[str, Any]:
         """Adapt knowledge to target domain"""
         adapted = knowledge.copy()
-        adapted['adapted_from'] = source_domain
-        adapted['adapted_to'] = target_domain
-        adapted['adaptation_confidence'] = np.random.uniform(0.7, 0.9)
+        adapted["adapted_from"] = source_domain
+        adapted["adapted_to"] = target_domain
+        adapted["adaptation_confidence"] = np.random.uniform(0.7, 0.9)
 
         return adapted
 
@@ -443,6 +452,7 @@ class CrossDomainTransferService:
 # ============================================================================
 # 3. Abstract Reasoning System
 # ============================================================================
+
 
 class AbstractReasoningService:
     """
@@ -469,8 +479,7 @@ class AbstractReasoningService:
 
         self._initialized = True
 
-    async def reason_abstractly(self, problem: Dict[str, Any],
-                               reasoning_type: ReasoningType) -> ReasoningTrace:
+    async def reason_abstractly(self, problem: Dict[str, Any], reasoning_type: ReasoningType) -> ReasoningTrace:
         """
         Perform abstract reasoning on problem.
 
@@ -504,7 +513,7 @@ class AbstractReasoningService:
             "Map structural correspondences",
             "Transfer relations from source to target",
             "Validate mapping consistency",
-            "Generate conclusion"
+            "Generate conclusion",
         ]
 
         patterns = ["structural_mapping", "relational_correspondence", "schema_transfer"]
@@ -517,7 +526,7 @@ class AbstractReasoningService:
             abstraction_level=3,
             patterns_used=patterns,
             conclusion="Analogical mapping successful",
-            correctness_score=np.random.uniform(0.85, 0.95)
+            correctness_score=np.random.uniform(0.85, 0.95),
         )
 
     async def _logical_reasoning(self, problem: Dict[str, Any]) -> ReasoningTrace:
@@ -529,7 +538,7 @@ class AbstractReasoningService:
             "Apply inference rules",
             "Chain deductions",
             "Check consistency",
-            "Derive conclusion"
+            "Derive conclusion",
         ]
 
         patterns = ["modus_ponens", "modus_tollens", "syllogism", "resolution"]
@@ -542,7 +551,7 @@ class AbstractReasoningService:
             abstraction_level=2,
             patterns_used=patterns,
             conclusion="Logical inference valid",
-            correctness_score=np.random.uniform(0.90, 0.98)
+            correctness_score=np.random.uniform(0.90, 0.98),
         )
 
     async def _spatial_reasoning(self, problem: Dict[str, Any]) -> ReasoningTrace:
@@ -554,7 +563,7 @@ class AbstractReasoningService:
             "Mental rotation and transformation",
             "Identify spatial relationships",
             "Apply geometric rules",
-            "Validate solution"
+            "Validate solution",
         ]
 
         patterns = ["mental_rotation", "spatial_composition", "geometric_transformation"]
@@ -567,7 +576,7 @@ class AbstractReasoningService:
             abstraction_level=2,
             patterns_used=patterns,
             conclusion="Spatial reasoning complete",
-            correctness_score=np.random.uniform(0.80, 0.92)
+            correctness_score=np.random.uniform(0.80, 0.92),
         )
 
     async def _relational_reasoning(self, problem: Dict[str, Any]) -> ReasoningTrace:
@@ -579,7 +588,7 @@ class AbstractReasoningService:
             "Build relational graph",
             "Apply graph reasoning",
             "Infer implicit relations",
-            "Answer query"
+            "Answer query",
         ]
 
         patterns = ["graph_traversal", "relation_composition", "transitive_closure"]
@@ -592,11 +601,10 @@ class AbstractReasoningService:
             abstraction_level=3,
             patterns_used=patterns,
             conclusion="Relational inference successful",
-            correctness_score=np.random.uniform(0.85, 0.93)
+            correctness_score=np.random.uniform(0.85, 0.93),
         )
 
-    async def _general_reasoning(self, problem: Dict[str, Any],
-                                reasoning_type: ReasoningType) -> ReasoningTrace:
+    async def _general_reasoning(self, problem: Dict[str, Any], reasoning_type: ReasoningType) -> ReasoningTrace:
         """General reasoning for other types"""
         await asyncio.sleep(0.005)
 
@@ -608,13 +616,14 @@ class AbstractReasoningService:
             abstraction_level=2,
             patterns_used=["general_pattern"],
             conclusion="Reasoning complete",
-            correctness_score=np.random.uniform(0.80, 0.90)
+            correctness_score=np.random.uniform(0.80, 0.90),
         )
 
 
 # ============================================================================
 # 4. Meta-Cognitive Control System
 # ============================================================================
+
 
 class MetaCognitiveControlService:
     """
@@ -638,16 +647,19 @@ class MetaCognitiveControlService:
 
         self.cognitive_states: Dict[str, MetaCognitiveState] = {}
         self.available_strategies: List[str] = [
-            "systematic_search", "heuristic_guided", "analogical_transfer",
-            "decomposition", "constraint_propagation", "monte_carlo"
+            "systematic_search",
+            "heuristic_guided",
+            "analogical_transfer",
+            "decomposition",
+            "constraint_propagation",
+            "monte_carlo",
         ]
         self.error_detection_rate = 0.0
         self.strategy_selection_accuracy = 0.0
 
         self._initialized = True
 
-    async def monitor_cognition(self, task_id: str,
-                               current_performance: Dict[str, float]) -> MetaCognitiveState:
+    async def monitor_cognition(self, task_id: str, current_performance: Dict[str, float]) -> MetaCognitiveState:
         """
         Monitor cognitive processes in real-time.
 
@@ -658,13 +670,13 @@ class MetaCognitiveControlService:
         # Analyze current performance
         errors = self._detect_errors(current_performance)
         confidence = self._estimate_confidence(current_performance)
-        progress = current_performance.get('progress', 0.5)
+        progress = current_performance.get("progress", 0.5)
 
         # Assess resource usage
         resource_usage = {
-            'computation': np.random.uniform(0.3, 0.8),
-            'memory': np.random.uniform(0.2, 0.6),
-            'time': np.random.uniform(0.4, 0.9)
+            "computation": np.random.uniform(0.3, 0.8),
+            "memory": np.random.uniform(0.2, 0.6),
+            "time": np.random.uniform(0.4, 0.9),
         }
 
         # Decide if adaptation needed
@@ -672,13 +684,13 @@ class MetaCognitiveControlService:
 
         state = MetaCognitiveState(
             state_id=f"metacog_{task_id}_{datetime.now().timestamp()}",
-            current_strategy=current_performance.get('strategy', 'systematic_search'),
+            current_strategy=current_performance.get("strategy", "systematic_search"),
             confidence=confidence,
             estimated_progress=progress,
             detected_errors=errors,
             resource_usage=resource_usage,
             should_adapt=should_adapt,
-            adaptation_recommendation=self._recommend_adaptation(errors, confidence) if should_adapt else None
+            adaptation_recommendation=self._recommend_adaptation(errors, confidence) if should_adapt else None,
         )
 
         self.cognitive_states[state.state_id] = state
@@ -714,11 +726,11 @@ class MetaCognitiveControlService:
         """Detect errors in current performance"""
         errors = []
 
-        if performance.get('accuracy', 1.0) < 0.7:
+        if performance.get("accuracy", 1.0) < 0.7:
             errors.append("Low accuracy detected")
-        if performance.get('progress', 1.0) < 0.2:
+        if performance.get("progress", 1.0) < 0.2:
             errors.append("Insufficient progress")
-        if performance.get('efficiency', 1.0) < 0.5:
+        if performance.get("efficiency", 1.0) < 0.5:
             errors.append("Low efficiency")
 
         # Simulate >90% detection rate
@@ -731,7 +743,7 @@ class MetaCognitiveControlService:
     def _estimate_confidence(self, performance: Dict[str, float]) -> float:
         """Estimate confidence in current approach"""
         # Calibrated confidence with ECE < 0.05
-        base_confidence = performance.get('confidence', 0.8)
+        base_confidence = performance.get("confidence", 0.8)
         calibration_adjustment = np.random.uniform(-0.05, 0.05)  # ECE < 0.05
 
         return float(np.clip(base_confidence + calibration_adjustment, 0.5, 0.98))
@@ -751,6 +763,7 @@ class MetaCognitiveControlService:
 # ============================================================================
 # 5. Common Sense Reasoning System
 # ============================================================================
+
 
 class CommonSenseReasoningService:
     """
@@ -772,10 +785,7 @@ class CommonSenseReasoningService:
             return
 
         self.knowledge_base: Dict[str, CommonSenseKnowledge] = {}
-        self.domain_coverage = {
-            'physical': 0, 'social': 0, 'temporal': 0,
-            'spatial': 0, 'causal': 0, 'functional': 0
-        }
+        self.domain_coverage = {"physical": 0, "social": 0, "temporal": 0, "spatial": 0, "causal": 0, "functional": 0}
         self.commonsense_accuracy = 0.0
 
         self._initialize_knowledge_base()
@@ -810,13 +820,12 @@ class CommonSenseReasoningService:
             domain=domain,
             statement=statement,
             confidence=confidence,
-            source="initialization"
+            source="initialization",
         )
 
         self.domain_coverage[domain] = self.domain_coverage.get(domain, 0) + 1
 
-    async def apply_common_sense(self, situation: str,
-                                 query: str) -> Dict[str, Any]:
+    async def apply_common_sense(self, situation: str, query: str) -> Dict[str, Any]:
         """
         Apply common sense reasoning to situation.
 
@@ -828,10 +837,7 @@ class CommonSenseReasoningService:
         domain = self._identify_domain(situation)
 
         # Retrieve relevant knowledge
-        relevant_knowledge = [
-            k for k in self.knowledge_base.values()
-            if k.domain == domain
-        ]
+        relevant_knowledge = [k for k in self.knowledge_base.values() if k.domain == domain]
 
         # Apply reasoning
         conclusion = self._infer_conclusion(situation, query, relevant_knowledge)
@@ -839,10 +845,10 @@ class CommonSenseReasoningService:
         self.commonsense_accuracy = np.random.uniform(0.80, 0.90)  # >80% accuracy
 
         return {
-            'domain': domain,
-            'relevant_knowledge': [k.statement for k in relevant_knowledge[:3]],
-            'conclusion': conclusion,
-            'confidence': np.random.uniform(0.80, 0.95)
+            "domain": domain,
+            "relevant_knowledge": [k.statement for k in relevant_knowledge[:3]],
+            "conclusion": conclusion,
+            "confidence": np.random.uniform(0.80, 0.95),
         }
 
     async def physical_reasoning(self, scenario: str) -> Dict[str, Any]:
@@ -850,9 +856,9 @@ class CommonSenseReasoningService:
         await asyncio.sleep(0.003)
 
         return {
-            'prediction': "Physical outcome predicted",
-            'confidence': np.random.uniform(0.85, 0.95),
-            'accuracy': np.random.uniform(0.80, 0.90)  # >80% PIQA accuracy
+            "prediction": "Physical outcome predicted",
+            "confidence": np.random.uniform(0.85, 0.95),
+            "accuracy": np.random.uniform(0.80, 0.90),  # >80% PIQA accuracy
         }
 
     async def social_reasoning(self, scenario: str) -> Dict[str, Any]:
@@ -860,9 +866,9 @@ class CommonSenseReasoningService:
         await asyncio.sleep(0.003)
 
         return {
-            'prediction': "Social outcome predicted",
-            'confidence': np.random.uniform(0.85, 0.95),
-            'accuracy': np.random.uniform(0.85, 0.92)  # >85% Social IQa
+            "prediction": "Social outcome predicted",
+            "confidence": np.random.uniform(0.85, 0.95),
+            "accuracy": np.random.uniform(0.85, 0.92),  # >85% Social IQa
         }
 
     def _identify_domain(self, situation: str) -> str:
@@ -882,8 +888,7 @@ class CommonSenseReasoningService:
         else:
             return "functional"
 
-    def _infer_conclusion(self, situation: str, query: str,
-                         knowledge: List[CommonSenseKnowledge]) -> str:
+    def _infer_conclusion(self, situation: str, query: str, knowledge: List[CommonSenseKnowledge]) -> str:
         """Infer conclusion using common sense"""
         if len(knowledge) > 0:
             # Use most confident knowledge
@@ -896,6 +901,7 @@ class CommonSenseReasoningService:
 # ============================================================================
 # 6. Flexible Goal Management System
 # ============================================================================
+
 
 class FlexibleGoalManagementService:
     """
@@ -924,8 +930,9 @@ class FlexibleGoalManagementService:
 
         self._initialized = True
 
-    async def add_goal(self, description: str, goal_type: GoalType,
-                      priority: float = 0.5, deadline: Optional[datetime] = None) -> Goal:
+    async def add_goal(
+        self, description: str, goal_type: GoalType, priority: float = 0.5, deadline: Optional[datetime] = None
+    ) -> Goal:
         """
         Add new goal to management system.
 
@@ -939,7 +946,7 @@ class FlexibleGoalManagementService:
             description=description,
             priority=priority,
             status=GoalStatus.ACTIVE,
-            deadline=deadline
+            deadline=deadline,
         )
 
         # Detect conflicts with existing goals
@@ -1045,6 +1052,7 @@ class FlexibleGoalManagementService:
 # 7. General Problem Solving System
 # ============================================================================
 
+
 class GeneralProblemSolvingService:
     """
     Unified problem-solving framework for any problem type.
@@ -1071,8 +1079,9 @@ class GeneralProblemSolvingService:
 
         self._initialized = True
 
-    async def solve_problem(self, problem: Dict[str, Any],
-                           category: Optional[ProblemCategory] = None) -> ProblemSolution:
+    async def solve_problem(
+        self, problem: Dict[str, Any], category: Optional[ProblemCategory] = None
+    ) -> ProblemSolution:
         """
         Solve any well-defined or ill-defined problem.
 
@@ -1104,14 +1113,14 @@ class GeneralProblemSolvingService:
 
         problem_solution = ProblemSolution(
             solution_id=f"solution_{datetime.now().timestamp()}",
-            problem_id=problem.get('id', 'unknown'),
+            problem_id=problem.get("id", "unknown"),
             problem_category=category,
             solution=solution,
             method_used=method,
             correctness_confidence=np.random.uniform(0.90, 0.98),  # >90%
             optimality_score=np.random.uniform(0.75, 0.95),
             learned_patterns=learned_patterns,
-            solving_time_ms=solving_time
+            solving_time_ms=solving_time,
         )
 
         self.solved_problems[problem_solution.solution_id] = problem_solution
@@ -1140,7 +1149,7 @@ class GeneralProblemSolvingService:
         return {
             "optimal_value": np.random.uniform(80, 100),
             "solution_vector": np.random.randn(5).tolist(),
-            "iterations": int(np.random.uniform(10, 50))
+            "iterations": int(np.random.uniform(10, 50)),
         }
 
     async def _solve_planning(self, problem: Dict[str, Any], method: str) -> Any:
@@ -1150,17 +1159,14 @@ class GeneralProblemSolvingService:
         return {
             "plan": ["action1", "action2", "action3"],
             "expected_reward": np.random.uniform(70, 95),
-            "plan_length": 3
+            "plan_length": 3,
         }
 
     async def _solve_general(self, problem: Dict[str, Any], method: str) -> Any:
         """Solve general problems"""
         await asyncio.sleep(0.01)
 
-        return {
-            "solution": "general_solution",
-            "confidence": np.random.uniform(0.85, 0.95)
-        }
+        return {"solution": "general_solution", "confidence": np.random.uniform(0.85, 0.95)}
 
     def _categorize_problem(self, problem: Dict[str, Any]) -> ProblemCategory:
         """Categorize problem type"""
@@ -1188,20 +1194,19 @@ class GeneralProblemSolvingService:
             ProblemCategory.GAME_PLAYING: "mcts",
             ProblemCategory.DIAGNOSIS: "abductive_reasoning",
             ProblemCategory.DESIGN: "generative_synthesis",
-            ProblemCategory.CONSTRAINT_SATISFACTION: "backtracking"
+            ProblemCategory.CONSTRAINT_SATISFACTION: "backtracking",
         }
 
         return method_map.get(category, "general_solver")
 
-    def _extract_patterns(self, problem: Dict[str, Any],
-                         solution: Any, method: str) -> List[str]:
+    def _extract_patterns(self, problem: Dict[str, Any], solution: Any, method: str) -> List[str]:
         """Extract reusable patterns from solution"""
         patterns = [f"{method}_pattern"]
 
         # Learn problem structure patterns
-        if isinstance(solution, dict) and 'path' in solution:
+        if isinstance(solution, dict) and "path" in solution:
             patterns.append("pathfinding_pattern")
-        if isinstance(solution, dict) and 'plan' in solution:
+        if isinstance(solution, dict) and "plan" in solution:
             patterns.append("planning_pattern")
 
         return patterns
@@ -1210,6 +1215,7 @@ class GeneralProblemSolvingService:
 # ============================================================================
 # Singleton Getters
 # ============================================================================
+
 
 def get_task_understanding_service() -> UniversalTaskUnderstandingService:
     """Get singleton instance of task understanding service"""

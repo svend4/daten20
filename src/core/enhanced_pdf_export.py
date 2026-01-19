@@ -12,38 +12,49 @@ Professional PDF generation with:
 - PDF/A compliance
 """
 
-from typing import List, Dict, Any, Optional, Union, Tuple
+import io
+import logging
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-import io
-import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4, letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm, mm, inch
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, Image, KeepTogether, Frame, PageTemplate,
-    NextPageTemplate, Flowable
-)
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import cm, inch, mm
 from reportlab.pdfgen import canvas as pdf_canvas
+from reportlab.platypus import (
+    Flowable,
+    Frame,
+    Image,
+    KeepTogether,
+    NextPageTemplate,
+    PageBreak,
+    PageTemplate,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 from reportlab.platypus.tableofcontents import TableOfContents
 
 try:
     import matplotlib
-    matplotlib.use('Agg')  # Non-GUI backend
-    import matplotlib.pyplot as plt
+
+    matplotlib.use("Agg")  # Non-GUI backend
     import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
+
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
     logging.warning("matplotlib not available. Chart generation disabled.")
 
-logger = logging.getLogger('dms.pdf_enhanced')
+logger = logging.getLogger("dms.pdf_enhanced")
 
 
 class NumberedCanvas(pdf_canvas.Canvas):
@@ -56,9 +67,7 @@ class NumberedCanvas(pdf_canvas.Canvas):
 
     def showPage(self):
         """Override to capture page info."""
-        self.pages_info.append({
-            'number': len(self.pages_info) + 1
-        })
+        self.pages_info.append({"number": len(self.pages_info) + 1})
         super().showPage()
 
     def save(self):
@@ -71,7 +80,7 @@ class NumberedCanvas(pdf_canvas.Canvas):
 
     def _add_page_number(self, page_num: int, num_pages: int):
         """Add page number to page."""
-        self.setFont('Helvetica', 9)
+        self.setFont("Helvetica", 9)
         self.setFillColor(colors.grey)
         text = f"Page {page_num} of {num_pages}"
         self.drawCentredString(A4[0] / 2, 20 * mm, text)
@@ -81,10 +90,14 @@ class ChartGenerator:
     """Generate charts using matplotlib."""
 
     @staticmethod
-    def create_bar_chart(data: Dict[str, float], title: str,
-                        xlabel: str = '', ylabel: str = '',
-                        figsize: Tuple[int, int] = (8, 5),
-                        color: str = '#0d6efd') -> Optional[io.BytesIO]:
+    def create_bar_chart(
+        data: Dict[str, float],
+        title: str,
+        xlabel: str = "",
+        ylabel: str = "",
+        figsize: Tuple[int, int] = (8, 5),
+        color: str = "#0d6efd",
+    ) -> Optional[io.BytesIO]:
         """
         Create a bar chart.
 
@@ -110,17 +123,17 @@ class ChartGenerator:
             values = list(data.values())
 
             ax.bar(categories, values, color=color)
-            ax.set_title(title, fontsize=14, fontweight='bold')
+            ax.set_title(title, fontsize=14, fontweight="bold")
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ylabel)
-            ax.grid(axis='y', alpha=0.3)
+            ax.grid(axis="y", alpha=0.3)
 
-            plt.xticks(rotation=45, ha='right')
+            plt.xticks(rotation=45, ha="right")
             plt.tight_layout()
 
             # Save to BytesIO
             img_buffer = io.BytesIO()
-            plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
+            plt.savefig(img_buffer, format="png", dpi=150, bbox_inches="tight")
             img_buffer.seek(0)
             plt.close(fig)
 
@@ -131,9 +144,9 @@ class ChartGenerator:
             return None
 
     @staticmethod
-    def create_line_chart(data: Dict[str, List[float]], title: str,
-                         xlabel: str = '', ylabel: str = '',
-                         figsize: Tuple[int, int] = (8, 5)) -> Optional[io.BytesIO]:
+    def create_line_chart(
+        data: Dict[str, List[float]], title: str, xlabel: str = "", ylabel: str = "", figsize: Tuple[int, int] = (8, 5)
+    ) -> Optional[io.BytesIO]:
         """
         Create a line chart.
 
@@ -155,9 +168,9 @@ class ChartGenerator:
             fig, ax = plt.subplots(figsize=figsize)
 
             for series_name, values in data.items():
-                ax.plot(range(len(values)), values, marker='o', label=series_name)
+                ax.plot(range(len(values)), values, marker="o", label=series_name)
 
-            ax.set_title(title, fontsize=14, fontweight='bold')
+            ax.set_title(title, fontsize=14, fontweight="bold")
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ylabel)
             ax.grid(alpha=0.3)
@@ -167,7 +180,7 @@ class ChartGenerator:
 
             # Save to BytesIO
             img_buffer = io.BytesIO()
-            plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
+            plt.savefig(img_buffer, format="png", dpi=150, bbox_inches="tight")
             img_buffer.seek(0)
             plt.close(fig)
 
@@ -178,8 +191,7 @@ class ChartGenerator:
             return None
 
     @staticmethod
-    def create_pie_chart(data: Dict[str, float], title: str,
-                        figsize: Tuple[int, int] = (8, 6)) -> Optional[io.BytesIO]:
+    def create_pie_chart(data: Dict[str, float], title: str, figsize: Tuple[int, int] = (8, 6)) -> Optional[io.BytesIO]:
         """
         Create a pie chart.
 
@@ -202,16 +214,15 @@ class ChartGenerator:
             values = list(data.values())
             colors_list = plt.cm.Set3(range(len(labels)))
 
-            ax.pie(values, labels=labels, autopct='%1.1f%%',
-                  colors=colors_list, startangle=90)
-            ax.set_title(title, fontsize=14, fontweight='bold')
-            ax.axis('equal')
+            ax.pie(values, labels=labels, autopct="%1.1f%%", colors=colors_list, startangle=90)
+            ax.set_title(title, fontsize=14, fontweight="bold")
+            ax.axis("equal")
 
             plt.tight_layout()
 
             # Save to BytesIO
             img_buffer = io.BytesIO()
-            plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
+            plt.savefig(img_buffer, format="png", dpi=150, bbox_inches="tight")
             img_buffer.seek(0)
             plt.close(fig)
 
@@ -241,60 +252,66 @@ class EnhancedPDFExporter:
     def _setup_custom_styles(self):
         """Set up custom paragraph styles."""
         # Title style
-        self.styles.add(ParagraphStyle(
-            name='CustomTitle',
-            parent=self.styles['Heading1'],
-            fontSize=24,
-            textColor=colors.HexColor('#0d6efd'),
-            spaceAfter=20,
-            alignment=TA_CENTER,
-            fontName='Helvetica-Bold'
-        ))
+        self.styles.add(
+            ParagraphStyle(
+                name="CustomTitle",
+                parent=self.styles["Heading1"],
+                fontSize=24,
+                textColor=colors.HexColor("#0d6efd"),
+                spaceAfter=20,
+                alignment=TA_CENTER,
+                fontName="Helvetica-Bold",
+            )
+        )
 
         # Heading 1
-        self.styles.add(ParagraphStyle(
-            name='CustomHeading1',
-            parent=self.styles['Heading1'],
-            fontSize=18,
-            textColor=colors.HexColor('#0d6efd'),
-            spaceBefore=15,
-            spaceAfter=10,
-            fontName='Helvetica-Bold'
-        ))
+        self.styles.add(
+            ParagraphStyle(
+                name="CustomHeading1",
+                parent=self.styles["Heading1"],
+                fontSize=18,
+                textColor=colors.HexColor("#0d6efd"),
+                spaceBefore=15,
+                spaceAfter=10,
+                fontName="Helvetica-Bold",
+            )
+        )
 
         # Heading 2
-        self.styles.add(ParagraphStyle(
-            name='CustomHeading2',
-            parent=self.styles['Heading2'],
-            fontSize=14,
-            textColor=colors.HexColor('#198754'),
-            spaceBefore=12,
-            spaceAfter=8,
-            fontName='Helvetica-Bold'
-        ))
+        self.styles.add(
+            ParagraphStyle(
+                name="CustomHeading2",
+                parent=self.styles["Heading2"],
+                fontSize=14,
+                textColor=colors.HexColor("#198754"),
+                spaceBefore=12,
+                spaceAfter=8,
+                fontName="Helvetica-Bold",
+            )
+        )
 
         # Body
-        self.styles.add(ParagraphStyle(
-            name='CustomBody',
-            parent=self.styles['Normal'],
-            fontSize=11,
-            alignment=TA_JUSTIFY,
-            fontName='Helvetica'
-        ))
+        self.styles.add(
+            ParagraphStyle(
+                name="CustomBody", parent=self.styles["Normal"], fontSize=11, alignment=TA_JUSTIFY, fontName="Helvetica"
+            )
+        )
 
         # Caption
-        self.styles.add(ParagraphStyle(
-            name='Caption',
-            parent=self.styles['Normal'],
-            fontSize=9,
-            textColor=colors.grey,
-            alignment=TA_CENTER,
-            fontName='Helvetica-Oblique'
-        ))
+        self.styles.add(
+            ParagraphStyle(
+                name="Caption",
+                parent=self.styles["Normal"],
+                fontSize=9,
+                textColor=colors.grey,
+                alignment=TA_CENTER,
+                fontName="Helvetica-Oblique",
+            )
+        )
 
     def add_title(self, text: str):
         """Add a title to the document."""
-        self.story.append(Paragraph(text, self.styles['CustomTitle']))
+        self.story.append(Paragraph(text, self.styles["CustomTitle"]))
         self.story.append(Spacer(1, 12))
 
     def add_heading(self, text: str, level: int = 1):
@@ -305,7 +322,7 @@ class EnhancedPDFExporter:
             text: Heading text
             level: Heading level (1 or 2)
         """
-        style_name = f'CustomHeading{level}'
+        style_name = f"CustomHeading{level}"
         if style_name in self.styles:
             self.story.append(Paragraph(text, self.styles[style_name]))
             self.story.append(Spacer(1, 6))
@@ -314,7 +331,7 @@ class EnhancedPDFExporter:
 
     def add_paragraph(self, text: str):
         """Add a paragraph to the document."""
-        self.story.append(Paragraph(text, self.styles['CustomBody']))
+        self.story.append(Paragraph(text, self.styles["CustomBody"]))
         self.story.append(Spacer(1, 6))
 
     def add_bullet_list(self, items: List[str]):
@@ -326,12 +343,16 @@ class EnhancedPDFExporter:
         """
         for item in items:
             bullet_text = f"• {item}"
-            self.story.append(Paragraph(bullet_text, self.styles['CustomBody']))
+            self.story.append(Paragraph(bullet_text, self.styles["CustomBody"]))
         self.story.append(Spacer(1, 6))
 
-    def add_table(self, data: List[List[str]], headers: Optional[List[str]] = None,
-                  col_widths: Optional[List[float]] = None,
-                  style: str = 'default'):
+    def add_table(
+        self,
+        data: List[List[str]],
+        headers: Optional[List[str]] = None,
+        col_widths: Optional[List[float]] = None,
+        style: str = "default",
+    ):
         """
         Add a table to the document.
 
@@ -351,42 +372,54 @@ class EnhancedPDFExporter:
         table = Table(table_data, colWidths=col_widths)
 
         # Apply style
-        if style == 'default':
-            table_style = TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d6efd')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ])
-        elif style == 'colored':
-            table_style = TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0d6efd')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.lightgrey, colors.white]),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
-            ])
+        if style == "default":
+            table_style = TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0d6efd")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 12),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ]
+            )
+        elif style == "colored":
+            table_style = TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0d6efd")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.lightgrey, colors.white]),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ]
+            )
         else:  # minimal
-            table_style = TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-                ('LINEBELOW', (0, -1), (-1, -1), 1, colors.black)
-            ])
+            table_style = TableStyle(
+                [
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("LINEBELOW", (0, 0), (-1, 0), 1, colors.black),
+                    ("LINEBELOW", (0, -1), (-1, -1), 1, colors.black),
+                ]
+            )
 
         table.setStyle(table_style)
         self.story.append(table)
         self.story.append(Spacer(1, 12))
 
-    def add_chart(self, chart_type: str, data: Union[Dict[str, float], Dict[str, List[float]]],
-                  title: str, caption: Optional[str] = None, **kwargs):
+    def add_chart(
+        self,
+        chart_type: str,
+        data: Union[Dict[str, float], Dict[str, List[float]]],
+        title: str,
+        caption: Optional[str] = None,
+        **kwargs,
+    ):
         """
         Add a chart to the document.
 
@@ -405,11 +438,11 @@ class EnhancedPDFExporter:
         chart_generator = ChartGenerator()
         img_buffer = None
 
-        if chart_type == 'bar':
+        if chart_type == "bar":
             img_buffer = chart_generator.create_bar_chart(data, title, **kwargs)
-        elif chart_type == 'line':
+        elif chart_type == "line":
             img_buffer = chart_generator.create_line_chart(data, title, **kwargs)
-        elif chart_type == 'pie':
+        elif chart_type == "pie":
             img_buffer = chart_generator.create_pie_chart(data, title, **kwargs)
         else:
             logger.error(f"Unknown chart type: {chart_type}")
@@ -417,12 +450,12 @@ class EnhancedPDFExporter:
 
         if img_buffer:
             # Add image to story
-            img = Image(img_buffer, width=6*inch, height=4*inch)
+            img = Image(img_buffer, width=6 * inch, height=4 * inch)
             self.story.append(img)
 
             if caption:
                 self.story.append(Spacer(1, 6))
-                self.story.append(Paragraph(caption, self.styles['Caption']))
+                self.story.append(Paragraph(caption, self.styles["Caption"]))
 
             self.story.append(Spacer(1, 12))
             logger.info(f"Added {chart_type} chart: {title}")
@@ -440,9 +473,13 @@ class EnhancedPDFExporter:
         """
         self.story.append(Spacer(1, height))
 
-    def save(self, output_path: str, title: str = "Document",
-            author: str = "Document Management System",
-            subject: str = "Generated Report") -> bool:
+    def save(
+        self,
+        output_path: str,
+        title: str = "Document",
+        author: str = "Document Management System",
+        subject: str = "Generated Report",
+    ) -> bool:
         """
         Save PDF document to file.
 
@@ -469,7 +506,7 @@ class EnhancedPDFExporter:
                 bottomMargin=72,
                 title=title,
                 author=author,
-                subject=subject
+                subject=subject,
             )
 
             # Build document
@@ -481,8 +518,7 @@ class EnhancedPDFExporter:
             logger.error(f"Error saving PDF: {e}")
             return False
 
-    def export_services_report(self, services: List[Dict[str, Any]],
-                              output_path: str) -> bool:
+    def export_services_report(self, services: List[Dict[str, Any]], output_path: str) -> bool:
         """
         Export services report with charts and tables.
 
@@ -508,51 +544,49 @@ class EnhancedPDFExporter:
             if services:
                 regions = {}
                 for service in services:
-                    region = service.get('region', 'Unknown')
+                    region = service.get("region", "Unknown")
                     regions[region] = regions.get(region, 0) + 1
 
                 if regions:
                     self.add_heading("Services Distribution by Region", level=2)
                     self.add_chart(
-                        'bar',
+                        "bar",
                         regions,
-                        'Services by Region',
-                        caption='Figure 1: Distribution of services across regions',
-                        xlabel='Region',
-                        ylabel='Number of Services'
+                        "Services by Region",
+                        caption="Figure 1: Distribution of services across regions",
+                        xlabel="Region",
+                        ylabel="Number of Services",
                     )
 
             # Services table
             self.add_heading("Services Details", level=2)
             if services:
-                headers = ['Service Name', 'Region', 'Type', 'Rate']
+                headers = ["Service Name", "Region", "Type", "Rate"]
                 data = [
                     [
-                        service.get('service_name', 'N/A')[:30],
-                        service.get('region', 'N/A'),
-                        service.get('service_type', 'N/A'),
-                        f"€{service.get('brutto_rate', 0):.2f}"
+                        service.get("service_name", "N/A")[:30],
+                        service.get("region", "N/A"),
+                        service.get("service_type", "N/A"),
+                        f"€{service.get('brutto_rate', 0):.2f}",
                     ]
                     for service in services[:20]  # Limit to 20 for space
                 ]
-                self.add_table(data, headers=headers, style='colored')
+                self.add_table(data, headers=headers, style="colored")
 
             # Summary
             self.add_page_break()
             self.add_heading("Summary", level=1)
-            self.add_bullet_list([
-                f"Total services analyzed: {len(services)}",
-                f"Report generated: {datetime.now().strftime('%Y-%m-%d')}",
-                "All financial calculations completed successfully",
-                "Regional distribution documented"
-            ])
+            self.add_bullet_list(
+                [
+                    f"Total services analyzed: {len(services)}",
+                    f"Report generated: {datetime.now().strftime('%Y-%m-%d')}",
+                    "All financial calculations completed successfully",
+                    "Regional distribution documented",
+                ]
+            )
 
             # Save
-            return self.save(
-                output_path,
-                title="Services Report",
-                subject="Services Analysis Report"
-            )
+            return self.save(output_path, title="Services Report", subject="Services Analysis Report")
 
         except Exception as e:
             logger.error(f"Error exporting services report: {e}")
@@ -560,8 +594,7 @@ class EnhancedPDFExporter:
 
 
 # Convenience functions
-def export_to_pdf(data: List[Dict[str, Any]], output_path: str,
-                 title: str = "Report") -> bool:
+def export_to_pdf(data: List[Dict[str, Any]], output_path: str, title: str = "Report") -> bool:
     """
     Quick export data to PDF.
 
@@ -579,7 +612,7 @@ def export_to_pdf(data: List[Dict[str, Any]], output_path: str,
     # Add data as table
     if data:
         headers = list(data[0].keys())
-        table_data = [[str(item.get(h, '')) for h in headers] for item in data]
+        table_data = [[str(item.get(h, "")) for h in headers] for item in data]
         exporter.add_table(table_data, headers=headers)
 
     return exporter.save(output_path, title=title)

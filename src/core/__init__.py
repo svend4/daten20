@@ -15,9 +15,11 @@ Note: Some imports are optional to avoid dependency issues.
 # Optional imports with fallbacks
 try:
     from .database import Database
+    from .database_universal import UniversalDatabase
 except ImportError as e:
     print(f"Warning: Database not available: {e}")
     Database = None
+    UniversalDatabase = None
 
 try:
     from .auth import AuthService
@@ -63,11 +65,12 @@ except ImportError as e:
     print(f"Warning: AuditService not available: {e}")
     AuditService = None
 
-from .logger import setup_logger, get_logger
+from .logger import get_logger, setup_logger
 
 __all__ = [
     # Database
     "Database",
+    "UniversalDatabase",
     # Auth
     "AuthService",
     # Document Processing
@@ -84,4 +87,4 @@ __all__ = [
     "get_logger",
 ]
 
-__version__ = "2.3.0"
+__version__ = "2.5.1"

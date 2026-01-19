@@ -1,26 +1,37 @@
-Confidential Document with PII
-================================
+Personal Information Document
+==============================
 
-Personal Information:
+This document contains personal information for testing anonymization.
+
+Patient Information:
+-------------------
 Name: Max Mustermann
-Date of Birth: 15.03.1990
-Email: max.mustermann@example.com
-Phone: +49 123 456 789
-Mobile: +49 176 12345678
+Date of Birth: 15.05.1985
+Address: Hauptstrasse 42, 10115 Berlin, Germany
+Email: max.mustermann@email.com
+Phone: +49 30 12345678
+Mobile: +49 171 9876543
+Social Security Number: 123-45-6789
 
-Address Information:
-Street: Hauptstraße 123
-City: Berlin
-Postal Code: 10115
-Country: Germany
+Medical Records:
+---------------
+Patient ID: P-2024-001
+Doctor: Dr. Anna Schmidt
+Diagnosis Date: 10.01.2025
+Treatment Center: Berlin Medical Facility
 
-Financial Information:
-IBAN: DE89370400440532013000
-Bank: Deutsche Bank
+Additional Contacts:
+-------------------
+Emergency Contact: Maria Mustermann
+Email: maria.m@example.de
+Phone: +49 30 87654321
 
-Additional Information:
-IP Address: 192.168.1.100
-Date: 20.01.2025
+Insurance Information:
+---------------------
+Provider: Deutsche Krankenversicherung
+Policy Number: GKV-123456789
+Member Since: 01.01.2010
 
-This document contains sensitive personal data and should be handled with care.
-All personal information must be protected according to GDPR regulations.
+This document is confidential and contains sensitive personal data protected under GDPR regulations.
+
+Last Updated: 15.03.2025

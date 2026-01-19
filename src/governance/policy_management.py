@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class PolicyStatus(Enum):
     """Policy status."""
+
     DRAFT = "draft"
     REVIEW = "review"
     APPROVED = "approved"
@@ -29,6 +30,7 @@ class PolicyStatus(Enum):
 
 class PolicyCategory(Enum):
     """Policy categories."""
+
     INFORMATION_SECURITY = "information_security"
     DATA_PRIVACY = "data_privacy"
     HR = "hr"
@@ -40,6 +42,7 @@ class PolicyCategory(Enum):
 
 class AcknowledgmentStatus(Enum):
     """Acknowledgment status."""
+
     PENDING = "pending"
     ACKNOWLEDGED = "acknowledged"
     OVERDUE = "overdue"
@@ -49,6 +52,7 @@ class AcknowledgmentStatus(Enum):
 @dataclass
 class PolicyVersion:
     """Policy version."""
+
     version_id: str
     policy_id: str
     version_number: str
@@ -63,6 +67,7 @@ class PolicyVersion:
 @dataclass
 class Policy:
     """Policy document."""
+
     policy_id: str
     title: str
     category: PolicyCategory
@@ -84,6 +89,7 @@ class Policy:
 @dataclass
 class Acknowledgment:
     """User policy acknowledgment."""
+
     acknowledgment_id: str
     policy_id: str
     version_id: str
@@ -100,6 +106,7 @@ class Acknowledgment:
 @dataclass
 class Attestation:
     """Compliance attestation."""
+
     attestation_id: str
     policy_id: str
     user_id: str
@@ -115,6 +122,7 @@ class Attestation:
 @dataclass
 class Distribution:
     """Policy distribution campaign."""
+
     distribution_id: str
     policy_id: str
     version_id: str
@@ -136,12 +144,7 @@ class VersionControl:
         self.versions: Dict[str, PolicyVersion] = {}
 
     async def create_version(
-        self,
-        policy_id: str,
-        version_number: str,
-        content: str,
-        created_by: str,
-        changes_summary: Optional[str] = None
+        self, policy_id: str, version_number: str, content: str, created_by: str, changes_summary: Optional[str] = None
     ) -> PolicyVersion:
         """Create new policy version."""
         await asyncio.sleep(0.05)
@@ -152,7 +155,7 @@ class VersionControl:
             version_number=version_number,
             content=content,
             changes_summary=changes_summary,
-            created_by=created_by
+            created_by=created_by,
         )
 
         self.versions[version.version_id] = version
@@ -160,11 +163,7 @@ class VersionControl:
         logger.info(f"Created policy version {version_number} for {policy_id}")
         return version
 
-    async def approve_version(
-        self,
-        version_id: str,
-        approved_by: str
-    ) -> bool:
+    async def approve_version(self, version_id: str, approved_by: str) -> bool:
         """Approve policy version."""
         await asyncio.sleep(0.02)
 
@@ -178,10 +177,7 @@ class VersionControl:
         logger.info(f"Approved version {version_id}")
         return True
 
-    async def get_policy_versions(
-        self,
-        policy_id: str
-    ) -> List[PolicyVersion]:
+    async def get_policy_versions(self, policy_id: str) -> List[PolicyVersion]:
         """Get all versions of policy."""
         versions = [v for v in self.versions.values() if v.policy_id == policy_id]
         return sorted(versions, key=lambda x: x.created_date, reverse=True)
@@ -194,12 +190,7 @@ class AcknowledgmentTracker:
         self.acknowledgments: Dict[str, Acknowledgment] = {}
 
     async def create_acknowledgment(
-        self,
-        policy_id: str,
-        version_id: str,
-        user_id: str,
-        user_email: str,
-        due_date: datetime
+        self, policy_id: str, version_id: str, user_id: str, user_email: str, due_date: datetime
     ) -> Acknowledgment:
         """Create acknowledgment requirement."""
         await asyncio.sleep(0.02)
@@ -212,7 +203,7 @@ class AcknowledgmentTracker:
             user_email=user_email,
             status=AcknowledgmentStatus.PENDING,
             distributed_date=datetime.now(),
-            due_date=due_date
+            due_date=due_date,
         )
 
         self.acknowledgments[ack.acknowledgment_id] = ack
@@ -221,10 +212,7 @@ class AcknowledgmentTracker:
         return ack
 
     async def record_acknowledgment(
-        self,
-        acknowledgment_id: str,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        self, acknowledgment_id: str, ip_address: Optional[str] = None, user_agent: Optional[str] = None
     ) -> bool:
         """Record user acknowledgment."""
         await asyncio.sleep(0.02)
@@ -241,11 +229,7 @@ class AcknowledgmentTracker:
         logger.info(f"Recorded acknowledgment from {ack.user_email}")
         return True
 
-    async def get_policy_acknowledgments(
-        self,
-        policy_id: str,
-        status: Optional[str] = None
-    ) -> List[Acknowledgment]:
+    async def get_policy_acknowledgments(self, policy_id: str, status: Optional[str] = None) -> List[Acknowledgment]:
         """Get acknowledgments for policy."""
         acks = [a for a in self.acknowledgments.values() if a.policy_id == policy_id]
 
@@ -260,9 +244,7 @@ class AcknowledgmentTracker:
         now = datetime.now()
 
         overdue = [
-            a for a in self.acknowledgments.values()
-            if a.status == AcknowledgmentStatus.PENDING
-            and a.due_date < now
+            a for a in self.acknowledgments.values() if a.status == AcknowledgmentStatus.PENDING and a.due_date < now
         ]
 
         # Update status
@@ -271,15 +253,12 @@ class AcknowledgmentTracker:
 
         return overdue
 
-    async def get_user_pending_acknowledgments(
-        self,
-        user_id: str
-    ) -> List[Acknowledgment]:
+    async def get_user_pending_acknowledgments(self, user_id: str) -> List[Acknowledgment]:
         """Get pending acknowledgments for user."""
         return [
-            a for a in self.acknowledgments.values()
-            if a.user_id == user_id
-            and a.status == AcknowledgmentStatus.PENDING
+            a
+            for a in self.acknowledgments.values()
+            if a.user_id == user_id and a.status == AcknowledgmentStatus.PENDING
         ]
 
 
@@ -290,12 +269,7 @@ class AttestationManager:
         self.attestations: Dict[str, Attestation] = {}
 
     async def create_attestation(
-        self,
-        policy_id: str,
-        user_id: str,
-        user_email: str,
-        attestation_text: str,
-        **kwargs
+        self, policy_id: str, user_id: str, user_email: str, attestation_text: str, **kwargs
     ) -> Attestation:
         """Create attestation requirement."""
         await asyncio.sleep(0.02)
@@ -306,7 +280,7 @@ class AttestationManager:
             user_id=user_id,
             user_email=user_email,
             attestation_text=attestation_text,
-            **kwargs
+            **kwargs,
         )
 
         self.attestations[attestation.attestation_id] = attestation
@@ -314,11 +288,7 @@ class AttestationManager:
         logger.info(f"Created attestation for {user_email}")
         return attestation
 
-    async def record_attestation(
-        self,
-        attestation_id: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> bool:
+    async def record_attestation(self, attestation_id: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
         """Record attestation."""
         await asyncio.sleep(0.02)
 
@@ -335,10 +305,7 @@ class AttestationManager:
         logger.info(f"Recorded attestation from {attestation.user_email}")
         return True
 
-    async def get_pending_attestations(
-        self,
-        user_id: Optional[str] = None
-    ) -> List[Attestation]:
+    async def get_pending_attestations(self, user_id: Optional[str] = None) -> List[Attestation]:
         """Get pending attestations."""
         attestations = [a for a in self.attestations.values() if not a.attested]
 
@@ -366,7 +333,7 @@ class PolicyManager:
         owner: str,
         effective_date: datetime,
         review_frequency: timedelta,
-        **kwargs
+        **kwargs,
     ) -> Policy:
         """Create new policy."""
         await asyncio.sleep(0.05)
@@ -375,10 +342,7 @@ class PolicyManager:
 
         # Create initial version
         version = await self.version_control.create_version(
-            policy_id=policy_id,
-            version_number="1.0",
-            content=content,
-            created_by=kwargs.get("created_by", owner)
+            policy_id=policy_id, version_number="1.0", content=content, created_by=kwargs.get("created_by", owner)
         )
 
         # Create policy
@@ -396,7 +360,7 @@ class PolicyManager:
             requires_attestation=kwargs.get("requires_attestation", False),
             applies_to=kwargs.get("applies_to", ["all_employees"]),
             tags=set(kwargs.get("tags", [])),
-            created_by=kwargs.get("created_by", owner)
+            created_by=kwargs.get("created_by", owner),
         )
 
         self.policies[policy_id] = policy
@@ -405,12 +369,7 @@ class PolicyManager:
         return policy
 
     async def update_policy(
-        self,
-        policy_id: str,
-        content: str,
-        updated_by: str,
-        changes_summary: str,
-        version_number: str = "1.1"
+        self, policy_id: str, content: str, updated_by: str, changes_summary: str, version_number: str = "1.1"
     ) -> PolicyVersion:
         """Update policy with new version."""
         await asyncio.sleep(0.05)
@@ -426,7 +385,7 @@ class PolicyManager:
             version_number=version_number,
             content=content,
             created_by=updated_by,
-            changes_summary=changes_summary
+            changes_summary=changes_summary,
         )
 
         # Update policy
@@ -436,11 +395,7 @@ class PolicyManager:
         logger.info(f"Updated policy {policy_id} to version {version_number}")
         return version
 
-    async def approve_policy(
-        self,
-        policy_id: str,
-        approved_by: str
-    ) -> bool:
+    async def approve_policy(self, policy_id: str, approved_by: str) -> bool:
         """Approve policy."""
         await asyncio.sleep(0.02)
 
@@ -451,17 +406,12 @@ class PolicyManager:
         policy.status = PolicyStatus.APPROVED
 
         # Approve current version
-        await self.version_control.approve_version(
-            policy.current_version_id, approved_by
-        )
+        await self.version_control.approve_version(policy.current_version_id, approved_by)
 
         logger.info(f"Approved policy {policy_id}")
         return True
 
-    async def publish_policy(
-        self,
-        policy_id: str
-    ) -> bool:
+    async def publish_policy(self, policy_id: str) -> bool:
         """Publish policy."""
         await asyncio.sleep(0.02)
 
@@ -480,11 +430,7 @@ class PolicyManager:
         return True
 
     async def distribute_policy(
-        self,
-        policy_id: str,
-        recipients: List[str],
-        due_date: datetime,
-        **kwargs
+        self, policy_id: str, recipients: List[str], due_date: datetime, **kwargs
     ) -> Distribution:
         """Distribute policy to users."""
         await asyncio.sleep(0.1)
@@ -503,7 +449,7 @@ class PolicyManager:
             due_date=due_date,
             message=kwargs.get("message"),
             total_recipients=len(recipients),
-            distributed_by=kwargs.get("distributed_by", "system")
+            distributed_by=kwargs.get("distributed_by", "system"),
         )
 
         self.distributions[distribution.distribution_id] = distribution
@@ -516,34 +462,24 @@ class PolicyManager:
                     version_id=policy.current_version_id,
                     user_id=recipient,
                     user_email=f"{recipient}@company.com",
-                    due_date=due_date
+                    due_date=due_date,
                 )
 
         logger.info(f"Distributed policy {policy_id} to {len(recipients)} recipients")
         return distribution
 
-    async def acknowledge_policy(
-        self,
-        policy_id: str,
-        user_id: str,
-        **kwargs
-    ) -> bool:
+    async def acknowledge_policy(self, policy_id: str, user_id: str, **kwargs) -> bool:
         """Record user acknowledgment."""
         # Find acknowledgment for this user/policy
         for ack in self.acknowledgment_tracker.acknowledgments.values():
             if ack.policy_id == policy_id and ack.user_id == user_id and ack.status == AcknowledgmentStatus.PENDING:
                 return await self.acknowledgment_tracker.record_acknowledgment(
-                    ack.acknowledgment_id,
-                    ip_address=kwargs.get("ip_address"),
-                    user_agent=kwargs.get("user_agent")
+                    ack.acknowledgment_id, ip_address=kwargs.get("ip_address"), user_agent=kwargs.get("user_agent")
                 )
 
         return False
 
-    async def get_acknowledgment_status(
-        self,
-        policy_id: str
-    ) -> Dict[str, Any]:
+    async def get_acknowledgment_status(self, policy_id: str) -> Dict[str, Any]:
         """Get acknowledgment status for policy."""
         await asyncio.sleep(0.05)
 
@@ -560,20 +496,15 @@ class PolicyManager:
             "acknowledged": acknowledged,
             "pending": pending,
             "overdue": overdue,
-            "rate": (acknowledged / total * 100) if total > 0 else 100.0
+            "rate": (acknowledged / total * 100) if total > 0 else 100.0,
         }
 
-    async def get_policies_due_for_review(
-        self,
-        days_ahead: int = 90
-    ) -> List[Policy]:
+    async def get_policies_due_for_review(self, days_ahead: int = 90) -> List[Policy]:
         """Get policies due for review."""
         cutoff = datetime.now() + timedelta(days=days_ahead)
 
         return [
-            p for p in self.policies.values()
-            if p.next_review_date <= cutoff
-            and p.status == PolicyStatus.PUBLISHED
+            p for p in self.policies.values() if p.next_review_date <= cutoff and p.status == PolicyStatus.PUBLISHED
         ]
 
     async def get_compliance_report(self) -> Dict[str, Any]:
@@ -593,7 +524,7 @@ class PolicyManager:
             "total_acknowledgments": len(self.acknowledgment_tracker.acknowledgments),
             "overdue_acknowledgments": overdue_acks,
             "total_distributions": len(self.distributions),
-            "generated_at": datetime.now().isoformat()
+            "generated_at": datetime.now().isoformat(),
         }
 
 

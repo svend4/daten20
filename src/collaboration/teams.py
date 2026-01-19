@@ -11,16 +11,17 @@ Provides team collaboration features:
 - Real-time updates
 """
 
-from typing import Optional, List, Dict, Any, Set
+import re
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import uuid
-import re
+from typing import Any, Dict, List, Optional, Set
 
 
 class TeamRole(str, Enum):
     """Team member roles"""
+
     OWNER = "owner"
     ADMIN = "admin"
     MEMBER = "member"
@@ -29,6 +30,7 @@ class TeamRole(str, Enum):
 
 class ChannelType(str, Enum):
     """Channel types"""
+
     PUBLIC = "public"
     PRIVATE = "private"
     DIRECT = "direct"
@@ -36,6 +38,7 @@ class ChannelType(str, Enum):
 
 class ActivityType(str, Enum):
     """Activity types for feed"""
+
     COMMENT = "comment"
     MENTION = "mention"
     FILE_UPLOAD = "file_upload"
@@ -47,6 +50,7 @@ class ActivityType(str, Enum):
 
 class Permission(str, Enum):
     """Team permissions"""
+
     VIEW = "view"
     COMMENT = "comment"
     EDIT = "edit"
@@ -58,6 +62,7 @@ class Permission(str, Enum):
 @dataclass
 class Team:
     """Team space"""
+
     id: str
     name: str
     description: str
@@ -70,6 +75,7 @@ class Team:
 @dataclass
 class TeamMember:
     """Team member"""
+
     team_id: str
     user_id: int
     role: TeamRole
@@ -81,6 +87,7 @@ class TeamMember:
 @dataclass
 class Channel:
     """Team channel for discussions"""
+
     id: str
     team_id: str
     name: str
@@ -94,6 +101,7 @@ class Channel:
 @dataclass
 class Message:
     """Chat message"""
+
     id: str
     channel_id: str
     user_id: int
@@ -109,6 +117,7 @@ class Message:
 @dataclass
 class Comment:
     """Comment on service/document"""
+
     id: str
     resource_type: str  # service, document, workflow, etc.
     resource_id: str
@@ -124,6 +133,7 @@ class Comment:
 @dataclass
 class Activity:
     """Activity feed item"""
+
     id: str
     team_id: str
     type: ActivityType
@@ -138,6 +148,7 @@ class Activity:
 @dataclass
 class SharedFile:
     """Shared file in team"""
+
     id: str
     team_id: str
     channel_id: Optional[str]
@@ -156,15 +167,11 @@ class MentionParser:
     def parse_mentions(self, text: str) -> List[str]:
         """Extract @mentions from text"""
         # Match @username or @user_id
-        pattern = r'@(\w+)'
+        pattern = r"@(\w+)"
         matches = re.findall(pattern, text)
         return matches
 
-    def resolve_mentions(
-        self,
-        text: str,
-        team_members: Dict[str, int]  # username -> user_id
-    ) -> List[int]:
+    def resolve_mentions(self, text: str, team_members: Dict[str, int]) -> List[int]:  # username -> user_id
         """Resolve mentions to user IDs"""
         mentions = self.parse_mentions(text)
         user_ids = []
@@ -192,31 +199,20 @@ class PermissionManager:
                 Permission.EDIT,
                 Permission.DELETE,
                 Permission.MANAGE_MEMBERS,
-                Permission.MANAGE_SETTINGS
+                Permission.MANAGE_SETTINGS,
             ],
             TeamRole.ADMIN: [
                 Permission.VIEW,
                 Permission.COMMENT,
                 Permission.EDIT,
                 Permission.DELETE,
-                Permission.MANAGE_MEMBERS
+                Permission.MANAGE_MEMBERS,
             ],
-            TeamRole.MEMBER: [
-                Permission.VIEW,
-                Permission.COMMENT,
-                Permission.EDIT
-            ],
-            TeamRole.GUEST: [
-                Permission.VIEW,
-                Permission.COMMENT
-            ]
+            TeamRole.MEMBER: [Permission.VIEW, Permission.COMMENT, Permission.EDIT],
+            TeamRole.GUEST: [Permission.VIEW, Permission.COMMENT],
         }
 
-    def has_permission(
-        self,
-        member_role: TeamRole,
-        required_permission: Permission
-    ) -> bool:
+    def has_permission(self, member_role: TeamRole, required_permission: Permission) -> bool:
         """Check if role has permission"""
         return required_permission in self.role_permissions.get(member_role, [])
 
@@ -234,21 +230,11 @@ class TeamManager:
         self.members: Dict[str, List[TeamMember]] = {}  # team_id -> members
         self.permission_manager = PermissionManager()
 
-    def create_team(
-        self,
-        name: str,
-        description: str,
-        created_by: int
-    ) -> str:
+    def create_team(self, name: str, description: str, created_by: int) -> str:
         """Create new team"""
         team_id = str(uuid.uuid4())
 
-        team = Team(
-            id=team_id,
-            name=name,
-            description=description,
-            created_by=created_by
-        )
+        team = Team(id=team_id, name=name, description=description, created_by=created_by)
 
         self.teams[team_id] = team
 
@@ -257,23 +243,12 @@ class TeamManager:
 
         return team_id
 
-    def add_member(
-        self,
-        team_id: str,
-        user_id: int,
-        role: TeamRole,
-        invited_by: Optional[int] = None
-    ) -> bool:
+    def add_member(self, team_id: str, user_id: int, role: TeamRole, invited_by: Optional[int] = None) -> bool:
         """Add member to team"""
         if team_id not in self.teams:
             return False
 
-        member = TeamMember(
-            team_id=team_id,
-            user_id=user_id,
-            role=role,
-            invited_by=invited_by
-        )
+        member = TeamMember(team_id=team_id, user_id=user_id, role=role, invited_by=invited_by)
 
         if team_id not in self.members:
             self.members[team_id] = []
@@ -286,19 +261,11 @@ class TeamManager:
         if team_id not in self.members:
             return False
 
-        self.members[team_id] = [
-            m for m in self.members[team_id]
-            if m.user_id != user_id
-        ]
+        self.members[team_id] = [m for m in self.members[team_id] if m.user_id != user_id]
 
         return True
 
-    def update_member_role(
-        self,
-        team_id: str,
-        user_id: int,
-        new_role: TeamRole
-    ) -> bool:
+    def update_member_role(self, team_id: str, user_id: int, new_role: TeamRole) -> bool:
         """Update member role"""
         if team_id not in self.members:
             return False
@@ -351,7 +318,7 @@ class ChannelManager:
         description: str,
         channel_type: ChannelType,
         created_by: int,
-        members: Optional[List[int]] = None
+        members: Optional[List[int]] = None,
     ) -> str:
         """Create new channel"""
         channel_id = str(uuid.uuid4())
@@ -363,7 +330,7 @@ class ChannelManager:
             description=description,
             type=channel_type,
             created_by=created_by,
-            members=members or []
+            members=members or [],
         )
 
         self.channels[channel_id] = channel
@@ -377,7 +344,7 @@ class ChannelManager:
         user_id: int,
         content: str,
         parent_id: Optional[str] = None,
-        attachments: Optional[List[str]] = None
+        attachments: Optional[List[str]] = None,
     ) -> str:
         """Send message to channel"""
         if channel_id not in self.channels:
@@ -396,20 +363,14 @@ class ChannelManager:
             content=content,
             parent_id=parent_id,
             mentions=[],  # Would resolve to user IDs
-            attachments=attachments or []
+            attachments=attachments or [],
         )
 
         self.messages[channel_id].append(message)
 
         return message_id
 
-    def add_reaction(
-        self,
-        channel_id: str,
-        message_id: str,
-        user_id: int,
-        emoji: str
-    ) -> bool:
+    def add_reaction(self, channel_id: str, message_id: str, user_id: int, emoji: str) -> bool:
         """Add reaction to message"""
         if channel_id not in self.messages:
             return False
@@ -424,11 +385,7 @@ class ChannelManager:
 
         return False
 
-    def get_channel_messages(
-        self,
-        channel_id: str,
-        limit: int = 50
-    ) -> List[Message]:
+    def get_channel_messages(self, channel_id: str, limit: int = 50) -> List[Message]:
         """Get recent messages from channel"""
         if channel_id not in self.messages:
             return []
@@ -436,19 +393,12 @@ class ChannelManager:
         messages = self.messages[channel_id]
         return messages[-limit:]  # Most recent
 
-    def get_thread_messages(
-        self,
-        channel_id: str,
-        parent_message_id: str
-    ) -> List[Message]:
+    def get_thread_messages(self, channel_id: str, parent_message_id: str) -> List[Message]:
         """Get threaded replies"""
         if channel_id not in self.messages:
             return []
 
-        return [
-            m for m in self.messages[channel_id]
-            if m.parent_id == parent_message_id
-        ]
+        return [m for m in self.messages[channel_id] if m.parent_id == parent_message_id]
 
 
 class CommentManager:
@@ -458,12 +408,7 @@ class CommentManager:
         self.comments: Dict[str, List[Comment]] = {}  # resource_id -> comments
 
     def add_comment(
-        self,
-        resource_type: str,
-        resource_id: str,
-        user_id: int,
-        content: str,
-        parent_id: Optional[str] = None
+        self, resource_type: str, resource_id: str, user_id: int, content: str, parent_id: Optional[str] = None
     ) -> str:
         """Add comment to resource"""
         comment_id = str(uuid.uuid4())
@@ -479,7 +424,7 @@ class CommentManager:
             user_id=user_id,
             content=content,
             parent_id=parent_id,
-            mentions=[]  # Would resolve to user IDs
+            mentions=[],  # Would resolve to user IDs
         )
 
         key = f"{resource_type}:{resource_id}"
@@ -490,13 +435,7 @@ class CommentManager:
 
         return comment_id
 
-    def edit_comment(
-        self,
-        resource_type: str,
-        resource_id: str,
-        comment_id: str,
-        new_content: str
-    ) -> bool:
+    def edit_comment(self, resource_type: str, resource_id: str, comment_id: str, new_content: str) -> bool:
         """Edit comment"""
         key = f"{resource_type}:{resource_id}"
         if key not in self.comments:
@@ -510,30 +449,17 @@ class CommentManager:
 
         return False
 
-    def delete_comment(
-        self,
-        resource_type: str,
-        resource_id: str,
-        comment_id: str
-    ) -> bool:
+    def delete_comment(self, resource_type: str, resource_id: str, comment_id: str) -> bool:
         """Delete comment"""
         key = f"{resource_type}:{resource_id}"
         if key not in self.comments:
             return False
 
-        self.comments[key] = [
-            c for c in self.comments[key]
-            if c.id != comment_id
-        ]
+        self.comments[key] = [c for c in self.comments[key] if c.id != comment_id]
 
         return True
 
-    def resolve_comment(
-        self,
-        resource_type: str,
-        resource_id: str,
-        comment_id: str
-    ) -> bool:
+    def resolve_comment(self, resource_type: str, resource_id: str, comment_id: str) -> bool:
         """Mark comment as resolved"""
         key = f"{resource_type}:{resource_id}"
         if key not in self.comments:
@@ -546,12 +472,7 @@ class CommentManager:
 
         return False
 
-    def get_comments(
-        self,
-        resource_type: str,
-        resource_id: str,
-        include_resolved: bool = False
-    ) -> List[Comment]:
+    def get_comments(self, resource_type: str, resource_id: str, include_resolved: bool = False) -> List[Comment]:
         """Get comments for resource"""
         key = f"{resource_type}:{resource_id}"
         comments = self.comments.get(key, [])
@@ -576,7 +497,7 @@ class ActivityFeed:
         title: str,
         description: str,
         resource_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Add activity to feed"""
         activity_id = str(uuid.uuid4())
@@ -589,7 +510,7 @@ class ActivityFeed:
             title=title,
             description=description,
             resource_id=resource_id,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         if team_id not in self.activities:
@@ -603,11 +524,7 @@ class ActivityFeed:
 
         return activity_id
 
-    def get_team_feed(
-        self,
-        team_id: str,
-        limit: int = 50
-    ) -> List[Activity]:
+    def get_team_feed(self, team_id: str, limit: int = 50) -> List[Activity]:
         """Get team activity feed"""
         if team_id not in self.activities:
             return []
@@ -615,20 +532,12 @@ class ActivityFeed:
         activities = self.activities[team_id]
         return activities[-limit:]  # Most recent
 
-    def get_user_feed(
-        self,
-        team_id: str,
-        user_id: int,
-        limit: int = 50
-    ) -> List[Activity]:
+    def get_user_feed(self, team_id: str, user_id: int, limit: int = 50) -> List[Activity]:
         """Get activities for specific user"""
         if team_id not in self.activities:
             return []
 
-        user_activities = [
-            a for a in self.activities[team_id]
-            if a.user_id == user_id
-        ]
+        user_activities = [a for a in self.activities[team_id] if a.user_id == user_id]
 
         return user_activities[-limit:]
 
@@ -648,7 +557,7 @@ class FileManager:
         size_bytes: int,
         mime_type: str,
         uploaded_by: int,
-        description: str = ""
+        description: str = "",
     ) -> str:
         """Upload file to team"""
         file_id = str(uuid.uuid4())
@@ -662,7 +571,7 @@ class FileManager:
             size_bytes=size_bytes,
             mime_type=mime_type,
             uploaded_by=uploaded_by,
-            description=description
+            description=description,
         )
 
         if team_id not in self.files:
@@ -672,11 +581,7 @@ class FileManager:
 
         return file_id
 
-    def get_team_files(
-        self,
-        team_id: str,
-        channel_id: Optional[str] = None
-    ) -> List[SharedFile]:
+    def get_team_files(self, team_id: str, channel_id: Optional[str] = None) -> List[SharedFile]:
         """Get files for team or channel"""
         if team_id not in self.files:
             return []
@@ -710,7 +615,7 @@ class CollaborationEngine:
             name="general",
             description="General discussion",
             channel_type=ChannelType.PUBLIC,
-            created_by=created_by
+            created_by=created_by,
         )
 
         self.channel_manager.create_channel(
@@ -718,7 +623,7 @@ class CollaborationEngine:
             name="announcements",
             description="Team announcements",
             channel_type=ChannelType.PUBLIC,
-            created_by=created_by
+            created_by=created_by,
         )
 
         # Log activity
@@ -727,18 +632,12 @@ class CollaborationEngine:
             activity_type=ActivityType.MEMBER_JOINED,
             user_id=created_by,
             title="Team Created",
-            description=f"Team '{name}' was created"
+            description=f"Team '{name}' was created",
         )
 
         return team_id
 
-    def invite_member(
-        self,
-        team_id: str,
-        user_id: int,
-        role: TeamRole,
-        invited_by: int
-    ) -> bool:
+    def invite_member(self, team_id: str, user_id: int, role: TeamRole, invited_by: int) -> bool:
         """Invite member to team"""
         success = self.team_manager.add_member(team_id, user_id, role, invited_by)
 
@@ -749,7 +648,7 @@ class CollaborationEngine:
                 activity_type=ActivityType.MEMBER_JOINED,
                 user_id=user_id,
                 title="Member Joined",
-                description=f"User {user_id} joined the team"
+                description=f"User {user_id} joined the team",
             )
 
         return success
@@ -767,12 +666,12 @@ class CollaborationEngine:
         files = self.file_manager.get_team_files(team_id)
 
         return {
-            'team_id': team_id,
-            'members_count': len(members),
-            'channels_count': len(channels),
-            'messages_count': total_messages,
-            'files_count': len(files),
-            'activity_count': len(self.activity_feed.get_team_feed(team_id, limit=999999))
+            "team_id": team_id,
+            "members_count": len(members),
+            "channels_count": len(channels),
+            "messages_count": total_messages,
+            "files_count": len(files),
+            "activity_count": len(self.activity_feed.get_team_feed(team_id, limit=999999)),
         }
 
 

@@ -5,24 +5,22 @@ Document Generator - Генератор документов
 Заполнение шаблона данными и экспорт в различные форматы.
 """
 
-import sys
 import argparse
-from pathlib import Path
-from typing import Dict, Any, Optional
 import re
+import sys
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from src.core.exporter import DocumentExporter
 from src.core.parser import TemplateParser
 from src.core.validator import TemplateValidator
-from src.core.exporter import DocumentExporter
 from src.models.service import Service
-from src.utils.formatting import (
-    header, section, success, error, warning, info
-)
-from src.utils.helpers import load_config, get_date_string, sanitize_filename
 from src.utils.constants import EXPORT_FORMATS
+from src.utils.formatting import error, header, info, section, success, warning
+from src.utils.helpers import get_date_string, load_config, sanitize_filename
 
 
 class DocumentGenerator:
@@ -49,7 +47,7 @@ class DocumentGenerator:
             True if successful
         """
         try:
-            with open(self.template_path, 'r', encoding='utf-8') as f:
+            with open(self.template_path, "r", encoding="utf-8") as f:
                 self.template_content = f.read()
             return True
         except Exception as e:
@@ -75,7 +73,7 @@ class DocumentGenerator:
             value = self._get_nested_value(data, var_name)
             return str(value) if value is not None else match.group(0)
 
-        filled_content = re.sub(r'\{([^}]+)\}', replace_variable, content)
+        filled_content = re.sub(r"\{([^}]+)\}", replace_variable, content)
 
         return filled_content
 
@@ -99,7 +97,6 @@ class DocumentGenerator:
             "Дата": service.basic_info.document_date or get_date_string(),
             "Версия": service.basic_info.document_version,
             "ФИО_должность": service.basic_info.responsible_person,
-
             # Financial parameters
             "Rate_Brut": f"{float(service.financial.brutto_rate):.2f}",
             "KV_ER": f"{float(service.financial.insurance_rates.kv_er):.2f}",
@@ -112,20 +109,17 @@ class DocumentGenerator:
             "U1": f"{float(service.financial.umlages.u1):.2f}",
             "U2": f"{float(service.financial.umlages.u2):.2f}",
             "U3": f"{float(service.financial.umlages.u3):.2f}",
-
             # Surcharges
             "Night_Add": f"{float(service.financial.surcharges.night):.0f}",
             "WE_Add": f"{float(service.financial.surcharges.weekend):.0f}",
             "Holiday_Add": f"{float(service.financial.surcharges.holiday):.0f}",
             "Urgent_Add": f"{float(service.financial.surcharges.urgent):.0f}",
-
             # Materials and admin
             "Materials_pm": f"{float(service.financial.materials_per_month):.2f}",
             "Materials_ph": f"{float(service.financial.materials_per_hour):.2f}",
             "Admin_pct": f"{float(service.financial.admin_percent):.1f}",
             "Admin_ph": f"{float(service.financial.admin_per_hour):.2f}",
             "Region_K": f"{float(service.financial.region_coefficient):.2f}",
-
             # Funding
             "Eingliederungshilfe": service.funding.payer,
             "Перечень": ", ".join(service.funding.documents) if service.funding.documents else "N/A",
@@ -169,12 +163,7 @@ class DocumentGenerator:
             print(error(f"Ошибка при заполнении шаблона: {e}"))
             return None
 
-    def generate_document(
-        self,
-        config_path: str,
-        output_path: str,
-        output_format: str = "txt"
-    ) -> bool:
+    def generate_document(self, config_path: str, output_path: str, output_format: str = "txt") -> bool:
         """
         Generate filled document
 
@@ -203,7 +192,7 @@ class DocumentGenerator:
         print(success("Шаблон успешно заполнен"))
 
         # Check for unfilled variables
-        unfilled = re.findall(r'\{([^}]+)\}', filled_content)
+        unfilled = re.findall(r"\{([^}]+)\}", filled_content)
         if unfilled:
             print(warning(f"Обнаружены незаполненные переменные ({len(set(unfilled))}):"))
             for var in list(set(unfilled))[:10]:  # Show first 10
@@ -224,13 +213,13 @@ class DocumentGenerator:
             elif output_format == "pdf":
                 if not self.exporter.export_to_pdf(filled_content, output_path):
                     print(warning("PDF экспорт недоступен (требуется weasyprint). Создан HTML вместо этого."))
-                    html_path = output_path.replace('.pdf', '.html')
+                    html_path = output_path.replace(".pdf", ".html")
                     self.exporter.export_to_html(filled_content, html_path)
                     output_path = html_path
             elif output_format == "docx":
                 if not self.exporter.export_to_docx(filled_content, output_path):
                     print(warning("DOCX экспорт недоступен (требуется python-docx). Создан TXT вместо этого."))
-                    txt_path = output_path.replace('.docx', '.txt')
+                    txt_path = output_path.replace(".docx", ".txt")
                     self.exporter.export_to_text(filled_content, txt_path)
                     output_path = txt_path
             else:
@@ -261,8 +250,8 @@ class DocumentGenerator:
         print(header("ПАКЕТНАЯ ГЕНЕРАЦИЯ ДОКУМЕНТОВ"))
 
         config_files = []
-        for ext in ['.yaml', '.yml', '.json']:
-            config_files.extend(Path(config_dir).glob(f'*{ext}'))
+        for ext in [".yaml", ".yml", ".json"]:
+            config_files.extend(Path(config_dir).glob(f"*{ext}"))
 
         if not config_files:
             print(warning(f"Конфигурационные файлы не найдены в {config_dir}"))
@@ -301,7 +290,7 @@ class DocumentGenerator:
             return data[key]
 
         # Try nested with dots
-        parts = key.split('.')
+        parts = key.split(".")
         value = data
         for part in parts:
             if isinstance(value, dict) and part in value:
@@ -314,44 +303,29 @@ class DocumentGenerator:
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
-        description="Генератор документов из шаблонов",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Генератор документов из шаблонов", formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    parser.add_argument(
-        "config",
-        nargs="?",
-        help="Путь к файлу конфигурации (YAML или JSON)"
-    )
+    parser.add_argument("config", nargs="?", help="Путь к файлу конфигурации (YAML или JSON)")
+
+    parser.add_argument("-o", "--output", help="Путь к выходному файлу")
 
     parser.add_argument(
-        "-o", "--output",
-        help="Путь к выходному файлу"
-    )
-
-    parser.add_argument(
-        "-f", "--format",
+        "-f",
+        "--format",
         choices=["txt", "md", "html", "pdf", "docx"],
         default="txt",
-        help="Формат выходного файла (по умолчанию: txt)"
+        help="Формат выходного файла (по умолчанию: txt)",
     )
 
     parser.add_argument(
-        "-t", "--template",
-        default="mSchablone",
-        help="Путь к файлу шаблона (по умолчанию: mSchablone)"
+        "-t", "--template", default="mSchablone", help="Путь к файлу шаблона (по умолчанию: mSchablone)"
     )
 
-    parser.add_argument(
-        "--batch",
-        metavar="DIR",
-        help="Пакетная генерация из директории с конфигурациями"
-    )
+    parser.add_argument("--batch", metavar="DIR", help="Пакетная генерация из директории с конфигурациями")
 
     parser.add_argument(
-        "--output-dir",
-        default="data/exports",
-        help="Директория для выходных файлов при пакетной генерации"
+        "--output-dir", default="data/exports", help="Директория для выходных файлов при пакетной генерации"
     )
 
     args = parser.parse_args()

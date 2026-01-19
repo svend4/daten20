@@ -16,7 +16,6 @@ from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Set, Union
 from uuid import uuid4
 
-
 # ============================================================================
 # Serverless Platform
 # ============================================================================
@@ -24,6 +23,7 @@ from uuid import uuid4
 
 class FunctionRuntime(Enum):
     """Function runtimes"""
+
     PYTHON_3_9 = "python3.9"
     PYTHON_3_11 = "python3.11"
     NODEJS_18 = "nodejs18"
@@ -35,6 +35,7 @@ class FunctionRuntime(Enum):
 
 class TriggerType(Enum):
     """Function trigger types"""
+
     HTTP = "http"
     SCHEDULE = "schedule"
     QUEUE = "queue"
@@ -45,6 +46,7 @@ class TriggerType(Enum):
 @dataclass
 class ServerlessFunction:
     """Serverless function"""
+
     function_id: str
     name: str
     runtime: FunctionRuntime
@@ -59,6 +61,7 @@ class ServerlessFunction:
 @dataclass
 class FunctionExecution:
     """Function execution"""
+
     execution_id: str
     function_id: str
     status: str = "running"
@@ -83,11 +86,7 @@ class ServerlessPlatform:
         self._executions: List[FunctionExecution] = []
         self._warm_instances: Dict[str, int] = defaultdict(int)
         self._lock = Lock()
-        self._stats = {
-            'total_invocations': 0,
-            'cold_starts': 0,
-            'total_duration_ms': 0
-        }
+        self._stats = {"total_invocations": 0, "cold_starts": 0, "total_duration_ms": 0}
 
     def deploy_function(
         self,
@@ -96,7 +95,7 @@ class ServerlessPlatform:
         handler: str,
         memory_mb: int = 512,
         timeout_seconds: int = 30,
-        environment: Optional[Dict[str, str]] = None
+        environment: Optional[Dict[str, str]] = None,
     ) -> ServerlessFunction:
         """Deploy serverless function"""
         function_id = str(uuid4())
@@ -108,7 +107,7 @@ class ServerlessPlatform:
             handler=handler,
             memory_mb=memory_mb,
             timeout_seconds=timeout_seconds,
-            environment=environment or {}
+            environment=environment or {},
         )
 
         with self._lock:
@@ -117,10 +116,7 @@ class ServerlessPlatform:
         return function
 
     async def invoke_function(
-        self,
-        function_id: str,
-        event: Dict[str, Any],
-        context: Optional[Dict[str, Any]] = None
+        self, function_id: str, event: Dict[str, Any], context: Optional[Dict[str, Any]] = None
     ) -> FunctionExecution:
         """Invoke serverless function"""
         function = self._functions.get(function_id)
@@ -136,11 +132,7 @@ class ServerlessPlatform:
             with self._lock:
                 self._warm_instances[function_id] -= 1
 
-        execution = FunctionExecution(
-            execution_id=execution_id,
-            function_id=function_id,
-            cold_start=cold_start
-        )
+        execution = FunctionExecution(execution_id=execution_id, function_id=function_id, cold_start=cold_start)
 
         # Simulate execution
         start_time = time.time()
@@ -150,7 +142,7 @@ class ServerlessPlatform:
             if cold_start:
                 await asyncio.sleep(0.1)  # 100ms cold start
                 with self._lock:
-                    self._stats['cold_starts'] += 1
+                    self._stats["cold_starts"] += 1
 
             # Execute function (simulated)
             await asyncio.sleep(0.01)  # 10ms execution
@@ -170,20 +162,15 @@ class ServerlessPlatform:
 
         with self._lock:
             self._executions.append(execution)
-            self._stats['total_invocations'] += 1
-            self._stats['total_duration_ms'] += duration_ms
+            self._stats["total_invocations"] += 1
+            self._stats["total_duration_ms"] += duration_ms
 
             # Keep instance warm for next call
             self._warm_instances[function_id] += 1
 
         return execution
 
-    def add_trigger(
-        self,
-        function_id: str,
-        trigger_type: TriggerType,
-        config: Dict[str, Any]
-    ) -> str:
+    def add_trigger(self, function_id: str, trigger_type: TriggerType, config: Dict[str, Any]) -> str:
         """Add trigger to function"""
         function = self._functions.get(function_id)
         if not function:
@@ -199,22 +186,24 @@ class ServerlessPlatform:
     def get_statistics(self) -> Dict[str, Any]:
         """Get platform statistics"""
         avg_duration = (
-            self._stats['total_duration_ms'] / self._stats['total_invocations']
-            if self._stats['total_invocations'] > 0 else 0
+            self._stats["total_duration_ms"] / self._stats["total_invocations"]
+            if self._stats["total_invocations"] > 0
+            else 0
         )
 
         cold_start_rate = (
-            self._stats['cold_starts'] / self._stats['total_invocations'] * 100
-            if self._stats['total_invocations'] > 0 else 0
+            self._stats["cold_starts"] / self._stats["total_invocations"] * 100
+            if self._stats["total_invocations"] > 0
+            else 0
         )
 
         return {
-            'total_functions': len(self._functions),
-            'total_invocations': self._stats['total_invocations'],
-            'cold_starts': self._stats['cold_starts'],
-            'cold_start_rate': round(cold_start_rate, 1),
-            'avg_duration_ms': round(avg_duration, 1),
-            'warm_instances': sum(self._warm_instances.values())
+            "total_functions": len(self._functions),
+            "total_invocations": self._stats["total_invocations"],
+            "cold_starts": self._stats["cold_starts"],
+            "cold_start_rate": round(cold_start_rate, 1),
+            "avg_duration_ms": round(avg_duration, 1),
+            "warm_instances": sum(self._warm_instances.values()),
         }
 
 
@@ -237,6 +226,7 @@ def get_serverless_platform() -> ServerlessPlatform:
 
 class CloudProvider(Enum):
     """Cloud providers"""
+
     AWS = "aws"
     AZURE = "azure"
     GCP = "gcp"
@@ -246,6 +236,7 @@ class CloudProvider(Enum):
 
 class CloudResource(Enum):
     """Cloud resource types"""
+
     COMPUTE = "compute"
     STORAGE = "storage"
     DATABASE = "database"
@@ -256,6 +247,7 @@ class CloudResource(Enum):
 @dataclass
 class CloudDeployment:
     """Cloud deployment"""
+
     deployment_id: str
     resource_type: CloudResource
     providers: List[CloudProvider]
@@ -279,17 +271,10 @@ class MultiCloudPlatform:
         self._failovers: List[Dict[str, Any]] = []
         self._lock = Lock()
 
-    def add_provider(
-        self,
-        provider: CloudProvider,
-        credentials: Dict[str, Any]
-    ):
+    def add_provider(self, provider: CloudProvider, credentials: Dict[str, Any]):
         """Configure cloud provider"""
         with self._lock:
-            self._providers[provider] = {
-                'credentials': credentials,
-                'configured_at': datetime.now()
-            }
+            self._providers[provider] = {"credentials": credentials, "configured_at": datetime.now()}
 
     async def deploy(
         self,
@@ -298,7 +283,7 @@ class MultiCloudPlatform:
         regions: List[str],
         instances: int = 1,
         failover_enabled: bool = False,
-        **config
+        **config,
     ) -> CloudDeployment:
         """Deploy resource to multiple clouds"""
         deployment_id = str(uuid4())
@@ -309,7 +294,7 @@ class MultiCloudPlatform:
             providers=providers,
             regions=regions,
             instances=instances,
-            failover_enabled=failover_enabled
+            failover_enabled=failover_enabled,
         )
 
         with self._lock:
@@ -322,23 +307,18 @@ class MultiCloudPlatform:
 
         return deployment
 
-    async def failover(
-        self,
-        deployment_id: str,
-        from_provider: CloudProvider,
-        to_provider: CloudProvider
-    ) -> bool:
+    async def failover(self, deployment_id: str, from_provider: CloudProvider, to_provider: CloudProvider) -> bool:
         """Execute failover between clouds"""
         deployment = self._deployments.get(deployment_id)
         if not deployment or not deployment.failover_enabled:
             return False
 
         failover_record = {
-            'deployment_id': deployment_id,
-            'from_provider': from_provider.value,
-            'to_provider': to_provider.value,
-            'timestamp': datetime.now(),
-            'duration_ms': 450  # Simulated
+            "deployment_id": deployment_id,
+            "from_provider": from_provider.value,
+            "to_provider": to_provider.value,
+            "timestamp": datetime.now(),
+            "duration_ms": 450,  # Simulated
         }
 
         with self._lock:
@@ -346,36 +326,27 @@ class MultiCloudPlatform:
 
         return True
 
-    async def optimize_costs(
-        self,
-        workload_type: str,
-        requirements: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+    async def optimize_costs(self, workload_type: str, requirements: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Optimize costs across clouds"""
         # Simulated cost optimization
         recommendations = [
             {
-                'provider': CloudProvider.AWS.value,
-                'region': 'us-east-1',
-                'cost_per_hour': 0.08,
-                'performance_score': 95
+                "provider": CloudProvider.AWS.value,
+                "region": "us-east-1",
+                "cost_per_hour": 0.08,
+                "performance_score": 95,
             },
             {
-                'provider': CloudProvider.GCP.value,
-                'region': 'us-central1',
-                'cost_per_hour': 0.09,
-                'performance_score': 93
+                "provider": CloudProvider.GCP.value,
+                "region": "us-central1",
+                "cost_per_hour": 0.09,
+                "performance_score": 93,
             },
-            {
-                'provider': CloudProvider.AZURE.value,
-                'region': 'eastus',
-                'cost_per_hour': 0.10,
-                'performance_score': 94
-            }
+            {"provider": CloudProvider.AZURE.value, "region": "eastus", "cost_per_hour": 0.10, "performance_score": 94},
         ]
 
         # Sort by cost
-        recommendations.sort(key=lambda x: x['cost_per_hour'])
+        recommendations.sort(key=lambda x: x["cost_per_hour"])
 
         return recommendations
 
@@ -387,10 +358,10 @@ class MultiCloudPlatform:
                 by_provider[provider.value] += 1
 
         return {
-            'total_deployments': len(self._deployments),
-            'configured_providers': len(self._providers),
-            'by_provider': dict(by_provider),
-            'total_failovers': len(self._failovers)
+            "total_deployments": len(self._deployments),
+            "configured_providers": len(self._providers),
+            "by_provider": dict(by_provider),
+            "total_failovers": len(self._failovers),
         }
 
 
@@ -413,6 +384,7 @@ def get_multicloud_platform() -> MultiCloudPlatform:
 
 class QuantumAlgorithm(Enum):
     """Post-quantum algorithms"""
+
     KYBER_512 = "kyber-512"
     KYBER_768 = "kyber-768"
     KYBER_1024 = "kyber-1024"
@@ -425,6 +397,7 @@ class QuantumAlgorithm(Enum):
 @dataclass
 class QuantumKeypair:
     """Quantum-resistant keypair"""
+
     keypair_id: str
     algorithm: QuantumAlgorithm
     public_key: bytes
@@ -442,16 +415,9 @@ class QuantumCrypto:
     def __init__(self):
         self._keypairs: Dict[str, QuantumKeypair] = {}
         self._lock = Lock()
-        self._stats = {
-            'encryptions': 0,
-            'signatures': 0,
-            'verifications': 0
-        }
+        self._stats = {"encryptions": 0, "signatures": 0, "verifications": 0}
 
-    async def generate_keypair(
-        self,
-        algorithm: QuantumAlgorithm = QuantumAlgorithm.KYBER_1024
-    ) -> QuantumKeypair:
+    async def generate_keypair(self, algorithm: QuantumAlgorithm = QuantumAlgorithm.KYBER_1024) -> QuantumKeypair:
         """Generate quantum-resistant keypair"""
         keypair_id = str(uuid4())
 
@@ -460,10 +426,7 @@ class QuantumCrypto:
         private_key = hashlib.sha256(f"private_{keypair_id}".encode()).digest()
 
         keypair = QuantumKeypair(
-            keypair_id=keypair_id,
-            algorithm=algorithm,
-            public_key=public_key,
-            private_key=private_key
+            keypair_id=keypair_id, algorithm=algorithm, public_key=public_key, private_key=private_key
         )
 
         with self._lock:
@@ -476,22 +439,18 @@ class QuantumCrypto:
         plaintext: bytes,
         recipient_public_key: bytes,
         classical_algorithm: str = "RSA-2048",
-        pq_algorithm: str = "Kyber-1024"
+        pq_algorithm: str = "Kyber-1024",
     ) -> bytes:
         """Hybrid encryption (classical + post-quantum)"""
         # Simulated hybrid encryption
         ciphertext = hashlib.sha256(plaintext + recipient_public_key).digest()
 
         with self._lock:
-            self._stats['encryptions'] += 1
+            self._stats["encryptions"] += 1
 
         return ciphertext
 
-    async def hybrid_decrypt(
-        self,
-        ciphertext: bytes,
-        private_key: bytes
-    ) -> bytes:
+    async def hybrid_decrypt(self, ciphertext: bytes, private_key: bytes) -> bytes:
         """Hybrid decryption"""
         # Simulated decryption
         plaintext = b"Decrypted: " + ciphertext[:16]
@@ -499,32 +458,24 @@ class QuantumCrypto:
         return plaintext
 
     async def sign(
-        self,
-        message: bytes,
-        private_key: bytes,
-        algorithm: QuantumAlgorithm = QuantumAlgorithm.DILITHIUM_5
+        self, message: bytes, private_key: bytes, algorithm: QuantumAlgorithm = QuantumAlgorithm.DILITHIUM_5
     ) -> bytes:
         """Quantum-resistant digital signature"""
         # Simulated signing
         signature = hashlib.sha256(message + private_key).digest()
 
         with self._lock:
-            self._stats['signatures'] += 1
+            self._stats["signatures"] += 1
 
         return signature
 
-    async def verify(
-        self,
-        message: bytes,
-        signature: bytes,
-        public_key: bytes
-    ) -> bool:
+    async def verify(self, message: bytes, signature: bytes, public_key: bytes) -> bool:
         """Verify quantum-resistant signature"""
         # Simulated verification
         expected_sig = hashlib.sha256(message + public_key).digest()
 
         with self._lock:
-            self._stats['verifications'] += 1
+            self._stats["verifications"] += 1
 
         # In real implementation, proper verification
         return len(signature) == len(expected_sig)
@@ -532,10 +483,10 @@ class QuantumCrypto:
     def get_statistics(self) -> Dict[str, Any]:
         """Get cryptography statistics"""
         return {
-            'total_keypairs': len(self._keypairs),
-            'encryptions': self._stats['encryptions'],
-            'signatures': self._stats['signatures'],
-            'verifications': self._stats['verifications']
+            "total_keypairs": len(self._keypairs),
+            "encryptions": self._stats["encryptions"],
+            "signatures": self._stats["signatures"],
+            "verifications": self._stats["verifications"],
         }
 
 
@@ -559,6 +510,7 @@ def get_quantum_crypto() -> QuantumCrypto:
 @dataclass
 class EdgeAIModel:
     """Edge AI model"""
+
     model_id: str
     name: str
     framework: str
@@ -572,6 +524,7 @@ class EdgeAIModel:
 @dataclass
 class InferenceResult:
     """AI inference result"""
+
     result_id: str
     model_id: str
     inference_time_ms: float
@@ -597,7 +550,7 @@ class EdgeAI:
         model_path: str,
         target_device: str = "mobile",
         optimization: str = "quantization",
-        target_size_mb: float = 5.0
+        target_size_mb: float = 5.0,
     ) -> EdgeAIModel:
         """Optimize model for edge deployment"""
         model_id = str(uuid4())
@@ -608,12 +561,12 @@ class EdgeAI:
 
         model = EdgeAIModel(
             model_id=model_id,
-            name=model_path.split('/')[-1],
+            name=model_path.split("/")[-1],
             framework="tensorflow_lite",
             size_mb=optimized_size,
             optimized=True,
             quantized=(optimization == "quantization"),
-            target_device=target_device
+            target_device=target_device,
         )
 
         with self._lock:
@@ -622,28 +575,20 @@ class EdgeAI:
         return model
 
     async def deploy_to_edge(
-        self,
-        model: EdgeAIModel,
-        devices: List[str],
-        fallback_to_cloud: bool = True
+        self, model: EdgeAIModel, devices: List[str], fallback_to_cloud: bool = True
     ) -> Dict[str, Any]:
         """Deploy model to edge devices"""
         deployment = {
-            'deployment_id': str(uuid4()),
-            'model_id': model.model_id,
-            'devices': devices,
-            'fallback_enabled': fallback_to_cloud,
-            'status': 'deployed'
+            "deployment_id": str(uuid4()),
+            "model_id": model.model_id,
+            "devices": devices,
+            "fallback_enabled": fallback_to_cloud,
+            "status": "deployed",
         }
 
         return deployment
 
-    async def infer(
-        self,
-        model_id: str,
-        input_data: Any,
-        device: str = "edge"
-    ) -> InferenceResult:
+    async def infer(self, model_id: str, input_data: Any, device: str = "edge") -> InferenceResult:
         """Run inference at edge"""
         model = self._models.get(model_id)
         if not model:
@@ -662,7 +607,7 @@ class EdgeAI:
             inference_time_ms=inference_time,
             confidence=0.95,
             prediction="class_A",
-            device=device
+            device=device,
         )
 
         with self._lock:
@@ -671,45 +616,36 @@ class EdgeAI:
         return result
 
     async def federated_train(
-        self,
-        model: EdgeAIModel,
-        edge_devices: List[str],
-        rounds: int = 10,
-        min_devices_per_round: int = 5
+        self, model: EdgeAIModel, edge_devices: List[str], rounds: int = 10, min_devices_per_round: int = 5
     ) -> Dict[str, Any]:
         """Federated learning across edge devices"""
         training = {
-            'training_id': str(uuid4()),
-            'model_id': model.model_id,
-            'rounds': rounds,
-            'devices': edge_devices,
-            'status': 'training',
-            'current_round': 0
+            "training_id": str(uuid4()),
+            "model_id": model.model_id,
+            "rounds": rounds,
+            "devices": edge_devices,
+            "status": "training",
+            "current_round": 0,
         }
 
         # Simulated federated training
         for round_num in range(rounds):
             await asyncio.sleep(0.1)
-            training['current_round'] = round_num + 1
+            training["current_round"] = round_num + 1
 
-        training['status'] = 'completed'
+        training["status"] = "completed"
 
         return training
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get Edge AI statistics"""
-        total_inference_time = sum(
-            r.inference_time_ms for r in self._inferences
-        )
-        avg_inference_time = (
-            total_inference_time / len(self._inferences)
-            if self._inferences else 0
-        )
+        total_inference_time = sum(r.inference_time_ms for r in self._inferences)
+        avg_inference_time = total_inference_time / len(self._inferences) if self._inferences else 0
 
         return {
-            'total_models': len(self._models),
-            'total_inferences': len(self._inferences),
-            'avg_inference_time_ms': round(avg_inference_time, 1)
+            "total_models": len(self._models),
+            "total_inferences": len(self._inferences),
+            "avg_inference_time_ms": round(avg_inference_time, 1),
         }
 
 
@@ -733,6 +669,7 @@ def get_edge_ai() -> EdgeAI:
 @dataclass
 class VoiceCommand:
     """Voice command"""
+
     command_id: str
     transcript: str
     intent: str
@@ -758,33 +695,18 @@ class VoiceInterface:
     def _initialize_intents(self) -> Dict[str, List[str]]:
         """Initialize voice command intents"""
         return {
-            'create_document': [
-                r'create (a |an )?new document',
-                r'make (a |an )?document',
-                r'new document (titled|called|named)'
+            "create_document": [
+                r"create (a |an )?new document",
+                r"make (a |an )?document",
+                r"new document (titled|called|named)",
             ],
-            'search_documents': [
-                r'search for',
-                r'find (documents?|files?)',
-                r'show me (documents?|files?)'
-            ],
-            'show_report': [
-                r'show (me )?(the )?report',
-                r'display (the )?report',
-                r'open (the )?report'
-            ],
-            'send_message': [
-                r'send (this|it) to',
-                r'email (this|it) to',
-                r'share (this|it) with'
-            ]
+            "search_documents": [r"search for", r"find (documents?|files?)", r"show me (documents?|files?)"],
+            "show_report": [r"show (me )?(the )?report", r"display (the )?report", r"open (the )?report"],
+            "send_message": [r"send (this|it) to", r"email (this|it) to", r"share (this|it) with"],
         }
 
     async def process_command(
-        self,
-        audio_data: bytes,
-        language: str = "en-US",
-        user_id: Optional[str] = None
+        self, audio_data: bytes, language: str = "en-US", user_id: Optional[str] = None
     ) -> VoiceCommand:
         """Process voice command"""
         command_id = str(uuid4())
@@ -805,7 +727,7 @@ class VoiceInterface:
             entities=entities,
             confidence=0.95,
             language=language,
-            user_id=user_id
+            user_id=user_id,
         )
 
         with self._lock:
@@ -820,46 +742,35 @@ class VoiceInterface:
         for intent, patterns in self._intents.items():
             for pattern in patterns:
                 import re
+
                 if re.search(pattern, transcript_lower):
                     return intent
 
         return "unknown"
 
-    def _extract_entities(
-        self,
-        transcript: str,
-        intent: str
-    ) -> Dict[str, Any]:
+    def _extract_entities(self, transcript: str, intent: str) -> Dict[str, Any]:
         """Extract entities from transcript"""
         entities = {}
 
         # Simple entity extraction
         if intent == "create_document":
             import re
-            match = re.search(r'titled (.+?)$', transcript, re.IGNORECASE)
+
+            match = re.search(r"titled (.+?)$", transcript, re.IGNORECASE)
             if match:
-                entities['title'] = match.group(1).strip()
+                entities["title"] = match.group(1).strip()
 
         return entities
 
-    async def authenticate(
-        self,
-        audio_sample: bytes,
-        claimed_identity: str
-    ) -> bool:
+    async def authenticate(self, audio_sample: bytes, claimed_identity: str) -> bool:
         """Voice biometric authentication"""
         # Simulated voice authentication
         return True
 
-    async def synthesize(
-        self,
-        text: str,
-        voice: str = "neural-female",
-        language: str = "en-US"
-    ) -> bytes:
+    async def synthesize(self, text: str, voice: str = "neural-female", language: str = "en-US") -> bytes:
         """Text-to-speech synthesis"""
         # Simulated TTS
-        audio_data = text.encode('utf-8')
+        audio_data = text.encode("utf-8")
 
         return audio_data
 
@@ -869,15 +780,12 @@ class VoiceInterface:
         for command in self._commands:
             by_intent[command.intent] += 1
 
-        avg_confidence = (
-            sum(c.confidence for c in self._commands) / len(self._commands)
-            if self._commands else 0
-        )
+        avg_confidence = sum(c.confidence for c in self._commands) / len(self._commands) if self._commands else 0
 
         return {
-            'total_commands': len(self._commands),
-            'by_intent': dict(by_intent),
-            'avg_confidence': round(avg_confidence, 2)
+            "total_commands": len(self._commands),
+            "by_intent": dict(by_intent),
+            "avg_confidence": round(avg_confidence, 2),
         }
 
 
@@ -900,6 +808,7 @@ def get_voice_interface() -> VoiceInterface:
 
 class VRSpaceType(Enum):
     """VR space types"""
+
     OFFICE = "office"
     CONFERENCE_ROOM = "conference_room"
     EXHIBITION = "exhibition"
@@ -910,6 +819,7 @@ class VRSpaceType(Enum):
 @dataclass
 class VirtualSpace:
     """Virtual reality space"""
+
     space_id: str
     name: str
     space_type: VRSpaceType
@@ -922,6 +832,7 @@ class VirtualSpace:
 @dataclass
 class AROverlay:
     """Augmented reality overlay"""
+
     overlay_id: str
     document_id: str
     anchor_type: str
@@ -943,21 +854,13 @@ class MetaversePlatform:
         self._lock = Lock()
 
     async def create_space(
-        self,
-        name: str,
-        space_type: VRSpaceType,
-        capacity: int = 20,
-        features: Optional[List[str]] = None
+        self, name: str, space_type: VRSpaceType, capacity: int = 20, features: Optional[List[str]] = None
     ) -> VirtualSpace:
         """Create virtual space"""
         space_id = str(uuid4())
 
         space = VirtualSpace(
-            space_id=space_id,
-            name=name,
-            space_type=space_type,
-            capacity=capacity,
-            features=features or []
+            space_id=space_id, name=name, space_type=space_type, capacity=capacity, features=features or []
         )
 
         with self._lock:
@@ -966,19 +869,13 @@ class MetaversePlatform:
         return space
 
     async def create_ar_overlay(
-        self,
-        document_id: str,
-        anchor_type: str = "qr_code",
-        display_mode: str = "floating"
+        self, document_id: str, anchor_type: str = "qr_code", display_mode: str = "floating"
     ) -> AROverlay:
         """Create AR overlay for document"""
         overlay_id = str(uuid4())
 
         overlay = AROverlay(
-            overlay_id=overlay_id,
-            document_id=document_id,
-            anchor_type=anchor_type,
-            display_mode=display_mode
+            overlay_id=overlay_id, document_id=document_id, anchor_type=anchor_type, display_mode=display_mode
         )
 
         with self._lock:
@@ -986,12 +883,7 @@ class MetaversePlatform:
 
         return overlay
 
-    async def join_vr_session(
-        self,
-        space_id: str,
-        user_id: str,
-        avatar_url: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def join_vr_session(self, space_id: str, user_id: str, avatar_url: Optional[str] = None) -> Dict[str, Any]:
         """Join VR session"""
         space = self._spaces.get(space_id)
         if not space:
@@ -1003,11 +895,11 @@ class MetaversePlatform:
         session_id = str(uuid4())
 
         session = {
-            'session_id': session_id,
-            'space_id': space_id,
-            'user_id': user_id,
-            'avatar_url': avatar_url,
-            'joined_at': datetime.now()
+            "session_id": session_id,
+            "space_id": space_id,
+            "user_id": user_id,
+            "avatar_url": avatar_url,
+            "joined_at": datetime.now(),
         }
 
         with self._lock:
@@ -1016,34 +908,29 @@ class MetaversePlatform:
 
         return session
 
-    async def leave_vr_session(
-        self,
-        session_id: str
-    ) -> bool:
+    async def leave_vr_session(self, session_id: str) -> bool:
         """Leave VR session"""
         session = self._sessions.get(session_id)
         if not session:
             return False
 
-        space = self._spaces.get(session['space_id'])
+        space = self._spaces.get(session["space_id"])
         if space:
             with self._lock:
-                space.participants.discard(session['user_id'])
+                space.participants.discard(session["user_id"])
                 del self._sessions[session_id]
 
         return True
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get metaverse statistics"""
-        active_participants = sum(
-            len(space.participants) for space in self._spaces.values()
-        )
+        active_participants = sum(len(space.participants) for space in self._spaces.values())
 
         return {
-            'total_spaces': len(self._spaces),
-            'total_overlays': len(self._overlays),
-            'active_sessions': len(self._sessions),
-            'active_participants': active_participants
+            "total_spaces": len(self._spaces),
+            "total_overlays": len(self._overlays),
+            "active_sessions": len(self._sessions),
+            "active_participants": active_participants,
         }
 
 

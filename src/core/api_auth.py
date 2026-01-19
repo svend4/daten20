@@ -5,17 +5,18 @@ Provides API key-based authentication for REST API endpoints.
 Includes API key generation, validation, and management.
 """
 
-import secrets
 import hashlib
-import sqlite3
 import logging
-from typing import Optional, Callable
-from functools import wraps
+import secrets
+import sqlite3
 from datetime import datetime, timedelta
+from functools import wraps
 from pathlib import Path
-from flask import request, jsonify, g
+from typing import Callable, Optional
 
-logger = logging.getLogger('dms.api_auth')
+from flask import g, jsonify, request
+
+logger = logging.getLogger("dms.api_auth")
 
 
 class APIKeyManager:
@@ -25,7 +26,7 @@ class APIKeyManager:
     Manages API key generation, validation, and storage.
     """
 
-    def __init__(self, db_path: str = 'data/db/users.db'):
+    def __init__(self, db_path: str = "data/db/users.db"):
         """
         Initialize API key manager.
 
@@ -43,7 +44,8 @@ class APIKeyManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS api_keys (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 key_hash TEXT UNIQUE NOT NULL,
@@ -59,23 +61,30 @@ class APIKeyManager:
                 metadata TEXT DEFAULT '{}',
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
-        ''')
+        """
+        )
 
         # Indexes
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_api_key_hash
             ON api_keys(key_hash)
-        ''')
+        """
+        )
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_api_key_prefix
             ON api_keys(key_prefix)
-        ''')
+        """
+        )
 
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_api_key_user
             ON api_keys(user_id)
-        ''')
+        """
+        )
 
         conn.commit()
         conn.close()
@@ -88,7 +97,7 @@ class APIKeyManager:
         user_id: Optional[int] = None,
         expires_in_days: Optional[int] = None,
         permissions: Optional[list] = None,
-        rate_limit: int = 1000
+        rate_limit: int = 1000,
     ) -> str:
         """
         Generate new API key.
@@ -122,13 +131,17 @@ class APIKeyManager:
         cursor = conn.cursor()
 
         import json
+
         permissions_json = json.dumps(permissions or [])
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO api_keys
             (key_hash, key_prefix, name, user_id, expires_at, permissions, rate_limit)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (key_hash, key_prefix, name, user_id, expires_at, permissions_json, rate_limit))
+        """,
+            (key_hash, key_prefix, name, user_id, expires_at, permissions_json, rate_limit),
+        )
 
         conn.commit()
         conn.close()
@@ -146,7 +159,7 @@ class APIKeyManager:
         Returns:
             Key info dict or None if invalid
         """
-        if not api_key or not api_key.startswith('dms_'):
+        if not api_key or not api_key.startswith("dms_"):
             return None
 
         # Hash key
@@ -156,10 +169,13 @@ class APIKeyManager:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT * FROM api_keys
             WHERE key_hash = ? AND is_active = 1
-        ''', (key_hash,))
+        """,
+            (key_hash,),
+        )
 
         row = cursor.fetchone()
 
@@ -169,19 +185,22 @@ class APIKeyManager:
             return None
 
         # Check expiration
-        if row['expires_at']:
-            expires_at = datetime.fromisoformat(row['expires_at'])
+        if row["expires_at"]:
+            expires_at = datetime.fromisoformat(row["expires_at"])
             if expires_at < datetime.now():
                 conn.close()
                 logger.debug("API key expired")
                 return None
 
         # Update last used timestamp
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE api_keys
             SET last_used_at = datetime('now')
             WHERE key_hash = ?
-        ''', (key_hash,))
+        """,
+            (key_hash,),
+        )
 
         conn.commit()
 
@@ -191,8 +210,9 @@ class APIKeyManager:
 
         # Parse JSON fields
         import json
-        key_info['permissions'] = json.loads(key_info['permissions'])
-        key_info['metadata'] = json.loads(key_info['metadata'])
+
+        key_info["permissions"] = json.loads(key_info["permissions"])
+        key_info["metadata"] = json.loads(key_info["metadata"])
 
         logger.debug(f"API key validated: {key_info['key_prefix']}...")
         return key_info
@@ -209,11 +229,14 @@ class APIKeyManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             UPDATE api_keys
             SET is_active = 0
             WHERE key_hash = ?
-        ''', (key_hash,))
+        """,
+            (key_hash,),
+        )
 
         conn.commit()
         conn.close()
@@ -235,20 +258,26 @@ class APIKeyManager:
         cursor = conn.cursor()
 
         if user_id:
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT id, key_prefix, name, created_at, last_used_at,
                        expires_at, is_active, permissions, rate_limit
                 FROM api_keys
-                WHERE user_id = ?
+                WHERE user_id = ? AND is_active = 1
                 ORDER BY created_at DESC
-            ''', (user_id,))
+            """,
+                (user_id,),
+            )
         else:
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT id, key_prefix, name, user_id, created_at, last_used_at,
                        expires_at, is_active, permissions, rate_limit
                 FROM api_keys
+                WHERE is_active = 1
                 ORDER BY created_at DESC
-            ''')
+            """
+            )
 
         keys = [dict(row) for row in cursor.fetchall()]
         conn.close()
@@ -261,10 +290,16 @@ class APIKeyManager:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            # Get current time in ISO format to match stored format
+            current_time = datetime.now().isoformat()
+
+            cursor.execute(
+                """
                 DELETE FROM api_keys
-                WHERE expires_at IS NOT NULL AND expires_at < datetime('now')
-            ''')
+                WHERE expires_at IS NOT NULL AND expires_at < ?
+            """,
+                (current_time,),
+            )
 
             deleted = cursor.rowcount
             conn.commit()
@@ -303,33 +338,28 @@ def require_api_key(permissions: Optional[list] = None):
     Returns:
         Decorated view function
     """
+
     def decorator(f: Callable) -> Callable:
         @wraps(f)
         def wrapped(*args, **kwargs):
             # Get API key from header
-            api_key = request.headers.get('X-API-Key') or request.headers.get('Authorization')
+            api_key = request.headers.get("X-API-Key") or request.headers.get("Authorization")
 
             # Handle Bearer token format
-            if api_key and api_key.startswith('Bearer '):
+            if api_key and api_key.startswith("Bearer "):
                 api_key = api_key[7:]
 
             # Validate key
             key_info = api_key_manager.validate_api_key(api_key)
 
             if not key_info:
-                return jsonify({
-                    'success': False,
-                    'error': 'Invalid or missing API key'
-                }), 401
+                return jsonify({"success": False, "error": "Invalid or missing API key"}), 401
 
             # Check permissions
             if permissions:
-                key_permissions = key_info.get('permissions', [])
+                key_permissions = key_info.get("permissions", [])
                 if not any(perm in key_permissions for perm in permissions):
-                    return jsonify({
-                        'success': False,
-                        'error': 'Insufficient permissions'
-                    }), 403
+                    return jsonify({"success": False, "error": "Insufficient permissions"}), 403
 
             # Store key info in request context
             g.api_key_info = key_info
@@ -338,6 +368,7 @@ def require_api_key(permissions: Optional[list] = None):
             return f(*args, **kwargs)
 
         return wrapped
+
     return decorator
 
 
@@ -364,14 +395,15 @@ def optional_api_key(f: Callable) -> Callable:
     Returns:
         Decorated function
     """
+
     @wraps(f)
     def wrapped(*args, **kwargs):
         # Get API key from header
-        api_key = request.headers.get('X-API-Key') or request.headers.get('Authorization')
+        api_key = request.headers.get("X-API-Key") or request.headers.get("Authorization")
 
         if api_key:
             # Handle Bearer token format
-            if api_key.startswith('Bearer '):
+            if api_key.startswith("Bearer "):
                 api_key = api_key[7:]
 
             # Validate key
@@ -387,7 +419,7 @@ def optional_api_key(f: Callable) -> Callable:
 
 
 # Example usage
-if __name__ == '__main__':
+if __name__ == "__main__":
     import json
 
     # Configure logging
@@ -398,11 +430,7 @@ if __name__ == '__main__':
 
     # Generate API key
     key = manager.generate_api_key(
-        name="Test API Key",
-        user_id=1,
-        expires_in_days=30,
-        permissions=['read', 'write'],
-        rate_limit=5000
+        name="Test API Key", user_id=1, expires_in_days=30, permissions=["read", "write"], rate_limit=5000
     )
 
     print(f"\nGenerated API key: {key}")

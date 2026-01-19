@@ -15,21 +15,23 @@ Components:
 """
 
 import asyncio
-import numpy as np
-from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple, Callable
-from enum import Enum
-from datetime import datetime
 import hashlib
 import json
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import numpy as np
 
 # ============================================================================
 # Enums and Data Classes
 # ============================================================================
 
+
 class MemoryType(Enum):
     """Types of agent memory"""
+
     EPISODIC = "episodic"  # Past experiences
     SEMANTIC = "semantic"  # Facts and knowledge
     PROCEDURAL = "procedural"  # Learned skills
@@ -37,6 +39,7 @@ class MemoryType(Enum):
 
 class PlanningFramework(Enum):
     """Planning and reasoning frameworks"""
+
     REACT = "react"  # Reason + Act
     CHAIN_OF_THOUGHT = "chain_of_thought"
     TREE_OF_THOUGHTS = "tree_of_thoughts"
@@ -45,6 +48,7 @@ class PlanningFramework(Enum):
 
 class AgentRole(Enum):
     """Agent roles in multi-agent systems"""
+
     ORCHESTRATOR = "orchestrator"
     SPECIALIST = "specialist"
     WORKER = "worker"
@@ -54,6 +58,7 @@ class AgentRole(Enum):
 @dataclass
 class Memory:
     """Agent memory entry"""
+
     memory_id: str
     memory_type: MemoryType
     content: str
@@ -67,6 +72,7 @@ class Memory:
 @dataclass
 class Tool:
     """Tool definition"""
+
     tool_id: str
     name: str
     description: str
@@ -82,6 +88,7 @@ class Tool:
 @dataclass
 class ToolCall:
     """Tool execution result"""
+
     call_id: str
     tool_id: str
     arguments: Dict[str, Any]
@@ -94,6 +101,7 @@ class ToolCall:
 @dataclass
 class Plan:
     """Multi-step plan"""
+
     plan_id: str
     goal: str
     steps: List[Dict[str, Any]]
@@ -113,6 +121,7 @@ class Plan:
 @dataclass
 class Task:
     """Task to be executed"""
+
     task_id: str
     description: str
     priority: int  # 1-10
@@ -135,6 +144,7 @@ class Task:
 @dataclass
 class Agent:
     """Autonomous AI agent"""
+
     agent_id: str
     name: str
     role: AgentRole
@@ -154,6 +164,7 @@ class Agent:
 @dataclass
 class Observation:
     """Environment observation"""
+
     observation_id: str
     timestamp: datetime
     modality: str  # "text", "vision", "audio", "structured"
@@ -169,6 +180,7 @@ class Observation:
 # ============================================================================
 # System 1: Agent Architecture & Memory System
 # ============================================================================
+
 
 class AgentArchitectureMemory:
     """
@@ -188,20 +200,14 @@ class AgentArchitectureMemory:
         self.embedding_dim = 512
 
     async def store_memory(
-        self,
-        content: str,
-        memory_type: MemoryType,
-        importance: float = 0.5,
-        metadata: Optional[Dict[str, Any]] = None
+        self, content: str, memory_type: MemoryType, importance: float = 0.5, metadata: Optional[Dict[str, Any]] = None
     ) -> Memory:
         """Store new memory"""
         # Generate embedding (simulated)
         embedding = np.random.randn(self.embedding_dim).astype(np.float32)
         embedding = embedding / (np.linalg.norm(embedding) + 1e-8)
 
-        memory_id = hashlib.md5(
-            f"memory_{content}_{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:16]
+        memory_id = hashlib.md5(f"memory_{content}_{datetime.now().isoformat()}".encode()).hexdigest()[:16]
 
         memory = Memory(
             memory_id=memory_id,
@@ -210,7 +216,7 @@ class AgentArchitectureMemory:
             embedding=embedding,
             timestamp=datetime.now(),
             importance=importance,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         self.memories[memory_id] = memory
@@ -223,10 +229,7 @@ class AgentArchitectureMemory:
         return memory
 
     async def retrieve_memories(
-        self,
-        query: str,
-        top_k: int = 5,
-        memory_type: Optional[MemoryType] = None
+        self, query: str, top_k: int = 5, memory_type: Optional[MemoryType] = None
     ) -> List[Memory]:
         """Retrieve relevant memories by similarity"""
         # Generate query embedding (simulated)
@@ -262,9 +265,7 @@ class AgentArchitectureMemory:
         """Consolidate and compress old memories"""
         # Simulate consolidation
         old_memories = [
-            m for m in self.memories.values()
-            if (datetime.now() - m.timestamp).days > 7
-            and m.access_count < 2
+            m for m in self.memories.values() if (datetime.now() - m.timestamp).days > 7 and m.access_count < 2
         ]
 
         # Compress low-importance, rarely accessed memories
@@ -280,6 +281,7 @@ class AgentArchitectureMemory:
 # ============================================================================
 # System 2: Tool Calling & Function Execution
 # ============================================================================
+
 
 class ToolCallingExecution:
     """
@@ -305,12 +307,10 @@ class ToolCallingExecution:
             description="Perform mathematical calculations",
             parameters={
                 "type": "object",
-                "properties": {
-                    "expression": {"type": "string", "description": "Math expression to evaluate"}
-                },
-                "required": ["expression"]
+                "properties": {"expression": {"type": "string", "description": "Math expression to evaluate"}},
+                "required": ["expression"],
             },
-            function=self._calculator_function
+            function=self._calculator_function,
         )
 
         # Web search (simulated)
@@ -319,12 +319,10 @@ class ToolCallingExecution:
             description="Search the web for information",
             parameters={
                 "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "Search query"}
-                },
-                "required": ["query"]
+                "properties": {"query": {"type": "string", "description": "Search query"}},
+                "required": ["query"],
             },
-            function=self._web_search_function
+            function=self._web_search_function,
         )
 
     def register_tool(
@@ -333,7 +331,7 @@ class ToolCallingExecution:
         description: str,
         parameters: Dict[str, Any],
         function: Callable,
-        requires_confirmation: bool = False
+        requires_confirmation: bool = False,
     ) -> Tool:
         """Register a new tool"""
         tool_id = hashlib.md5(name.encode()).hexdigest()[:16]
@@ -344,18 +342,13 @@ class ToolCallingExecution:
             description=description,
             parameters=parameters,
             function=function,
-            requires_confirmation=requires_confirmation
+            requires_confirmation=requires_confirmation,
         )
 
         self.tools[tool_id] = tool
         return tool
 
-    async def call_tool(
-        self,
-        tool_name: str,
-        arguments: Dict[str, Any],
-        timeout: float = 30.0
-    ) -> ToolCall:
+    async def call_tool(self, tool_name: str, arguments: Dict[str, Any], timeout: float = 30.0) -> ToolCall:
         """Execute tool with arguments"""
         start_time = datetime.now()
 
@@ -375,7 +368,7 @@ class ToolCallingExecution:
                 result=None,
                 success=False,
                 execution_time_ms=0.0,
-                error_message=f"Tool '{tool_name}' not found"
+                error_message=f"Tool '{tool_name}' not found",
             )
 
         # Validate arguments (simplified)
@@ -383,10 +376,7 @@ class ToolCallingExecution:
 
         # Execute with timeout
         try:
-            result = await asyncio.wait_for(
-                tool.function(**arguments),
-                timeout=timeout
-            )
+            result = await asyncio.wait_for(tool.function(**arguments), timeout=timeout)
             success = True
             error_message = None
         except asyncio.TimeoutError:
@@ -400,9 +390,7 @@ class ToolCallingExecution:
 
         execution_time = (datetime.now() - start_time).total_seconds() * 1000
 
-        call_id = hashlib.md5(
-            f"call_{tool.tool_id}_{datetime.now()}".encode()
-        ).hexdigest()[:16]
+        call_id = hashlib.md5(f"call_{tool.tool_id}_{datetime.now()}".encode()).hexdigest()[:16]
 
         tool_call = ToolCall(
             call_id=call_id,
@@ -411,7 +399,7 @@ class ToolCallingExecution:
             result=result,
             success=success,
             execution_time_ms=execution_time,
-            error_message=error_message
+            error_message=error_message,
         )
 
         self.tool_calls[call_id] = tool_call
@@ -436,7 +424,7 @@ class ToolCallingExecution:
         results = [
             {"title": f"Result 1 for: {query}", "url": "https://example.com/1", "snippet": "..."},
             {"title": f"Result 2 for: {query}", "url": "https://example.com/2", "snippet": "..."},
-            {"title": f"Result 3 for: {query}", "url": "https://example.com/3", "snippet": "..."}
+            {"title": f"Result 3 for: {query}", "url": "https://example.com/3", "snippet": "..."},
         ]
         return results
 
@@ -444,6 +432,7 @@ class ToolCallingExecution:
 # ============================================================================
 # System 3: Planning & Reasoning Engine
 # ============================================================================
+
 
 class PlanningReasoningEngine:
     """
@@ -461,10 +450,7 @@ class PlanningReasoningEngine:
         self.reasoning_traces: List[Dict[str, Any]] = []
 
     async def create_plan(
-        self,
-        goal: str,
-        framework: PlanningFramework = PlanningFramework.REACT,
-        max_steps: int = 10
+        self, goal: str, framework: PlanningFramework = PlanningFramework.REACT, max_steps: int = 10
     ) -> Plan:
         """Generate multi-step plan"""
         # Simulate plan generation
@@ -478,30 +464,26 @@ class PlanningReasoningEngine:
                     step = {
                         "step_id": i,
                         "type": "thought",
-                        "content": f"Reasoning step {i//2 + 1}: Analyze the situation"
+                        "content": f"Reasoning step {i//2 + 1}: Analyze the situation",
                     }
                 else:
                     step = {
                         "step_id": i,
                         "type": "action",
                         "tool": "web_search" if i < num_steps - 1 else "finalize",
-                        "arguments": {"query": f"info for goal: {goal}"}
+                        "arguments": {"query": f"info for goal: {goal}"},
                     }
 
             elif framework == PlanningFramework.CHAIN_OF_THOUGHT:
                 # Sequential reasoning
-                step = {
-                    "step_id": i,
-                    "type": "thought",
-                    "content": f"Step {i+1}: Reasoning towards goal"
-                }
+                step = {"step_id": i, "type": "thought", "content": f"Step {i+1}: Reasoning towards goal"}
 
             else:  # Tree of Thoughts or Reflexion
                 step = {
                     "step_id": i,
                     "type": "explore",
                     "branches": 3,  # Explore multiple paths
-                    "content": f"Explore step {i+1}"
+                    "content": f"Explore step {i+1}",
                 }
 
             steps.append(step)
@@ -513,17 +495,13 @@ class PlanningReasoningEngine:
             goal=goal,
             steps=steps,
             framework=framework,
-            estimated_duration_s=num_steps * 2.0  # 2s per step estimate
+            estimated_duration_s=num_steps * 2.0,  # 2s per step estimate
         )
 
         self.plans[plan_id] = plan
         return plan
 
-    async def execute_plan(
-        self,
-        plan_id: str,
-        tool_system: 'ToolCallingExecution'
-    ) -> Dict[str, Any]:
+    async def execute_plan(self, plan_id: str, tool_system: "ToolCallingExecution") -> Dict[str, Any]:
         """Execute plan steps"""
         plan = self.plans.get(plan_id)
         if not plan:
@@ -537,15 +515,8 @@ class PlanningReasoningEngine:
 
             if step["type"] == "action" and step.get("tool"):
                 # Execute tool
-                tool_result = await tool_system.call_tool(
-                    step["tool"],
-                    step.get("arguments", {})
-                )
-                results.append({
-                    "step_id": step_id,
-                    "success": tool_result.success,
-                    "result": tool_result.result
-                })
+                tool_result = await tool_system.call_tool(step["tool"], step.get("arguments", {}))
+                results.append({"step_id": step_id, "success": tool_result.success, "result": tool_result.result})
 
                 if tool_result.success:
                     plan.completed_steps.append(step_id)
@@ -555,11 +526,7 @@ class PlanningReasoningEngine:
                 # Reasoning step (simulated)
                 await asyncio.sleep(0.1)
                 plan.completed_steps.append(step_id)
-                results.append({
-                    "step_id": step_id,
-                    "type": step["type"],
-                    "content": step.get("content", "")
-                })
+                results.append({"step_id": step_id, "type": step["type"], "content": step.get("content", "")})
 
         plan.current_step = len(plan.steps)
         plan.actual_duration_s = (datetime.now() - start_time).total_seconds()
@@ -570,13 +537,14 @@ class PlanningReasoningEngine:
             "plan_id": plan_id,
             "completed": len(plan.completed_steps),
             "failed": len(plan.failed_steps),
-            "results": results
+            "results": results,
         }
 
 
 # ============================================================================
 # System 4: Task Decomposition & Delegation
 # ============================================================================
+
 
 class TaskDecompositionDelegation:
     """
@@ -593,39 +561,26 @@ class TaskDecompositionDelegation:
         self.tasks: Dict[str, Task] = {}
         self.task_graph: Dict[str, List[str]] = {}  # Dependencies
 
-    async def decompose_task(
-        self,
-        description: str,
-        max_depth: int = 3
-    ) -> List[Task]:
+    async def decompose_task(self, description: str, max_depth: int = 3) -> List[Task]:
         """Decompose complex task into sub-tasks"""
         # Simulate HTN decomposition
         num_subtasks = np.random.randint(2, 6)
 
-        parent_id = hashlib.md5(
-            f"task_{description}_{datetime.now()}".encode()
-        ).hexdigest()[:16]
+        parent_id = hashlib.md5(f"task_{description}_{datetime.now()}".encode()).hexdigest()[:16]
 
-        parent_task = Task(
-            task_id=parent_id,
-            description=description,
-            priority=5,
-            status="decomposed"
-        )
+        parent_task = Task(task_id=parent_id, description=description, priority=5, status="decomposed")
         self.tasks[parent_id] = parent_task
 
         subtasks = []
         for i in range(num_subtasks):
-            subtask_id = hashlib.md5(
-                f"subtask_{parent_id}_{i}".encode()
-            ).hexdigest()[:16]
+            subtask_id = hashlib.md5(f"subtask_{parent_id}_{i}".encode()).hexdigest()[:16]
 
             subtask = Task(
                 task_id=subtask_id,
                 description=f"Sub-task {i+1}: {description[:30]}...",
                 priority=5 + i,
                 parent_task_id=parent_id,
-                dependencies=[subtasks[i-1].task_id] if i > 0 else []
+                dependencies=[subtasks[i - 1].task_id] if i > 0 else [],
             )
 
             self.tasks[subtask_id] = subtask
@@ -634,11 +589,7 @@ class TaskDecompositionDelegation:
 
         return subtasks
 
-    async def delegate_task(
-        self,
-        task_id: str,
-        available_agents: List[Agent]
-    ) -> Optional[Agent]:
+    async def delegate_task(self, task_id: str, available_agents: List[Agent]) -> Optional[Agent]:
         """Assign task to best available agent"""
         task = self.tasks.get(task_id)
         if not task:
@@ -664,6 +615,7 @@ class TaskDecompositionDelegation:
 # System 5: Environment Interaction & Perception
 # ============================================================================
 
+
 class EnvironmentInteractionPerception:
     """
     Environment interaction and perception loops.
@@ -679,23 +631,12 @@ class EnvironmentInteractionPerception:
         self.observations: Dict[str, Observation] = {}
         self.environment_state: Dict[str, Any] = {}
 
-    async def observe(
-        self,
-        source: str,
-        content: Any,
-        modality: str = "text"
-    ) -> Observation:
+    async def observe(self, source: str, content: Any, modality: str = "text") -> Observation:
         """Observe environment"""
-        observation_id = hashlib.md5(
-            f"obs_{source}_{datetime.now()}".encode()
-        ).hexdigest()[:16]
+        observation_id = hashlib.md5(f"obs_{source}_{datetime.now()}".encode()).hexdigest()[:16]
 
         observation = Observation(
-            observation_id=observation_id,
-            timestamp=datetime.now(),
-            modality=modality,
-            content=content,
-            source=source
+            observation_id=observation_id, timestamp=datetime.now(), modality=modality, content=content, source=source
         )
 
         # Process observation (extract entities, sentiment, etc.)
@@ -727,6 +668,7 @@ class EnvironmentInteractionPerception:
 # System 6: Learning & Adaptation System
 # ============================================================================
 
+
 class LearningAdaptationSystem:
     """
     Learning from experience and adaptation.
@@ -744,14 +686,7 @@ class LearningAdaptationSystem:
         self.learning_rate = 0.1
         self.discount_factor = 0.9
 
-    async def record_experience(
-        self,
-        state: str,
-        action: str,
-        reward: float,
-        next_state: str,
-        done: bool
-    ):
+    async def record_experience(self, state: str, action: str, reward: float, next_state: str, done: bool):
         """Record experience for learning"""
         experience = {
             "state": state,
@@ -759,7 +694,7 @@ class LearningAdaptationSystem:
             "reward": reward,
             "next_state": next_state,
             "done": done,
-            "timestamp": datetime.now()
+            "timestamp": datetime.now(),
         }
 
         self.experiences.append(experience)
@@ -767,14 +702,7 @@ class LearningAdaptationSystem:
         # Update Q-value (Q-learning)
         await self._update_q_value(state, action, reward, next_state, done)
 
-    async def _update_q_value(
-        self,
-        state: str,
-        action: str,
-        reward: float,
-        next_state: str,
-        done: bool
-    ):
+    async def _update_q_value(self, state: str, action: str, reward: float, next_state: str, done: bool):
         """Update Q-value using Q-learning"""
         current_q = self.q_table.get((state, action), 0.0)
 
@@ -823,6 +751,7 @@ class LearningAdaptationSystem:
 # System 7: Multi-Agent Orchestration & Coordination
 # ============================================================================
 
+
 class MultiAgentOrchestration:
     """
     Multi-agent coordination and collaboration.
@@ -839,51 +768,25 @@ class MultiAgentOrchestration:
         self.messages: List[Dict[str, Any]] = []
         self.collaborations: Dict[str, Dict[str, Any]] = {}
 
-    def register_agent(
-        self,
-        name: str,
-        role: AgentRole,
-        capabilities: List[str]
-    ) -> Agent:
+    def register_agent(self, name: str, role: AgentRole, capabilities: List[str]) -> Agent:
         """Register new agent"""
         agent_id = hashlib.md5(f"agent_{name}".encode()).hexdigest()[:16]
 
-        agent = Agent(
-            agent_id=agent_id,
-            name=name,
-            role=role,
-            capabilities=capabilities
-        )
+        agent = Agent(agent_id=agent_id, name=name, role=role, capabilities=capabilities)
 
         self.agents[agent_id] = agent
         return agent
 
-    async def send_message(
-        self,
-        from_agent_id: str,
-        to_agent_id: str,
-        content: Any
-    ):
+    async def send_message(self, from_agent_id: str, to_agent_id: str, content: Any):
         """Send message between agents"""
-        message = {
-            "from": from_agent_id,
-            "to": to_agent_id,
-            "content": content,
-            "timestamp": datetime.now()
-        }
+        message = {"from": from_agent_id, "to": to_agent_id, "content": content, "timestamp": datetime.now()}
 
         self.messages.append(message)
         await asyncio.sleep(0.01)  # Simulated network delay
 
-    async def coordinate_agents(
-        self,
-        task_description: str,
-        agent_ids: List[str]
-    ) -> Dict[str, Any]:
+    async def coordinate_agents(self, task_description: str, agent_ids: List[str]) -> Dict[str, Any]:
         """Coordinate multiple agents on a task"""
-        collaboration_id = hashlib.md5(
-            f"collab_{task_description}".encode()
-        ).hexdigest()[:16]
+        collaboration_id = hashlib.md5(f"collab_{task_description}".encode()).hexdigest()[:16]
 
         agents = [self.agents[aid] for aid in agent_ids if aid in self.agents]
 
@@ -906,7 +809,7 @@ class MultiAgentOrchestration:
             "task": task_description,
             "agents": agent_ids,
             "success": success,
-            "duration_s": (datetime.now() - start_time).total_seconds()
+            "duration_s": (datetime.now() - start_time).total_seconds(),
         }
 
         self.collaborations[collaboration_id] = collaboration

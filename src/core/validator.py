@@ -9,14 +9,12 @@ Provides comprehensive validation with:
 - Detailed error reporting
 """
 
-from typing import Dict, Any, List, Optional, Callable, Pattern
-from decimal import Decimal
 import re
+from decimal import Decimal
+from typing import Any, Callable, Dict, List, Optional, Pattern
+
 from ..models.template import ValidationResult, Variable
-from ..utils.helpers import (
-    validate_date, validate_email, validate_phone,
-    validate_required_fields, parse_number
-)
+from ..utils.helpers import parse_number, validate_date, validate_email, validate_phone, validate_required_fields
 
 
 class ValidationRule:
@@ -26,13 +24,7 @@ class ValidationRule:
     Allows defining custom validation logic with clear error messages
     """
 
-    def __init__(
-        self,
-        field: str,
-        validator: Callable[[Any], bool],
-        error_message: str,
-        severity: str = "error"
-    ):
+    def __init__(self, field: str, validator: Callable[[Any], bool], error_message: str, severity: str = "error"):
         """
         Initialize validation rule
 
@@ -68,40 +60,38 @@ class EnhancedValidator:
 
     # Common regex patterns
     PATTERNS = {
-        'url': re.compile(
-            r'^https?://'  # http:// or https://
-            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain
-            r'localhost|'  # localhost
-            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # or ip
-            r'(?::\d+)?'  # optional port
-            r'(?:/?|[/?]\S+)$', re.IGNORECASE
+        "url": re.compile(
+            r"^https?://"  # http:// or https://
+            r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|"  # domain
+            r"localhost|"  # localhost
+            r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # or ip
+            r"(?::\d+)?"  # optional port
+            r"(?:/?|[/?]\S+)$",
+            re.IGNORECASE,
         ),
-        'iban': re.compile(r'^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$'),
-        'bic': re.compile(r'^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$'),  # BIC/SWIFT
-        'postal_code_de': re.compile(r'^\d{5}$'),
-        'postal_code_general': re.compile(r'^[A-Z0-9\s-]{3,10}$', re.IGNORECASE),
-        'ipv4': re.compile(r'^(\d{1,3}\.){3}\d{1,3}$'),
-        'ipv6': re.compile(r'^([0-9a-fA-F]{0,4}:){7}[0-9a-fA-F]{0,4}$'),
-        'mac_address': re.compile(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'),
-        'uuid': re.compile(
-            r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-            re.IGNORECASE
-        ),
-        'hex_color': re.compile(r'^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$'),
-        'credit_card': re.compile(r'^\d{13,19}$'),
-        'tax_id_de': re.compile(r'^\d{11}$'),  # German tax ID
-        'vat_id_de': re.compile(r'^DE\d{9}$'),  # German VAT ID
-        'ssn_us': re.compile(r'^\d{3}-\d{2}-\d{4}$'),  # US Social Security Number
-        'isbn10': re.compile(r'^\d{9}[\dX]$'),  # ISBN-10
-        'isbn13': re.compile(r'^97[89]\d{10}$'),  # ISBN-13
-        'ean13': re.compile(r'^\d{13}$'),  # EAN-13 barcode
-        'vin': re.compile(r'^[A-HJ-NPR-Z0-9]{17}$'),  # Vehicle Identification Number
-        'bitcoin_address': re.compile(r'^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$'),  # Bitcoin address
-        'ethereum_address': re.compile(r'^0x[a-fA-F0-9]{40}$'),  # Ethereum address
-        'latitude': re.compile(r'^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)$'),  # Latitude
-        'longitude': re.compile(r'^[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$'),  # Longitude
-        'passport_de': re.compile(r'^[CFGHJKLMNPRTVWXYZ0-9]{9}$'),  # German passport
-        'license_plate_de': re.compile(r'^[A-ZÄÖÜ]{1,3}-[A-Z]{1,2}\s?\d{1,4}[EH]?$'),  # German license plate
+        "iban": re.compile(r"^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$"),
+        "bic": re.compile(r"^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$"),  # BIC/SWIFT
+        "postal_code_de": re.compile(r"^\d{5}$"),
+        "postal_code_general": re.compile(r"^[A-Z0-9\s-]{3,10}$", re.IGNORECASE),
+        "ipv4": re.compile(r"^(\d{1,3}\.){3}\d{1,3}$"),
+        "ipv6": re.compile(r"^([0-9a-fA-F]{0,4}:){7}[0-9a-fA-F]{0,4}$"),
+        "mac_address": re.compile(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"),
+        "uuid": re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE),
+        "hex_color": re.compile(r"^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"),
+        "credit_card": re.compile(r"^\d{13,19}$"),
+        "tax_id_de": re.compile(r"^\d{11}$"),  # German tax ID
+        "vat_id_de": re.compile(r"^DE\d{9}$"),  # German VAT ID
+        "ssn_us": re.compile(r"^\d{3}-\d{2}-\d{4}$"),  # US Social Security Number
+        "isbn10": re.compile(r"^\d{9}[\dX]$"),  # ISBN-10
+        "isbn13": re.compile(r"^97[89]\d{10}$"),  # ISBN-13
+        "ean13": re.compile(r"^\d{13}$"),  # EAN-13 barcode
+        "vin": re.compile(r"^[A-HJ-NPR-Z0-9]{17}$"),  # Vehicle Identification Number
+        "bitcoin_address": re.compile(r"^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$"),  # Bitcoin address
+        "ethereum_address": re.compile(r"^0x[a-fA-F0-9]{40}$"),  # Ethereum address
+        "latitude": re.compile(r"^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)$"),  # Latitude
+        "longitude": re.compile(r"^[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$"),  # Longitude
+        "passport_de": re.compile(r"^[CFGHJKLMNPRTVWXYZ0-9]{9}$"),  # German passport
+        "license_plate_de": re.compile(r"^[A-ZÄÖÜ]{1,3}-[A-Z]{1,2}\s?\d{1,4}[EH]?$"),  # German license plate
     }
 
     def __init__(self):
@@ -116,45 +106,45 @@ class EnhancedValidator:
         """Validate URL format"""
         if not value:
             return False
-        return bool(self.PATTERNS['url'].match(value))
+        return bool(self.PATTERNS["url"].match(value))
 
     def validate_iban(self, value: str) -> bool:
         """Validate IBAN format"""
         if not value:
             return False
         # Remove spaces
-        iban = value.replace(' ', '').upper()
-        return bool(self.PATTERNS['iban'].match(iban))
+        iban = value.replace(" ", "").upper()
+        return bool(self.PATTERNS["iban"].match(iban))
 
-    def validate_postal_code(self, value: str, country: str = 'DE') -> bool:
+    def validate_postal_code(self, value: str, country: str = "DE") -> bool:
         """Validate postal code"""
         if not value:
             return False
-        if country == 'DE':
-            return bool(self.PATTERNS['postal_code_de'].match(value))
-        return bool(self.PATTERNS['postal_code_general'].match(value))
+        if country == "DE":
+            return bool(self.PATTERNS["postal_code_de"].match(value))
+        return bool(self.PATTERNS["postal_code_general"].match(value))
 
     def validate_ip_address(self, value: str, version: int = 4) -> bool:
         """Validate IP address"""
         if not value:
             return False
         if version == 4:
-            return bool(self.PATTERNS['ipv4'].match(value))
+            return bool(self.PATTERNS["ipv4"].match(value))
         elif version == 6:
-            return bool(self.PATTERNS['ipv6'].match(value))
+            return bool(self.PATTERNS["ipv6"].match(value))
         return False
 
     def validate_uuid(self, value: str) -> bool:
         """Validate UUID format"""
         if not value:
             return False
-        return bool(self.PATTERNS['uuid'].match(value))
+        return bool(self.PATTERNS["uuid"].match(value))
 
     def validate_hex_color(self, value: str) -> bool:
         """Validate hex color code"""
         if not value:
             return False
-        return bool(self.PATTERNS['hex_color'].match(value))
+        return bool(self.PATTERNS["hex_color"].match(value))
 
     def validate_credit_card(self, value: str) -> bool:
         """Validate credit card number format (Luhn algorithm)"""
@@ -162,10 +152,10 @@ class EnhancedValidator:
             return False
 
         # Remove spaces and dashes
-        number = value.replace(' ', '').replace('-', '')
+        number = value.replace(" ", "").replace("-", "")
 
         # Check format
-        if not self.PATTERNS['credit_card'].match(number):
+        if not self.PATTERNS["credit_card"].match(number):
             return False
 
         # Luhn algorithm
@@ -183,41 +173,41 @@ class EnhancedValidator:
 
         return luhn_checksum(number) == 0
 
-    def validate_tax_id(self, value: str, country: str = 'DE') -> bool:
+    def validate_tax_id(self, value: str, country: str = "DE") -> bool:
         """Validate tax identification number"""
         if not value:
             return False
-        if country == 'DE':
-            return bool(self.PATTERNS['tax_id_de'].match(value))
+        if country == "DE":
+            return bool(self.PATTERNS["tax_id_de"].match(value))
         return False
 
-    def validate_vat_id(self, value: str, country: str = 'DE') -> bool:
+    def validate_vat_id(self, value: str, country: str = "DE") -> bool:
         """Validate VAT identification number"""
         if not value:
             return False
-        if country == 'DE':
-            return bool(self.PATTERNS['vat_id_de'].match(value))
+        if country == "DE":
+            return bool(self.PATTERNS["vat_id_de"].match(value))
         return False
 
     def validate_bic(self, value: str) -> bool:
         """Validate BIC/SWIFT code"""
         if not value:
             return False
-        bic = value.replace(' ', '').upper()
-        return bool(self.PATTERNS['bic'].match(bic))
+        bic = value.replace(" ", "").upper()
+        return bool(self.PATTERNS["bic"].match(bic))
 
     def validate_mac_address(self, value: str) -> bool:
         """Validate MAC address (supports : and - separators)"""
         if not value:
             return False
-        return bool(self.PATTERNS['mac_address'].match(value))
+        return bool(self.PATTERNS["mac_address"].match(value))
 
-    def validate_ssn(self, value: str, country: str = 'US') -> bool:
+    def validate_ssn(self, value: str, country: str = "US") -> bool:
         """Validate Social Security Number"""
         if not value:
             return False
-        if country == 'US':
-            return bool(self.PATTERNS['ssn_us'].match(value))
+        if country == "US":
+            return bool(self.PATTERNS["ssn_us"].match(value))
         return False
 
     def validate_isbn(self, value: str) -> bool:
@@ -226,17 +216,16 @@ class EnhancedValidator:
             return False
 
         # Remove hyphens and spaces
-        isbn = value.replace('-', '').replace(' ', '')
+        isbn = value.replace("-", "").replace(" ", "")
 
         # Check ISBN-10
-        if self.PATTERNS['isbn10'].match(isbn):
+        if self.PATTERNS["isbn10"].match(isbn):
             # Validate checksum
-            total = sum((10 - i) * (int(c) if c != 'X' else 10)
-                       for i, c in enumerate(isbn))
+            total = sum((10 - i) * (int(c) if c != "X" else 10) for i, c in enumerate(isbn))
             return total % 11 == 0
 
         # Check ISBN-13
-        if self.PATTERNS['isbn13'].match(isbn):
+        if self.PATTERNS["isbn13"].match(isbn):
             # Validate checksum
             total = sum(int(c) * (3 if i % 2 else 1) for i, c in enumerate(isbn))
             return total % 10 == 0
@@ -248,7 +237,7 @@ class EnhancedValidator:
         if not value:
             return False
 
-        if not self.PATTERNS['ean13'].match(value):
+        if not self.PATTERNS["ean13"].match(value):
             return False
 
         # Validate checksum
@@ -262,11 +251,11 @@ class EnhancedValidator:
             return False
 
         vin = value.upper()
-        if not self.PATTERNS['vin'].match(vin):
+        if not self.PATTERNS["vin"].match(vin):
             return False
 
         # Additional VIN validation (exclude I, O, Q)
-        if any(c in 'IOQ' for c in vin):
+        if any(c in "IOQ" for c in vin):
             return False
 
         return True
@@ -275,13 +264,13 @@ class EnhancedValidator:
         """Validate Bitcoin address (basic format check)"""
         if not value:
             return False
-        return bool(self.PATTERNS['bitcoin_address'].match(value))
+        return bool(self.PATTERNS["bitcoin_address"].match(value))
 
     def validate_ethereum_address(self, value: str) -> bool:
         """Validate Ethereum address"""
         if not value:
             return False
-        return bool(self.PATTERNS['ethereum_address'].match(value))
+        return bool(self.PATTERNS["ethereum_address"].match(value))
 
     def validate_coordinates(self, latitude: str, longitude: str) -> tuple[bool, Optional[str]]:
         """
@@ -293,33 +282,33 @@ class EnhancedValidator:
         if not latitude or not longitude:
             return False, "Both latitude and longitude are required"
 
-        if not self.PATTERNS['latitude'].match(str(latitude)):
+        if not self.PATTERNS["latitude"].match(str(latitude)):
             return False, "Invalid latitude (must be between -90 and 90)"
 
-        if not self.PATTERNS['longitude'].match(str(longitude)):
+        if not self.PATTERNS["longitude"].match(str(longitude)):
             return False, "Invalid longitude (must be between -180 and 180)"
 
         return True, None
 
-    def validate_passport(self, value: str, country: str = 'DE') -> bool:
+    def validate_passport(self, value: str, country: str = "DE") -> bool:
         """Validate passport number"""
         if not value:
             return False
 
-        if country == 'DE':
-            passport = value.upper().replace(' ', '')
-            return bool(self.PATTERNS['passport_de'].match(passport))
+        if country == "DE":
+            passport = value.upper().replace(" ", "")
+            return bool(self.PATTERNS["passport_de"].match(passport))
 
         return False
 
-    def validate_license_plate(self, value: str, country: str = 'DE') -> bool:
+    def validate_license_plate(self, value: str, country: str = "DE") -> bool:
         """Validate license plate number"""
         if not value:
             return False
 
-        if country == 'DE':
+        if country == "DE":
             plate = value.upper().strip()
-            return bool(self.PATTERNS['license_plate_de'].match(plate))
+            return bool(self.PATTERNS["license_plate_de"].match(plate))
 
         return False
 
@@ -338,12 +327,13 @@ class EnhancedValidator:
             return False, "File path cannot be empty"
 
         # Basic path validation (no invalid characters)
-        invalid_chars = ['<', '>', ':', '"', '|', '?', '*']
+        invalid_chars = ["<", ">", ":", '"', "|", "?", "*"]
         if any(char in value for char in invalid_chars):
             return False, f"File path contains invalid characters: {invalid_chars}"
 
         if must_exist:
             from pathlib import Path
+
             if not Path(value).exists():
                 return False, f"File does not exist: {value}"
 
@@ -355,10 +345,7 @@ class EnhancedValidator:
             return False
 
         # Domain regex
-        domain_pattern = re.compile(
-            r'^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$',
-            re.IGNORECASE
-        )
+        domain_pattern = re.compile(r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$", re.IGNORECASE)
         return bool(domain_pattern.match(value))
 
     def validate_json(self, value: str) -> tuple[bool, Optional[str]]:
@@ -372,6 +359,7 @@ class EnhancedValidator:
             return False, "JSON string cannot be empty"
 
         import json
+
         try:
             json.loads(value)
             return True, None
@@ -396,11 +384,7 @@ class EnhancedValidator:
             return False, "Age must be a valid number"
 
     def validate_username(
-        self,
-        value: str,
-        min_length: int = 3,
-        max_length: int = 20,
-        allow_special: bool = False
+        self, value: str, min_length: int = 3, max_length: int = 20, allow_special: bool = False
     ) -> tuple[bool, Optional[str]]:
         """
         Validate username
@@ -419,9 +403,9 @@ class EnhancedValidator:
 
         # Check characters
         if allow_special:
-            pattern = r'^[a-zA-Z0-9_.-]+$'
+            pattern = r"^[a-zA-Z0-9_.-]+$"
         else:
-            pattern = r'^[a-zA-Z0-9_]+$'
+            pattern = r"^[a-zA-Z0-9_]+$"
 
         if not re.match(pattern, value):
             allowed = "letters, numbers, and _.-" if allow_special else "letters, numbers, and _"
@@ -436,7 +420,7 @@ class EnhancedValidator:
         require_uppercase: bool = True,
         require_lowercase: bool = True,
         require_digit: bool = True,
-        require_special: bool = True
+        require_special: bool = True,
     ) -> tuple[bool, List[str]]:
         """
         Validate password strength
@@ -452,13 +436,13 @@ class EnhancedValidator:
         if len(value) < min_length:
             issues.append(f"Password must be at least {min_length} characters")
 
-        if require_uppercase and not re.search(r'[A-Z]', value):
+        if require_uppercase and not re.search(r"[A-Z]", value):
             issues.append("Password must contain at least one uppercase letter")
 
-        if require_lowercase and not re.search(r'[a-z]', value):
+        if require_lowercase and not re.search(r"[a-z]", value):
             issues.append("Password must contain at least one lowercase letter")
 
-        if require_digit and not re.search(r'\d', value):
+        if require_digit and not re.search(r"\d", value):
             issues.append("Password must contain at least one digit")
 
         if require_special and not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
@@ -467,10 +451,7 @@ class EnhancedValidator:
         return len(issues) == 0, issues
 
     def validate_range(
-        self,
-        value: Any,
-        min_value: Optional[float] = None,
-        max_value: Optional[float] = None
+        self, value: Any, min_value: Optional[float] = None, max_value: Optional[float] = None
     ) -> tuple[bool, Optional[str]]:
         """
         Validate numeric value is within range
@@ -492,10 +473,7 @@ class EnhancedValidator:
             return False, "Value must be a number"
 
     def validate_length(
-        self,
-        value: str,
-        min_length: Optional[int] = None,
-        max_length: Optional[int] = None
+        self, value: str, min_length: Optional[int] = None, max_length: Optional[int] = None
     ) -> tuple[bool, Optional[str]]:
         """
         Validate string length
@@ -517,10 +495,7 @@ class EnhancedValidator:
         return True, None
 
     def validate_pattern(
-        self,
-        value: str,
-        pattern: Pattern[str],
-        error_message: str = "Value does not match required pattern"
+        self, value: str, pattern: Pattern[str], error_message: str = "Value does not match required pattern"
     ) -> tuple[bool, Optional[str]]:
         """
         Validate value matches regex pattern
@@ -537,10 +512,7 @@ class EnhancedValidator:
         return False, error_message
 
     def validate_enum(
-        self,
-        value: Any,
-        allowed_values: List[Any],
-        case_sensitive: bool = True
+        self, value: Any, allowed_values: List[Any], case_sensitive: bool = True
     ) -> tuple[bool, Optional[str]]:
         """
         Validate value is one of allowed values
@@ -561,16 +533,11 @@ class EnhancedValidator:
             elif value in allowed_values:
                 return True, None
 
-        allowed_str = ', '.join(str(v) for v in allowed_values)
+        allowed_str = ", ".join(str(v) for v in allowed_values)
         return False, f"Value must be one of: {allowed_str}"
 
     def validate_cross_field(
-        self,
-        data: Dict[str, Any],
-        field1: str,
-        field2: str,
-        comparison: str,
-        error_message: Optional[str] = None
+        self, data: Dict[str, Any], field1: str, field2: str, comparison: str, error_message: Optional[str] = None
     ) -> tuple[bool, Optional[str]]:
         """
         Validate relationship between two fields
@@ -592,22 +559,22 @@ class EnhancedValidator:
         val2 = data[field2]
 
         try:
-            if comparison == 'eq':
+            if comparison == "eq":
                 is_valid = val1 == val2
                 default_msg = f"{field1} must equal {field2}"
-            elif comparison == 'ne':
+            elif comparison == "ne":
                 is_valid = val1 != val2
                 default_msg = f"{field1} must not equal {field2}"
-            elif comparison == 'lt':
+            elif comparison == "lt":
                 is_valid = val1 < val2
                 default_msg = f"{field1} must be less than {field2}"
-            elif comparison == 'le':
+            elif comparison == "le":
                 is_valid = val1 <= val2
                 default_msg = f"{field1} must be less than or equal to {field2}"
-            elif comparison == 'gt':
+            elif comparison == "gt":
                 is_valid = val1 > val2
                 default_msg = f"{field1} must be greater than {field2}"
-            elif comparison == 'ge':
+            elif comparison == "ge":
                 is_valid = val1 >= val2
                 default_msg = f"{field1} must be greater than or equal to {field2}"
             else:
@@ -726,12 +693,7 @@ class TemplateValidator:
         result = ValidationResult()
 
         # Required fields
-        required = [
-            "basic_info.service_name",
-            "basic_info.target_group",
-            "basic_info.region",
-            "financial.brutto_rate"
-        ]
+        required = ["basic_info.service_name", "basic_info.target_group", "basic_info.region", "financial.brutto_rate"]
 
         missing = validate_required_fields(config, required)
         for field in missing:
@@ -760,23 +722,20 @@ class TemplateValidator:
             for key, value in financial["insurance_rates"].items():
                 num = parse_number(str(value))
                 if num is None or num < 0 or num > 100:
-                    result.add_invalid(f"financial.insurance_rates.{key}",
-                                       "Must be a percentage between 0 and 100")
+                    result.add_invalid(f"financial.insurance_rates.{key}", "Must be a percentage between 0 and 100")
 
         # Validate umlages
         if "umlages" in financial:
             for key, value in financial["umlages"].items():
                 num = parse_number(str(value))
                 if num is None or num < 0 or num > 100:
-                    result.add_invalid(f"financial.umlages.{key}",
-                                       "Must be a percentage between 0 and 100")
+                    result.add_invalid(f"financial.umlages.{key}", "Must be a percentage between 0 and 100")
 
         # Validate region coefficient
         if "region_coefficient" in financial:
             coef = parse_number(str(financial["region_coefficient"]))
             if coef is None or coef <= 0 or coef > 3:
-                result.add_invalid("financial.region_coefficient",
-                                   "Must be between 0 and 3")
+                result.add_invalid("financial.region_coefficient", "Must be between 0 and 3")
 
     def _validate_system_settings(self, settings: Dict[str, Any], result: ValidationResult) -> None:
         """Validate system settings"""
@@ -791,15 +750,13 @@ class TemplateValidator:
         valid_bases = ["full_cost", "brutto_only"]
         surcharge_base = settings.get("surcharge_base", "full_cost")
         if surcharge_base not in valid_bases:
-            result.add_invalid("system_settings.surcharge_base",
-                               f"Must be one of: {', '.join(valid_bases)}")
+            result.add_invalid("system_settings.surcharge_base", f"Must be one of: {', '.join(valid_bases)}")
 
         # Check service type
         valid_types = ["domestic", "social", "medical", "professional", "educational"]
         service_type = settings.get("service_type", "social")
         if service_type not in valid_types:
-            result.add_invalid("system_settings.service_type",
-                               f"Must be one of: {', '.join(valid_types)}")
+            result.add_invalid("system_settings.service_type", f"Must be one of: {', '.join(valid_types)}")
 
     def validate_filled_template(self, variables: List[Variable]) -> ValidationResult:
         """
@@ -826,6 +783,7 @@ class TemplateValidator:
                 result.is_valid = False
 
         return result
+
 
 # Alias for backward compatibility
 DocumentValidator = TemplateValidator

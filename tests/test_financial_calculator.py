@@ -2,10 +2,12 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pytest
 from decimal import Decimal
+
+import pytest
 
 from src.financial_calculator import FinancialCalculator
 from src.models.financial import FinancialParameters, InsuranceRates, Umlages
@@ -43,9 +45,13 @@ class TestFinancialCalculator:
         assert breakdown.uv_contribution > 0
 
         # Total should be sum of components
-        total = (breakdown.kv_contribution + breakdown.pv_contribution +
-                breakdown.rv_contribution + breakdown.av_contribution +
-                breakdown.uv_contribution)
+        total = (
+            breakdown.kv_contribution
+            + breakdown.pv_contribution
+            + breakdown.rv_contribution
+            + breakdown.av_contribution
+            + breakdown.uv_contribution
+        )
 
         assert abs(float(breakdown.total_insurance - total)) < 0.01
 
@@ -123,10 +129,10 @@ class TestFinancialCalculator:
         breakdown1 = self.calculator.calculate_hourly_rate(params)
 
         # Calculate with weekend surcharge (50%)
-        breakdown2 = self.calculator.calculate_with_surcharge(params, ['weekend'])
+        breakdown2 = self.calculator.calculate_with_surcharge(params, ["weekend"])
 
         assert breakdown2.final_hourly_rate > breakdown1.final_hourly_rate
-        assert 'weekend' in breakdown2.surcharges_applied
+        assert "weekend" in breakdown2.surcharges_applied
 
     def test_total_cost(self):
         """Test total cost calculation"""
@@ -154,5 +160,5 @@ class TestFinancialCalculator:
         assert result == Decimal("10.00")
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

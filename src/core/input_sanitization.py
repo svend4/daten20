@@ -13,12 +13,12 @@ Features:
 - URL validation and sanitization
 """
 
-import re
 import html
-import urllib.parse
-from typing import Optional, List, Dict, Any
 import logging
+import re
+import urllib.parse
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,32 +33,67 @@ class InputSanitizer:
 
     # Dangerous HTML tags that should be stripped
     DANGEROUS_TAGS = [
-        'script', 'iframe', 'object', 'embed', 'applet',
-        'meta', 'link', 'style', 'form', 'input', 'button',
-        'textarea', 'select', 'option'
+        "script",
+        "iframe",
+        "object",
+        "embed",
+        "applet",
+        "meta",
+        "link",
+        "style",
+        "form",
+        "input",
+        "button",
+        "textarea",
+        "select",
+        "option",
     ]
 
     # Dangerous HTML attributes
     DANGEROUS_ATTRS = [
-        'onclick', 'onload', 'onerror', 'onmouseover',
-        'onfocus', 'onblur', 'onchange', 'onsubmit',
-        'href="javascript:', 'src="javascript:',
-        'data:', 'vbscript:'
+        "onclick",
+        "onload",
+        "onerror",
+        "onmouseover",
+        "onfocus",
+        "onblur",
+        "onchange",
+        "onsubmit",
+        'href="javascript:',
+        'src="javascript:',
+        "data:",
+        "vbscript:",
     ]
 
     # SQL keywords that might indicate injection
     SQL_KEYWORDS = [
-        'union', 'select', 'insert', 'update', 'delete',
-        'drop', 'create', 'alter', 'exec', 'execute',
-        'script', 'javascript', 'eval', '--', '/*', '*/',
-        'xp_', 'sp_', 'waitfor', 'delay'
+        "union",
+        "select",
+        "insert",
+        "update",
+        "delete",
+        "drop",
+        "create",
+        "alter",
+        "exec",
+        "execute",
+        "script",
+        "javascript",
+        "eval",
+        "--",
+        "/*",
+        "*/",
+        "xp_",
+        "sp_",
+        "waitfor",
+        "delay",
     ]
 
     # Command injection patterns
     COMMAND_PATTERNS = [
-        r'[;&|`$]',  # Shell metacharacters
-        r'\$\(',     # Command substitution
-        r'>\s*\&',   # Redirect
+        r"[;&|`$]",  # Shell metacharacters
+        r"\$\(",  # Command substitution
+        r">\s*\&",  # Redirect
     ]
 
     def __init__(self):
@@ -85,29 +120,24 @@ class InputSanitizer:
         # Remove dangerous tags
         for tag in self.DANGEROUS_TAGS:
             # Remove opening and closing tags
-            text = re.sub(f'<{tag}[^>]*>.*?</{tag}>', '', text, flags=re.IGNORECASE | re.DOTALL)
-            text = re.sub(f'<{tag}[^>]*>', '', text, flags=re.IGNORECASE)
+            text = re.sub(f"<{tag}[^>]*>.*?</{tag}>", "", text, flags=re.IGNORECASE | re.DOTALL)
+            text = re.sub(f"<{tag}[^>]*>", "", text, flags=re.IGNORECASE)
 
         # Remove dangerous attributes
         for attr in self.DANGEROUS_ATTRS:
-            text = re.sub(attr, '', text, flags=re.IGNORECASE)
+            text = re.sub(attr, "", text, flags=re.IGNORECASE)
 
         # Remove javascript: and data: protocols
-        text = re.sub(r'javascript:', '', text, flags=re.IGNORECASE)
-        text = re.sub(r'data:text/html', '', text, flags=re.IGNORECASE)
-        text = re.sub(r'vbscript:', '', text, flags=re.IGNORECASE)
+        text = re.sub(r"javascript:", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"data:text/html", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"vbscript:", "", text, flags=re.IGNORECASE)
 
         # If specific tags are allowed, strip all others
         if allow_tags:
             # Create pattern for allowed tags
-            allowed_pattern = '|'.join(re.escape(tag) for tag in allow_tags)
+            allowed_pattern = "|".join(re.escape(tag) for tag in allow_tags)
             # Remove tags that are not in the allowed list
-            text = re.sub(
-                f'<(?!/?(?:{allowed_pattern})\\b)[^>]+>',
-                '',
-                text,
-                flags=re.IGNORECASE
-            )
+            text = re.sub(f"<(?!/?(?:{allowed_pattern})\\b)[^>]+>", "", text, flags=re.IGNORECASE)
 
         # Escape remaining HTML entities
         text = html.escape(text, quote=True)
@@ -133,12 +163,12 @@ class InputSanitizer:
         text = str(text)
 
         # Remove SQL comments
-        text = re.sub(r'--.*$', '', text, flags=re.MULTILINE)
-        text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)
+        text = re.sub(r"--.*$", "", text, flags=re.MULTILINE)
+        text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
 
         # Check for suspicious SQL patterns
         for keyword in self.SQL_KEYWORDS:
-            pattern = r'\b' + re.escape(keyword) + r'\b'
+            pattern = r"\b" + re.escape(keyword) + r"\b"
             if re.search(pattern, text, re.IGNORECASE):
                 logger.warning(f"Potential SQL injection detected: {keyword}")
 
@@ -164,7 +194,7 @@ class InputSanitizer:
         path = str(path)
 
         # Remove null bytes
-        path = path.replace('\0', '')
+        path = path.replace("\0", "")
 
         # Normalize path
         try:
@@ -174,7 +204,7 @@ class InputSanitizer:
             return None
 
         # Check for path traversal
-        if '..' in path or path.startswith('/'):
+        if ".." in path or path.startswith("/"):
             logger.warning(f"Path traversal attempt detected: {path}")
             return None
 
@@ -211,7 +241,7 @@ class InputSanitizer:
                 return None
 
         # Remove null bytes
-        text = text.replace('\0', '')
+        text = text.replace("\0", "")
 
         return text.strip()
 
@@ -231,7 +261,7 @@ class InputSanitizer:
         email = str(email).strip().lower()
 
         # Basic email regex
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
         if not re.match(email_pattern, email):
             logger.warning(f"Invalid email format: {email}")
@@ -242,7 +272,7 @@ class InputSanitizer:
             return None
 
         # Split into local and domain
-        local, domain = email.rsplit('@', 1)
+        local, domain = email.rsplit("@", 1)
 
         if len(local) > 64:  # RFC 5321
             return None
@@ -267,7 +297,7 @@ class InputSanitizer:
 
         # Default allowed schemes
         if allowed_schemes is None:
-            allowed_schemes = ['http', 'https']
+            allowed_schemes = ["http", "https"]
 
         # Parse URL
         try:
@@ -282,7 +312,7 @@ class InputSanitizer:
             return None
 
         # Check for javascript: and data: protocols (double check)
-        if any(dangerous in url.lower() for dangerous in ['javascript:', 'data:', 'vbscript:']):
+        if any(dangerous in url.lower() for dangerous in ["javascript:", "data:", "vbscript:"]):
             logger.warning(f"Dangerous URL protocol detected: {url}")
             return None
 
@@ -304,27 +334,27 @@ class InputSanitizer:
         filename = str(filename).strip()
 
         # Remove null bytes
-        filename = filename.replace('\0', '')
+        filename = filename.replace("\0", "")
 
         # Remove path separators
-        filename = filename.replace('/', '').replace('\\', '')
+        filename = filename.replace("/", "").replace("\\", "")
 
         # Remove parent directory references
-        filename = filename.replace('..', '')
+        filename = filename.replace("..", "")
 
         # Allow only safe characters: alphanumeric, dash, underscore, dot
-        filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+        filename = re.sub(r"[^a-zA-Z0-9._-]", "_", filename)
 
         # Ensure it doesn't start with a dot (hidden file)
-        if filename.startswith('.'):
-            filename = '_' + filename[1:]
+        if filename.startswith("."):
+            filename = "_" + filename[1:]
 
         # Check length
         if len(filename) > 255:
             filename = filename[:255]
 
         # Must have at least one character
-        if not filename or filename == '.':
+        if not filename or filename == ".":
             return None
 
         return filename
@@ -340,10 +370,7 @@ class InputSanitizer:
             Sanitized data
         """
         if isinstance(data, dict):
-            return {
-                self.sanitize_string(k): self.sanitize_json(v)
-                for k, v in data.items()
-            }
+            return {self.sanitize_string(k): self.sanitize_json(v) for k, v in data.items()}
         elif isinstance(data, list):
             return [self.sanitize_json(item) for item in data]
         elif isinstance(data, str):
@@ -368,10 +395,10 @@ class InputSanitizer:
         text = str(text)
 
         # Remove null bytes
-        text = text.replace('\0', '')
+        text = text.replace("\0", "")
 
         # Remove control characters (except newline and tab)
-        text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+        text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
 
         # Trim whitespace
         text = text.strip()
@@ -382,7 +409,9 @@ class InputSanitizer:
 
         return text
 
-    def sanitize_integer(self, value: Any, min_val: Optional[int] = None, max_val: Optional[int] = None) -> Optional[int]:
+    def sanitize_integer(
+        self, value: Any, min_val: Optional[int] = None, max_val: Optional[int] = None
+    ) -> Optional[int]:
         """
         Validate and sanitize integer input.
 
@@ -411,7 +440,9 @@ class InputSanitizer:
 
         return num
 
-    def sanitize_float(self, value: Any, min_val: Optional[float] = None, max_val: Optional[float] = None) -> Optional[float]:
+    def sanitize_float(
+        self, value: Any, min_val: Optional[float] = None, max_val: Optional[float] = None
+    ) -> Optional[float]:
         """
         Validate and sanitize float input.
 
@@ -430,7 +461,7 @@ class InputSanitizer:
             return None
 
         # Check for NaN and infinity
-        if not (num == num and abs(num) != float('inf')):
+        if not (num == num and abs(num) != float("inf")):
             logger.warning(f"Invalid float value: {num}")
             return None
 

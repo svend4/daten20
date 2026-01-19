@@ -5,15 +5,15 @@ Provides connection pooling for SQLite database to improve performance
 and manage connections efficiently.
 """
 
-import sqlite3
 import logging
+import sqlite3
 import threading
-from queue import Queue, Empty
 from contextlib import contextmanager
-from typing import Optional
 from pathlib import Path
+from queue import Empty, Queue
+from typing import Optional
 
-logger = logging.getLogger('dms.connection_pool')
+logger = logging.getLogger("dms.connection_pool")
 
 
 class ConnectionPool:
@@ -70,9 +70,7 @@ class ConnectionPool:
 
         # Create connection with optimizations
         conn = sqlite3.connect(
-            self.db_path,
-            check_same_thread=False,  # Allow connection to be used across threads
-            timeout=self.timeout
+            self.db_path, check_same_thread=False, timeout=self.timeout  # Allow connection to be used across threads
         )
 
         # Enable foreign keys
@@ -202,10 +200,10 @@ class ConnectionPool:
             Dictionary with pool stats
         """
         return {
-            'pool_size': self.pool_size,
-            'connections_created': self._connections_created,
-            'available_connections': self._pool.qsize(),
-            'active_connections': self._connections_created - self._pool.qsize()
+            "pool_size": self.pool_size,
+            "connections_created": self._connections_created,
+            "available_connections": self._pool.qsize(),
+            "active_connections": self._connections_created - self._pool.qsize(),
         }
 
     def __enter__(self):

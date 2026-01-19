@@ -1,96 +1,85 @@
 """
-# SIMPLE VERSION - World Models Module - v22.0
+World Models & Predictive Learning Platform v22.0
 
-Learned world models for prediction, planning, and imagination.
-Version: 22.0.0 (SIMPLE)
+AI that builds internal models of the world, predicts future states, plans using
+mental simulation, and learns through imagination.
+
+Example usage:
+    from world_models import get_world_model_learning, get_model_based_planning
+
+    # Learn world model from experiences
+    wm_service = get_world_model_learning()
+    model = await wm_service.learn_world_model(experiences)
+
+    # Plan using learned world model
+    planner = get_model_based_planning()
+    plan = await planner.plan(current_state, goal_state, horizon=10)
 """
 
-__version__ = '22.0.0'
+__version__ = "22.0.0"
+__author__ = "Document Management System Team"
 
-from enum import Enum
-from dataclasses import dataclass
-from typing import Dict, Any, Optional, List
-import logging
+from .world_models_services import (  # Core Systems; Enums; Data Classes; Singleton Getters
+    CausalGraph,
+    CausalReasoning,
+    ContinuousModelRefinement,
+    ImaginationLearning,
+    ImaginedTrajectory,
+    InterventionType,
+    ModelBasedPlanning,
+    ModelType,
+    Plan,
+    PlanningAlgorithm,
+    Prediction,
+    PredictionType,
+    PredictiveLearning,
+    State,
+    Transition,
+    UncertaintyAwarePrediction,
+    UncertaintyEstimate,
+    UncertaintyType,
+    WorldModel,
+    WorldModelLearning,
+    get_causal_reasoning,
+    get_imagination_learning,
+    get_model_based_planning,
+    get_model_refinement,
+    get_predictive_learning,
+    get_uncertainty_prediction,
+    get_world_model_learning,
+)
 
-logger = logging.getLogger(__name__)
-
-
-class ModelType(Enum):
-    """World model types"""
-    DETERMINISTIC = "deterministic"
-    STOCHASTIC = "stochastic"
-    LATENT_SPACE = "latent_space"
-    PHYSICS_BASED = "physics_based"
-
-
-@dataclass
-class WorldModelConfig:
-    """World model configuration"""
-    model_type: str = "latent_space"
-    prediction_horizon: int = 10
-    enable_imagination: bool = True
-
-
-class WorldModelEngine:
-    """
-    # SIMPLE VERSION
-    World Model Engine - Placeholder for learned world models
-
-    Can be expanded with:
-    - Model-based reinforcement learning
-    - Learned dynamics models (forward models)
-    - Variational autoencoders (VAE) for latent space
-    - World Models (Ha & Schmidhuber)
-    - Dreamer v1/v2/v3 architectures
-    - PlaNet and related algorithms
-    - Imagination-augmented agents
-    - Mental simulation and planning
-    - Latent dynamics prediction
-    - Trajectory optimization in learned models
-    - Model-predictive control (MPC)
-    - Counterfactual reasoning
-    - Causal world models
-    - Physics-informed neural networks
-    - Compositional world models
-    """
-
-    def __init__(self, config: Optional[WorldModelConfig] = None):
-        self.config = config or WorldModelConfig()
-        self.models = {}
-        logger.info("World Model Engine initialized (SIMPLE VERSION)")
-
-    def learn_world_model(self, environment_id: str, observations: List[Dict[str, Any]],
-                          model_type: ModelType) -> Dict[str, Any]:
-        """Learn world model from observations (simulated)"""
-        return {
-            "environment_id": environment_id,
-            "model_type": model_type.value,
-            "prediction_accuracy": 0.0,
-            "status": "placeholder"
-        }
-
-    def predict_trajectory(self, initial_state: Dict[str, Any], 
-                          actions: List[Any]) -> List[Dict[str, Any]]:
-        """Predict future trajectory using world model (simulated)"""
-        return [{"state": initial_state, "step": i} for i in range(len(actions))]
-
-    def imagine_rollout(self, policy: Any, num_steps: int) -> Dict[str, Any]:
-        """Generate imagined rollout for planning (simulated)"""
-        return {
-            "imagined_states": [],
-            "expected_reward": 0.0,
-            "status": "placeholder"
-        }
-
-
-_engine = None
-
-def get_world_model_engine(config: Optional[WorldModelConfig] = None) -> WorldModelEngine:
-    """Get singleton World Model Engine"""
-    global _engine
-    if _engine is None:
-        _engine = WorldModelEngine(config)
-    return _engine
-
-
-__all__ = ['WorldModelEngine', 'WorldModelConfig', 'ModelType', 'get_world_model_engine']
+__all__ = [
+    "__version__",
+    # Core Systems
+    "WorldModelLearning",
+    "PredictiveLearning",
+    "ModelBasedPlanning",
+    "ImaginationLearning",
+    "CausalReasoning",
+    "UncertaintyAwarePrediction",
+    "ContinuousModelRefinement",
+    # Enums
+    "ModelType",
+    "PredictionType",
+    "PlanningAlgorithm",
+    "UncertaintyType",
+    "InterventionType",
+    # Data Classes
+    "State",
+    "Transition",
+    "WorldModel",
+    "Prediction",
+    "Plan",
+    "ImaginedTrajectory",
+    "CausalGraph",
+    "UncertaintyEstimate",
+    # Singleton Getters
+    "get_world_model_learning",
+    "get_predictive_learning",
+    "get_model_based_planning",
+    "get_imagination_learning",
+    "get_causal_reasoning",
+    "get_uncertainty_prediction",
+    "get_model_refinement",
+]

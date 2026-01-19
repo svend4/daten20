@@ -5,16 +5,17 @@ Provides a flexible rules engine for managing when and how notifications are sen
 Supports condition matching, event triggers, user/group targeting, scheduling, and throttling.
 """
 
-from typing import Optional, Dict, Any, List, Set, Callable
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime, timedelta, time
 import re
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, time, timedelta
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Set
 
 
 class RuleConditionOperator(str, Enum):
     """Rule condition operators"""
+
     EQUALS = "eq"
     NOT_EQUALS = "ne"
     GREATER_THAN = "gt"
@@ -32,6 +33,7 @@ class RuleConditionOperator(str, Enum):
 
 class RuleLogicOperator(str, Enum):
     """Logic operators for combining conditions"""
+
     AND = "and"
     OR = "or"
     NOT = "not"
@@ -39,6 +41,7 @@ class RuleLogicOperator(str, Enum):
 
 class NotificationChannel(str, Enum):
     """Notification delivery channels"""
+
     EMAIL = "email"
     SMS = "sms"
     PUSH = "push"
@@ -51,6 +54,7 @@ class NotificationChannel(str, Enum):
 
 class RulePriority(str, Enum):
     """Rule priority levels"""
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -59,6 +63,7 @@ class RulePriority(str, Enum):
 
 class ScheduleDay(str, Enum):
     """Days of the week"""
+
     MONDAY = "monday"
     TUESDAY = "tuesday"
     WEDNESDAY = "wednesday"
@@ -71,6 +76,7 @@ class ScheduleDay(str, Enum):
 @dataclass
 class RuleCondition:
     """Single condition in a rule"""
+
     field: str
     operator: RuleConditionOperator
     value: Any
@@ -80,14 +86,16 @@ class RuleCondition:
 @dataclass
 class RuleConditionGroup:
     """Group of conditions with logic operator"""
+
     operator: RuleLogicOperator
     conditions: List[RuleCondition] = field(default_factory=list)
-    groups: List['RuleConditionGroup'] = field(default_factory=list)
+    groups: List["RuleConditionGroup"] = field(default_factory=list)
 
 
 @dataclass
 class RuleSchedule:
     """Rule schedule configuration"""
+
     enabled: bool = True
     days: List[ScheduleDay] = field(default_factory=list)  # Empty = all days
     start_time: Optional[time] = None  # None = 00:00
@@ -98,6 +106,7 @@ class RuleSchedule:
 @dataclass
 class RuleThrottling:
     """Rule throttling configuration"""
+
     enabled: bool = False
     max_per_user: int = 10  # Max notifications per user
     max_total: int = 100  # Max total notifications
@@ -108,6 +117,7 @@ class RuleThrottling:
 @dataclass
 class RuleDeduplication:
     """Rule deduplication configuration"""
+
     enabled: bool = False
     window_minutes: int = 60
     key_fields: List[str] = field(default_factory=list)  # Fields to use for dedup key
@@ -116,6 +126,7 @@ class RuleDeduplication:
 @dataclass
 class NotificationRule:
     """Notification rule definition"""
+
     id: str
     name: str
     description: str
@@ -153,6 +164,7 @@ class NotificationRule:
 @dataclass
 class NotificationEvent:
     """Event that triggers notification rules"""
+
     event_type: str
     data: Dict[str, Any]
     user_id: Optional[str] = None
@@ -165,6 +177,7 @@ class NotificationEvent:
 @dataclass
 class NotificationRuleExecution:
     """Result of rule execution"""
+
     rule_id: str
     matched: bool
     reason: str
@@ -177,11 +190,7 @@ class NotificationRuleExecution:
 class RuleEvaluator:
     """Evaluates rule conditions against events"""
 
-    def evaluate_condition(
-        self,
-        condition: RuleCondition,
-        event_data: Dict[str, Any]
-    ) -> bool:
+    def evaluate_condition(self, condition: RuleCondition, event_data: Dict[str, Any]) -> bool:
         """
         Evaluate a single condition
 
@@ -237,11 +246,7 @@ class RuleEvaluator:
 
         return False
 
-    def evaluate_group(
-        self,
-        group: RuleConditionGroup,
-        event_data: Dict[str, Any]
-    ) -> bool:
+    def evaluate_group(self, group: RuleConditionGroup, event_data: Dict[str, Any]) -> bool:
         """
         Evaluate a condition group
 
@@ -295,7 +300,7 @@ class RuleEvaluator:
 
     def _get_nested_value(self, data: Dict[str, Any], key: str) -> Any:
         """Get value from nested dictionary using dot notation"""
-        keys = key.split('.')
+        keys = key.split(".")
         value = data
 
         for k in keys:
@@ -335,10 +340,7 @@ class NotificationRulesEngine:
         """Get notification rule by ID"""
         return self.rules.get(rule_id)
 
-    def list_rules(
-        self,
-        enabled_only: bool = False
-    ) -> List[NotificationRule]:
+    def list_rules(self, enabled_only: bool = False) -> List[NotificationRule]:
         """List all rules"""
         rules = list(self.rules.values())
 
@@ -347,10 +349,7 @@ class NotificationRulesEngine:
 
         return rules
 
-    def evaluate_event(
-        self,
-        event: NotificationEvent
-    ) -> List[NotificationRuleExecution]:
+    def evaluate_event(self, event: NotificationEvent) -> List[NotificationRuleExecution]:
         """
         Evaluate event against all rules
 
@@ -368,61 +367,36 @@ class NotificationRulesEngine:
 
         return results
 
-    def _evaluate_rule(
-        self,
-        rule: NotificationRule,
-        event: NotificationEvent
-    ) -> NotificationRuleExecution:
+    def _evaluate_rule(self, rule: NotificationRule, event: NotificationEvent) -> NotificationRuleExecution:
         """Evaluate single rule against event"""
 
         # Check schedule
         if not self._check_schedule(rule.schedule):
-            return NotificationRuleExecution(
-                rule_id=rule.id,
-                matched=False,
-                reason="Outside schedule window"
-            )
+            return NotificationRuleExecution(rule_id=rule.id, matched=False, reason="Outside schedule window")
 
         # Check conditions
         if not self.evaluator.evaluate_group(rule.conditions, event.data):
-            return NotificationRuleExecution(
-                rule_id=rule.id,
-                matched=False,
-                reason="Conditions not met"
-            )
+            return NotificationRuleExecution(rule_id=rule.id, matched=False, reason="Conditions not met")
 
         # Check targeting
         if not self._check_targeting(rule, event):
-            return NotificationRuleExecution(
-                rule_id=rule.id,
-                matched=False,
-                reason="Not targeted to this user/group"
-            )
+            return NotificationRuleExecution(rule_id=rule.id, matched=False, reason="Not targeted to this user/group")
 
         # Check deduplication
         if self._is_deduplicated(rule, event):
             return NotificationRuleExecution(
-                rule_id=rule.id,
-                matched=True,
-                reason="Matched but deduplicated",
-                deduplicated=True
+                rule_id=rule.id, matched=True, reason="Matched but deduplicated", deduplicated=True
             )
 
         # Check throttling
         if self._is_throttled(rule, event):
             return NotificationRuleExecution(
-                rule_id=rule.id,
-                matched=True,
-                reason="Matched but throttled",
-                throttled=True
+                rule_id=rule.id, matched=True, reason="Matched but throttled", throttled=True
             )
 
         # Rule matched!
         return NotificationRuleExecution(
-            rule_id=rule.id,
-            matched=True,
-            reason="Rule matched successfully",
-            channels_used=rule.channels
+            rule_id=rule.id, matched=True, reason="Rule matched successfully", channels_used=rule.channels
         )
 
     def _check_schedule(self, schedule: RuleSchedule) -> bool:
@@ -449,11 +423,7 @@ class NotificationRulesEngine:
 
         return True
 
-    def _check_targeting(
-        self,
-        rule: NotificationRule,
-        event: NotificationEvent
-    ) -> bool:
+    def _check_targeting(self, rule: NotificationRule, event: NotificationEvent) -> bool:
         """Check if event matches targeting criteria"""
 
         # If no targeting specified, match all
@@ -478,11 +448,7 @@ class NotificationRulesEngine:
 
         return False
 
-    def _is_throttled(
-        self,
-        rule: NotificationRule,
-        event: NotificationEvent
-    ) -> bool:
+    def _is_throttled(self, rule: NotificationRule, event: NotificationEvent) -> bool:
         """Check if notification should be throttled"""
         if not rule.throttling.enabled:
             return False
@@ -494,14 +460,8 @@ class NotificationRulesEngine:
         user_key = f"{rule.id}:{event.user_id or 'anonymous'}"
         total_key = f"{rule.id}:total"
 
-        self._throttle_counters[user_key] = [
-            ts for ts in self._throttle_counters[user_key]
-            if ts > window_start
-        ]
-        self._throttle_counters[total_key] = [
-            ts for ts in self._throttle_counters[total_key]
-            if ts > window_start
-        ]
+        self._throttle_counters[user_key] = [ts for ts in self._throttle_counters[user_key] if ts > window_start]
+        self._throttle_counters[total_key] = [ts for ts in self._throttle_counters[total_key] if ts > window_start]
 
         # Check per-user limit
         if len(self._throttle_counters[user_key]) >= rule.throttling.max_per_user:
@@ -517,11 +477,7 @@ class NotificationRulesEngine:
 
         return False
 
-    def _is_deduplicated(
-        self,
-        rule: NotificationRule,
-        event: NotificationEvent
-    ) -> bool:
+    def _is_deduplicated(self, rule: NotificationRule, event: NotificationEvent) -> bool:
         """Check if notification should be deduplicated"""
         if not rule.deduplication.enabled:
             return False
@@ -530,10 +486,10 @@ class NotificationRulesEngine:
         key_parts = [rule.id]
 
         for field in rule.deduplication.key_fields:
-            value = event.data.get(field, '')
+            value = event.data.get(field, "")
             key_parts.append(str(value))
 
-        dedup_key = ':'.join(key_parts)
+        dedup_key = ":".join(key_parts)
 
         # Check if we've seen this key recently
         if dedup_key in self._dedup_keys[rule.id]:
@@ -570,7 +526,7 @@ def create_simple_rule(
     name: str,
     event_type: str,
     channels: List[NotificationChannel],
-    target_users: Optional[List[str]] = None
+    target_users: Optional[List[str]] = None,
 ) -> NotificationRule:
     """
     Create a simple notification rule
@@ -585,16 +541,9 @@ def create_simple_rule(
     Returns:
         Notification rule
     """
-    condition = RuleCondition(
-        field="event_type",
-        operator=RuleConditionOperator.EQUALS,
-        value=event_type
-    )
+    condition = RuleCondition(field="event_type", operator=RuleConditionOperator.EQUALS, value=event_type)
 
-    condition_group = RuleConditionGroup(
-        operator=RuleLogicOperator.AND,
-        conditions=[condition]
-    )
+    condition_group = RuleConditionGroup(operator=RuleLogicOperator.AND, conditions=[condition])
 
     return NotificationRule(
         id=rule_id,
@@ -602,5 +551,5 @@ def create_simple_rule(
         description=f"Send notification for {event_type}",
         conditions=condition_group,
         channels=channels,
-        target_users=target_users or []
+        target_users=target_users or [],
     )

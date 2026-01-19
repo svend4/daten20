@@ -25,21 +25,22 @@ Dependencies:
 - Optional: prophet, tensorflow/pytorch (for advanced models)
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
-from enum import Enum
+import json
 import threading
 from collections import defaultdict
-import json
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 # Core dependencies (always available)
 try:
     import numpy as np
     import pandas as pd
-    from sklearn.ensemble import RandomForestClassifier, GradientBoostingRegressor
-    from sklearn.model_selection import train_test_split
+    from sklearn.ensemble import GradientBoostingRegressor, RandomForestClassifier
     from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+    from sklearn.model_selection import train_test_split
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -48,8 +49,9 @@ except ImportError:
 # Optional dependencies
 try:
     from statsmodels.tsa.arima.model import ARIMA
-    from statsmodels.tsa.stattools import adfuller, acf, pacf
     from statsmodels.tsa.seasonal import seasonal_decompose
+    from statsmodels.tsa.stattools import acf, adfuller, pacf
+
     STATSMODELS_AVAILABLE = True
 except ImportError:
     STATSMODELS_AVAILABLE = False
@@ -57,6 +59,7 @@ except ImportError:
 
 try:
     from prophet import Prophet
+
     PROPHET_AVAILABLE = True
 except ImportError:
     PROPHET_AVAILABLE = False
@@ -65,6 +68,7 @@ except ImportError:
 
 class ForecastMethod(str, Enum):
     """Forecasting methods"""
+
     ARIMA = "arima"
     PROPHET = "prophet"
     LSTM = "lstm"
@@ -75,6 +79,7 @@ class ForecastMethod(str, Enum):
 
 class PredictionType(str, Enum):
     """Type of prediction"""
+
     REVENUE = "revenue"
     CHURN = "churn"
     USAGE = "usage"
@@ -85,6 +90,7 @@ class PredictionType(str, Enum):
 @dataclass
 class ForecastResult:
     """Forecast result with confidence intervals"""
+
     method: ForecastMethod
     predictions: List[float]
     dates: List[datetime]
@@ -98,6 +104,7 @@ class ForecastResult:
 @dataclass
 class ChurnPrediction:
     """Churn prediction for a customer"""
+
     customer_id: str
     churn_probability: float
     risk_level: str  # "low", "medium", "high"
@@ -109,6 +116,7 @@ class ChurnPrediction:
 @dataclass
 class ScenarioAnalysis:
     """What-if scenario analysis result"""
+
     scenario_name: str
     assumptions: Dict[str, Any]
     predictions: Dict[str, List[float]]
@@ -134,7 +142,7 @@ class ARIMAForecaster:
         self,
         data: List[float],
         order: Tuple[int, int, int] = (1, 1, 1),
-        seasonal_order: Optional[Tuple[int, int, int, int]] = None
+        seasonal_order: Optional[Tuple[int, int, int, int]] = None,
     ):
         """
         Fit ARIMA model
@@ -154,11 +162,7 @@ class ARIMAForecaster:
         self.fitted_model = self.model.fit()
         self.fitted_values = self.fitted_model.fittedvalues
 
-    def forecast(
-        self,
-        steps: int = 30,
-        confidence_level: float = 0.95
-    ) -> ForecastResult:
+    def forecast(self, steps: int = 30, confidence_level: float = 0.95) -> ForecastResult:
         """
         Generate forecast
 
@@ -174,28 +178,28 @@ class ARIMAForecaster:
 
         # Get forecast
         forecast_result = self.fitted_model.forecast(steps=steps)
-        predictions = forecast_result.tolist() if hasattr(forecast_result, 'tolist') else [forecast_result]
+        predictions = forecast_result.tolist() if hasattr(forecast_result, "tolist") else [forecast_result]
 
         # Get confidence intervals
         forecast_obj = self.fitted_model.get_forecast(steps=steps)
-        conf_int = forecast_obj.conf_int(alpha=1-confidence_level)
+        conf_int = forecast_obj.conf_int(alpha=1 - confidence_level)
 
         # Generate future dates (assuming daily data)
         last_date = datetime.now()
-        dates = [last_date + timedelta(days=i+1) for i in range(steps)]
+        dates = [last_date + timedelta(days=i + 1) for i in range(steps)]
 
         # Calculate accuracy metrics on training data
         if self.fitted_values is not None and len(self.fitted_values) > 0:
             # Use in-sample accuracy as proxy
-            mse = np.mean((self.fitted_values - self.model.endog[len(self.model.endog)-len(self.fitted_values):])**2)
+            mse = np.mean(
+                (self.fitted_values - self.model.endog[len(self.model.endog) - len(self.fitted_values) :]) ** 2
+            )
             rmse = np.sqrt(mse)
-            mae = np.mean(np.abs(self.fitted_values - self.model.endog[len(self.model.endog)-len(self.fitted_values):]))
+            mae = np.mean(
+                np.abs(self.fitted_values - self.model.endog[len(self.model.endog) - len(self.fitted_values) :])
+            )
 
-            accuracy_metrics = {
-                "mse": float(mse),
-                "rmse": float(rmse),
-                "mae": float(mae)
-            }
+            accuracy_metrics = {"mse": float(mse), "rmse": float(rmse), "mae": float(mae)}
         else:
             accuracy_metrics = {}
 
@@ -206,7 +210,7 @@ class ARIMAForecaster:
             confidence_lower=conf_int.iloc[:, 0].tolist(),
             confidence_upper=conf_int.iloc[:, 1].tolist(),
             accuracy_metrics=accuracy_metrics,
-            metadata={"order": self.model.order}
+            metadata={"order": self.model.order},
         )
 
     def detect_stationarity(self, data: List[float]) -> Dict[str, Any]:
@@ -226,7 +230,7 @@ class ARIMAForecaster:
             "p_value": result[1],
             "is_stationary": result[1] < 0.05,  # 5% significance level
             "critical_values": result[4],
-            "used_lag": result[2]
+            "used_lag": result[2],
         }
 
 
@@ -251,7 +255,7 @@ class ProphetForecaster:
         values: List[float],
         yearly_seasonality: bool = True,
         weekly_seasonality: bool = True,
-        daily_seasonality: bool = False
+        daily_seasonality: bool = False,
     ):
         """
         Fit Prophet model
@@ -267,15 +271,12 @@ class ProphetForecaster:
             raise ImportError("prophet required. Install with: pip install prophet")
 
         # Prepare data in Prophet format
-        df = pd.DataFrame({
-            'ds': dates,
-            'y': values
-        })
+        df = pd.DataFrame({"ds": dates, "y": values})
 
         self.model = Prophet(
             yearly_seasonality=yearly_seasonality,
             weekly_seasonality=weekly_seasonality,
-            daily_seasonality=daily_seasonality
+            daily_seasonality=daily_seasonality,
         )
 
         self.model.fit(df)
@@ -292,10 +293,10 @@ class ProphetForecaster:
         forecast_df = self.model.predict(future)
 
         # Extract last 'periods' predictions
-        predictions = forecast_df['yhat'].tail(periods).tolist()
-        dates = forecast_df['ds'].tail(periods).tolist()
-        lower = forecast_df['yhat_lower'].tail(periods).tolist()
-        upper = forecast_df['yhat_upper'].tail(periods).tolist()
+        predictions = forecast_df["yhat"].tail(periods).tolist()
+        dates = forecast_df["ds"].tail(periods).tolist()
+        lower = forecast_df["yhat_lower"].tail(periods).tolist()
+        upper = forecast_df["yhat_upper"].tail(periods).tolist()
 
         return ForecastResult(
             method=ForecastMethod.PROPHET,
@@ -304,7 +305,7 @@ class ProphetForecaster:
             confidence_lower=lower,
             confidence_upper=upper,
             accuracy_metrics={},
-            metadata={"periods": periods}
+            metadata={"periods": periods},
         )
 
 
@@ -325,11 +326,7 @@ class ChurnPredictor:
         self.feature_names = []
         self.feature_importance = {}
 
-    def train(
-        self,
-        training_data: List[Dict[str, Any]],
-        target_column: str = 'churned'
-    ):
+    def train(self, training_data: List[Dict[str, Any]], target_column: str = "churned"):
         """
         Train churn prediction model
 
@@ -344,17 +341,13 @@ class ChurnPredictor:
         df = pd.DataFrame(training_data)
 
         # Separate features and target
-        X = df.drop(columns=[target_column, 'customer_id'], errors='ignore')
+        X = df.drop(columns=[target_column, "customer_id"], errors="ignore")
         y = df[target_column]
 
         self.feature_names = X.columns.tolist()
 
         # Train Random Forest classifier
-        self.model = RandomForestClassifier(
-            n_estimators=100,
-            max_depth=10,
-            random_state=42
-        )
+        self.model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
 
         self.model.fit(X, y)
 
@@ -362,10 +355,7 @@ class ChurnPredictor:
         for name, importance in zip(self.feature_names, self.model.feature_importances_):
             self.feature_importance[name] = float(importance)
 
-    def predict_churn(
-        self,
-        customer_data: Dict[str, Any]
-    ) -> ChurnPrediction:
+    def predict_churn(self, customer_data: Dict[str, Any]) -> ChurnPrediction:
         """
         Predict churn probability for a customer
 
@@ -378,13 +368,10 @@ class ChurnPredictor:
         if self.model is None:
             raise ValueError("Model not trained")
 
-        customer_id = customer_data.get('customer_id', 'unknown')
+        customer_id = customer_data.get("customer_id", "unknown")
 
         # Prepare features
-        features = pd.DataFrame([{
-            k: v for k, v in customer_data.items()
-            if k in self.feature_names
-        }])
+        features = pd.DataFrame([{k: v for k, v in customer_data.items() if k in self.feature_names}])
 
         # Ensure all required features are present
         for feature in self.feature_names:
@@ -407,36 +394,23 @@ class ChurnPredictor:
 
         # Get top contributing factors
         contributing_factors = []
-        for feature, importance in sorted(
-            self.feature_importance.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )[:5]:
-            contributing_factors.append({
-                "feature": feature,
-                "importance": importance,
-                "value": customer_data.get(feature, 0)
-            })
+        for feature, importance in sorted(self.feature_importance.items(), key=lambda x: x[1], reverse=True)[:5]:
+            contributing_factors.append(
+                {"feature": feature, "importance": importance, "value": customer_data.get(feature, 0)}
+            )
 
         # Generate recommendations
-        recommendations = self._generate_recommendations(
-            churn_prob,
-            contributing_factors
-        )
+        recommendations = self._generate_recommendations(churn_prob, contributing_factors)
 
         return ChurnPrediction(
             customer_id=customer_id,
             churn_probability=float(churn_prob),
             risk_level=risk_level,
             contributing_factors=contributing_factors,
-            recommended_actions=recommendations
+            recommended_actions=recommendations,
         )
 
-    def _generate_recommendations(
-        self,
-        churn_prob: float,
-        factors: List[Dict]
-    ) -> List[str]:
+    def _generate_recommendations(self, churn_prob: float, factors: List[Dict]) -> List[str]:
         """Generate action recommendations based on churn risk"""
         recommendations = []
 
@@ -452,10 +426,10 @@ class ChurnPredictor:
 
         # Factor-specific recommendations
         for factor in factors:
-            if factor['feature'] == 'support_tickets' and factor['value'] > 5:
+            if factor["feature"] == "support_tickets" and factor["value"] > 5:
                 recommendations.append("Address support issues - escalate to senior support")
 
-            if factor['feature'] == 'usage_decline_pct' and factor['value'] < -30:
+            if factor["feature"] == "usage_decline_pct" and factor["value"] < -30:
                 recommendations.append("Re-engagement campaign - highlight new features")
 
         return recommendations
@@ -480,7 +454,7 @@ class RevenueForecaster:
         self,
         historical_mrr: List[Tuple[datetime, float]],
         months: int = 12,
-        method: ForecastMethod = ForecastMethod.ARIMA
+        method: ForecastMethod = ForecastMethod.ARIMA,
     ) -> ForecastResult:
         """
         Forecast Monthly Recurring Revenue
@@ -511,19 +485,27 @@ class RevenueForecaster:
             # Fallback: simple linear regression
             return self._linear_forecast(dates, values, months)
 
-    def _linear_forecast(
-        self,
-        dates: List[datetime],
-        values: List[float],
-        periods: int
-    ) -> ForecastResult:
+    def _linear_forecast(self, dates: List[datetime], values: List[float], periods: int) -> ForecastResult:
         """Simple linear regression forecast"""
+        # Handle empty data
+        if not values or not dates:
+            now = datetime.now()
+            future_dates = [now + timedelta(days=30 * i) for i in range(1, periods + 1)]
+            return ForecastResult(
+                method=ForecastMethod.LINEAR_REGRESSION,
+                predictions=[0.0] * periods,
+                dates=future_dates,
+                confidence_lower=[0.0] * periods,
+                confidence_upper=[0.0] * periods,
+                accuracy_metrics={},
+            )
+
         if not SKLEARN_AVAILABLE:
             # Ultra-simple fallback: use last value
             last_value = values[-1]
             predictions = [last_value] * periods
             last_date = dates[-1]
-            future_dates = [last_date + timedelta(days=30*i) for i in range(1, periods+1)]
+            future_dates = [last_date + timedelta(days=30 * i) for i in range(1, periods + 1)]
 
             return ForecastResult(
                 method=ForecastMethod.LINEAR_REGRESSION,
@@ -531,7 +513,7 @@ class RevenueForecaster:
                 dates=future_dates,
                 confidence_lower=[last_value * 0.9] * periods,
                 confidence_upper=[last_value * 1.1] * periods,
-                accuracy_metrics={}
+                accuracy_metrics={},
             )
 
         # Convert dates to numeric
@@ -540,16 +522,17 @@ class RevenueForecaster:
 
         # Fit model
         from sklearn.linear_model import LinearRegression
+
         model = LinearRegression()
         model.fit(X, y)
 
         # Forecast
         last_day = (dates[-1] - dates[0]).days
-        future_X = np.array([last_day + 30*i for i in range(1, periods+1)]).reshape(-1, 1)
+        future_X = np.array([last_day + 30 * i for i in range(1, periods + 1)]).reshape(-1, 1)
         predictions = model.predict(future_X).tolist()
 
         # Generate dates
-        future_dates = [dates[-1] + timedelta(days=30*i) for i in range(1, periods+1)]
+        future_dates = [dates[-1] + timedelta(days=30 * i) for i in range(1, periods + 1)]
 
         # Simple confidence intervals (±10%)
         confidence_lower = [p * 0.9 for p in predictions]
@@ -561,7 +544,7 @@ class RevenueForecaster:
             dates=future_dates,
             confidence_lower=confidence_lower,
             confidence_upper=confidence_upper,
-            accuracy_metrics={"r2": float(model.score(X, y))}
+            accuracy_metrics={"r2": float(model.score(X, y))},
         )
 
 
@@ -585,7 +568,7 @@ class MonteCarloSimulator:
         growth_rate_std: float,
         churn_rate_mean: float,
         churn_rate_std: float,
-        months: int = 12
+        months: int = 12,
     ) -> Dict[str, Any]:
         """
         Simulate revenue trajectories
@@ -604,10 +587,10 @@ class MonteCarloSimulator:
         if not SKLEARN_AVAILABLE:
             # Simple fallback
             return {
-                "mean_trajectory": [base_mrr * (1 + growth_rate_mean)**i for i in range(months)],
-                "percentile_5": [base_mrr * (1 + growth_rate_mean - growth_rate_std)**i for i in range(months)],
-                "percentile_95": [base_mrr * (1 + growth_rate_mean + growth_rate_std)**i for i in range(months)],
-                "simulations": []
+                "mean_trajectory": [base_mrr * (1 + growth_rate_mean) ** i for i in range(months)],
+                "percentile_5": [base_mrr * (1 + growth_rate_mean - growth_rate_std) ** i for i in range(months)],
+                "percentile_95": [base_mrr * (1 + growth_rate_mean + growth_rate_std) ** i for i in range(months)],
+                "simulations": [],
             }
 
         simulations = []
@@ -646,7 +629,7 @@ class MonteCarloSimulator:
             "percentile_25": percentile_25,
             "percentile_75": percentile_75,
             "percentile_95": percentile_95,
-            "simulations": simulations[:100]  # Return subset for visualization
+            "simulations": simulations[:100],  # Return subset for visualization
         }
 
 
@@ -672,7 +655,7 @@ class PredictiveAnalyticsEngine:
         metric_name: str,
         historical_data: List[Tuple[datetime, float]],
         periods: int = 30,
-        method: ForecastMethod = ForecastMethod.ARIMA
+        method: ForecastMethod = ForecastMethod.ARIMA,
     ) -> ForecastResult:
         """
         Generic metric forecasting
@@ -690,8 +673,8 @@ class PredictiveAnalyticsEngine:
 
         if cache_key in self.predictions_cache:
             cached = self.predictions_cache[cache_key]
-            if (datetime.now() - cached['timestamp']).seconds < 3600:  # 1 hour cache
-                return cached['result']
+            if (datetime.now() - cached["timestamp"]).seconds < 3600:  # 1 hour cache
+                return cached["result"]
 
         # Perform forecast
         dates = [d[0] for d in historical_data]
@@ -709,17 +692,11 @@ class PredictiveAnalyticsEngine:
             result = self.revenue_forecaster._linear_forecast(dates, values, periods)
 
         # Cache result
-        self.predictions_cache[cache_key] = {
-            'result': result,
-            'timestamp': datetime.now()
-        }
+        self.predictions_cache[cache_key] = {"result": result, "timestamp": datetime.now()}
 
         return result
 
-    def predict_customer_churn(
-        self,
-        customers: List[Dict[str, Any]]
-    ) -> List[ChurnPrediction]:
+    def predict_customer_churn(self, customers: List[Dict[str, Any]]) -> List[ChurnPrediction]:
         """
         Batch churn prediction for multiple customers
 
@@ -741,11 +718,7 @@ class PredictiveAnalyticsEngine:
 
         return predictions
 
-    def analyze_scenario(
-        self,
-        scenario_name: str,
-        assumptions: Dict[str, Any]
-    ) -> ScenarioAnalysis:
+    def analyze_scenario(self, scenario_name: str, assumptions: Dict[str, Any]) -> ScenarioAnalysis:
         """
         What-if scenario analysis
 
@@ -760,10 +733,10 @@ class PredictiveAnalyticsEngine:
         Returns:
             ScenarioAnalysis with predictions
         """
-        base_mrr = assumptions.get('base_mrr', 10000)
-        growth_rate = assumptions.get('growth_rate', 0.05)
-        churn_rate = assumptions.get('churn_rate', 0.03)
-        months = assumptions.get('months', 12)
+        base_mrr = assumptions.get("base_mrr", 10000)
+        growth_rate = assumptions.get("growth_rate", 0.05)
+        churn_rate = assumptions.get("churn_rate", 0.03)
+        months = assumptions.get("months", 12)
 
         # Run Monte Carlo simulation
         simulation_results = self.monte_carlo.simulate_revenue(
@@ -772,19 +745,19 @@ class PredictiveAnalyticsEngine:
             growth_rate_std=0.02,
             churn_rate_mean=churn_rate,
             churn_rate_std=0.01,
-            months=months
+            months=months,
         )
 
         # Calculate impact summary
-        final_mrr_mean = simulation_results['mean_trajectory'][-1]
-        final_mrr_p5 = simulation_results['percentile_5'][-1]
-        final_mrr_p95 = simulation_results['percentile_95'][-1]
+        final_mrr_mean = simulation_results["mean_trajectory"][-1]
+        final_mrr_p5 = simulation_results["percentile_5"][-1]
+        final_mrr_p95 = simulation_results["percentile_95"][-1]
 
         impact_summary = {
             "final_mrr_mean": final_mrr_mean,
             "final_mrr_best_case": final_mrr_p95,
             "final_mrr_worst_case": final_mrr_p5,
-            "total_growth_pct": ((final_mrr_mean - base_mrr) / base_mrr) * 100
+            "total_growth_pct": ((final_mrr_mean - base_mrr) / base_mrr) * 100,
         }
 
         return ScenarioAnalysis(
@@ -792,7 +765,7 @@ class PredictiveAnalyticsEngine:
             assumptions=assumptions,
             predictions=simulation_results,
             impact_summary=impact_summary,
-            confidence_level=0.90
+            confidence_level=0.90,
         )
 
 
@@ -824,13 +797,7 @@ if __name__ == "__main__":
 
     # Test scenario analysis
     scenario = engine.analyze_scenario(
-        "Growth Scenario",
-        {
-            "base_mrr": 50000,
-            "growth_rate": 0.08,
-            "churn_rate": 0.02,
-            "months": 12
-        }
+        "Growth Scenario", {"base_mrr": 50000, "growth_rate": 0.08, "churn_rate": 0.02, "months": 12}
     )
 
     print(f"\nScenario: {scenario.scenario_name}")

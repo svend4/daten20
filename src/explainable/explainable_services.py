@@ -18,24 +18,26 @@ References:
 """
 
 import asyncio
-import threading
-import time
+import json
 import math
 import random
-import numpy as np
-from typing import Dict, List, Any, Optional, Tuple, Set, Callable, Union
+import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import json
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
+import numpy as np
 
 # ============================================================================
 # ENUMS
 # ============================================================================
 
+
 class ExplanationMethod(Enum):
     """Explanation method types"""
+
     SHAP = "shap"
     LIME = "lime"
     PERMUTATION = "permutation_importance"
@@ -47,6 +49,7 @@ class ExplanationMethod(Enum):
 
 class ModelType(Enum):
     """Supported model types"""
+
     TREE_ENSEMBLE = "tree_ensemble"
     NEURAL_NETWORK = "neural_network"
     LINEAR = "linear"
@@ -56,6 +59,7 @@ class ModelType(Enum):
 
 class AttributionMethod(Enum):
     """Feature attribution methods"""
+
     INTEGRATED_GRADIENTS = "integrated_gradients"
     GRADCAM = "gradcam"
     GRADCAM_PLUS_PLUS = "gradcam++"
@@ -67,6 +71,7 @@ class AttributionMethod(Enum):
 
 class SaliencyType(Enum):
     """Saliency map types"""
+
     VANILLA_GRADIENT = "vanilla_gradient"
     GRADCAM = "gradcam"
     SMOOTHGRAD = "smoothgrad"
@@ -78,9 +83,11 @@ class SaliencyType(Enum):
 # DATA CLASSES
 # ============================================================================
 
+
 @dataclass
 class Explanation:
     """Generic explanation result"""
+
     method: ExplanationMethod
     instance_id: str
     feature_importances: Dict[str, float]
@@ -93,6 +100,7 @@ class Explanation:
 @dataclass
 class SHAPValue:
     """SHAP value representation"""
+
     feature_name: str
     base_value: float
     shap_value: float
@@ -103,6 +111,7 @@ class SHAPValue:
 @dataclass
 class LIMEExplanation:
     """LIME explanation result"""
+
     instance: Any
     local_prediction: float
     intercept: float
@@ -114,6 +123,7 @@ class LIMEExplanation:
 @dataclass
 class Attribution:
     """Feature attribution result"""
+
     method: AttributionMethod
     attributions: np.ndarray  # Attribution scores per input dimension
     target_class: Optional[int] = None
@@ -124,6 +134,7 @@ class Attribution:
 @dataclass
 class Counterfactual:
     """Counterfactual explanation"""
+
     original_instance: Any
     counterfactual_instance: Any
     original_prediction: Any
@@ -137,6 +148,7 @@ class Counterfactual:
 @dataclass
 class DecisionRule:
     """Extracted decision rule"""
+
     rule_id: str
     conditions: List[str]  # List of conditions (e.g., "age > 30")
     conclusion: str  # Predicted class/value
@@ -148,6 +160,7 @@ class DecisionRule:
 @dataclass
 class SaliencyMap:
     """Saliency map for visual explanation"""
+
     saliency_type: SaliencyType
     heatmap: np.ndarray  # 2D or 3D array
     target_class: Optional[int] = None
@@ -158,6 +171,7 @@ class SaliencyMap:
 @dataclass
 class ConceptActivationVector:
     """CAV for concept testing"""
+
     concept_name: str
     layer_name: str
     vector: np.ndarray
@@ -170,6 +184,7 @@ class ConceptActivationVector:
 @dataclass
 class TCAVScore:
     """TCAV (Testing with Concept Activation Vectors) score"""
+
     concept_name: str
     target_class: int
     layer_name: str
@@ -182,6 +197,7 @@ class TCAVScore:
 @dataclass
 class AggregatedExplanation:
     """Aggregated explanation from multiple methods"""
+
     explanations: List[Explanation]
     consensus_features: List[str]
     feature_importance_ensemble: Dict[str, float]
@@ -193,6 +209,7 @@ class AggregatedExplanation:
 # ============================================================================
 # 1. MODEL INTERPRETER
 # ============================================================================
+
 
 class ModelInterpreter:
     """
@@ -218,27 +235,18 @@ class ModelInterpreter:
         self._lock = threading.Lock()
 
     async def register_model(
-        self,
-        model_id: str,
-        model: Any,
-        model_type: ModelType,
-        feature_names: Optional[List[str]] = None
+        self, model_id: str, model: Any, model_type: ModelType, feature_names: Optional[List[str]] = None
     ):
         """Register a model for interpretation."""
         with self._lock:
             self.registered_models[model_id] = {
-                'model': model,
-                'model_type': model_type,
-                'feature_names': feature_names or [f"feature_{i}" for i in range(100)],
-                'registered_at': datetime.now()
+                "model": model,
+                "model_type": model_type,
+                "feature_names": feature_names or [f"feature_{i}" for i in range(100)],
+                "registered_at": datetime.now(),
             }
 
-    async def explain_shap(
-        self,
-        model_id: str,
-        instance: np.ndarray,
-        method: str = "tree"
-    ) -> List[SHAPValue]:
+    async def explain_shap(self, model_id: str, instance: np.ndarray, method: str = "tree") -> List[SHAPValue]:
         """
         Compute SHAP values for instance.
 
@@ -251,36 +259,31 @@ class ModelInterpreter:
         if not model_info:
             raise ValueError(f"Model {model_id} not registered")
 
-        model = model_info['model']
-        feature_names = model_info['feature_names']
+        model = model_info["model"]
+        feature_names = model_info["feature_names"]
 
         # Simplified SHAP calculation (would use actual SHAP library)
         # For demonstration, compute approximate importance
         shap_values = []
         base_value = 0.5  # Would compute from training data
 
-        for i, feature_name in enumerate(feature_names[:len(instance)]):
+        for i, feature_name in enumerate(feature_names[: len(instance)]):
             # Simplified: random value for demonstration
             # Real implementation would compute exact Shapley values
             shap_val = np.random.randn() * 0.1
-            
+
             shap_value_obj = SHAPValue(
                 feature_name=feature_name,
                 base_value=base_value,
                 shap_value=shap_val,
                 feature_value=instance[i],
-                contribution=shap_val
+                contribution=shap_val,
             )
             shap_values.append(shap_value_obj)
 
         return shap_values
 
-    async def explain_lime(
-        self,
-        model_id: str,
-        instance: np.ndarray,
-        num_samples: int = 1000
-    ) -> LIMEExplanation:
+    async def explain_lime(self, model_id: str, instance: np.ndarray, num_samples: int = 1000) -> LIMEExplanation:
         """
         Compute LIME explanation.
 
@@ -295,8 +298,8 @@ class ModelInterpreter:
         if not model_info:
             raise ValueError(f"Model {model_id} not registered")
 
-        model = model_info['model']
-        feature_names = model_info['feature_names']
+        model = model_info["model"]
+        feature_names = model_info["feature_names"]
 
         # Generate perturbed samples
         perturbed_samples = []
@@ -311,7 +314,7 @@ class ModelInterpreter:
 
             # Proximity weight (exponential kernel)
             distance = np.linalg.norm(noise)
-            weight = np.exp(-(distance ** 2) / 1.0)
+            weight = np.exp(-(distance**2) / 1.0)
             weights.append(weight)
 
             # Get prediction (simplified)
@@ -322,7 +325,7 @@ class ModelInterpreter:
         # Fit weighted linear regression (simplified)
         # Real implementation would use proper linear regression
         coefficients = {}
-        for i, feature_name in enumerate(feature_names[:len(instance)]):
+        for i, feature_name in enumerate(feature_names[: len(instance)]):
             # Simplified coefficient
             coefficients[feature_name] = np.random.randn() * 0.1
 
@@ -332,17 +335,13 @@ class ModelInterpreter:
             intercept=0.5,
             coefficients=coefficients,
             r2_score=0.85,
-            num_samples=num_samples
+            num_samples=num_samples,
         )
 
         return lime_exp
 
     async def permutation_importance(
-        self,
-        model_id: str,
-        X_val: np.ndarray,
-        y_val: np.ndarray,
-        metric: str = "accuracy"
+        self, model_id: str, X_val: np.ndarray, y_val: np.ndarray, metric: str = "accuracy"
     ) -> Dict[str, float]:
         """
         Compute permutation feature importance.
@@ -358,13 +357,13 @@ class ModelInterpreter:
         if not model_info:
             raise ValueError(f"Model {model_id} not registered")
 
-        feature_names = model_info['feature_names']
+        feature_names = model_info["feature_names"]
 
         # Baseline score (simplified)
         baseline_score = 0.85
 
         importances = {}
-        for i, feature_name in enumerate(feature_names[:X_val.shape[1]]):
+        for i, feature_name in enumerate(feature_names[: X_val.shape[1]]):
             # Simulate permutation (simplified)
             # Real implementation would actually shuffle and score
             score_drop = abs(np.random.randn()) * 0.05
@@ -373,11 +372,7 @@ class ModelInterpreter:
         return importances
 
     async def partial_dependence(
-        self,
-        model_id: str,
-        feature_index: int,
-        X: np.ndarray,
-        grid_resolution: int = 100
+        self, model_id: str, feature_index: int, X: np.ndarray, grid_resolution: int = 100
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Compute partial dependence plot data.
@@ -390,11 +385,7 @@ class ModelInterpreter:
 
         # Create grid over feature range
         feature_values = X[:, feature_index]
-        grid_values = np.linspace(
-            feature_values.min(),
-            feature_values.max(),
-            grid_resolution
-        )
+        grid_values = np.linspace(feature_values.min(), feature_values.max(), grid_resolution)
 
         pd_values = []
         for grid_val in grid_values:
@@ -410,6 +401,7 @@ class ModelInterpreter:
 # ============================================================================
 # 2. FEATURE ATTRIBUTION ENGINE
 # ============================================================================
+
 
 class FeatureAttributionEngine:
     """
@@ -434,11 +426,7 @@ class FeatureAttributionEngine:
         self._lock = threading.Lock()
 
     async def integrated_gradients(
-        self,
-        model: Any,
-        input_data: np.ndarray,
-        baseline: Optional[np.ndarray] = None,
-        num_steps: int = 50
+        self, model: Any, input_data: np.ndarray, baseline: Optional[np.ndarray] = None, num_steps: int = 50
     ) -> Attribution:
         """
         Compute Integrated Gradients attribution.
@@ -471,20 +459,12 @@ class FeatureAttributionEngine:
         integrated_grads = (input_data - baseline) * avg_gradients
 
         attribution = Attribution(
-            method=AttributionMethod.INTEGRATED_GRADIENTS,
-            attributions=integrated_grads,
-            convergence_delta=0.01
+            method=AttributionMethod.INTEGRATED_GRADIENTS, attributions=integrated_grads, convergence_delta=0.01
         )
 
         return attribution
 
-    async def gradcam(
-        self,
-        model: Any,
-        input_image: np.ndarray,
-        target_class: int,
-        layer_name: str
-    ) -> Attribution:
+    async def gradcam(self, model: Any, input_image: np.ndarray, target_class: int, layer_name: str) -> Attribution:
         """
         Compute GradCAM attribution.
 
@@ -521,20 +501,12 @@ class FeatureAttributionEngine:
         upsampled = np.repeat(np.repeat(gradcam_map, 16, axis=0), 16, axis=1)
 
         attribution = Attribution(
-            method=AttributionMethod.GRADCAM,
-            attributions=upsampled,
-            target_class=target_class,
-            layer_name=layer_name
+            method=AttributionMethod.GRADCAM, attributions=upsampled, target_class=target_class, layer_name=layer_name
         )
 
         return attribution
 
-    async def extract_attention(
-        self,
-        model: Any,
-        input_sequence: np.ndarray,
-        layer_index: int = -1
-    ) -> np.ndarray:
+    async def extract_attention(self, model: Any, input_sequence: np.ndarray, layer_index: int = -1) -> np.ndarray:
         """
         Extract attention weights from Transformer model.
 
@@ -552,11 +524,7 @@ class FeatureAttributionEngine:
         return attention_matrix
 
     async def smooth_grad(
-        self,
-        model: Any,
-        input_data: np.ndarray,
-        num_samples: int = 50,
-        noise_level: float = 0.15
+        self, model: Any, input_data: np.ndarray, num_samples: int = 50, noise_level: float = 0.15
     ) -> Attribution:
         """
         Compute SmoothGrad attribution.
@@ -580,10 +548,7 @@ class FeatureAttributionEngine:
         # Average gradients
         smooth_gradient = np.mean(gradients, axis=0)
 
-        attribution = Attribution(
-            method=AttributionMethod.SMOOTH_GRAD,
-            attributions=smooth_gradient
-        )
+        attribution = Attribution(method=AttributionMethod.SMOOTH_GRAD, attributions=smooth_gradient)
 
         return attribution
 
@@ -591,6 +556,7 @@ class FeatureAttributionEngine:
 # ============================================================================
 # 3. COUNTERFACTUAL GENERATOR
 # ============================================================================
+
 
 class CounterfactualGenerator:
     """
@@ -615,12 +581,7 @@ class CounterfactualGenerator:
         self._lock = threading.Lock()
 
     async def generate_counterfactual(
-        self,
-        model: Any,
-        instance: np.ndarray,
-        target_class: Any,
-        max_iterations: int = 100,
-        learning_rate: float = 0.1
+        self, model: Any, instance: np.ndarray, target_class: Any, max_iterations: int = 100, learning_rate: float = 0.1
     ) -> Counterfactual:
         """
         Generate counterfactual via gradient descent.
@@ -667,7 +628,7 @@ class CounterfactualGenerator:
             changes=changes,
             distance=distance,
             num_changes=len(changes),
-            validity=True
+            validity=True,
         )
 
         with self._lock:
@@ -676,11 +637,7 @@ class CounterfactualGenerator:
         return cf
 
     async def generate_diverse_counterfactuals(
-        self,
-        model: Any,
-        instance: np.ndarray,
-        target_class: Any,
-        num_counterfactuals: int = 5
+        self, model: Any, instance: np.ndarray, target_class: Any, num_counterfactuals: int = 5
     ) -> List[Counterfactual]:
         """
         Generate diverse counterfactuals (DiCE algorithm).
@@ -702,21 +659,13 @@ class CounterfactualGenerator:
 
         # Optimize each candidate (simplified)
         for candidate in candidates:
-            cf = await self.generate_counterfactual(
-                model, instance, target_class,
-                max_iterations=50
-            )
+            cf = await self.generate_counterfactual(model, instance, target_class, max_iterations=50)
             counterfactuals.append(cf)
 
         return counterfactuals
 
     async def genetic_algorithm_counterfactual(
-        self,
-        model: Any,
-        instance: np.ndarray,
-        target_class: Any,
-        population_size: int = 50,
-        num_generations: int = 100
+        self, model: Any, instance: np.ndarray, target_class: Any, population_size: int = 50, num_generations: int = 100
     ) -> Counterfactual:
         """
         Generate counterfactual using genetic algorithm.
@@ -775,7 +724,7 @@ class CounterfactualGenerator:
             changes={},
             distance=np.linalg.norm(instance - best_individual),
             num_changes=0,
-            validity=True
+            validity=True,
         )
 
         return cf
@@ -784,6 +733,7 @@ class CounterfactualGenerator:
 # ============================================================================
 # 4. DECISION TREE EXTRACTOR
 # ============================================================================
+
 
 class DecisionTreeExtractor:
     """
@@ -807,11 +757,7 @@ class DecisionTreeExtractor:
         self._lock = threading.Lock()
 
     async def extract_surrogate_tree(
-        self,
-        model: Any,
-        X_train: np.ndarray,
-        max_depth: int = 10,
-        min_samples_leaf: int = 20
+        self, model: Any, X_train: np.ndarray, max_depth: int = 10, min_samples_leaf: int = 20
     ) -> Dict[str, Any]:
         """
         Train surrogate decision tree on black-box model predictions.
@@ -827,31 +773,24 @@ class DecisionTreeExtractor:
         # Train decision tree (simplified representation)
         # Real implementation would use sklearn DecisionTreeClassifier
         tree = {
-            'max_depth': max_depth,
-            'num_nodes': min(2 ** max_depth - 1, 100),
-            'num_leaves': min(2 ** (max_depth - 1), 50),
-            'feature_importances': {
-                f'feature_{i}': np.random.rand()
-                for i in range(X_train.shape[1])
-            }
+            "max_depth": max_depth,
+            "num_nodes": min(2**max_depth - 1, 100),
+            "num_leaves": min(2 ** (max_depth - 1), 50),
+            "feature_importances": {f"feature_{i}": np.random.rand() for i in range(X_train.shape[1])},
         }
 
         # Compute fidelity
         fidelity = 0.87  # Simulated
 
-        tree['fidelity'] = fidelity
-        tree['trained_at'] = datetime.now()
+        tree["fidelity"] = fidelity
+        tree["trained_at"] = datetime.now()
 
         with self._lock:
-            self.surrogate_trees['latest'] = tree
+            self.surrogate_trees["latest"] = tree
 
         return tree
 
-    async def extract_rules(
-        self,
-        tree: Dict[str, Any],
-        feature_names: List[str]
-    ) -> List[DecisionRule]:
+    async def extract_rules(self, tree: Dict[str, Any], feature_names: List[str]) -> List[DecisionRule]:
         """
         Extract if-then rules from decision tree.
 
@@ -868,7 +807,7 @@ class DecisionTreeExtractor:
             for _ in range(num_conditions):
                 feature = np.random.choice(feature_names)
                 threshold = np.random.rand()
-                operator = np.random.choice(['<=', '>'])
+                operator = np.random.choice(["<=", ">"])
                 conditions.append(f"{feature} {operator} {threshold:.2f}")
 
             rule = DecisionRule(
@@ -877,7 +816,7 @@ class DecisionTreeExtractor:
                 conclusion=f"class_{np.random.randint(0, 2)}",
                 support=np.random.randint(50, 500),
                 confidence=0.7 + np.random.rand() * 0.25,
-                lift=1.0 + np.random.rand() * 0.5
+                lift=1.0 + np.random.rand() * 0.5,
             )
             rules.append(rule)
 
@@ -885,16 +824,12 @@ class DecisionTreeExtractor:
         rules.sort(key=lambda r: r.support * r.confidence, reverse=True)
 
         with self._lock:
-            self.extracted_rules['latest'] = rules
+            self.extracted_rules["latest"] = rules
 
         return rules
 
     async def anchor_explanation(
-        self,
-        model: Any,
-        instance: np.ndarray,
-        feature_names: List[str],
-        precision_threshold: float = 0.95
+        self, model: Any, instance: np.ndarray, feature_names: List[str], precision_threshold: float = 0.95
     ) -> DecisionRule:
         """
         Find anchor rule: minimal sufficient conditions for prediction.
@@ -940,7 +875,7 @@ class DecisionTreeExtractor:
             conclusion="predicted_class",
             support=100,
             confidence=0.95,
-            lift=1.2
+            lift=1.2,
         )
 
         return anchor_rule
@@ -949,6 +884,7 @@ class DecisionTreeExtractor:
 # ============================================================================
 # 5. SALIENCY MAP GENERATOR
 # ============================================================================
+
 
 class SaliencyMapGenerator:
     """
@@ -971,12 +907,7 @@ class SaliencyMapGenerator:
         self.saliency_maps: Dict[str, SaliencyMap] = {}
         self._lock = threading.Lock()
 
-    async def vanilla_gradient_saliency(
-        self,
-        model: Any,
-        input_image: np.ndarray,
-        target_class: int
-    ) -> SaliencyMap:
+    async def vanilla_gradient_saliency(self, model: Any, input_image: np.ndarray, target_class: int) -> SaliencyMap:
         """
         Compute vanilla gradient saliency.
 
@@ -998,19 +929,13 @@ class SaliencyMapGenerator:
             saliency = saliency / saliency.max()
 
         saliency_map = SaliencyMap(
-            saliency_type=SaliencyType.VANILLA_GRADIENT,
-            heatmap=saliency,
-            target_class=target_class
+            saliency_type=SaliencyType.VANILLA_GRADIENT, heatmap=saliency, target_class=target_class
         )
 
         return saliency_map
 
     async def gradcam_saliency(
-        self,
-        model: Any,
-        input_image: np.ndarray,
-        target_class: int,
-        layer_name: str
+        self, model: Any, input_image: np.ndarray, target_class: int, layer_name: str
     ) -> SaliencyMap:
         """
         Compute GradCAM saliency map.
@@ -1034,20 +959,13 @@ class SaliencyMapGenerator:
         upsampled = np.kron(heatmap, np.ones((16, 16)))[:h, :w]
 
         saliency_map = SaliencyMap(
-            saliency_type=SaliencyType.GRADCAM,
-            heatmap=upsampled,
-            target_class=target_class,
-            layer_name=layer_name
+            saliency_type=SaliencyType.GRADCAM, heatmap=upsampled, target_class=target_class, layer_name=layer_name
         )
 
         return saliency_map
 
     async def smooth_grad_saliency(
-        self,
-        model: Any,
-        input_image: np.ndarray,
-        num_samples: int = 50,
-        noise_level: float = 0.15
+        self, model: Any, input_image: np.ndarray, num_samples: int = 50, noise_level: float = 0.15
     ) -> SaliencyMap:
         """
         Compute SmoothGrad saliency.
@@ -1076,19 +994,11 @@ class SaliencyMapGenerator:
         if saliency.max() > 0:
             saliency = saliency / saliency.max()
 
-        saliency_map = SaliencyMap(
-            saliency_type=SaliencyType.SMOOTHGRAD,
-            heatmap=saliency
-        )
+        saliency_map = SaliencyMap(saliency_type=SaliencyType.SMOOTHGRAD, heatmap=saliency)
 
         return saliency_map
 
-    async def attention_rollout(
-        self,
-        model: Any,
-        input_image: np.ndarray,
-        num_layers: int = 12
-    ) -> SaliencyMap:
+    async def attention_rollout(self, model: Any, input_image: np.ndarray, num_layers: int = 12) -> SaliencyMap:
         """
         Compute attention rollout for Vision Transformers.
 
@@ -1133,10 +1043,7 @@ class SaliencyMapGenerator:
         scale = h // grid_size
         upsampled = np.kron(attention_map, np.ones((scale, scale)))[:h, :w]
 
-        saliency_map = SaliencyMap(
-            saliency_type=SaliencyType.ATTENTION_MAP,
-            heatmap=upsampled
-        )
+        saliency_map = SaliencyMap(saliency_type=SaliencyType.ATTENTION_MAP, heatmap=upsampled)
 
         return saliency_map
 
@@ -1144,6 +1051,7 @@ class SaliencyMapGenerator:
 # ============================================================================
 # 6. CONCEPT ACTIVATION TESTER
 # ============================================================================
+
 
 class ConceptActivationTester:
     """
@@ -1172,7 +1080,7 @@ class ConceptActivationTester:
         layer_name: str,
         concept_name: str,
         positive_examples: np.ndarray,
-        negative_examples: np.ndarray
+        negative_examples: np.ndarray,
     ) -> ConceptActivationVector:
         """
         Train Concept Activation Vector.
@@ -1189,11 +1097,11 @@ class ConceptActivationTester:
 
         # Train linear classifier (simplified)
         # Real implementation would use SVM or logistic regression
-        
+
         # Compute mean difference (simplified CAV)
         pos_mean = np.mean(pos_activations, axis=0)
         neg_mean = np.mean(neg_activations, axis=0)
-        
+
         cav_vector = pos_mean - neg_mean
         cav_vector = cav_vector / np.linalg.norm(cav_vector)  # Normalize
 
@@ -1206,7 +1114,7 @@ class ConceptActivationTester:
             vector=cav_vector,
             accuracy=accuracy,
             num_positive=len(positive_examples),
-            num_negative=len(negative_examples)
+            num_negative=len(negative_examples),
         )
 
         with self._lock:
@@ -1216,11 +1124,7 @@ class ConceptActivationTester:
         return cav
 
     async def compute_tcav_score(
-        self,
-        model: Any,
-        cav: ConceptActivationVector,
-        target_class: int,
-        test_examples: np.ndarray
+        self, model: Any, cav: ConceptActivationVector, target_class: int, test_examples: np.ndarray
     ) -> TCAVScore:
         """
         Compute TCAV score for concept-class pair.
@@ -1252,7 +1156,7 @@ class ConceptActivationTester:
             target_class=target_class,
             layer_name=cav.layer_name,
             tcav_score=tcav_score_value,
-            num_samples=len(test_examples)
+            num_samples=len(test_examples),
         )
 
         with self._lock:
@@ -1262,9 +1166,7 @@ class ConceptActivationTester:
         return tcav_score
 
     async def statistical_significance_test(
-        self,
-        tcav_score: TCAVScore,
-        num_random_runs: int = 50
+        self, tcav_score: TCAVScore, num_random_runs: int = 50
     ) -> Tuple[float, bool]:
         """
         Test statistical significance of TCAV score.
@@ -1296,11 +1198,7 @@ class ConceptActivationTester:
         return p_value, significant
 
     async def discover_concepts(
-        self,
-        model: Any,
-        layer_name: str,
-        image_dataset: np.ndarray,
-        num_concepts: int = 20
+        self, model: Any, layer_name: str, image_dataset: np.ndarray, num_concepts: int = 20
     ) -> List[str]:
         """
         Automatically discover concepts via clustering (ACE algorithm).
@@ -1335,6 +1233,7 @@ class ConceptActivationTester:
 # 7. EXPLANATION AGGREGATOR
 # ============================================================================
 
+
 class ExplanationAggregator:
     """
     Combine and rank multiple explanation methods for robust interpretations.
@@ -1357,9 +1256,7 @@ class ExplanationAggregator:
         self._lock = threading.Lock()
 
     async def aggregate_explanations(
-        self,
-        explanations: List[Explanation],
-        weights: Optional[List[float]] = None
+        self, explanations: List[Explanation], weights: Optional[List[float]] = None
     ) -> AggregatedExplanation:
         """
         Aggregate multiple explanations using weighted ensemble.
@@ -1395,12 +1292,10 @@ class ExplanationAggregator:
 
         for feature in all_features:
             count = sum(
-                1 for exp in explanations
-                if feature in sorted(
-                    exp.feature_importances,
-                    key=exp.feature_importances.get,
-                    reverse=True
-                )[:10]  # Top 10
+                1
+                for exp in explanations
+                if feature
+                in sorted(exp.feature_importances, key=exp.feature_importances.get, reverse=True)[:10]  # Top 10
             )
             if count / len(explanations) >= threshold:
                 consensus_features.append(feature)
@@ -1412,15 +1307,12 @@ class ExplanationAggregator:
             explanations=explanations,
             consensus_features=consensus_features,
             feature_importance_ensemble=ensemble_importance,
-            confidence=avg_confidence
+            confidence=avg_confidence,
         )
 
         return aggregated
 
-    async def borda_count_ranking(
-        self,
-        explanations: List[Explanation]
-    ) -> Dict[str, float]:
+    async def borda_count_ranking(self, explanations: List[Explanation]) -> Dict[str, float]:
         """
         Rank features using Borda count.
 
@@ -1430,11 +1322,7 @@ class ExplanationAggregator:
 
         for exp in explanations:
             # Sort features by importance
-            sorted_features = sorted(
-                exp.feature_importances.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )
+            sorted_features = sorted(exp.feature_importances.items(), key=lambda x: x[1], reverse=True)
 
             # Assign Borda scores
             n = len(sorted_features)
@@ -1445,11 +1333,7 @@ class ExplanationAggregator:
         return feature_scores
 
     async def evaluate_faithfulness(
-        self,
-        explanation: Explanation,
-        model: Any,
-        instance: np.ndarray,
-        num_steps: int = 100
+        self, explanation: Explanation, model: Any, instance: np.ndarray, num_steps: int = 100
     ) -> float:
         """
         Evaluate faithfulness using deletion curve.
@@ -1460,11 +1344,7 @@ class ExplanationAggregator:
         3. Measure prediction change
         4. Compute AUC
         """
-        sorted_features = sorted(
-            explanation.feature_importances.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_features = sorted(explanation.feature_importances.items(), key=lambda x: x[1], reverse=True)
 
         # Baseline prediction
         baseline_pred = 0.75  # Simulated
@@ -1493,7 +1373,7 @@ class ExplanationAggregator:
         model: Any,
         instance: np.ndarray,
         num_perturbations: int = 50,
-        noise_level: float = 0.1
+        noise_level: float = 0.1,
     ) -> float:
         """
         Evaluate stability via perturbations.
@@ -1529,11 +1409,7 @@ class ExplanationAggregator:
 
         return stability
 
-    async def detect_consensus(
-        self,
-        explanations: List[Explanation],
-        top_k: int = 10
-    ) -> Tuple[Set[str], Set[str]]:
+    async def detect_consensus(self, explanations: List[Explanation], top_k: int = 10) -> Tuple[Set[str], Set[str]]:
         """
         Detect consensus and conflicting features.
 
@@ -1553,11 +1429,7 @@ class ExplanationAggregator:
             importances = []
 
             for exp in explanations:
-                sorted_features = sorted(
-                    exp.feature_importances.items(),
-                    key=lambda x: x[1],
-                    reverse=True
-                )[:top_k]
+                sorted_features = sorted(exp.feature_importances.items(), key=lambda x: x[1], reverse=True)[:top_k]
 
                 if feature in dict(sorted_features):
                     count += 1
@@ -1569,17 +1441,11 @@ class ExplanationAggregator:
 
         # Consensus: high agreement
         consensus_threshold = len(explanations) * 0.7
-        consensus_features = {
-            f for f, count in feature_counts.items()
-            if count >= consensus_threshold
-        }
+        consensus_features = {f for f, count in feature_counts.items() if count >= consensus_threshold}
 
         # Conflicts: high variance
         variance_threshold = 0.1
-        conflicting_features = {
-            f for f, var in feature_variances.items()
-            if var > variance_threshold
-        }
+        conflicting_features = {f for f, var in feature_variances.items() if var > variance_threshold}
 
         return consensus_features, conflicting_features
 

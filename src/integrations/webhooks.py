@@ -9,17 +9,18 @@ Provides webhook functionality:
 - Event logging
 """
 
-from typing import Optional, List, Dict, Any
+import hashlib
+import hmac
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import uuid
-import hashlib
-import hmac
+from typing import Any, Dict, List, Optional
 
 
 class WebhookEvent(str, Enum):
     """Webhook event types"""
+
     SERVICE_CREATED = "service.created"
     SERVICE_UPDATED = "service.updated"
     SERVICE_DELETED = "service.deleted"
@@ -32,6 +33,7 @@ class WebhookEvent(str, Enum):
 
 class WebhookStatus(str, Enum):
     """Webhook delivery status"""
+
     PENDING = "pending"
     DELIVERED = "delivered"
     FAILED = "failed"
@@ -41,6 +43,7 @@ class WebhookStatus(str, Enum):
 @dataclass
 class Webhook:
     """Webhook endpoint configuration"""
+
     id: str
     url: str
     events: List[WebhookEvent]
@@ -53,6 +56,7 @@ class Webhook:
 @dataclass
 class WebhookDelivery:
     """Webhook delivery attempt"""
+
     id: str
     webhook_id: str
     event: WebhookEvent
@@ -74,23 +78,12 @@ class WebhookManager:
         self.webhooks: Dict[str, Webhook] = {}
         self.deliveries: List[WebhookDelivery] = []
 
-    def register_webhook(
-        self,
-        url: str,
-        events: List[WebhookEvent],
-        description: str = ""
-    ) -> str:
+    def register_webhook(self, url: str, events: List[WebhookEvent], description: str = "") -> str:
         """Register webhook endpoint"""
         webhook_id = str(uuid.uuid4())
         secret = self._generate_secret()
 
-        webhook = Webhook(
-            id=webhook_id,
-            url=url,
-            events=events,
-            secret=secret,
-            description=description
-        )
+        webhook = Webhook(id=webhook_id, url=url, events=events, secret=secret, description=description)
 
         self.webhooks[webhook_id] = webhook
         return webhook_id
@@ -99,11 +92,7 @@ class WebhookManager:
         """Generate webhook secret"""
         return hashlib.sha256(str(uuid.uuid4()).encode()).hexdigest()
 
-    def trigger_event(
-        self,
-        event: WebhookEvent,
-        payload: Dict[str, Any]
-    ) -> List[str]:
+    def trigger_event(self, event: WebhookEvent, payload: Dict[str, Any]) -> List[str]:
         """Trigger webhook event"""
         delivery_ids = []
 
@@ -116,12 +105,7 @@ class WebhookManager:
 
         return delivery_ids
 
-    def _deliver_webhook(
-        self,
-        webhook: Webhook,
-        event: WebhookEvent,
-        payload: Dict[str, Any]
-    ) -> str:
+    def _deliver_webhook(self, webhook: Webhook, event: WebhookEvent, payload: Dict[str, Any]) -> str:
         """Deliver webhook"""
         delivery_id = str(uuid.uuid4())
 
@@ -129,11 +113,7 @@ class WebhookManager:
         signature = self._create_signature(payload, webhook.secret)
 
         delivery = WebhookDelivery(
-            id=delivery_id,
-            webhook_id=webhook.id,
-            event=event,
-            payload=payload,
-            status=WebhookStatus.PENDING
+            id=delivery_id, webhook_id=webhook.id, event=event, payload=payload, status=WebhookStatus.PENDING
         )
 
         # Simulate delivery
@@ -158,12 +138,9 @@ class WebhookManager:
     def _create_signature(self, payload: Dict[str, Any], secret: str) -> str:
         """Create HMAC signature"""
         import json
+
         payload_str = json.dumps(payload, sort_keys=True)
-        signature = hmac.new(
-            secret.encode(),
-            payload_str.encode(),
-            hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(secret.encode(), payload_str.encode(), hashlib.sha256).hexdigest()
         return f"sha256={signature}"
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -174,11 +151,11 @@ class WebhookManager:
         successful_deliveries = len([d for d in self.deliveries if d.status == WebhookStatus.DELIVERED])
 
         return {
-            'total_webhooks': total_webhooks,
-            'active_webhooks': active_webhooks,
-            'total_deliveries': total_deliveries,
-            'successful_deliveries': successful_deliveries,
-            'failed_deliveries': total_deliveries - successful_deliveries
+            "total_webhooks": total_webhooks,
+            "active_webhooks": active_webhooks,
+            "total_deliveries": total_deliveries,
+            "successful_deliveries": successful_deliveries,
+            "failed_deliveries": total_deliveries - successful_deliveries,
         }
 
 

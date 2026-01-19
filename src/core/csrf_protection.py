@@ -5,16 +5,17 @@ Implements Cross-Site Request Forgery (CSRF) protection for Flask applications.
 Uses token-based validation to prevent CSRF attacks.
 """
 
-import secrets
-import hmac
 import hashlib
+import hmac
 import logging
-from typing import Optional, Callable
-from functools import wraps
-from flask import session, request, abort, current_app
+import secrets
 from datetime import datetime, timedelta
+from functools import wraps
+from typing import Callable, Optional
 
-logger = logging.getLogger('dms.csrf')
+from flask import abort, current_app, request, session
+
+logger = logging.getLogger("dms.csrf")
 
 
 class CSRFProtection:
@@ -33,9 +34,9 @@ class CSRFProtection:
             secret_key: Secret key for token generation
         """
         self.secret_key = secret_key
-        self.token_key = '_csrf_token'
-        self.header_name = 'X-CSRF-Token'
-        self.exempt_methods = {'GET', 'HEAD', 'OPTIONS', 'TRACE'}
+        self.token_key = "_csrf_token"
+        self.header_name = "X-CSRF-Token"
+        self.exempt_methods = {"GET", "HEAD", "OPTIONS", "TRACE"}
         self.exempt_views = set()
 
         if app:
@@ -50,25 +51,25 @@ class CSRFProtection:
         """
         # Set secret key
         if not self.secret_key:
-            self.secret_key = app.config.get('SECRET_KEY')
+            self.secret_key = app.config.get("SECRET_KEY")
 
         if not self.secret_key:
             raise ValueError("SECRET_KEY required for CSRF protection")
 
         # Configure
-        app.config.setdefault('CSRF_ENABLED', True)
-        app.config.setdefault('CSRF_TIME_LIMIT', 3600)  # 1 hour
+        app.config.setdefault("CSRF_ENABLED", True)
+        app.config.setdefault("CSRF_TIME_LIMIT", 3600)  # 1 hour
 
         # Add to app extensions
-        if not hasattr(app, 'extensions'):
+        if not hasattr(app, "extensions"):
             app.extensions = {}
-        app.extensions['csrf'] = self
+        app.extensions["csrf"] = self
 
         # Register protection
         @app.before_request
         def csrf_protect():
             """Protect against CSRF attacks."""
-            if not app.config.get('CSRF_ENABLED'):
+            if not app.config.get("CSRF_ENABLED"):
                 return
 
             # Skip exempt methods
@@ -82,8 +83,7 @@ class CSRFProtection:
             # Validate token
             if not self.validate_token():
                 logger.warning(
-                    f"CSRF validation failed for {request.method} {request.path} "
-                    f"from {request.remote_addr}"
+                    f"CSRF validation failed for {request.method} {request.path} " f"from {request.remote_addr}"
                 )
                 abort(403, description="CSRF validation failed")
 
@@ -91,10 +91,7 @@ class CSRFProtection:
         @app.context_processor
         def csrf_token():
             """Make CSRF token available in templates."""
-            return {
-                'csrf_token': self.generate_token,
-                'csrf_input': self.generate_input
-            }
+            return {"csrf_token": self.generate_token, "csrf_input": self.generate_input}
 
         logger.info("CSRF protection initialized")
 
@@ -114,11 +111,7 @@ class CSRFProtection:
         # Create HMAC signature
         timestamp = str(int(datetime.now().timestamp()))
         message = f"{session_token}:{timestamp}"
-        signature = hmac.new(
-            self.secret_key.encode(),
-            message.encode(),
-            hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(self.secret_key.encode(), message.encode(), hashlib.sha256).hexdigest()
 
         # Combine into token
         token = f"{timestamp}.{signature}"
@@ -169,7 +162,7 @@ class CSRFProtection:
 
         # Parse token
         try:
-            timestamp_str, signature = token.split('.', 1)
+            timestamp_str, signature = token.split(".", 1)
             timestamp = int(timestamp_str)
         except (ValueError, AttributeError):
             logger.debug("Invalid token format")
@@ -177,7 +170,7 @@ class CSRFProtection:
 
         # Check expiration
         token_age = datetime.now().timestamp() - timestamp
-        max_age = current_app.config.get('CSRF_TIME_LIMIT', 3600)
+        max_age = current_app.config.get("CSRF_TIME_LIMIT", 3600)
 
         if token_age > max_age:
             logger.debug(f"Token expired (age: {token_age}s)")
@@ -185,11 +178,7 @@ class CSRFProtection:
 
         # Verify signature
         message = f"{session_token}:{timestamp_str}"
-        expected_signature = hmac.new(
-            self.secret_key.encode(),
-            message.encode(),
-            hashlib.sha256
-        ).hexdigest()
+        expected_signature = hmac.new(self.secret_key.encode(), message.encode(), hashlib.sha256).hexdigest()
 
         if not hmac.compare_digest(signature, expected_signature):
             logger.debug("Invalid token signature")
@@ -207,6 +196,7 @@ class CSRFProtection:
         Returns:
             Decorated view function
         """
+
         @wraps(view)
         def wrapped(*args, **kwargs):
             return view(*args, **kwargs)
@@ -257,13 +247,11 @@ def csrf_protect(view: Callable) -> Callable:
     Returns:
         Decorated view
     """
+
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not csrf.validate_token():
-            logger.warning(
-                f"CSRF validation failed for {request.method} {request.path} "
-                f"from {request.remote_addr}"
-            )
+            logger.warning(f"CSRF validation failed for {request.method} {request.path} " f"from {request.remote_addr}")
             abort(403, description="CSRF validation failed")
         return view(*args, **kwargs)
 
@@ -285,18 +273,18 @@ class FlaskWTFCompat:
 
 
 # Example usage
-if __name__ == '__main__':
+if __name__ == "__main__":
     from flask import Flask, render_template_string
 
     # Create app
     app = Flask(__name__)
-    app.secret_key = 'test-secret-key-change-in-production'
+    app.secret_key = "test-secret-key-change-in-production"
 
     # Initialize CSRF protection
     csrf.init_app(app)
 
     # Template with CSRF token
-    FORM_TEMPLATE = '''
+    FORM_TEMPLATE = """
     <!DOCTYPE html>
     <html>
     <head>
@@ -345,33 +333,38 @@ if __name__ == '__main__':
         </form>
     </body>
     </html>
-    '''
+    """
 
-    @app.route('/')
+    @app.route("/")
     def index():
         """Show demo form."""
         return render_template_string(FORM_TEMPLATE)
 
-    @app.route('/submit', methods=['POST'])
+    @app.route("/submit", methods=["POST"])
     def submit():
         """Handle form submission."""
         from flask import jsonify
-        data = request.form.get('data') or request.json.get('data')
-        return jsonify({'status': 'success', 'data': data})
 
-    @app.route('/api/public', methods=['POST'])
+        data = request.form.get("data") or request.json.get("data")
+        return jsonify({"status": "success", "data": data})
+
+    @app.route("/api/public", methods=["POST"])
     @csrf_exempt
     def public_api():
         """Public API endpoint (CSRF exempt)."""
         from flask import jsonify
-        return jsonify({'status': 'ok', 'message': 'No CSRF required'})
+
+        return jsonify({"status": "ok", "message": "No CSRF required"})
 
     # Run app
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("CSRF Protection Demo")
-    print("="*60)
+    print("=" * 60)
     print("\nVisit: http://localhost:5000")
     print("\nTry submitting forms with and without CSRF tokens")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
-    app.run(debug=True, port=5000)
+    # Debug mode controlled by environment variable for security
+    import os
+    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    app.run(debug=debug_mode, port=5000)

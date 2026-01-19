@@ -5,17 +5,18 @@ API Documentation Routes
 Swagger UI and ReDoc integration for API documentation.
 """
 
-from flask import Blueprint, send_from_directory, render_template_string
 import os
-import yaml
 
-api_docs_bp = Blueprint('api_docs', __name__, url_prefix='/api')
+import yaml
+from flask import Blueprint, render_template_string, send_from_directory
+
+api_docs_bp = Blueprint("api_docs", __name__, url_prefix="/api")
 
 # Path to OpenAPI spec
-OPENAPI_SPEC_PATH = os.path.join(os.path.dirname(__file__), '..', 'docs', 'api', 'openapi.yaml')
+OPENAPI_SPEC_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "api", "openapi.yaml")
 
 
-@api_docs_bp.route('/openapi.yaml')
+@api_docs_bp.route("/openapi.yaml")
 def openapi_spec():
     """
     Serve OpenAPI specification file
@@ -27,13 +28,11 @@ def openapi_spec():
         description: OpenAPI specification in YAML format
     """
     return send_from_directory(
-        os.path.join(os.path.dirname(__file__), '..', 'docs', 'api'),
-        'openapi.yaml',
-        mimetype='text/yaml'
+        os.path.join(os.path.dirname(__file__), "..", "docs", "api"), "openapi.yaml", mimetype="text/yaml"
     )
 
 
-@api_docs_bp.route('/openapi.json')
+@api_docs_bp.route("/openapi.json")
 def openapi_spec_json():
     """
     Serve OpenAPI specification as JSON
@@ -46,18 +45,18 @@ def openapi_spec_json():
     """
     import json
 
-    with open(OPENAPI_SPEC_PATH, 'r') as f:
+    with open(OPENAPI_SPEC_PATH, "r") as f:
         spec = yaml.safe_load(f)
 
-    return json.dumps(spec), 200, {'Content-Type': 'application/json'}
+    return json.dumps(spec), 200, {"Content-Type": "application/json"}
 
 
-@api_docs_bp.route('/docs')
+@api_docs_bp.route("/docs")
 def swagger_ui():
     """
     Swagger UI for API documentation
     """
-    html = '''
+    html = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -96,16 +95,16 @@ def swagger_ui():
         </script>
     </body>
     </html>
-    '''
+    """
     return render_template_string(html)
 
 
-@api_docs_bp.route('/redoc')
+@api_docs_bp.route("/redoc")
 def redoc_ui():
     """
     ReDoc UI for API documentation
     """
-    html = '''
+    html = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -124,16 +123,16 @@ def redoc_ui():
         <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
     </body>
     </html>
-    '''
+    """
     return render_template_string(html)
 
 
-@api_docs_bp.route('/')
+@api_docs_bp.route("/")
 def api_root():
     """
     API documentation index page
     """
-    html = '''
+    html = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -300,5 +299,5 @@ def api_root():
         </div>
     </body>
     </html>
-    '''
+    """
     return render_template_string(html)

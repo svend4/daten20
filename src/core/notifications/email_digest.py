@@ -4,20 +4,21 @@ Advanced Email Digest System
 Sends scheduled email digests with customizable content and templates.
 """
 
-from typing import List, Dict, Optional, Any
+import json
+import smtplib
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import Enum
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from enum import Enum
 from pathlib import Path
-import json
+from typing import Any, Dict, List, Optional
 
 
 class DigestFrequency(str, Enum):
     """Digest frequency options"""
+
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
@@ -26,6 +27,7 @@ class DigestFrequency(str, Enum):
 
 class DigestFormat(str, Enum):
     """Digest format options"""
+
     HTML = "html"
     PLAIN = "plain"
     BOTH = "both"
@@ -34,6 +36,7 @@ class DigestFormat(str, Enum):
 @dataclass
 class DigestContent:
     """Content for email digest"""
+
     title: str
     summary: str
     sections: List[Dict[str, Any]]
@@ -45,6 +48,7 @@ class DigestContent:
 @dataclass
 class DigestSubscription:
     """User digest subscription"""
+
     user_id: int
     email: str
     frequency: DigestFrequency
@@ -56,11 +60,11 @@ class DigestSubscription:
     def __post_init__(self):
         if self.preferences is None:
             self.preferences = {
-                'include_statistics': True,
-                'include_new_services': True,
-                'include_updates': True,
-                'include_analytics': True,
-                'include_recommendations': True
+                "include_statistics": True,
+                "include_new_services": True,
+                "include_updates": True,
+                "include_analytics": True,
+                "include_recommendations": True,
             }
 
 
@@ -74,7 +78,7 @@ class EmailDigestManager:
         smtp_user: str,
         smtp_password: str,
         from_email: str,
-        from_name: str = "DMS Digest"
+        from_name: str = "DMS Digest",
     ):
         self.smtp_host = smtp_host
         self.smtp_port = smtp_port
@@ -111,16 +115,13 @@ class EmailDigestManager:
         cursor = database.conn.cursor()
 
         # New services created today
-        cursor.execute(
-            "SELECT COUNT(*) FROM services WHERE DATE(created_at) = ?",
-            (today.isoformat(),)
-        )
+        cursor.execute("SELECT COUNT(*) FROM services WHERE DATE(created_at) = ?", (today.isoformat(),))
         new_services_count = cursor.fetchone()[0]
 
         # Services updated today
         cursor.execute(
             "SELECT COUNT(*) FROM services WHERE DATE(updated_at) = ? AND DATE(created_at) != ?",
-            (today.isoformat(), today.isoformat())
+            (today.isoformat(), today.isoformat()),
         )
         updated_services_count = cursor.fetchone()[0]
 
@@ -129,45 +130,47 @@ class EmailDigestManager:
         total_services = cursor.fetchone()[0]
 
         # Recent services
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT service_name, region, brutto_rate, created_at
             FROM services
             WHERE DATE(created_at) = ?
             ORDER BY created_at DESC
             LIMIT 5
-        """, (today.isoformat(),))
+        """,
+            (today.isoformat(),),
+        )
 
         recent_services = []
         for row in cursor.fetchall():
-            recent_services.append({
-                'name': row[0],
-                'region': row[1],
-                'rate': row[2],
-                'created_at': row[3]
-            })
+            recent_services.append({"name": row[0], "region": row[1], "rate": row[2], "created_at": row[3]})
 
         # Build digest content
         sections = []
 
         if new_services_count > 0:
-            sections.append({
-                'title': '🆕 New Services',
-                'content': f"{new_services_count} new services were created today.",
-                'items': recent_services
-            })
+            sections.append(
+                {
+                    "title": "🆕 New Services",
+                    "content": f"{new_services_count} new services were created today.",
+                    "items": recent_services,
+                }
+            )
 
         if updated_services_count > 0:
-            sections.append({
-                'title': '📝 Updates',
-                'content': f"{updated_services_count} services were updated today.",
-                'items': []
-            })
+            sections.append(
+                {
+                    "title": "📝 Updates",
+                    "content": f"{updated_services_count} services were updated today.",
+                    "items": [],
+                }
+            )
 
         statistics = {
-            'total_services': total_services,
-            'new_today': new_services_count,
-            'updated_today': updated_services_count,
-            'growth_rate': f"+{(new_services_count / max(total_services - new_services_count, 1) * 100):.1f}%"
+            "total_services": total_services,
+            "new_today": new_services_count,
+            "updated_today": updated_services_count,
+            "growth_rate": f"+{(new_services_count / max(total_services - new_services_count, 1) * 100):.1f}%",
         }
 
         highlights = []
@@ -182,7 +185,7 @@ class EmailDigestManager:
             sections=sections,
             statistics=statistics,
             highlights=highlights,
-            footer="You're receiving this because you subscribed to daily digests."
+            footer="You're receiving this because you subscribed to daily digests.",
         )
 
     def generate_weekly_digest(self, database) -> DigestContent:
@@ -193,63 +196,59 @@ class EmailDigestManager:
         cursor = database.conn.cursor()
 
         # Weekly statistics
-        cursor.execute(
-            "SELECT COUNT(*) FROM services WHERE DATE(created_at) >= ?",
-            (week_ago.isoformat(),)
-        )
+        cursor.execute("SELECT COUNT(*) FROM services WHERE DATE(created_at) >= ?", (week_ago.isoformat(),))
         new_services_week = cursor.fetchone()[0]
 
         cursor.execute(
             "SELECT COUNT(*) FROM services WHERE DATE(updated_at) >= ? AND DATE(created_at) < ?",
-            (week_ago.isoformat(), week_ago.isoformat())
+            (week_ago.isoformat(), week_ago.isoformat()),
         )
         updated_services_week = cursor.fetchone()[0]
 
         # Top regions this week
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT region, COUNT(*) as count
             FROM services
             WHERE DATE(created_at) >= ?
             GROUP BY region
             ORDER BY count DESC
             LIMIT 5
-        """, (week_ago.isoformat(),))
+        """,
+            (week_ago.isoformat(),),
+        )
 
-        top_regions = [{'region': row[0], 'count': row[1]} for row in cursor.fetchall()]
+        top_regions = [{"region": row[0], "count": row[1]} for row in cursor.fetchall()]
 
         # Average rate this week
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT AVG(brutto_rate)
             FROM services
             WHERE DATE(created_at) >= ?
-        """, (week_ago.isoformat(),))
+        """,
+            (week_ago.isoformat(),),
+        )
 
         avg_rate = cursor.fetchone()[0] or 0
 
         sections = [
             {
-                'title': '📊 Weekly Overview',
-                'content': f"This week saw {new_services_week} new services and {updated_services_week} updates.",
-                'items': []
+                "title": "📊 Weekly Overview",
+                "content": f"This week saw {new_services_week} new services and {updated_services_week} updates.",
+                "items": [],
             },
-            {
-                'title': '🏆 Top Regions',
-                'content': 'Most active regions this week:',
-                'items': top_regions
-            }
+            {"title": "🏆 Top Regions", "content": "Most active regions this week:", "items": top_regions},
         ]
 
         statistics = {
-            'new_this_week': new_services_week,
-            'updated_this_week': updated_services_week,
-            'avg_rate': f"{avg_rate:.2f}€",
-            'active_regions': len(top_regions)
+            "new_this_week": new_services_week,
+            "updated_this_week": updated_services_week,
+            "avg_rate": f"{avg_rate:.2f}€",
+            "active_regions": len(top_regions),
         }
 
-        highlights = [
-            f"📈 {new_services_week} services added this week",
-            f"💰 Average rate: {avg_rate:.2f}€"
-        ]
+        highlights = [f"📈 {new_services_week} services added this week", f"💰 Average rate: {avg_rate:.2f}€"]
 
         return DigestContent(
             title=f"Weekly Digest - Week of {week_ago.strftime('%B %d')}",
@@ -257,7 +256,7 @@ class EmailDigestManager:
             sections=sections,
             statistics=statistics,
             highlights=highlights,
-            footer="You're receiving this because you subscribed to weekly digests."
+            footer="You're receiving this because you subscribed to weekly digests.",
         )
 
     def generate_monthly_digest(self, database) -> DigestContent:
@@ -268,50 +267,46 @@ class EmailDigestManager:
         cursor = database.conn.cursor()
 
         # Monthly statistics
-        cursor.execute(
-            "SELECT COUNT(*) FROM services WHERE DATE(created_at) >= ?",
-            (month_ago.isoformat(),)
-        )
+        cursor.execute("SELECT COUNT(*) FROM services WHERE DATE(created_at) >= ?", (month_ago.isoformat(),))
         new_services_month = cursor.fetchone()[0]
 
         cursor.execute("SELECT COUNT(*) FROM services")
         total_services = cursor.fetchone()[0]
 
         # Monthly trends
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT DATE(created_at) as day, COUNT(*) as count
             FROM services
             WHERE DATE(created_at) >= ?
             GROUP BY day
             ORDER BY day
-        """, (month_ago.isoformat(),))
+        """,
+            (month_ago.isoformat(),),
+        )
 
         daily_counts = [row[1] for row in cursor.fetchall()]
         avg_daily = sum(daily_counts) / len(daily_counts) if daily_counts else 0
 
         sections = [
             {
-                'title': '📅 Monthly Summary',
-                'content': f"In the past month, {new_services_month} services were created.",
-                'items': []
+                "title": "📅 Monthly Summary",
+                "content": f"In the past month, {new_services_month} services were created.",
+                "items": [],
             },
-            {
-                'title': '📈 Growth Trends',
-                'content': f"Average of {avg_daily:.1f} services per day.",
-                'items': []
-            }
+            {"title": "📈 Growth Trends", "content": f"Average of {avg_daily:.1f} services per day.", "items": []},
         ]
 
         statistics = {
-            'new_this_month': new_services_month,
-            'total_services': total_services,
-            'avg_daily': f"{avg_daily:.1f}",
-            'growth_rate': f"+{(new_services_month / max(total_services - new_services_month, 1) * 100):.1f}%"
+            "new_this_month": new_services_month,
+            "total_services": total_services,
+            "avg_daily": f"{avg_daily:.1f}",
+            "growth_rate": f"+{(new_services_month / max(total_services - new_services_month, 1) * 100):.1f}%",
         }
 
         highlights = [
             f"🎯 {new_services_month} services added this month",
-            f"📊 {total_services} total services in system"
+            f"📊 {total_services} total services in system",
         ]
 
         return DigestContent(
@@ -320,7 +315,7 @@ class EmailDigestManager:
             sections=sections,
             statistics=statistics,
             highlights=highlights,
-            footer="You're receiving this because you subscribed to monthly digests."
+            footer="You're receiving this because you subscribed to monthly digests.",
         )
 
     def render_html_template(self, content: DigestContent) -> str:
@@ -458,7 +453,7 @@ class EmailDigestManager:
         <div class="statistics">
 """
             for label, value in content.statistics.items():
-                formatted_label = label.replace('_', ' ').title()
+                formatted_label = label.replace("_", " ").title()
                 html += f"""
             <div class="stat-card">
                 <div class="stat-value">{value}</div>
@@ -476,15 +471,15 @@ class EmailDigestManager:
             <div class="section-title">{section['title']}</div>
             <div class="section-content">{section['content']}</div>
 """
-            if section.get('items'):
+            if section.get("items"):
                 html += """
             <ul class="item-list">
 """
-                for item in section['items']:
+                for item in section["items"]:
                     if isinstance(item, dict):
-                        if 'name' in item:
+                        if "name" in item:
                             html += f"                <li><strong>{item['name']}</strong> - {item.get('region', 'N/A')} ({item.get('rate', 0):.2f}€)</li>\n"
-                        elif 'region' in item:
+                        elif "region" in item:
                             html += f"                <li><strong>{item['region']}</strong> - {item['count']} services</li>\n"
                     else:
                         html += f"                <li>{item}</li>\n"
@@ -525,21 +520,21 @@ class EmailDigestManager:
         if content.statistics:
             text += "STATISTICS:\n"
             for label, value in content.statistics.items():
-                formatted_label = label.replace('_', ' ').title()
+                formatted_label = label.replace("_", " ").title()
                 text += f"  {formatted_label}: {value}\n"
             text += "\n"
 
         for section in content.sections:
             text += f"{section['title']}\n"
-            text += "-" * len(section['title']) + "\n"
+            text += "-" * len(section["title"]) + "\n"
             text += f"{section['content']}\n"
 
-            if section.get('items'):
-                for item in section['items']:
+            if section.get("items"):
+                for item in section["items"]:
                     if isinstance(item, dict):
-                        if 'name' in item:
+                        if "name" in item:
                             text += f"  • {item['name']} - {item.get('region', 'N/A')} ({item.get('rate', 0):.2f}€)\n"
-                        elif 'region' in item:
+                        elif "region" in item:
                             text += f"  • {item['region']} - {item['count']} services\n"
                     else:
                         text += f"  • {item}\n"
@@ -550,27 +545,23 @@ class EmailDigestManager:
 
         return text
 
-    def send_digest(
-        self,
-        subscription: DigestSubscription,
-        content: DigestContent
-    ) -> bool:
+    def send_digest(self, subscription: DigestSubscription, content: DigestContent) -> bool:
         """Send digest email to subscriber"""
         try:
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = content.title
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
-            msg['To'] = subscription.email
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = content.title
+            msg["From"] = f"{self.from_name} <{self.from_email}>"
+            msg["To"] = subscription.email
 
             # Plain text version
             plain_text = self.render_plain_template(content)
-            part_plain = MIMEText(plain_text, 'plain', 'utf-8')
+            part_plain = MIMEText(plain_text, "plain", "utf-8")
             msg.attach(part_plain)
 
             # HTML version (if requested)
             if subscription.format in [DigestFormat.HTML, DigestFormat.BOTH]:
                 html_text = self.render_html_template(content)
-                part_html = MIMEText(html_text, 'html', 'utf-8')
+                part_html = MIMEText(html_text, "html", "utf-8")
                 msg.attach(part_html)
 
             # Send email
@@ -601,20 +592,17 @@ class EmailDigestManager:
             should_send = False
 
             if subscription.frequency == DigestFrequency.DAILY:
-                if subscription.last_sent is None or \
-                   (now - subscription.last_sent).days >= 1:
+                if subscription.last_sent is None or (now - subscription.last_sent).days >= 1:
                     content = self.generate_daily_digest(database)
                     should_send = True
 
             elif subscription.frequency == DigestFrequency.WEEKLY:
-                if subscription.last_sent is None or \
-                   (now - subscription.last_sent).days >= 7:
+                if subscription.last_sent is None or (now - subscription.last_sent).days >= 7:
                     content = self.generate_weekly_digest(database)
                     should_send = True
 
             elif subscription.frequency == DigestFrequency.MONTHLY:
-                if subscription.last_sent is None or \
-                   (now - subscription.last_sent).days >= 30:
+                if subscription.last_sent is None or (now - subscription.last_sent).days >= 30:
                     content = self.generate_monthly_digest(database)
                     should_send = True
 
@@ -641,23 +629,15 @@ def get_digest_manager() -> EmailDigestManager:
             smtp_user="noreply@example.com",
             smtp_password="password",
             from_email="noreply@example.com",
-            from_name="DMS Digest"
+            from_name="DMS Digest",
         )
 
     return _digest_manager
 
 
 def configure_digest_manager(
-    smtp_host: str,
-    smtp_port: int,
-    smtp_user: str,
-    smtp_password: str,
-    from_email: str,
-    from_name: str = "DMS Digest"
+    smtp_host: str, smtp_port: int, smtp_user: str, smtp_password: str, from_email: str, from_name: str = "DMS Digest"
 ):
     """Configure email digest manager"""
     global _digest_manager
-    _digest_manager = EmailDigestManager(
-        smtp_host, smtp_port, smtp_user, smtp_password,
-        from_email, from_name
-    )
+    _digest_manager = EmailDigestManager(smtp_host, smtp_port, smtp_user, smtp_password, from_email, from_name)

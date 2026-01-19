@@ -38,25 +38,26 @@ Version: 1.0.0
 """
 
 import argparse
+import base64
+import hashlib
 import json
-import sys
 import os
 import re
-import hashlib
-from pathlib import Path
-from typing import List, Dict, Any, Tuple, Optional
-from dataclasses import dataclass, asdict, field
+import sys
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-import base64
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
-# Import core modules
-from src.core.parser import DocumentParser
 from src.core.exporter import DocumentExporter
 from src.core.logging_config import setup_logging
 
+# Import core modules
+from src.core.parser import DocumentParser
+
 # Import ML modules
-from src.ml.ner import NEREngine, Entity, EntityType
+from src.ml.ner import Entity, EntityType, NEREngine
 
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
@@ -64,6 +65,7 @@ logger = setup_logging(__name__, log_level="INFO")
 
 class AnonymizationStrategy(Enum):
     """Anonymization strategies."""
+
     REDACTION = "redaction"  # [REDACTED]
     MASKING = "masking"  # max@example.com → m**@e******.com
     REPLACEMENT = "replacement"  # Max Mustermann → John Doe
@@ -73,6 +75,7 @@ class AnonymizationStrategy(Enum):
 
 class ComplianceMode(Enum):
     """Compliance modes."""
+
     GDPR = "gdpr"  # EU General Data Protection Regulation
     HIPAA = "hipaa"  # Health Insurance Portability and Accountability Act
     CUSTOM = "custom"  # Custom rules
@@ -81,6 +84,7 @@ class ComplianceMode(Enum):
 @dataclass
 class PIIItem:
     """Detected PII item."""
+
     text: str
     type: str
     start: int
@@ -92,6 +96,7 @@ class PIIItem:
 @dataclass
 class AnonymizationResult:
     """Results of anonymization."""
+
     original_file: str
     anonymized_file: str
     strategy: str
@@ -106,7 +111,7 @@ class AnonymizationResult:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         result = asdict(self)
-        result['pii_items'] = [asdict(item) for item in self.pii_items]
+        result["pii_items"] = [asdict(item) for item in self.pii_items]
         return result
 
 
@@ -116,7 +121,7 @@ class DocumentAnonymizer:
     def __init__(
         self,
         strategy: AnonymizationStrategy = AnonymizationStrategy.REDACTION,
-        compliance_mode: ComplianceMode = ComplianceMode.GDPR
+        compliance_mode: ComplianceMode = ComplianceMode.GDPR,
     ):
         """
         Initialize anonymizer.
@@ -133,15 +138,17 @@ class DocumentAnonymizer:
 
         # Replacement data for REPLACEMENT strategy
         self.replacement_names = [
-            "John Doe", "Jane Smith", "Robert Johnson", "Mary Williams",
-            "Michael Brown", "Patricia Jones", "David Miller", "Jennifer Davis"
+            "John Doe",
+            "Jane Smith",
+            "Robert Johnson",
+            "Mary Williams",
+            "Michael Brown",
+            "Patricia Jones",
+            "David Miller",
+            "Jennifer Davis",
         ]
-        self.replacement_emails = [
-            "user1@example.com", "user2@example.com", "user3@example.com"
-        ]
-        self.replacement_phones = [
-            "+1-555-0100", "+1-555-0101", "+1-555-0102"
-        ]
+        self.replacement_emails = ["user1@example.com", "user2@example.com", "user3@example.com"]
+        self.replacement_phones = ["+1-555-0100", "+1-555-0101", "+1-555-0102"]
 
         logger.info(f"DocumentAnonymizer initialized with {strategy.value} strategy")
 
@@ -174,14 +181,14 @@ class DocumentAnonymizer:
                 EntityType.PHONE,
                 EntityType.LOCATION,
                 EntityType.IBAN,
-                EntityType.DATE
+                EntityType.DATE,
             ]:
                 pii_item = PIIItem(
                     text=entity.text,
                     type=entity.type.value,
                     start=entity.start,
                     end=entity.end,
-                    confidence=entity.confidence
+                    confidence=entity.confidence,
                 )
                 pii_items.append(pii_item)
 
@@ -194,7 +201,7 @@ class DocumentAnonymizer:
         output_path: str,
         reversible: bool = False,
         mapping_file: Optional[str] = None,
-        audit_log: bool = False
+        audit_log: bool = False,
     ) -> AnonymizationResult:
         """
         Anonymize document.
@@ -252,17 +259,14 @@ class DocumentAnonymizer:
             anonymization_date=datetime.now().isoformat(),
             pii_items=pii_items,
             mapping=mapping if reversible else {},
-            audit_trail=audit_trail
+            audit_trail=audit_trail,
         )
 
         logger.info(f"Anonymization complete. PII anonymized: {result.pii_anonymized}")
         return result
 
     def _anonymize_text(
-        self,
-        text: str,
-        pii_items: List[PIIItem],
-        reversible: bool = False
+        self, text: str, pii_items: List[PIIItem], reversible: bool = False
     ) -> Tuple[str, Dict[str, str]]:
         """
         Anonymize text using configured strategy.
@@ -283,18 +287,10 @@ class DocumentAnonymizer:
 
         for item in sorted_items:
             original = item.text
-            anonymized_value = self._anonymize_value(
-                original,
-                item.type,
-                reversible=reversible
-            )
+            anonymized_value = self._anonymize_value(original, item.type, reversible=reversible)
 
             # Replace in text
-            anonymized = (
-                anonymized[:item.start] +
-                anonymized_value +
-                anonymized[item.end:]
-            )
+            anonymized = anonymized[: item.start] + anonymized_value + anonymized[item.end :]
 
             # Store mapping
             if original not in mapping:
@@ -302,12 +298,7 @@ class DocumentAnonymizer:
 
         return anonymized, mapping
 
-    def _anonymize_value(
-        self,
-        value: str,
-        entity_type: str,
-        reversible: bool = False
-    ) -> str:
+    def _anonymize_value(self, value: str, entity_type: str, reversible: bool = False) -> str:
         """
         Anonymize a single value based on strategy.
 
@@ -341,28 +332,28 @@ class DocumentAnonymizer:
         """Mask value partially."""
         if entity_type == "EMAIL":
             # max@example.com → m**@e******.com
-            match = re.match(r'^([^@])([^@]*)@([^.])([^.]*)\.(.+)$', value)
+            match = re.match(r"^([^@])([^@]*)@([^.])([^.]*)\.(.+)$", value)
             if match:
                 return f"{match.group(1)}{'*' * len(match.group(2))}@{match.group(3)}{'*' * len(match.group(4))}.{match.group(5)}"
 
         elif entity_type == "PHONE":
             # +49 123 456789 → +49 *** ******
-            return re.sub(r'\d', '*', value[3:]) if len(value) > 3 else '***'
+            return re.sub(r"\d", "*", value[3:]) if len(value) > 3 else "***"
 
         elif entity_type == "PERSON":
             # Max Mustermann → M** M*********
             parts = value.split()
-            return ' '.join([p[0] + '*' * (len(p) - 1) for p in parts if p])
+            return " ".join([p[0] + "*" * (len(p) - 1) for p in parts if p])
 
         elif entity_type == "IBAN":
             # DE89370400440532013000 → DE** **** **** **** ****
-            return value[:2] + '**' + ' ****' * ((len(value) - 2) // 4)
+            return value[:2] + "**" + " ****" * ((len(value) - 2) // 4)
 
         else:
             # Generic masking
             if len(value) <= 2:
-                return '*' * len(value)
-            return value[0] + '*' * (len(value) - 2) + value[-1]
+                return "*" * len(value)
+            return value[0] + "*" * (len(value) - 2) + value[-1]
 
     def _replace_value(self, value: str, entity_type: str) -> str:
         """Replace with fake data."""
@@ -397,7 +388,7 @@ class DocumentAnonymizer:
         """Generalize value (reduce precision)."""
         if entity_type == "DATE":
             # Extract year only: 01.01.1990 → 1990
-            match = re.search(r'\d{4}', value)
+            match = re.search(r"\d{4}", value)
             return match.group(0) if match else "[YEAR]"
 
         elif entity_type == "LOCATION":
@@ -408,64 +399,145 @@ class DocumentAnonymizer:
             return f"[{entity_type}]"
 
     def _save_mapping(self, mapping: Dict[str, str], mapping_file: str) -> None:
-        """Save mapping to encrypted file."""
-        # In production, use proper encryption (e.g., Fernet, AES)
-        # For now, use base64 encoding as placeholder
-        encoded = base64.b64encode(json.dumps(mapping).encode()).decode()
+        """
+        Save mapping to encrypted file.
 
-        with open(mapping_file, 'w') as f:
-            f.write(encoded)
+        Uses Fernet symmetric encryption (AES-128-CBC with HMAC).
+        Encryption key is derived from environment variable or generated.
+        """
+        try:
+            from cryptography.fernet import Fernet
+
+            # Get or generate encryption key
+            key_str = os.getenv("ANONYMIZATION_MAPPING_KEY")
+            if key_str:
+                key = key_str.encode()
+            else:
+                # Generate new key and save to key file
+                key = Fernet.generate_key()
+                key_file = f"{mapping_file}.key"
+                with open(key_file, "wb") as f:
+                    f.write(key)
+                os.chmod(key_file, 0o600)  # Owner read/write only
+                logger.warning(
+                    f"Generated new encryption key: {key_file}\n"
+                    f"IMPORTANT: Keep this key secure! Without it, mapping cannot be decrypted.\n"
+                    f"Set ANONYMIZATION_MAPPING_KEY environment variable to reuse this key."
+                )
+
+            # Encrypt mapping
+            cipher = Fernet(key)
+            mapping_json = json.dumps(mapping, indent=2)
+            encrypted_data = cipher.encrypt(mapping_json.encode())
+
+            # Write encrypted mapping
+            with open(mapping_file, "wb") as f:
+                f.write(encrypted_data)
+
+            logger.info(f"Mapping encrypted and saved to: {mapping_file}")
+
+        except ImportError:
+            # Fallback to base64 if cryptography not available
+            logger.warning(
+                "cryptography package not installed. Using base64 encoding (NOT secure!).\n"
+                "Install cryptography for proper encryption: pip install cryptography"
+            )
+            encoded = base64.b64encode(json.dumps(mapping).encode()).decode()
+            with open(mapping_file, "w") as f:
+                f.write(encoded)
 
     def _load_mapping(self, mapping_file: str) -> Dict[str, str]:
-        """Load mapping from encrypted file."""
-        with open(mapping_file, 'r') as f:
-            encoded = f.read()
+        """
+        Load mapping from encrypted file.
 
-        decoded = base64.b64decode(encoded).decode()
-        return json.loads(decoded)
+        Requires encryption key from environment or key file.
+        """
+        try:
+            from cryptography.fernet import Fernet
+
+            # Try to load encryption key
+            key_str = os.getenv("ANONYMIZATION_MAPPING_KEY")
+            if key_str:
+                key = key_str.encode()
+            else:
+                # Try to load from key file
+                key_file = f"{mapping_file}.key"
+                if os.path.exists(key_file):
+                    with open(key_file, "rb") as f:
+                        key = f.read().strip()
+                else:
+                    raise ValueError(
+                        f"Encryption key not found. Set ANONYMIZATION_MAPPING_KEY "
+                        f"environment variable or ensure {key_file} exists."
+                    )
+
+            # Decrypt mapping
+            cipher = Fernet(key)
+            with open(mapping_file, "rb") as f:
+                encrypted_data = f.read()
+
+            decrypted_data = cipher.decrypt(encrypted_data)
+            mapping = json.loads(decrypted_data.decode())
+
+            logger.info(f"Mapping decrypted from: {mapping_file}")
+            return mapping
+
+        except ImportError:
+            # Fallback to base64
+            logger.warning("cryptography package not installed. Using base64 decoding.")
+            with open(mapping_file, "r") as f:
+                encoded = f.read()
+            decoded = base64.b64decode(encoded).decode()
+            return json.loads(decoded)
+        except Exception as e:
+            logger.error(f"Failed to decrypt mapping: {e}")
+            raise ValueError(
+                f"Cannot decrypt mapping file. Possible causes:\n"
+                f"1. Wrong encryption key\n"
+                f"2. Corrupted mapping file\n"
+                f"3. Missing key file: {mapping_file}.key"
+            )
 
     def _create_audit_trail(
-        self,
-        original_file: str,
-        anonymized_file: str,
-        pii_items: List[PIIItem]
+        self, original_file: str, anonymized_file: str, pii_items: List[PIIItem]
     ) -> List[Dict[str, Any]]:
         """Create audit trail for compliance."""
         trail = []
 
         # Anonymization event
-        trail.append({
-            "event": "anonymization_started",
-            "timestamp": datetime.now().isoformat(),
-            "original_file": original_file,
-            "strategy": self.strategy.value,
-            "compliance_mode": self.compliance_mode.value
-        })
+        trail.append(
+            {
+                "event": "anonymization_started",
+                "timestamp": datetime.now().isoformat(),
+                "original_file": original_file,
+                "strategy": self.strategy.value,
+                "compliance_mode": self.compliance_mode.value,
+            }
+        )
 
         # PII detection event
-        trail.append({
-            "event": "pii_detected",
-            "timestamp": datetime.now().isoformat(),
-            "pii_count": len(pii_items),
-            "pii_types": list(set(item.type for item in pii_items))
-        })
+        trail.append(
+            {
+                "event": "pii_detected",
+                "timestamp": datetime.now().isoformat(),
+                "pii_count": len(pii_items),
+                "pii_types": list(set(item.type for item in pii_items)),
+            }
+        )
 
         # Anonymization complete event
-        trail.append({
-            "event": "anonymization_completed",
-            "timestamp": datetime.now().isoformat(),
-            "anonymized_file": anonymized_file,
-            "pii_anonymized": len(pii_items)
-        })
+        trail.append(
+            {
+                "event": "anonymization_completed",
+                "timestamp": datetime.now().isoformat(),
+                "anonymized_file": anonymized_file,
+                "pii_anonymized": len(pii_items),
+            }
+        )
 
         return trail
 
-    def deanonymize(
-        self,
-        anonymized_file: str,
-        mapping_file: str,
-        output_file: str
-    ) -> None:
+    def deanonymize(self, anonymized_file: str, mapping_file: str, output_file: str) -> None:
         """
         De-anonymize document using mapping.
 
@@ -496,12 +568,7 @@ class DocumentAnonymizer:
 
         logger.info(f"De-anonymization complete: {output_file}")
 
-    def batch_anonymize(
-        self,
-        input_dir: str,
-        output_dir: str,
-        file_pattern: str = "*.*"
-    ) -> List[AnonymizationResult]:
+    def batch_anonymize(self, input_dir: str, output_dir: str, file_pattern: str = "*.*") -> List[AnonymizationResult]:
         """
         Batch anonymize documents.
 
@@ -564,7 +631,7 @@ Examples:
 
   # Batch anonymization
   python doc-anonymizer.py batch /documents/ --output-dir /anonymized/
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -582,19 +649,14 @@ Examples:
         "--strategy",
         choices=["redaction", "masking", "replacement", "pseudonymization", "generalization"],
         default="redaction",
-        help="Anonymization strategy"
+        help="Anonymization strategy",
     )
     anon_parser.add_argument(
-        "--compliance",
-        choices=["gdpr", "hipaa", "custom"],
-        default="gdpr",
-        help="Compliance mode"
+        "--compliance", choices=["gdpr", "hipaa", "custom"], default="gdpr", help="Compliance mode"
     )
-    anon_parser.add_argument("--reversible", action="store_true",
-                            help="Enable reversible anonymization")
+    anon_parser.add_argument("--reversible", action="store_true", help="Enable reversible anonymization")
     anon_parser.add_argument("--mapping-file", help="File to save mapping (if reversible)")
-    anon_parser.add_argument("--audit-log", action="store_true",
-                            help="Create audit trail")
+    anon_parser.add_argument("--audit-log", action="store_true", help="Create audit trail")
 
     # De-anonymize command
     deanon_parser = subparsers.add_parser("deanonymize", help="De-anonymize document")
@@ -608,9 +670,7 @@ Examples:
     batch_parser.add_argument("--output-dir", "-o", required=True, help="Output directory")
     batch_parser.add_argument("--pattern", default="*.*", help="File pattern")
     batch_parser.add_argument(
-        "--strategy",
-        choices=["redaction", "masking", "replacement", "pseudonymization"],
-        default="redaction"
+        "--strategy", choices=["redaction", "masking", "replacement", "pseudonymization"], default="redaction"
     )
 
     args = parser.parse_args()
@@ -643,9 +703,9 @@ Examples:
                     "file": args.file,
                     "scan_date": datetime.now().isoformat(),
                     "pii_count": len(pii_items),
-                    "pii_items": [asdict(item) for item in pii_items]
+                    "pii_items": [asdict(item) for item in pii_items],
                 }
-                with open(args.report, 'w') as f:
+                with open(args.report, "w") as f:
                     json.dump(report, f, indent=2)
                 print(f"\nReport saved to: {args.report}")
 
@@ -661,7 +721,7 @@ Examples:
                 args.output,
                 reversible=args.reversible,
                 mapping_file=args.mapping_file,
-                audit_log=args.audit_log
+                audit_log=args.audit_log,
             )
 
             # Print results
@@ -694,11 +754,7 @@ Examples:
             anonymizer = DocumentAnonymizer(strategy=strategy)
 
             # Batch anonymize
-            results = anonymizer.batch_anonymize(
-                args.input_dir,
-                args.output_dir,
-                args.pattern
-            )
+            results = anonymizer.batch_anonymize(args.input_dir, args.output_dir, args.pattern)
 
             print(f"\n✅ Batch Anonymization Complete")
             print(f"=" * 80)

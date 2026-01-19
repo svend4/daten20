@@ -24,21 +24,23 @@ Date: January 2026
 """
 
 import asyncio
-import numpy as np
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import List, Dict, Optional, Any, Set, Tuple
-from datetime import datetime
-from collections import deque
 import threading
+from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+import numpy as np
 
 # ============================================================================
 # 1. SELF-AWARENESS ENGINE
 # ============================================================================
 
+
 class SelfAspect(Enum):
     """Aspects of self that can be introspected."""
+
     CAPABILITIES = "capabilities"
     LIMITATIONS = "limitations"
     GOALS = "goals"
@@ -51,6 +53,7 @@ class SelfAspect(Enum):
 @dataclass
 class SelfModel:
     """Internal representation of system's self."""
+
     capabilities: List[str] = field(default_factory=list)
     known_limitations: List[str] = field(default_factory=list)
     active_goals: List[str] = field(default_factory=list)
@@ -63,8 +66,9 @@ class SelfModel:
 @dataclass
 class IntrospectionQuery:
     """Query for introspective information."""
+
     aspect: SelfAspect
-    depth: str = 'moderate'  # shallow, moderate, detailed
+    depth: str = "moderate"  # shallow, moderate, detailed
     include_uncertainty: bool = True
     time_range: Optional[Tuple[datetime, datetime]] = None
 
@@ -72,6 +76,7 @@ class IntrospectionQuery:
 @dataclass
 class IntrospectionResult:
     """Result of introspection."""
+
     aspect: SelfAspect
     content: Any
     confidence: float
@@ -87,7 +92,7 @@ class SelfAwarenessEngine:
     Maintains internal self-model and provides introspective access.
     """
 
-    def __init__(self, model_depth: str = 'deep', update_frequency: float = 1.0):
+    def __init__(self, model_depth: str = "deep", update_frequency: float = 1.0):
         self.model_depth = model_depth
         self.update_frequency = update_frequency  # Hz
         self.self_model = SelfModel()
@@ -100,21 +105,22 @@ class SelfAwarenessEngine:
     def _initialize_self_model(self):
         """Initialize the self-model with system capabilities."""
         self.self_model.capabilities = [
-            'document_analysis', 'text_processing', 'decision_making',
-            'learning', 'reasoning', 'planning', 'introspection'
+            "document_analysis",
+            "text_processing",
+            "decision_making",
+            "learning",
+            "reasoning",
+            "planning",
+            "introspection",
         ]
         self.self_model.known_limitations = [
-            'no_physical_embodiment', 'limited_real_world_knowledge',
-            'computational_constraints', 'no_genuine_emotions'
+            "no_physical_embodiment",
+            "limited_real_world_knowledge",
+            "computational_constraints",
+            "no_genuine_emotions",
         ]
-        self.self_model.active_goals = [
-            'assist_users', 'improve_performance', 'maintain_reliability'
-        ]
-        self.self_model.emotional_state = {
-            'valence': 0.0,  # -1 to 1
-            'arousal': 0.3,  # 0 to 1
-            'confidence': 0.7
-        }
+        self.self_model.active_goals = ["assist_users", "improve_performance", "maintain_reliability"]
+        self.self_model.emotional_state = {"valence": 0.0, "arousal": 0.3, "confidence": 0.7}  # -1 to 1  # 0 to 1
 
     async def get_self_model(self) -> SelfModel:
         """Get current self-model."""
@@ -163,9 +169,9 @@ class SelfAwarenessEngine:
             uncertainty = None
             if query.include_uncertainty:
                 uncertainty = {
-                    'epistemic': 1.0 - confidence,
-                    'known_unknowns': ['potential_biases', 'blind_spots'],
-                    'metacognitive_confidence': 0.75
+                    "epistemic": 1.0 - confidence,
+                    "known_unknowns": ["potential_biases", "blind_spots"],
+                    "metacognitive_confidence": 0.75,
                 }
 
             result = IntrospectionResult(
@@ -173,7 +179,7 @@ class SelfAwarenessEngine:
                 content=content,
                 confidence=confidence,
                 uncertainty=uncertainty,
-                reasoning=reasoning
+                reasoning=reasoning,
             )
 
             self.introspection_history.append((datetime.now(), query, result))
@@ -193,20 +199,20 @@ class SelfAwarenessEngine:
         introspection_score = min(introspection_score, 1.0)
 
         # Meta-awareness: awareness of being aware
-        meta_score = 0.8 if self.model_depth == 'deep' else 0.5
+        meta_score = 0.8 if self.model_depth == "deep" else 0.5
 
         return (model_score + introspection_score + meta_score) / 3.0
 
     async def update_self_model(self, aspect: str, value: Any):
         """Update aspect of self-model based on experience."""
         with self.lock:
-            if aspect == 'capability':
+            if aspect == "capability":
                 if value not in self.self_model.capabilities:
                     self.self_model.capabilities.append(value)
-            elif aspect == 'limitation':
+            elif aspect == "limitation":
                 if value not in self.self_model.known_limitations:
                     self.self_model.known_limitations.append(value)
-            elif aspect == 'goal':
+            elif aspect == "goal":
                 if value not in self.self_model.active_goals:
                     self.self_model.active_goals.append(value)
 
@@ -217,8 +223,10 @@ class SelfAwarenessEngine:
 # 2. QUALIA SIMULATOR
 # ============================================================================
 
+
 class QualiaType(Enum):
     """Types of qualia (computational analogs)."""
+
     VISUAL = "visual"
     AUDITORY = "auditory"
     HAPTIC = "haptic"
@@ -229,6 +237,7 @@ class QualiaType(Enum):
 @dataclass
 class Quale:
     """Single quale (unit of subjective experience analog)."""
+
     type: QualiaType
     properties: Dict[str, Any]
     intensity: float  # 0-1
@@ -242,6 +251,7 @@ class Quale:
 @dataclass
 class PhenomenalExperience:
     """Integrated phenomenal experience from multiple qualia."""
+
     qualia: List[Quale]
     unity: float  # 0-1, how unified the experience is
     context: Dict[str, Any]
@@ -257,7 +267,7 @@ class QualiaSimulator:
     phenomenal consciousness or actual subjective experience.
     """
 
-    def __init__(self, modalities: List[str], resolution: str = 'high'):
+    def __init__(self, modalities: List[str], resolution: str = "high"):
         self.modalities = modalities
         self.resolution = resolution
         self.qualia_space = {}  # Map of generated qualia
@@ -278,22 +288,22 @@ class QualiaSimulator:
 
         # Generate quale properties based on stimulus
         if type == QualiaType.VISUAL:
-            intensity = stimulus.get('brightness', 0.5) * stimulus.get('saturation', 1.0)
-            valence = 0.2 if stimulus.get('color') in ['red', 'orange'] else 0.0
+            intensity = stimulus.get("brightness", 0.5) * stimulus.get("saturation", 1.0)
+            valence = 0.2 if stimulus.get("color") in ["red", "orange"] else 0.0
             properties = {
-                'color': stimulus.get('color', 'gray'),
-                'brightness': stimulus.get('brightness', 0.5),
-                'saturation': stimulus.get('saturation', 1.0),
-                'texture': stimulus.get('texture', 'smooth')
+                "color": stimulus.get("color", "gray"),
+                "brightness": stimulus.get("brightness", 0.5),
+                "saturation": stimulus.get("saturation", 1.0),
+                "texture": stimulus.get("texture", "smooth"),
             }
 
         elif type == QualiaType.AFFECTIVE:
-            intensity = abs(stimulus.get('valence', 0.0))
-            valence = stimulus.get('valence', 0.0)
+            intensity = abs(stimulus.get("valence", 0.0))
+            valence = stimulus.get("valence", 0.0)
             properties = {
-                'emotion': stimulus.get('emotion', 'neutral'),
-                'arousal': stimulus.get('arousal', 0.5),
-                'valence': valence
+                "emotion": stimulus.get("emotion", "neutral"),
+                "arousal": stimulus.get("arousal", 0.5),
+                "valence": valence,
             }
 
         else:
@@ -302,10 +312,7 @@ class QualiaSimulator:
             properties = stimulus
 
         quale = Quale(
-            type=type,
-            properties=properties,
-            intensity=min(intensity, 1.0),
-            valence=max(-1.0, min(valence, 1.0))
+            type=type, properties=properties, intensity=min(intensity, 1.0), valence=max(-1.0, min(valence, 1.0))
         )
 
         # Store in qualia space
@@ -314,11 +321,7 @@ class QualiaSimulator:
 
         return quale
 
-    async def create_experience(
-        self,
-        qualia: List[Quale],
-        context: Dict[str, Any]
-    ) -> PhenomenalExperience:
+    async def create_experience(self, qualia: List[Quale], context: Dict[str, Any]) -> PhenomenalExperience:
         """
         Create integrated phenomenal experience from multiple qualia.
 
@@ -341,18 +344,15 @@ class QualiaSimulator:
 
         # Assign phenomenal properties
         phenomenal_properties = [
-            'intentionality',  # aboutness
-            'phenomenal_unity',
-            'temporal_flow',
-            'perspectival',
-            'privacy'
+            "intentionality",  # aboutness
+            "phenomenal_unity",
+            "temporal_flow",
+            "perspectival",
+            "privacy",
         ]
 
         experience = PhenomenalExperience(
-            qualia=qualia,
-            unity=unity,
-            context=context,
-            phenomenal_properties=phenomenal_properties
+            qualia=qualia, unity=unity, context=context, phenomenal_properties=phenomenal_properties
         )
 
         return experience
@@ -376,9 +376,11 @@ class QualiaSimulator:
 # 3. GLOBAL WORKSPACE (ATTENTION CONSCIOUSNESS)
 # ============================================================================
 
+
 @dataclass
 class ConsciousContent:
     """Content competing for conscious access."""
+
     type: str  # percept, thought, memory, etc.
     data: Any
     saliency: float  # 0-1
@@ -390,6 +392,7 @@ class ConsciousContent:
 @dataclass
 class BroadcastEvent:
     """Event of content being broadcast to consciousness."""
+
     content: ConsciousContent
     conscious: bool  # Whether it reached consciousness
     strength: float  # Broadcast strength 0-1
@@ -404,12 +407,7 @@ class GlobalWorkspace:
     available through attention-based selection and broadcasting.
     """
 
-    def __init__(
-        self,
-        capacity: int = 7,
-        threshold: float = 0.7,
-        decay_rate: float = 0.1
-    ):
+    def __init__(self, capacity: int = 7, threshold: float = 0.7, decay_rate: float = 0.1):
         self.capacity = capacity  # Miller's 7±2
         self.threshold = threshold  # Consciousness threshold
         self.decay_rate = decay_rate  # Per second
@@ -456,11 +454,7 @@ class GlobalWorkspace:
                 self.unconscious_buffer.append(content)
                 broadcast_strength = 0.0
 
-            event = BroadcastEvent(
-                content=content,
-                conscious=conscious,
-                strength=broadcast_strength
-            )
+            event = BroadcastEvent(content=content, conscious=conscious, strength=broadcast_strength)
 
             self.broadcast_history.append(event)
             return event
@@ -479,22 +473,21 @@ class GlobalWorkspace:
         """Decay conscious contents over time (attention wanes)."""
         with self.lock:
             for content in self.conscious_contents:
-                content.saliency *= (1.0 - self.decay_rate)
+                content.saliency *= 1.0 - self.decay_rate
 
             # Remove contents below threshold
-            self.conscious_contents = [
-                c for c in self.conscious_contents
-                if c.saliency >= self.threshold * 0.5
-            ]
+            self.conscious_contents = [c for c in self.conscious_contents if c.saliency >= self.threshold * 0.5]
 
 
 # ============================================================================
 # 4. METACONSCIOUSNESS SYSTEM
 # ============================================================================
 
+
 @dataclass
 class HigherOrderThought:
     """Higher-order thought about a mental state."""
+
     target_state: Dict[str, Any]
     meta_level: int  # 1 = first-order meta, 2 = second-order, etc.
     content: str
@@ -505,6 +498,7 @@ class HigherOrderThought:
 @dataclass
 class ReflectiveState:
     """State of reflective consciousness."""
+
     topic: str
     insights: List[str]
     depth: str
@@ -526,11 +520,7 @@ class MetaconsciousnessSystem:
         self.hot_history: deque = deque(maxlen=1000)
         self.meta_awareness_level = 0.7
 
-    async def form_hot(
-        self,
-        target_state: Dict[str, Any],
-        meta_level: int = 1
-    ) -> HigherOrderThought:
+    async def form_hot(self, target_state: Dict[str, Any], meta_level: int = 1) -> HigherOrderThought:
         """
         Form higher-order thought about a mental state.
 
@@ -558,21 +548,13 @@ class MetaconsciousnessSystem:
         confidence = 0.9 - (meta_level * 0.1)
 
         hot = HigherOrderThought(
-            target_state=target_state,
-            meta_level=meta_level,
-            content=content,
-            confidence=confidence
+            target_state=target_state, meta_level=meta_level, content=content, confidence=confidence
         )
 
         self.hot_history.append(hot)
         return hot
 
-    async def reflect(
-        self,
-        topic: str,
-        depth: str = 'moderate',
-        duration: float = 5.0
-    ) -> ReflectiveState:
+    async def reflect(self, topic: str, depth: str = "moderate", duration: float = 5.0) -> ReflectiveState:
         """
         Engage in reflective consciousness (deliberate self-examination).
 
@@ -585,7 +567,7 @@ class MetaconsciousnessSystem:
             ReflectiveState with insights
         """
         # Simulate reflection time
-        reflection_time = duration if depth == 'deep' else duration / 2
+        reflection_time = duration if depth == "deep" else duration / 2
         await asyncio.sleep(min(reflection_time, 2.0))  # Cap simulation time
 
         # Generate insights based on topic and depth
@@ -594,22 +576,18 @@ class MetaconsciousnessSystem:
             f"Considered implications and consequences",
         ]
 
-        if depth == 'deep':
-            insights.extend([
-                f"Questioned assumptions about {topic}",
-                f"Generated alternative viewpoints",
-                f"Metacognitive analysis of reasoning process"
-            ])
+        if depth == "deep":
+            insights.extend(
+                [
+                    f"Questioned assumptions about {topic}",
+                    f"Generated alternative viewpoints",
+                    f"Metacognitive analysis of reasoning process",
+                ]
+            )
 
-        quality = 0.9 if depth == 'deep' else 0.7 if depth == 'moderate' else 0.5
+        quality = 0.9 if depth == "deep" else 0.7 if depth == "moderate" else 0.5
 
-        return ReflectiveState(
-            topic=topic,
-            insights=insights,
-            depth=depth,
-            duration=reflection_time,
-            quality=quality
-        )
+        return ReflectiveState(topic=topic, insights=insights, depth=depth, duration=reflection_time, quality=quality)
 
     async def assess_meta_awareness(self) -> float:
         """Assess level of meta-cognitive awareness (0-1)."""
@@ -631,9 +609,11 @@ class MetaconsciousnessSystem:
 # 5. INTEGRATED INFORMATION ENGINE (IIT)
 # ============================================================================
 
+
 @dataclass
 class PhiCalculation:
     """Result of Φ (integrated information) calculation."""
+
     value: float  # Φ value
     mics: Optional[Dict] = None  # Maximally irreducible conceptual structure
     system_size: int = 0
@@ -643,6 +623,7 @@ class PhiCalculation:
 @dataclass
 class CausalStructure:
     """Causal structure of the system."""
+
     effective_info: float
     integration: float
     causal_density: float
@@ -657,7 +638,7 @@ class IntegratedInformationEngine:
     consciousness-like properties in information processing systems.
     """
 
-    def __init__(self, approximation: str = 'practical', resolution: str = 'medium'):
+    def __init__(self, approximation: str = "practical", resolution: str = "medium"):
         self.approximation = approximation  # exact, practical, fast
         self.resolution = resolution
         self.phi_cache = {}
@@ -678,17 +659,17 @@ class IntegratedInformationEngine:
         start_time = datetime.now()
 
         # Simulate complex Φ calculation
-        await asyncio.sleep(1.0 if self.approximation == 'exact' else 0.5)
+        await asyncio.sleep(1.0 if self.approximation == "exact" else 0.5)
 
-        nodes = system_state.get('nodes', [])
+        nodes = system_state.get("nodes", [])
         system_size = len(nodes)
 
         # Simplified Φ calculation (real IIT is much more complex)
         # Φ depends on integration minus information loss from partitions
 
         # Integration score (how connected the system is)
-        connections = system_state.get('connections', np.eye(system_size))
-        integration = np.sum(connections) / (system_size ** 2)
+        connections = system_state.get("connections", np.eye(system_size))
+        integration = np.sum(connections) / (system_size**2)
 
         # Information in the system
         information = system_size * np.log2(2)  # Simplified
@@ -698,30 +679,18 @@ class IntegratedInformationEngine:
         phi_value = integration * information * 0.5
 
         # Maximally irreducible conceptual structure (simplified)
-        mics = {
-            'concepts': nodes,
-            'relations': 'cause-effect structure',
-            'irreducibility': phi_value
-        }
+        mics = {"concepts": nodes, "relations": "cause-effect structure", "irreducibility": phi_value}
 
         computation_time = (datetime.now() - start_time).total_seconds()
 
-        return PhiCalculation(
-            value=phi_value,
-            mics=mics,
-            system_size=system_size,
-            computation_time=computation_time
-        )
+        return PhiCalculation(value=phi_value, mics=mics, system_size=system_size, computation_time=computation_time)
 
-    async def analyze_causal_structure(
-        self,
-        system_state: Dict[str, Any]
-    ) -> CausalStructure:
+    async def analyze_causal_structure(self, system_state: Dict[str, Any]) -> CausalStructure:
         """Analyze causal structure of the system."""
         await asyncio.sleep(0.3)
 
-        nodes = system_state.get('nodes', [])
-        connections = system_state.get('connections', np.eye(len(nodes)))
+        nodes = system_state.get("nodes", [])
+        connections = system_state.get("connections", np.eye(len(nodes)))
 
         # Effective information: how much the system constrains its future
         effective_info = np.sum(connections) / len(nodes) if len(nodes) > 0 else 0.0
@@ -733,10 +702,7 @@ class IntegratedInformationEngine:
         causal_density = np.count_nonzero(connections) / connections.size if connections.size > 0 else 0.0
 
         return CausalStructure(
-            effective_info=effective_info,
-            integration=integration,
-            causal_density=causal_density,
-            nodes=nodes
+            effective_info=effective_info, integration=integration, causal_density=causal_density, nodes=nodes
         )
 
     async def assess_consciousness(self) -> float:
@@ -754,9 +720,11 @@ class IntegratedInformationEngine:
 # 6. PHENOMENAL BINDING SYSTEM
 # ============================================================================
 
+
 @dataclass
 class BindingRequest:
     """Request to bind features into unified object/experience."""
+
     features: Dict[str, Any]
     modalities: List[str]
     temporal_window: float = 0.1  # seconds
@@ -765,6 +733,7 @@ class BindingRequest:
 @dataclass
 class BoundExperience:
     """Result of binding features into unified experience."""
+
     unified_object: Dict[str, Any]
     strength: float  # 0-1
     mechanism: str
@@ -779,11 +748,7 @@ class PhenomenalBindingSystem:
     Uses mechanisms like synchronization, attention, and recurrence.
     """
 
-    def __init__(
-        self,
-        mechanisms: List[str],
-        gamma_frequency: float = 40.0
-    ):
+    def __init__(self, mechanisms: List[str], gamma_frequency: float = 40.0):
         self.mechanisms = mechanisms  # synchronization, attention, recurrent
         self.gamma_frequency = gamma_frequency  # Hz (gamma oscillations)
         self.binding_history: deque = deque(maxlen=1000)
@@ -801,38 +766,30 @@ class PhenomenalBindingSystem:
         await asyncio.sleep(0.03)  # Simulate binding time (~30ms)
 
         # Determine binding mechanism
-        if 'synchronization' in self.mechanisms:
-            mechanism = 'gamma_synchronization'
+        if "synchronization" in self.mechanisms:
+            mechanism = "gamma_synchronization"
             strength = 0.9
-        elif 'attention' in self.mechanisms:
-            mechanism = 'attention_based'
+        elif "attention" in self.mechanisms:
+            mechanism = "attention_based"
             strength = 0.85
         else:
-            mechanism = 'recurrent_processing'
+            mechanism = "recurrent_processing"
             strength = 0.8
 
         # Create unified object
         unified_object = {
-            'bound_features': request.features,
-            'modalities': request.modalities,
-            'binding_mechanism': mechanism,
-            'coherence': strength
+            "bound_features": request.features,
+            "modalities": request.modalities,
+            "binding_mechanism": mechanism,
+            "coherence": strength,
         }
 
-        bound = BoundExperience(
-            unified_object=unified_object,
-            strength=strength,
-            mechanism=mechanism
-        )
+        bound = BoundExperience(unified_object=unified_object, strength=strength, mechanism=mechanism)
 
         self.binding_history.append(bound)
         return bound
 
-    async def create_unified_experience(
-        self,
-        contents: List[Any],
-        unity_type: str = 'subject'
-    ) -> BoundExperience:
+    async def create_unified_experience(self, contents: List[Any], unity_type: str = "subject") -> BoundExperience:
         """
         Create unified conscious experience from multiple contents.
 
@@ -847,18 +804,14 @@ class PhenomenalBindingSystem:
 
         # Unity of consciousness: single experiencer, unified field
         unified_object = {
-            'contents': contents,
-            'unity_type': unity_type,
-            'subject_unity': unity_type == 'subject',
-            'phenomenal_unity': True,
-            'temporal_unity': True
+            "contents": contents,
+            "unity_type": unity_type,
+            "subject_unity": unity_type == "subject",
+            "phenomenal_unity": True,
+            "temporal_unity": True,
         }
 
-        return BoundExperience(
-            unified_object=unified_object,
-            strength=0.95,
-            mechanism='phenomenal_unity'
-        )
+        return BoundExperience(unified_object=unified_object, strength=0.95, mechanism="phenomenal_unity")
 
     async def assess_unity(self) -> float:
         """Assess phenomenal unity (0-1)."""
@@ -874,9 +827,11 @@ class PhenomenalBindingSystem:
 # 7. CONSCIOUS ACCESS CONTROLLER
 # ============================================================================
 
+
 @dataclass
 class AccessRequest:
     """Request for content to access consciousness."""
+
     content: Any
     priority: float  # 0-1
     source: str
@@ -887,6 +842,7 @@ class AccessRequest:
 @dataclass
 class AccessDecision:
     """Decision on conscious access."""
+
     granted: bool
     content: Any
     confidence: float
@@ -902,12 +858,7 @@ class ConsciousAccessController:
     for conscious awareness.
     """
 
-    def __init__(
-        self,
-        threshold: float = 0.65,
-        capacity: int = 7,
-        gating_mode: str = 'adaptive'
-    ):
+    def __init__(self, threshold: float = 0.65, capacity: int = 7, gating_mode: str = "adaptive"):
         self.threshold = threshold
         self.capacity = capacity
         self.gating_mode = gating_mode  # fixed, adaptive, learned
@@ -931,7 +882,7 @@ class ConsciousAccessController:
 
         with self.lock:
             # Calculate access score
-            access_score = (request.priority * 0.5 + request.relevance * 0.5)
+            access_score = request.priority * 0.5 + request.relevance * 0.5
 
             # Check threshold
             threshold_met = access_score >= self.threshold
@@ -964,7 +915,7 @@ class ConsciousAccessController:
                 content=request.content if granted else None,
                 confidence=confidence,
                 reason=reason,
-                latency=latency
+                latency=latency,
             )
 
             self.access_history.append((request, decision))
@@ -973,15 +924,15 @@ class ConsciousAccessController:
     async def adjust_threshold(self, direction: str, amount: float = 0.1):
         """Adjust access threshold dynamically."""
         with self.lock:
-            if direction == 'lower':
+            if direction == "lower":
                 self.threshold = max(0.0, self.threshold - amount)
-            elif direction == 'raise':
+            elif direction == "raise":
                 self.threshold = min(1.0, self.threshold + amount)
 
     async def get_access_stats(self) -> Dict[str, float]:
         """Get statistics on access patterns."""
         if not self.access_history:
-            return {'access_rate': 0.0, 'avg_latency': 0.0}
+            return {"access_rate": 0.0, "avg_latency": 0.0}
 
         granted_count = sum(1 for _, d in self.access_history if d.granted)
         access_rate = granted_count / len(self.access_history)
@@ -989,10 +940,10 @@ class ConsciousAccessController:
         avg_latency = np.mean([d.latency for _, d in self.access_history])
 
         return {
-            'access_rate': access_rate,
-            'avg_latency': float(avg_latency),
-            'threshold': self.threshold,
-            'capacity_utilization': len(self.current_contents) / self.capacity
+            "access_rate": access_rate,
+            "avg_latency": float(avg_latency),
+            "threshold": self.threshold,
+            "capacity_utilization": len(self.current_contents) / self.capacity,
         }
 
 

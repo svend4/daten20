@@ -36,75 +36,65 @@ Example Usage:
     )
 """
 
-from .qml_services import (
-    # Enums
-    EncodingType,
+from .qml_services import (  # Enums; Data Classes; Service Classes; Singleton Getters
     AnsatzType,
-    OptimizerType,
     BackendType,
+    EncodingType,
+    HybridTrainingSystem,
     MeasurementType,
-
-    # Data Classes
-    QuantumCircuit,
-    VariationalCircuit,
-    QuantumKernel,
-    QNNLayer,
-    TrainingJob,
-    QuantumMeasurementResult,
     OptimizationResult,
-
-    # Service Classes
+    OptimizerType,
+    QNNLayer,
+    QuantumCircuit,
     QuantumCircuitLearning,
+    QuantumDataEncoder,
+    QuantumKernel,
     QuantumKernelMethods,
+    QuantumMeasurement,
+    QuantumMeasurementResult,
     QuantumNeuralNetworks,
     QuantumOptimization,
-    QuantumDataEncoder,
-    QuantumMeasurement,
-    HybridTrainingSystem,
-
-    # Singleton Getters
+    TrainingJob,
+    VariationalCircuit,
+    get_hybrid_training_system,
     get_quantum_circuit_learning,
+    get_quantum_data_encoder,
     get_quantum_kernel_methods,
+    get_quantum_measurement,
     get_quantum_neural_networks,
     get_quantum_optimization,
-    get_quantum_data_encoder,
-    get_quantum_measurement,
-    get_hybrid_training_system,
 )
 
-__version__ = '15.0.0'
+__version__ = "15.0.0"
 __all__ = [
     # Enums
-    'EncodingType',
-    'AnsatzType',
-    'OptimizerType',
-    'BackendType',
-    'MeasurementType',
-
+    "EncodingType",
+    "AnsatzType",
+    "OptimizerType",
+    "BackendType",
+    "MeasurementType",
     # Data Classes
-    'QuantumCircuit',
-    'VariationalCircuit',
-    'QuantumKernel',
-    'QNNLayer',
-    'TrainingJob',
-    'QuantumMeasurementResult',
-    'OptimizationResult',
-
+    "QuantumCircuit",
+    "VariationalCircuit",
+    "QuantumKernel",
+    "QNNLayer",
+    "TrainingJob",
+    "QuantumMeasurementResult",
+    "OptimizationResult",
     # Service Classes
-    'QuantumCircuitLearning',
-    'QuantumKernelMethods',
-    'QuantumNeuralNetworks',
-    'QuantumOptimization',
-    'QuantumDataEncoder',
-    'QuantumMeasurement',
-    'HybridTrainingSystem',
-
+    "QuantumCircuitLearning",
+    "QuantumKernelMethods",
+    "QuantumNeuralNetworks",
+    "QuantumOptimization",
+    "QuantumDataEncoder",
+    "QuantumMeasurement",
+    "HybridTrainingSystem",
     # Singleton Getters
-    'get_quantum_circuit_learning',
-    'get_quantum_kernel_methods',
-    'get_quantum_neural_networks',
-    'get_quantum_optimization',
-    'get_quantum_data_encoder',
-    'get_quantum_measurement',
-    'get_hybrid_training_system',
+    "get_quantum_circuit_learning",
+    "get_quantum_kernel_methods",
+    "get_quantum_neural_networks",
+    "get_quantum_optimization",
+    "get_quantum_data_encoder",
+    "get_quantum_measurement",
+    "get_hybrid_training_system",
 ]

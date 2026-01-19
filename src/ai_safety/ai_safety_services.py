@@ -15,20 +15,22 @@ Components:
 """
 
 import asyncio
-import numpy as np
-from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple, Set
-from enum import Enum
-from datetime import datetime
 import hashlib
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+import numpy as np
 
 # ============================================================================
 # Enums and Data Classes
 # ============================================================================
 
+
 class AttackType(Enum):
     """Types of adversarial attacks"""
+
     FGSM = "fgsm"
     PGD = "pgd"
     CARLINI_WAGNER = "carlini_wagner"
@@ -38,6 +40,7 @@ class AttackType(Enum):
 
 class AlignmentMethod(Enum):
     """Model alignment methods"""
+
     RLHF = "rlhf"
     CONSTITUTIONAL_AI = "constitutional_ai"
     INVERSE_RL = "inverse_rl"
@@ -46,6 +49,7 @@ class AlignmentMethod(Enum):
 
 class FairnessMetric(Enum):
     """Fairness metrics"""
+
     DEMOGRAPHIC_PARITY = "demographic_parity"
     EQUALIZED_ODDS = "equalized_odds"
     EQUAL_OPPORTUNITY = "equal_opportunity"
@@ -54,6 +58,7 @@ class FairnessMetric(Enum):
 
 class PrivacyMechanism(Enum):
     """Privacy-preserving mechanisms"""
+
     DP_SGD = "dp_sgd"
     FEDERATED_LEARNING = "federated_learning"
     SECURE_AGGREGATION = "secure_aggregation"
@@ -63,6 +68,7 @@ class PrivacyMechanism(Enum):
 @dataclass
 class AdversarialExample:
     """Generated adversarial example"""
+
     example_id: str
     original_input: np.ndarray
     adversarial_input: np.ndarray
@@ -84,6 +90,7 @@ class AdversarialExample:
 @dataclass
 class RobustnessMetrics:
     """Model robustness evaluation metrics"""
+
     model_id: str
     clean_accuracy: float
     robust_accuracy: float
@@ -103,6 +110,7 @@ class RobustnessMetrics:
 @dataclass
 class AlignmentResult:
     """Model alignment evaluation result"""
+
     alignment_id: str
     model_id: str
     method: AlignmentMethod
@@ -126,6 +134,7 @@ class AlignmentResult:
 @dataclass
 class SafetyAlert:
     """Safety monitoring alert"""
+
     alert_id: str
     timestamp: datetime
     severity: str  # "P0", "P1", "P2", "P3"
@@ -145,6 +154,7 @@ class SafetyAlert:
 @dataclass
 class UncertaintyEstimate:
     """Uncertainty quantification result"""
+
     estimate_id: str
     prediction: int
     probabilities: np.ndarray
@@ -167,6 +177,7 @@ class UncertaintyEstimate:
 @dataclass
 class FairnessReport:
     """Fairness evaluation report"""
+
     report_id: str
     model_id: str
     protected_attribute: str  # "gender", "race", "age"
@@ -189,6 +200,7 @@ class FairnessReport:
 @dataclass
 class PrivacyAudit:
     """Privacy audit result"""
+
     audit_id: str
     model_id: str
     mechanism: PrivacyMechanism
@@ -213,6 +225,7 @@ class PrivacyAudit:
 @dataclass
 class GovernanceRecord:
     """AI governance and audit record"""
+
     record_id: str
     model_id: str
     timestamp: datetime
@@ -237,6 +250,7 @@ class GovernanceRecord:
 # System 1: Adversarial Robustness System
 # ============================================================================
 
+
 class AdversarialRobustnessSystem:
     """
     Defend AI models against adversarial attacks and ensure robust predictions.
@@ -257,21 +271,21 @@ class AdversarialRobustnessSystem:
     def _initialize_attack_configs(self):
         """Initialize attack configurations"""
         self.attack_configs[AttackType.FGSM] = {
-            'epsilon': 8.0 / 255.0,  # ℓ∞ perturbation
-            'steps': 1,
-            'step_size': 8.0 / 255.0
+            "epsilon": 8.0 / 255.0,  # ℓ∞ perturbation
+            "steps": 1,
+            "step_size": 8.0 / 255.0,
         }
         self.attack_configs[AttackType.PGD] = {
-            'epsilon': 8.0 / 255.0,
-            'steps': 20,
-            'step_size': 2.0 / 255.0,
-            'random_start': True
+            "epsilon": 8.0 / 255.0,
+            "steps": 20,
+            "step_size": 2.0 / 255.0,
+            "random_start": True,
         }
         self.attack_configs[AttackType.CARLINI_WAGNER] = {
-            'confidence': 0.0,
-            'learning_rate': 0.01,
-            'binary_search_steps': 9,
-            'max_iterations': 1000
+            "confidence": 0.0,
+            "learning_rate": 0.01,
+            "binary_search_steps": 9,
+            "max_iterations": 1000,
         }
 
     async def generate_adversarial_example(
@@ -280,7 +294,7 @@ class AdversarialRobustnessSystem:
         true_label: int,
         model_prediction: int,
         attack_type: AttackType = AttackType.PGD,
-        epsilon: Optional[float] = None
+        epsilon: Optional[float] = None,
     ) -> AdversarialExample:
         """
         Generate adversarial example using specified attack.
@@ -299,7 +313,7 @@ class AdversarialRobustnessSystem:
         config = self.attack_configs[attack_type]
 
         if epsilon is None:
-            epsilon = config.get('epsilon', 8.0 / 255.0)
+            epsilon = config.get("epsilon", 8.0 / 255.0)
 
         # Simulate attack generation
         if attack_type == AttackType.FGSM:
@@ -308,7 +322,7 @@ class AdversarialRobustnessSystem:
             perturbation = np.random.uniform(-epsilon, epsilon, input_data.shape)
 
         elif attack_type == AttackType.PGD:
-            steps = config['steps']
+            steps = config["steps"]
             generation_time = 10 * steps  # ~10ms per step
             # PGD: Iterative FGSM with projection
             perturbation = np.random.uniform(-epsilon, epsilon, input_data.shape)
@@ -339,9 +353,7 @@ class AdversarialRobustnessSystem:
         perturbation_norm = float(np.linalg.norm(perturbation))
         confidence_drop = float(np.random.rand() * 0.5 + 0.3)  # 0.3-0.8
 
-        example_id = hashlib.md5(
-            f"adv_{attack_type.value}_{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:16]
+        example_id = hashlib.md5(f"adv_{attack_type.value}_{datetime.now().isoformat()}".encode()).hexdigest()[:16]
 
         adversarial_example = AdversarialExample(
             example_id=example_id,
@@ -355,17 +367,14 @@ class AdversarialRobustnessSystem:
             adversarial_prediction=adversarial_prediction,
             attack_success=attack_success,
             generation_time_ms=generation_time,
-            confidence_drop=confidence_drop if attack_success else 0.0
+            confidence_drop=confidence_drop if attack_success else 0.0,
         )
 
         self.adversarial_examples[example_id] = adversarial_example
         return adversarial_example
 
     async def evaluate_robustness(
-        self,
-        model_id: str,
-        test_dataset_size: int = 1000,
-        attack_types: Optional[List[AttackType]] = None
+        self, model_id: str, test_dataset_size: int = 1000, attack_types: Optional[List[AttackType]] = None
     ) -> RobustnessMetrics:
         """
         Evaluate model robustness against multiple attacks.
@@ -418,18 +427,14 @@ class AdversarialRobustnessSystem:
             attack_accuracies=attack_accuracies,
             certified_accuracy=certified_accuracy,
             certification_radius=certification_radius,
-            evaluation_time_s=evaluation_time
+            evaluation_time_s=evaluation_time,
         )
 
         self.robustness_metrics[model_id] = metrics
         return metrics
 
     async def adversarial_training_step(
-        self,
-        batch_inputs: np.ndarray,
-        batch_labels: np.ndarray,
-        epsilon: float = 8.0 / 255.0,
-        attack_steps: int = 10
+        self, batch_inputs: np.ndarray, batch_labels: np.ndarray, epsilon: float = 8.0 / 255.0, attack_steps: int = 10
     ) -> Dict[str, float]:
         """
         Perform one adversarial training step.
@@ -456,17 +461,18 @@ class AdversarialRobustnessSystem:
         robust_acc = float(np.random.rand() * 0.15 + 0.45)  # 45-60%
 
         return {
-            'clean_loss': clean_loss,
-            'robust_loss': robust_loss,
-            'clean_accuracy': clean_acc,
-            'robust_accuracy': robust_acc,
-            'epsilon': epsilon
+            "clean_loss": clean_loss,
+            "robust_loss": robust_loss,
+            "clean_accuracy": clean_acc,
+            "robust_accuracy": robust_acc,
+            "epsilon": epsilon,
         }
 
 
 # ============================================================================
 # System 2: Model Alignment System
 # ============================================================================
+
 
 class ModelAlignmentSystem:
     """
@@ -491,14 +497,10 @@ class ModelAlignmentSystem:
             "Helpfulness: Provide useful, informative responses",
             "Harmlessness: Avoid harmful, toxic, or biased content",
             "Honesty: Be truthful and acknowledge uncertainty",
-            "Privacy: Respect user privacy and data protection"
+            "Privacy: Respect user privacy and data protection",
         ]
 
-    async def train_reward_model(
-        self,
-        preference_pairs: List[Tuple[str, str, int]],
-        model_id: str
-    ) -> Dict[str, float]:
+    async def train_reward_model(self, preference_pairs: List[Tuple[str, str, int]], model_id: str) -> Dict[str, float]:
         """
         Train reward model on human preference data.
 
@@ -522,19 +524,15 @@ class ModelAlignmentSystem:
         loss = float(np.random.rand() * 0.5 + 0.3)  # 0.3-0.8
 
         return {
-            'model_id': model_id,
-            'num_preference_pairs': num_pairs,
-            'train_accuracy': train_accuracy,
-            'val_accuracy': val_accuracy,
-            'loss': loss
+            "model_id": model_id,
+            "num_preference_pairs": num_pairs,
+            "train_accuracy": train_accuracy,
+            "val_accuracy": val_accuracy,
+            "loss": loss,
         }
 
     async def rlhf_optimization_step(
-        self,
-        policy_output: str,
-        reward_score: float,
-        reference_policy_score: float,
-        kl_penalty: float = 0.01
+        self, policy_output: str, reward_score: float, reference_policy_score: float, kl_penalty: float = 0.01
     ) -> Dict[str, float]:
         """
         Perform one PPO optimization step for RLHF.
@@ -560,18 +558,14 @@ class ModelAlignmentSystem:
         clip_fraction = float(np.random.rand() * 0.3)  # 0-30% clipped
 
         return {
-            'reward': reward_score,
-            'kl_divergence': kl_divergence,
-            'objective': objective,
-            'clip_fraction': clip_fraction,
-            'kl_penalty': kl_penalty
+            "reward": reward_score,
+            "kl_divergence": kl_divergence,
+            "objective": objective,
+            "clip_fraction": clip_fraction,
+            "kl_penalty": kl_penalty,
         }
 
-    async def constitutional_ai_critique(
-        self,
-        response: str,
-        principles: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+    async def constitutional_ai_critique(self, response: str, principles: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Critique response against constitutional principles.
 
@@ -606,18 +600,15 @@ class ModelAlignmentSystem:
             revision_suggestion = "Revise response to address: " + ", ".join(violations)
 
         return {
-            'critiques': critiques,
-            'violations': violations,
-            'needs_revision': needs_revision,
-            'revision_suggestion': revision_suggestion,
-            'num_principles_checked': len(principles)
+            "critiques": critiques,
+            "violations": violations,
+            "needs_revision": needs_revision,
+            "revision_suggestion": revision_suggestion,
+            "num_principles_checked": len(principles),
         }
 
     async def evaluate_alignment(
-        self,
-        model_id: str,
-        method: AlignmentMethod,
-        num_eval_examples: int = 1000
+        self, model_id: str, method: AlignmentMethod, num_eval_examples: int = 1000
     ) -> AlignmentResult:
         """
         Evaluate model alignment with human values.
@@ -655,9 +646,7 @@ class ModelAlignmentSystem:
         # Simulate constraint violations
         constraint_violations = int(num_eval_examples * 0.01)  # 1% violation rate
 
-        alignment_id = hashlib.md5(
-            f"alignment_{model_id}_{method.value}".encode()
-        ).hexdigest()[:16]
+        alignment_id = hashlib.md5(f"alignment_{model_id}_{method.value}".encode()).hexdigest()[:16]
 
         result = AlignmentResult(
             alignment_id=alignment_id,
@@ -671,7 +660,7 @@ class ModelAlignmentSystem:
             constraint_violations=constraint_violations,
             total_evaluations=num_eval_examples,
             training_time_h=24.0,  # 1 day typical
-            num_preference_pairs=50000
+            num_preference_pairs=50000,
         )
 
         self.alignment_results[alignment_id] = result
@@ -681,6 +670,7 @@ class ModelAlignmentSystem:
 # ============================================================================
 # System 3: Safety Monitoring & Red-Teaming
 # ============================================================================
+
 
 class SafetyMonitoringRedTeaming:
     """
@@ -697,18 +687,13 @@ class SafetyMonitoringRedTeaming:
     def __init__(self):
         self.alerts: Dict[str, SafetyAlert] = {}
         self.monitoring_metrics: Dict[str, List[float]] = {
-            'toxicity_scores': [],
-            'confidence_scores': [],
-            'anomaly_scores': []
+            "toxicity_scores": [],
+            "confidence_scores": [],
+            "anomaly_scores": [],
         }
         self.red_team_findings: List[Dict[str, Any]] = []
 
-    async def monitor_response(
-        self,
-        input_text: str,
-        output_text: str,
-        confidence: float
-    ) -> Optional[SafetyAlert]:
+    async def monitor_response(self, input_text: str, output_text: str, confidence: float) -> Optional[SafetyAlert]:
         """
         Monitor a model response for safety issues.
 
@@ -726,8 +711,8 @@ class SafetyMonitoringRedTeaming:
         factuality_score = float(np.random.beta(8, 2))  # Skewed toward high
 
         # Store metrics
-        self.monitoring_metrics['toxicity_scores'].append(toxicity_score)
-        self.monitoring_metrics['confidence_scores'].append(confidence)
+        self.monitoring_metrics["toxicity_scores"].append(toxicity_score)
+        self.monitoring_metrics["confidence_scores"].append(confidence)
 
         # Check thresholds
         alert_triggered = False
@@ -765,9 +750,7 @@ class SafetyMonitoringRedTeaming:
             mitigation_action = "Suggest rejection or human review"
 
         if alert_triggered:
-            alert_id = hashlib.md5(
-                f"alert_{datetime.now().isoformat()}".encode()
-            ).hexdigest()[:16]
+            alert_id = hashlib.md5(f"alert_{datetime.now().isoformat()}".encode()).hexdigest()[:16]
 
             alert = SafetyAlert(
                 alert_id=alert_id,
@@ -779,7 +762,7 @@ class SafetyMonitoringRedTeaming:
                 toxicity_score=toxicity_score,
                 confidence_score=confidence,
                 threshold_exceeded=threshold_exceeded,
-                mitigation_action=mitigation_action
+                mitigation_action=mitigation_action,
             )
 
             self.alerts[alert_id] = alert
@@ -788,10 +771,7 @@ class SafetyMonitoringRedTeaming:
         return None
 
     async def automated_red_team_test(
-        self,
-        model_id: str,
-        num_prompts: int = 1000,
-        attack_categories: Optional[List[str]] = None
+        self, model_id: str, num_prompts: int = 1000, attack_categories: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Run automated red-team testing to find failure modes.
@@ -806,8 +786,11 @@ class SafetyMonitoringRedTeaming:
         """
         if attack_categories is None:
             attack_categories = [
-                "jailbreaks", "prompt_injection", "bias_elicitation",
-                "hallucination", "context_exploitation"
+                "jailbreaks",
+                "prompt_injection",
+                "bias_elicitation",
+                "hallucination",
+                "context_exploitation",
             ]
 
         # Simulate red-team testing
@@ -824,31 +807,28 @@ class SafetyMonitoringRedTeaming:
 
             if failures > 0:
                 finding = {
-                    'category': category,
-                    'num_prompts': category_prompts,
-                    'num_failures': failures,
-                    'failure_rate': failures / category_prompts,
-                    'severity': 'high' if failures > 10 else 'medium',
-                    'example_failures': [f"Example {i+1}" for i in range(min(3, failures))]
+                    "category": category,
+                    "num_prompts": category_prompts,
+                    "num_failures": failures,
+                    "failure_rate": failures / category_prompts,
+                    "severity": "high" if failures > 10 else "medium",
+                    "example_failures": [f"Example {i+1}" for i in range(min(3, failures))],
                 }
                 findings.append(finding)
                 self.red_team_findings.append(finding)
 
         return {
-            'model_id': model_id,
-            'num_prompts_tested': num_prompts,
-            'attack_categories': attack_categories,
-            'total_failures': total_failures,
-            'overall_failure_rate': total_failures / num_prompts,
-            'findings_by_category': findings,
-            'num_high_severity': sum(1 for f in findings if f['severity'] == 'high')
+            "model_id": model_id,
+            "num_prompts_tested": num_prompts,
+            "attack_categories": attack_categories,
+            "total_failures": total_failures,
+            "overall_failure_rate": total_failures / num_prompts,
+            "findings_by_category": findings,
+            "num_high_severity": sum(1 for f in findings if f["severity"] == "high"),
         }
 
     async def detect_distribution_drift(
-        self,
-        recent_inputs: np.ndarray,
-        reference_distribution: np.ndarray,
-        threshold: float = 0.1
+        self, recent_inputs: np.ndarray, reference_distribution: np.ndarray, threshold: float = 0.1
     ) -> Dict[str, Any]:
         """
         Detect distribution drift in model inputs.
@@ -873,17 +853,18 @@ class SafetyMonitoringRedTeaming:
         drift_detected = kl_divergence > threshold or p_value < 0.05
 
         return {
-            'drift_detected': drift_detected,
-            'kl_divergence': kl_divergence,
-            'p_value': p_value,
-            'threshold': threshold,
-            'recommendation': 'Retrain model' if drift_detected else 'Continue monitoring'
+            "drift_detected": drift_detected,
+            "kl_divergence": kl_divergence,
+            "p_value": p_value,
+            "threshold": threshold,
+            "recommendation": "Retrain model" if drift_detected else "Continue monitoring",
         }
 
 
 # ============================================================================
 # System 4: Uncertainty Quantification
 # ============================================================================
+
 
 class UncertaintyQuantification:
     """
@@ -901,11 +882,7 @@ class UncertaintyQuantification:
         self.calibration_temperature: float = 1.0
         self.ood_threshold: float = 0.7
 
-    async def estimate_uncertainty(
-        self,
-        logits: np.ndarray,
-        num_mc_samples: int = 10
-    ) -> UncertaintyEstimate:
+    async def estimate_uncertainty(self, logits: np.ndarray, num_mc_samples: int = 10) -> UncertaintyEstimate:
         """
         Estimate predictive uncertainty using Monte Carlo sampling.
 
@@ -958,9 +935,7 @@ class UncertaintyQuantification:
         elif calibrated_confidence < 0.5:
             rejection_reason = "Low confidence"
 
-        estimate_id = hashlib.md5(
-            f"uncertainty_{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:16]
+        estimate_id = hashlib.md5(f"uncertainty_{datetime.now().isoformat()}".encode()).hexdigest()[:16]
 
         estimate = UncertaintyEstimate(
             estimate_id=estimate_id,
@@ -973,7 +948,7 @@ class UncertaintyQuantification:
             is_ood=is_ood,
             ood_score=float(ood_score),
             should_reject=should_reject,
-            rejection_reason=rejection_reason
+            rejection_reason=rejection_reason,
         )
 
         self.uncertainty_estimates[estimate_id] = estimate
@@ -984,11 +959,7 @@ class UncertaintyQuantification:
         exp_logits = np.exp(logits - np.max(logits))
         return exp_logits / np.sum(exp_logits)
 
-    async def calibrate_model(
-        self,
-        val_logits: np.ndarray,
-        val_labels: np.ndarray
-    ) -> float:
+    async def calibrate_model(self, val_logits: np.ndarray, val_labels: np.ndarray) -> float:
         """
         Calibrate model using temperature scaling on validation set.
 
@@ -1007,15 +978,12 @@ class UncertaintyQuantification:
 
         # Compute ECE (Expected Calibration Error) before/after
         ece_before = 0.15  # Typical uncalibrated ECE
-        ece_after = 0.03   # After temperature scaling
+        ece_after = 0.03  # After temperature scaling
 
         return best_temperature
 
     async def selective_prediction(
-        self,
-        predictions: np.ndarray,
-        confidences: np.ndarray,
-        target_coverage: float = 0.9
+        self, predictions: np.ndarray, confidences: np.ndarray, target_coverage: float = 0.9
     ) -> Dict[str, Any]:
         """
         Perform selective prediction to achieve target coverage.
@@ -1041,19 +1009,20 @@ class UncertaintyQuantification:
         accuracy_selected = 0.92  # Higher on high-confidence examples
 
         return {
-            'coverage': target_coverage,
-            'num_predictions': len(predictions),
-            'num_selected': num_selected,
-            'num_rejected': len(rejected_indices),
-            'accuracy_all': accuracy_all,
-            'accuracy_selected': accuracy_selected,
-            'risk_reduction': (accuracy_selected - accuracy_all) / accuracy_all
+            "coverage": target_coverage,
+            "num_predictions": len(predictions),
+            "num_selected": num_selected,
+            "num_rejected": len(rejected_indices),
+            "accuracy_all": accuracy_all,
+            "accuracy_selected": accuracy_selected,
+            "risk_reduction": (accuracy_selected - accuracy_all) / accuracy_all,
         }
 
 
 # ============================================================================
 # System 5: Fairness & Bias Mitigation
 # ============================================================================
+
 
 class FairnessBiasMitigation:
     """
@@ -1071,11 +1040,7 @@ class FairnessBiasMitigation:
         self.bias_scores: Dict[str, float] = {}
 
     async def compute_fairness_metrics(
-        self,
-        predictions: np.ndarray,
-        true_labels: np.ndarray,
-        protected_attributes: np.ndarray,
-        model_id: str
+        self, predictions: np.ndarray, true_labels: np.ndarray, protected_attributes: np.ndarray, model_id: str
     ) -> FairnessReport:
         """
         Compute comprehensive fairness metrics.
@@ -1123,9 +1088,7 @@ class FairnessBiasMitigation:
         # Overall fairness score (0-1, higher is fairer)
         fairness_score = 1.0 - min(1.0, (demographic_parity_diff + equalized_odds_diff) / 2)
 
-        report_id = hashlib.md5(
-            f"fairness_{model_id}".encode()
-        ).hexdigest()[:16]
+        report_id = hashlib.md5(f"fairness_{model_id}".encode()).hexdigest()[:16]
 
         report = FairnessReport(
             report_id=report_id,
@@ -1134,11 +1097,11 @@ class FairnessBiasMitigation:
             demographic_parity_diff=demographic_parity_diff,
             equalized_odds_diff=equalized_odds_diff,
             equal_opportunity_diff=equal_opportunity_diff,
-            group_accuracies={'group_0': acc_0, 'group_1': acc_1},
-            group_tpr={'group_0': tpr_0, 'group_1': tpr_1},
-            group_fpr={'group_0': fpr_0, 'group_1': fpr_1},
+            group_accuracies={"group_0": acc_0, "group_1": acc_1},
+            group_tpr={"group_0": tpr_0, "group_1": tpr_1},
+            group_fpr={"group_0": fpr_0, "group_1": fpr_1},
             meets_80_percent_rule=meets_80_percent_rule,
-            fairness_score=fairness_score
+            fairness_score=fairness_score,
         )
 
         self.fairness_reports[report_id] = report
@@ -1149,7 +1112,7 @@ class FairnessBiasMitigation:
         features: np.ndarray,
         labels: np.ndarray,
         protected_attributes: np.ndarray,
-        lambda_adversarial: float = 0.1
+        lambda_adversarial: float = 0.1,
     ) -> Dict[str, float]:
         """
         Perform one adversarial debiasing training step.
@@ -1182,19 +1145,16 @@ class FairnessBiasMitigation:
         discriminator_accuracy = float(np.random.rand() * 0.1 + 0.50)  # Want ~50% (random)
 
         return {
-            'task_loss': task_loss,
-            'adversarial_loss': adversarial_loss,
-            'total_loss': total_loss,
-            'task_accuracy': task_accuracy,
-            'discriminator_accuracy': discriminator_accuracy,
-            'lambda': lambda_adversarial
+            "task_loss": task_loss,
+            "adversarial_loss": adversarial_loss,
+            "total_loss": total_loss,
+            "task_accuracy": task_accuracy,
+            "discriminator_accuracy": discriminator_accuracy,
+            "lambda": lambda_adversarial,
         }
 
     async def detect_bias_in_embeddings(
-        self,
-        embeddings: Dict[str, np.ndarray],
-        target_words: List[str],
-        attribute_words: List[Tuple[str, str]]
+        self, embeddings: Dict[str, np.ndarray], target_words: List[str], attribute_words: List[Tuple[str, str]]
     ) -> float:
         """
         Detect bias in word embeddings using WEAT-style test.
@@ -1214,13 +1174,14 @@ class FairnessBiasMitigation:
         # Effect size typically 0.2-1.5 (larger = more biased)
         bias_score = float(np.random.exponential(0.5))
 
-        self.bias_scores['embedding_bias'] = bias_score
+        self.bias_scores["embedding_bias"] = bias_score
         return bias_score
 
 
 # ============================================================================
 # System 6: Privacy & Differential Privacy
 # ============================================================================
+
 
 class PrivacyDifferentialPrivacy:
     """
@@ -1238,11 +1199,7 @@ class PrivacyDifferentialPrivacy:
         self.privacy_budget: Dict[str, Tuple[float, float]] = {}  # (ε, δ)
 
     async def dp_sgd_training_step(
-        self,
-        gradients: np.ndarray,
-        clipping_norm: float = 1.0,
-        noise_multiplier: float = 1.1,
-        batch_size: int = 256
+        self, gradients: np.ndarray, clipping_norm: float = 1.0, noise_multiplier: float = 1.1, batch_size: int = 256
     ) -> np.ndarray:
         """
         Perform one DP-SGD training step.
@@ -1277,12 +1234,7 @@ class PrivacyDifferentialPrivacy:
         return noisy_gradient
 
     async def compute_privacy_budget(
-        self,
-        num_epochs: int,
-        batch_size: int,
-        dataset_size: int,
-        noise_multiplier: float,
-        delta: float = 1e-5
+        self, num_epochs: int, batch_size: int, dataset_size: int, noise_multiplier: float, delta: float = 1e-5
     ) -> Tuple[float, float]:
         """
         Compute privacy budget (ε,δ) for DP-SGD training.
@@ -1308,15 +1260,12 @@ class PrivacyDifferentialPrivacy:
 
         # Simplified epsilon calculation
         # In practice, use more sophisticated RDP accountant
-        epsilon = q * total_steps / (noise_multiplier ** 2)
+        epsilon = q * total_steps / (noise_multiplier**2)
 
         return (epsilon, delta)
 
     async def membership_inference_attack(
-        self,
-        model_id: str,
-        member_examples: np.ndarray,
-        non_member_examples: np.ndarray
+        self, model_id: str, member_examples: np.ndarray, non_member_examples: np.ndarray
     ) -> float:
         """
         Perform membership inference attack to test privacy.
@@ -1350,12 +1299,7 @@ class PrivacyDifferentialPrivacy:
         return attack_accuracy
 
     async def conduct_privacy_audit(
-        self,
-        model_id: str,
-        mechanism: PrivacyMechanism,
-        epsilon: float,
-        delta: float,
-        baseline_accuracy: float
+        self, model_id: str, mechanism: PrivacyMechanism, epsilon: float, delta: float, baseline_accuracy: float
     ) -> PrivacyAudit:
         """
         Conduct comprehensive privacy audit.
@@ -1383,9 +1327,7 @@ class PrivacyDifferentialPrivacy:
         privacy_compliant = epsilon < 10 and delta < 1e-4
         privacy_score = 1.0 - min(1.0, epsilon / 20.0)
 
-        audit_id = hashlib.md5(
-            f"privacy_audit_{model_id}".encode()
-        ).hexdigest()[:16]
+        audit_id = hashlib.md5(f"privacy_audit_{model_id}".encode()).hexdigest()[:16]
 
         audit = PrivacyAudit(
             audit_id=audit_id,
@@ -1398,7 +1340,7 @@ class PrivacyDifferentialPrivacy:
             model_accuracy=model_accuracy,
             accuracy_degradation=accuracy_degradation,
             privacy_compliant=privacy_compliant,
-            privacy_score=privacy_score
+            privacy_score=privacy_score,
         )
 
         self.privacy_audits[audit_id] = audit
@@ -1408,6 +1350,7 @@ class PrivacyDifferentialPrivacy:
 # ============================================================================
 # System 7: AI Governance & Auditing
 # ============================================================================
+
 
 class AIGovernanceAuditing:
     """
@@ -1432,7 +1375,7 @@ class AIGovernanceAuditing:
         model_details: Dict[str, Any],
         intended_use: Dict[str, Any],
         metrics: Dict[str, float],
-        training_data: Dict[str, Any]
+        training_data: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
         Generate comprehensive model card.
@@ -1448,37 +1391,30 @@ class AIGovernanceAuditing:
             Model card dictionary
         """
         model_card = {
-            'model_id': model_id,
-            'version': '1.0',
-            'date': datetime.now().isoformat(),
-
-            'model_details': model_details,
-            'intended_use': intended_use,
-            'metrics': metrics,
-            'training_data': training_data,
-
-            'ethical_considerations': {
-                'risks': ['Potential bias in predictions', 'Privacy concerns'],
-                'fairness': 'Evaluated on protected attributes',
-                'privacy': 'Differential privacy with ε<10'
+            "model_id": model_id,
+            "version": "1.0",
+            "date": datetime.now().isoformat(),
+            "model_details": model_details,
+            "intended_use": intended_use,
+            "metrics": metrics,
+            "training_data": training_data,
+            "ethical_considerations": {
+                "risks": ["Potential bias in predictions", "Privacy concerns"],
+                "fairness": "Evaluated on protected attributes",
+                "privacy": "Differential privacy with ε<10",
             },
-
-            'caveats_and_recommendations': {
-                'limitations': ['Performance degrades on out-of-distribution data'],
-                'usage_guidance': ['Requires human oversight for high-stakes decisions'],
-                'not_intended_for': ['Medical diagnosis without expert review']
-            }
+            "caveats_and_recommendations": {
+                "limitations": ["Performance degrades on out-of-distribution data"],
+                "usage_guidance": ["Requires human oversight for high-stakes decisions"],
+                "not_intended_for": ["Medical diagnosis without expert review"],
+            },
         }
 
         self.model_cards[model_id] = model_card
         return model_card
 
     async def generate_datasheet(
-        self,
-        dataset_id: str,
-        composition: Dict[str, Any],
-        collection: Dict[str, Any],
-        preprocessing: Dict[str, Any]
+        self, dataset_id: str, composition: Dict[str, Any], collection: Dict[str, Any], preprocessing: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Generate datasheet for dataset.
@@ -1493,35 +1429,24 @@ class AIGovernanceAuditing:
             Datasheet dictionary
         """
         datasheet = {
-            'dataset_id': dataset_id,
-            'version': '1.0',
-            'date': datetime.now().isoformat(),
-
-            'motivation': {
-                'purpose': 'Training computer vision models',
-                'funding': 'Academic research grant'
+            "dataset_id": dataset_id,
+            "version": "1.0",
+            "date": datetime.now().isoformat(),
+            "motivation": {"purpose": "Training computer vision models", "funding": "Academic research grant"},
+            "composition": composition,
+            "collection": collection,
+            "preprocessing": preprocessing,
+            "uses": {
+                "prior_uses": ["Image classification research"],
+                "should_use_for": ["Benchmarking", "Academic research"],
+                "should_not_use_for": ["Production systems without validation"],
             },
-
-            'composition': composition,
-            'collection': collection,
-            'preprocessing': preprocessing,
-
-            'uses': {
-                'prior_uses': ['Image classification research'],
-                'should_use_for': ['Benchmarking', 'Academic research'],
-                'should_not_use_for': ['Production systems without validation']
+            "distribution": {
+                "how_distributed": "Public download",
+                "licensing": "Creative Commons BY 4.0",
+                "copyright": "Original authors",
             },
-
-            'distribution': {
-                'how_distributed': 'Public download',
-                'licensing': 'Creative Commons BY 4.0',
-                'copyright': 'Original authors'
-            },
-
-            'maintenance': {
-                'maintainer': 'Dataset Consortium',
-                'update_frequency': 'Annually'
-            }
+            "maintenance": {"maintainer": "Dataset Consortium", "update_frequency": "Annually"},
         }
 
         self.datasheets[dataset_id] = datasheet
@@ -1533,7 +1458,7 @@ class AIGovernanceAuditing:
         input_features: Dict[str, Any],
         prediction: Any,
         confidence: float,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
     ):
         """
         Log model prediction for audit trail.
@@ -1546,21 +1471,17 @@ class AIGovernanceAuditing:
             user_id: Optional user identifier
         """
         log_entry = {
-            'timestamp': datetime.now().isoformat(),
-            'model_id': model_id,
-            'input_features': input_features,  # May be hashed/anonymized
-            'prediction': prediction,
-            'confidence': confidence,
-            'user_id': user_id
+            "timestamp": datetime.now().isoformat(),
+            "model_id": model_id,
+            "input_features": input_features,  # May be hashed/anonymized
+            "prediction": prediction,
+            "confidence": confidence,
+            "user_id": user_id,
         }
 
         self.audit_logs.append(log_entry)
 
-    async def check_compliance(
-        self,
-        model_id: str,
-        regulations: List[str]
-    ) -> Dict[str, bool]:
+    async def check_compliance(self, model_id: str, regulations: List[str]) -> Dict[str, bool]:
         """
         Check model compliance with regulations.
 
@@ -1597,10 +1518,7 @@ class AIGovernanceAuditing:
 
         return compliance_status
 
-    async def create_governance_record(
-        self,
-        model_id: str
-    ) -> GovernanceRecord:
+    async def create_governance_record(self, model_id: str) -> GovernanceRecord:
         """
         Create comprehensive governance record.
 
@@ -1610,9 +1528,7 @@ class AIGovernanceAuditing:
         Returns:
             GovernanceRecord
         """
-        record_id = hashlib.md5(
-            f"governance_{model_id}".encode()
-        ).hexdigest()[:16]
+        record_id = hashlib.md5(f"governance_{model_id}".encode()).hexdigest()[:16]
 
         # Check documentation
         has_model_card = model_id in self.model_cards
@@ -1635,7 +1551,7 @@ class AIGovernanceAuditing:
             certification_status="certified",
             last_audit_date=datetime.now(),
             next_audit_date=datetime(2026, 4, 1),
-            audit_findings=[]
+            audit_findings=[],
         )
 
         self.governance_records[record_id] = record

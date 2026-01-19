@@ -1,70 +1,103 @@
 """
-# SIMPLE VERSION - Edge AI Module - v16.0
+Distributed Edge AI Platform Module (v16.0)
 
-AI inference at the edge for low-latency document processing.
-Version: 16.0.0 (SIMPLE)
+This module provides comprehensive distributed edge AI capabilities for deploying
+and training AI models at the edge with ultra-low latency (<10ms), offline support,
+and intelligent orchestration across thousands of edge devices.
+
+Core Systems:
+- Edge Device Manager: Registration, monitoring, lifecycle management (10K+ devices)
+- Distributed Edge Training: Split learning, federated learning, gossip protocols
+- Edge Inference Optimizer: TensorRT, TFLite, ONNX conversion and optimization
+- Model Compression Engine: Quantization, pruning, distillation (10-100x compression)
+- Edge Orchestration System: Workload placement, scheduling, load balancing
+- Edge-Cloud Synchronization: Delta sync, conflict resolution, offline support
+- Edge Analytics Pipeline: Real-time stream processing, anomaly detection, CEP
+
+Example Usage:
+    from edge_ai import get_edge_device_manager, get_model_compression_engine
+
+    # Register edge device
+    device_mgr = get_edge_device_manager()
+    device = await device_mgr.register_device(
+        device_id="jetson_nano_01",
+        device_info={
+            'tier': 'tier_3_edge_server',
+            'cpu_cores': 4,
+            'ram_mb': 4096,
+            'storage_gb': 64,
+            'has_gpu': True,
+            'gpu_memory_mb': 1024
+        }
+    )
+
+    # Compress model for edge
+    compression = get_model_compression_engine()
+    compressed = await compression.quantize_model(
+        model_id="resnet50",
+        quantization_type=CompressionType.QUANTIZATION_INT8
+    )
 """
 
-__version__ = '16.0.0'
+from .edge_ai_services import (  # Enums; Data Classes; Service Classes; Singleton Getters
+    CompressedModel,
+    CompressionType,
+    DeviceMetrics,
+    DeviceTier,
+    DistributedEdgeTraining,
+    EdgeAnalyticsPipeline,
+    EdgeCloudSynchronization,
+    EdgeDevice,
+    EdgeDeviceManager,
+    EdgeInferenceOptimizer,
+    EdgeOrchestrationSystem,
+    ModelCompressionEngine,
+    OptimizationTarget,
+    PlacementStrategy,
+    SyncOperation,
+    SyncStrategy,
+    TrainingJob,
+    TrainingMode,
+    WorkloadPlacement,
+    get_distributed_edge_training,
+    get_edge_analytics_pipeline,
+    get_edge_cloud_synchronization,
+    get_edge_device_manager,
+    get_edge_inference_optimizer,
+    get_edge_orchestration_system,
+    get_model_compression_engine,
+)
 
-from enum import Enum
-from dataclasses import dataclass
-from typing import Dict, Any, Optional
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-class EdgeDevice(Enum):
-    """Edge device types"""
-    MOBILE = "mobile"
-    EMBEDDED = "embedded"
-    GATEWAY = "gateway"
-
-
-@dataclass
-class EdgeAIConfig:
-    """Edge AI configuration"""
-    enable_quantization: bool = True  # Model compression
-    enable_pruning: bool = False
-    target_latency_ms: float = 10.0
-
-
-class EdgeAIEngine:
-    """
-    # SIMPLE VERSION
-    Edge AI Engine - AI inference at the edge
-    
-    Can be expanded with:
-    - Model quantization (INT8, INT4)
-    - Neural architecture search
-    - Federated learning
-    - Model compression techniques
-    - Hardware acceleration (NPU, GPU)
-    """
-
-    def __init__(self, config: Optional[EdgeAIConfig] = None):
-        self.config = config or EdgeAIConfig()
-        self.deployed_models = {}
-        logger.info("Edge AI Engine initialized (SIMPLE VERSION)")
-
-    def deploy_model(self, model_id: str, device: EdgeDevice) -> bool:
-        """Deploy model to edge device (simulated)"""
-        self.deployed_models[model_id] = {
-            "device": device.value,
-            "status": "deployed"
-        }
-        return True
-
-
-_engine = None
-
-def get_edge_ai_engine(config: Optional[EdgeAIConfig] = None) -> EdgeAIEngine:
-    """Get singleton Edge AI Engine"""
-    global _engine
-    if _engine is None:
-        _engine = EdgeAIEngine(config)
-    return _engine
-
-
-__all__ = ['EdgeAIEngine', 'EdgeAIConfig', 'EdgeDevice', 'get_edge_ai_engine']
+__version__ = "16.0.0"
+__all__ = [
+    # Enums
+    "DeviceTier",
+    "TrainingMode",
+    "CompressionType",
+    "OptimizationTarget",
+    "PlacementStrategy",
+    "SyncStrategy",
+    # Data Classes
+    "EdgeDevice",
+    "DeviceMetrics",
+    "TrainingJob",
+    "CompressedModel",
+    "WorkloadPlacement",
+    "SyncOperation",
+    # Service Classes
+    "EdgeDeviceManager",
+    "DistributedEdgeTraining",
+    "EdgeInferenceOptimizer",
+    "ModelCompressionEngine",
+    "EdgeOrchestrationSystem",
+    "EdgeCloudSynchronization",
+    "EdgeAnalyticsPipeline",
+    # Singleton Getters
+    "get_edge_device_manager",
+    "get_distributed_edge_training",
+    "get_edge_inference_optimizer",
+    "get_model_compression_engine",
+    "get_edge_orchestration_system",
+    "get_edge_cloud_synchronization",
+    "get_edge_analytics_pipeline",
+]

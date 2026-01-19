@@ -20,24 +20,34 @@ Dependencies:
 - sqlalchemy (for database operations)
 """
 
+from __future__ import annotations
+
+import json
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
-import threading
-import json
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-try:
+if TYPE_CHECKING:
     import pandas as pd
     import numpy as np
+
+try:
+    import numpy as np
+    import pandas as pd
+
     PANDAS_AVAILABLE = True
 except ImportError:
     PANDAS_AVAILABLE = False
+    np = None  # type: ignore
+    pd = None  # type: ignore
     print("Warning: pandas not available. Data Warehouse features limited.")
 
 
 class SCDType(str, Enum):
     """Slowly Changing Dimension types"""
+
     TYPE_0 = "type_0"  # No changes allowed
     TYPE_1 = "type_1"  # Overwrite
     TYPE_2 = "type_2"  # Add new row with versioning
@@ -46,6 +56,7 @@ class SCDType(str, Enum):
 
 class TableType(str, Enum):
     """Data warehouse table types"""
+
     FACT = "fact"
     DIMENSION = "dimension"
     BRIDGE = "bridge"
@@ -54,6 +65,7 @@ class TableType(str, Enum):
 @dataclass
 class DimensionTable:
     """Dimension table definition"""
+
     name: str
     columns: List[str]
     primary_key: str
@@ -69,6 +81,7 @@ class DimensionTable:
 @dataclass
 class FactTable:
     """Fact table definition"""
+
     name: str
     measures: List[str]  # Additive measures
     dimensions: List[str]  # Foreign keys to dimensions
@@ -82,6 +95,7 @@ class FactTable:
 @dataclass
 class ETLJob:
     """ETL job configuration"""
+
     id: str
     name: str
     source_query: str
@@ -230,20 +244,16 @@ class ETLPipeline:
 
         # Simulate data extraction
         data = {
-            'id': range(1, 101),
-            'value': np.random.rand(100) * 1000,
-            'category': np.random.choice(['A', 'B', 'C'], 100),
-            'date': pd.date_range(start='2025-01-01', periods=100, freq='D')
+            "id": range(1, 101),
+            "value": np.random.rand(100) * 1000,
+            "category": np.random.choice(["A", "B", "C"], 100),
+            "date": pd.date_range(start="2025-01-01", periods=100, freq="D"),
         }
 
         df = pd.DataFrame(data)
         return df
 
-    def transform(
-        self,
-        data: pd.DataFrame,
-        rules: List[Dict[str, Any]]
-    ) -> pd.DataFrame:
+    def transform(self, data: pd.DataFrame, rules: List[Dict[str, Any]]) -> pd.DataFrame:
         """
         Transform data according to rules
 
@@ -257,35 +267,35 @@ class ETLPipeline:
         df = data.copy()
 
         for rule in rules:
-            rule_type = rule.get('type')
+            rule_type = rule.get("type")
 
-            if rule_type == 'rename':
+            if rule_type == "rename":
                 # Rename columns
-                df = df.rename(columns=rule.get('mapping', {}))
+                df = df.rename(columns=rule.get("mapping", {}))
 
-            elif rule_type == 'filter':
+            elif rule_type == "filter":
                 # Filter rows
-                condition = rule.get('condition')
+                condition = rule.get("condition")
                 if condition:
                     df = df.query(condition)
 
-            elif rule_type == 'aggregate':
+            elif rule_type == "aggregate":
                 # Aggregate data
-                group_by = rule.get('group_by', [])
-                agg_func = rule.get('function', 'sum')
+                group_by = rule.get("group_by", [])
+                agg_func = rule.get("function", "sum")
                 if group_by:
                     df = df.groupby(group_by).agg(agg_func).reset_index()
 
-            elif rule_type == 'join':
+            elif rule_type == "join":
                 # Join with another table
-                other_table = rule.get('table')
-                join_on = rule.get('on')
+                other_table = rule.get("table")
+                join_on = rule.get("on")
                 # Placeholder - would join with actual table
 
-            elif rule_type == 'calculate':
+            elif rule_type == "calculate":
                 # Calculate derived column
-                column_name = rule.get('column')
-                expression = rule.get('expression')
+                column_name = rule.get("column")
+                expression = rule.get("expression")
                 if column_name and expression:
                     # Safely evaluate expression
                     # In production, use more secure evaluation
@@ -296,13 +306,7 @@ class ETLPipeline:
 
         return df
 
-    def load(
-        self,
-        data: pd.DataFrame,
-        target_table: str,
-        target_connection: Any,
-        mode: str = 'append'
-    ):
+    def load(self, data: pd.DataFrame, target_table: str, target_connection: Any, mode: str = "append"):
         """
         Load data into target table
 
@@ -318,13 +322,15 @@ class ETLPipeline:
         print(f"Loading {len(data)} rows into {target_table} (mode: {mode})")
 
         # Log execution
-        self.execution_log.append({
-            'timestamp': datetime.now(),
-            'table': target_table,
-            'rows_loaded': len(data),
-            'mode': mode,
-            'status': 'success'
-        })
+        self.execution_log.append(
+            {
+                "timestamp": datetime.now(),
+                "table": target_table,
+                "rows_loaded": len(data),
+                "mode": mode,
+                "status": "success",
+            }
+        )
 
     def run_job(self, job_id: str, source_conn: Any = None, target_conn: Any = None):
         """Execute ETL job"""
@@ -345,17 +351,10 @@ class ETLPipeline:
             # Update job metadata
             job.last_run = datetime.now()
 
-            return {
-                'status': 'success',
-                'rows_processed': len(data),
-                'rows_loaded': len(transformed)
-            }
+            return {"status": "success", "rows_processed": len(data), "rows_loaded": len(transformed)}
 
         except Exception as e:
-            return {
-                'status': 'failed',
-                'error': str(e)
-            }
+            return {"status": "failed", "error": str(e)}
 
 
 class IncrementalLoader:
@@ -377,12 +376,7 @@ class IncrementalLoader:
         self.watermarks[table] = watermark
 
     def load_incremental(
-        self,
-        table: str,
-        timestamp_column: str,
-        source_query: str,
-        source_conn: Any,
-        target_conn: Any
+        self, table: str, timestamp_column: str, source_query: str, source_conn: Any, target_conn: Any
     ):
         """
         Load data incrementally
@@ -429,32 +423,27 @@ class DataQualityChecker:
         """Check null percentage in column"""
         null_pct = df[column].isnull().sum() / len(df)
         return {
-            'rule': 'null_check',
-            'column': column,
-            'null_percentage': null_pct,
-            'passed': null_pct <= max_null_pct,
-            'threshold': max_null_pct
+            "rule": "null_check",
+            "column": column,
+            "null_percentage": null_pct,
+            "passed": null_pct <= max_null_pct,
+            "threshold": max_null_pct,
         }
 
     def check_duplicates(self, df: pd.DataFrame, columns: List[str]):
         """Check for duplicate rows"""
         duplicates = df.duplicated(subset=columns).sum()
-        return {
-            'rule': 'duplicate_check',
-            'columns': columns,
-            'duplicates': int(duplicates),
-            'passed': duplicates == 0
-        }
+        return {"rule": "duplicate_check", "columns": columns, "duplicates": int(duplicates), "passed": duplicates == 0}
 
     def check_range(self, df: pd.DataFrame, column: str, min_val: float, max_val: float):
         """Check value range"""
         out_of_range = ((df[column] < min_val) | (df[column] > max_val)).sum()
         return {
-            'rule': 'range_check',
-            'column': column,
-            'out_of_range': int(out_of_range),
-            'passed': out_of_range == 0,
-            'range': [min_val, max_val]
+            "rule": "range_check",
+            "column": column,
+            "out_of_range": int(out_of_range),
+            "passed": out_of_range == 0,
+            "range": [min_val, max_val],
         }
 
     def validate(self, df: pd.DataFrame) -> Dict[str, Any]:
@@ -462,27 +451,27 @@ class DataQualityChecker:
         results = []
 
         for rule in self.rules:
-            rule_type = rule.get('type')
+            rule_type = rule.get("type")
 
-            if rule_type == 'null_check':
-                result = self.check_nulls(df, rule['column'], rule.get('max_null_pct', 0.05))
+            if rule_type == "null_check":
+                result = self.check_nulls(df, rule["column"], rule.get("max_null_pct", 0.05))
                 results.append(result)
 
-            elif rule_type == 'duplicate_check':
-                result = self.check_duplicates(df, rule['columns'])
+            elif rule_type == "duplicate_check":
+                result = self.check_duplicates(df, rule["columns"])
                 results.append(result)
 
-            elif rule_type == 'range_check':
-                result = self.check_range(df, rule['column'], rule['min'], rule['max'])
+            elif rule_type == "range_check":
+                result = self.check_range(df, rule["column"], rule["min"], rule["max"])
                 results.append(result)
 
-        all_passed = all(r['passed'] for r in results)
+        all_passed = all(r["passed"] for r in results)
 
         return {
-            'overall_status': 'passed' if all_passed else 'failed',
-            'checks': results,
-            'passed_count': sum(1 for r in results if r['passed']),
-            'failed_count': sum(1 for r in results if not r['passed'])
+            "overall_status": "passed" if all_passed else "failed",
+            "checks": results,
+            "passed_count": sum(1 for r in results if r["passed"]),
+            "failed_count": sum(1 for r in results if not r["passed"]),
         }
 
 
@@ -507,7 +496,7 @@ class DataWarehouse:
             columns=["date", "year", "month", "day", "quarter", "week"],
             primary_key="time_key",
             natural_key="date",
-            scd_type=SCDType.TYPE_0
+            scd_type=SCDType.TYPE_0,
         )
         self.schema.add_dimension(dim_time)
 
@@ -517,7 +506,7 @@ class DataWarehouse:
             columns=["user_id", "username", "email", "role", "tenant_id"],
             primary_key="user_key",
             natural_key="user_id",
-            scd_type=SCDType.TYPE_2
+            scd_type=SCDType.TYPE_2,
         )
         self.schema.add_dimension(dim_user)
 
@@ -527,7 +516,7 @@ class DataWarehouse:
             columns=["tenant_id", "name", "tier", "industry"],
             primary_key="tenant_key",
             natural_key="tenant_id",
-            scd_type=SCDType.TYPE_2
+            scd_type=SCDType.TYPE_2,
         )
         self.schema.add_dimension(dim_tenant)
 
@@ -537,7 +526,7 @@ class DataWarehouse:
             columns=["document_id", "title", "category", "status"],
             primary_key="document_key",
             natural_key="document_id",
-            scd_type=SCDType.TYPE_1
+            scd_type=SCDType.TYPE_1,
         )
         self.schema.add_dimension(dim_document)
 
@@ -548,7 +537,7 @@ class DataWarehouse:
             dimensions=["time", "user", "tenant", "document"],
             grain="One row per document operation per day",
             partition_column="date_key",
-            partition_type="daily"
+            partition_type="daily",
         )
         self.schema.add_fact(fact_documents)
 
@@ -559,7 +548,7 @@ class DataWarehouse:
             dimensions=["time", "tenant"],
             grain="One row per tenant per day",
             partition_column="date_key",
-            partition_type="daily"
+            partition_type="daily",
         )
         self.schema.add_fact(fact_usage)
 
@@ -570,7 +559,7 @@ class DataWarehouse:
             dimensions=["time", "tenant"],
             grain="One row per tenant per month",
             partition_column="date_key",
-            partition_type="monthly"
+            partition_type="monthly",
         )
         self.schema.add_fact(fact_revenue)
 
@@ -587,14 +576,8 @@ class DataWarehouse:
             name="Daily Usage Aggregation",
             source_query="SELECT * FROM operational_usage_log WHERE date = CURRENT_DATE",
             target_table="fact_usage",
-            transformation_rules=[
-                {
-                    'type': 'aggregate',
-                    'group_by': ['tenant_id', 'date'],
-                    'function': 'sum'
-                }
-            ],
-            schedule="0 1 * * *"  # Daily at 1 AM
+            transformation_rules=[{"type": "aggregate", "group_by": ["tenant_id", "date"], "function": "sum"}],
+            schedule="0 1 * * *",  # Daily at 1 AM
         )
         self.etl.register_job(usage_job)
 
@@ -606,12 +589,12 @@ class DataWarehouse:
             target_table="fact_revenue",
             transformation_rules=[
                 {
-                    'type': 'calculate',
-                    'column': 'mrr',
-                    'expression': 'amount / 12 if billing_cycle == "yearly" else amount'
+                    "type": "calculate",
+                    "column": "mrr",
+                    "expression": 'amount / 12 if billing_cycle == "yearly" else amount',
                 }
             ],
-            schedule="0 2 1 * *"  # Monthly on 1st at 2 AM
+            schedule="0 2 1 * *",  # Monthly on 1st at 2 AM
         )
         self.etl.register_job(revenue_job)
 

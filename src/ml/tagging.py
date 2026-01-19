@@ -9,17 +9,18 @@ Provides automatic tag generation and assignment:
 - Multi-label classification
 """
 
-from typing import Optional, List, Dict, Any, Set, Tuple
+import math
+import re
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import re
-import math
-from collections import Counter, defaultdict
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 class TagType(str, Enum):
     """Tag types"""
+
     KEYWORD = "keyword"
     TOPIC = "topic"
     CATEGORY = "category"
@@ -30,6 +31,7 @@ class TagType(str, Enum):
 @dataclass
 class Tag:
     """Document tag"""
+
     id: str
     name: str
     type: TagType
@@ -41,6 +43,7 @@ class Tag:
 @dataclass
 class TagSuggestion:
     """Tag suggestion"""
+
     tag: str
     score: float
     source: str  # tfidf, textrank, lda, etc.
@@ -61,11 +64,7 @@ class TFIDFExtractor:
             self.document_frequency[word] = self.document_frequency.get(word, 0) + 1
         self.total_documents += 1
 
-    def extract_keywords(
-        self,
-        text: str,
-        top_k: int = 10
-    ) -> List[TagSuggestion]:
+    def extract_keywords(self, text: str, top_k: int = 10) -> List[TagSuggestion]:
         """Extract keywords using TF-IDF"""
         words = self._tokenize(text)
 
@@ -87,20 +86,12 @@ class TFIDFExtractor:
             tfidf_scores[word] = tf_score * idf_score
 
         # Sort by score
-        sorted_keywords = sorted(
-            tfidf_scores.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_keywords = sorted(tfidf_scores.items(), key=lambda x: x[1], reverse=True)
 
         # Return top-k
         suggestions = []
         for word, score in sorted_keywords[:top_k]:
-            suggestions.append(TagSuggestion(
-                tag=word,
-                score=score,
-                source="tfidf"
-            ))
+            suggestions.append(TagSuggestion(tag=word, score=score, source="tfidf"))
 
         return suggestions
 
@@ -108,15 +99,29 @@ class TFIDFExtractor:
         """Tokenize text"""
         # Lowercase and remove special chars
         text = text.lower()
-        text = re.sub(r'[^a-zA-Z0-9äöüßÄÖÜ\s]', ' ', text)
+        text = re.sub(r"[^a-zA-Z0-9äöüßÄÖÜ\s]", " ", text)
 
         # Split into words
         words = text.split()
 
         # Filter short words and stopwords
         stopwords = {
-            'der', 'die', 'das', 'und', 'oder', 'aber', 'ist', 'sind',
-            'the', 'and', 'or', 'but', 'is', 'are', 'a', 'an'
+            "der",
+            "die",
+            "das",
+            "und",
+            "oder",
+            "aber",
+            "ist",
+            "sind",
+            "the",
+            "and",
+            "or",
+            "but",
+            "is",
+            "are",
+            "a",
+            "an",
         }
         words = [w for w in words if len(w) > 2 and w not in stopwords]
 
@@ -129,12 +134,7 @@ class TextRankExtractor:
     def __init__(self, window_size: int = 3):
         self.window_size = window_size
 
-    def extract_keywords(
-        self,
-        text: str,
-        top_k: int = 10,
-        iterations: int = 20
-    ) -> List[TagSuggestion]:
+    def extract_keywords(self, text: str, top_k: int = 10, iterations: int = 20) -> List[TagSuggestion]:
         """Extract keywords using TextRank"""
         words = self._tokenize(text)
 
@@ -148,20 +148,12 @@ class TextRankExtractor:
         scores = self._pagerank(graph, iterations)
 
         # Sort by score
-        sorted_keywords = sorted(
-            scores.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_keywords = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
         # Return top-k
         suggestions = []
         for word, score in sorted_keywords[:top_k]:
-            suggestions.append(TagSuggestion(
-                tag=word,
-                score=score,
-                source="textrank"
-            ))
+            suggestions.append(TagSuggestion(tag=word, score=score, source="textrank"))
 
         return suggestions
 
@@ -180,12 +172,7 @@ class TextRankExtractor:
 
         return graph
 
-    def _pagerank(
-        self,
-        graph: Dict[str, Set[str]],
-        iterations: int,
-        damping: float = 0.85
-    ) -> Dict[str, float]:
+    def _pagerank(self, graph: Dict[str, Set[str]], iterations: int, damping: float = 0.85) -> Dict[str, float]:
         """Run PageRank algorithm"""
         # Initialize scores
         scores = {word: 1.0 for word in graph}
@@ -194,7 +181,7 @@ class TextRankExtractor:
             new_scores = {}
 
             for word in graph:
-                score = (1 - damping)
+                score = 1 - damping
 
                 for neighbor in graph:
                     if word in graph[neighbor]:
@@ -210,12 +197,26 @@ class TextRankExtractor:
     def _tokenize(self, text: str) -> List[str]:
         """Tokenize text"""
         text = text.lower()
-        text = re.sub(r'[^a-zA-Z0-9äöüßÄÖÜ\s]', ' ', text)
+        text = re.sub(r"[^a-zA-Z0-9äöüßÄÖÜ\s]", " ", text)
         words = text.split()
 
         stopwords = {
-            'der', 'die', 'das', 'und', 'oder', 'aber', 'ist', 'sind',
-            'the', 'and', 'or', 'but', 'is', 'are', 'a', 'an'
+            "der",
+            "die",
+            "das",
+            "und",
+            "oder",
+            "aber",
+            "ist",
+            "sind",
+            "the",
+            "and",
+            "or",
+            "but",
+            "is",
+            "are",
+            "a",
+            "an",
         }
         words = [w for w in words if len(w) > 2 and w not in stopwords]
 
@@ -241,11 +242,11 @@ class TopicModeler:
         except ImportError:
             # Fallback to simulated topics if gensim not available
             self.topics = {
-                0: ['rechnung', 'betrag', 'zahlung', 'invoice', 'payment'],
-                1: ['vertrag', 'vereinbarung', 'contract', 'agreement'],
-                2: ['bericht', 'analyse', 'report', 'analysis'],
-                3: ['budget', 'finanzplan', 'kosten', 'financial', 'cost'],
-                4: ['dienst', 'service', 'leistung', 'provision']
+                0: ["rechnung", "betrag", "zahlung", "invoice", "payment"],
+                1: ["vertrag", "vereinbarung", "contract", "agreement"],
+                2: ["bericht", "analyse", "report", "analysis"],
+                3: ["budget", "finanzplan", "kosten", "financial", "cost"],
+                4: ["dienst", "service", "leistung", "provision"],
             }
             self.trained = True
             return
@@ -259,8 +260,8 @@ class TopicModeler:
         if not tokenized_docs:
             # No valid documents, use fallback
             self.topics = {
-                0: ['rechnung', 'betrag', 'zahlung', 'invoice', 'payment'],
-                1: ['vertrag', 'vereinbarung', 'contract', 'agreement']
+                0: ["rechnung", "betrag", "zahlung", "invoice", "payment"],
+                1: ["vertrag", "vereinbarung", "contract", "agreement"],
             }
             self.trained = True
             return
@@ -272,7 +273,7 @@ class TopicModeler:
         self.dictionary.filter_extremes(
             no_below=2,  # Minimum 2 documents
             no_above=0.8,  # Maximum 80% of documents
-            keep_n=10000  # Keep top 10k most frequent words
+            keep_n=10000,  # Keep top 10k most frequent words
         )
 
         # Create corpus (bag-of-words representation)
@@ -286,9 +287,9 @@ class TopicModeler:
             passes=10,  # Number of passes through the corpus
             iterations=50,  # Number of iterations per pass
             random_state=42,
-            alpha='auto',  # Learn document-topic density
-            eta='auto',  # Learn topic-word density
-            per_word_topics=True
+            alpha="auto",  # Learn document-topic density
+            eta="auto",  # Learn topic-word density
+            per_word_topics=True,
         )
 
         # Extract topics as word lists
@@ -301,11 +302,7 @@ class TopicModeler:
 
         self.trained = True
 
-    def get_document_topics(
-        self,
-        text: str,
-        top_k: int = 3
-    ) -> List[TagSuggestion]:
+    def get_document_topics(self, text: str, top_k: int = 3) -> List[TagSuggestion]:
         """Get topics for document using trained LDA model"""
         if not self.trained:
             return []
@@ -321,11 +318,7 @@ class TopicModeler:
                 topic_distribution = self.lda_model.get_document_topics(bow)
 
                 # Sort by probability
-                sorted_topics = sorted(
-                    topic_distribution,
-                    key=lambda x: x[1],
-                    reverse=True
-                )[:top_k]
+                sorted_topics = sorted(topic_distribution, key=lambda x: x[1], reverse=True)[:top_k]
 
                 # Create suggestions
                 suggestions = []
@@ -333,12 +326,9 @@ class TopicModeler:
                     if topic_id in self.topics and self.topics[topic_id]:
                         # Use most representative word as tag
                         tag = self.topics[topic_id][0]
-                        suggestions.append(TagSuggestion(
-                            tag=tag,
-                            score=float(prob),
-                            source="lda",
-                            context=f"topic_{topic_id}"
-                        ))
+                        suggestions.append(
+                            TagSuggestion(tag=tag, score=float(prob), source="lda", context=f"topic_{topic_id}")
+                        )
 
                 return suggestions
 
@@ -358,11 +348,7 @@ class TopicModeler:
                 topic_scores[topic_id] = overlap / len(topic_words)
 
         # Sort by score
-        sorted_topics = sorted(
-            topic_scores.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_topics = sorted(topic_scores.items(), key=lambda x: x[1], reverse=True)
 
         # Return top-k topics
         suggestions = []
@@ -370,19 +356,14 @@ class TopicModeler:
             # Use most representative word as tag
             if topic_id in self.topics and self.topics[topic_id]:
                 tag = self.topics[topic_id][0]
-                suggestions.append(TagSuggestion(
-                    tag=tag,
-                    score=score,
-                    source="lda",
-                    context=f"topic_{topic_id}"
-                ))
+                suggestions.append(TagSuggestion(tag=tag, score=score, source="lda", context=f"topic_{topic_id}"))
 
         return suggestions
 
     def _tokenize(self, text: str) -> List[str]:
         """Tokenize text"""
         text = text.lower()
-        text = re.sub(r'[^a-zA-Z0-9äöüßÄÖÜ\s]', ' ', text)
+        text = re.sub(r"[^a-zA-Z0-9äöüßÄÖÜ\s]", " ", text)
         words = text.split()
         words = [w for w in words if len(w) > 2]
         return words
@@ -408,12 +389,7 @@ class AutoTagger:
         # Train topic model
         self.topic_modeler.train(documents)
 
-    def suggest_tags(
-        self,
-        text: str,
-        top_k: int = 10,
-        combine_methods: bool = True
-    ) -> List[TagSuggestion]:
+    def suggest_tags(self, text: str, top_k: int = 10, combine_methods: bool = True) -> List[TagSuggestion]:
         """Suggest tags for text"""
         all_suggestions = []
 
@@ -443,11 +419,7 @@ class AutoTagger:
             for tag, score in tag_scores.items():
                 # Boost score if tag appears in multiple methods
                 boost = len(tag_sources[tag]) * 0.2
-                combined.append(TagSuggestion(
-                    tag=tag,
-                    score=score + boost,
-                    source=','.join(tag_sources[tag])
-                ))
+                combined.append(TagSuggestion(tag=tag, score=score + boost, source=",".join(tag_sources[tag])))
 
             # Sort and return top-k
             combined.sort(key=lambda x: x.score, reverse=True)
@@ -458,13 +430,7 @@ class AutoTagger:
             all_suggestions.sort(key=lambda x: x.score, reverse=True)
             return all_suggestions[:top_k]
 
-    def auto_tag_document(
-        self,
-        document_id: str,
-        text: str,
-        threshold: float = 0.3,
-        max_tags: int = 5
-    ) -> List[Tag]:
+    def auto_tag_document(self, document_id: str, text: str, threshold: float = 0.3, max_tags: int = 5) -> List[Tag]:
         """Automatically tag document"""
         suggestions = self.suggest_tags(text, top_k=max_tags * 2)
 
@@ -481,7 +447,7 @@ class AutoTagger:
                 name=suggestion.tag,
                 type=TagType.KEYWORD,
                 confidence=suggestion.score,
-                frequency=self.tag_statistics[suggestion.tag]
+                frequency=self.tag_statistics[suggestion.tag],
             )
 
             tags.append(tag)
@@ -503,21 +469,13 @@ class AutoTagger:
 
         # Create new tag
         tag_id = f"tag_{len(self.tag_registry) + 1}"
-        self.tag_registry[tag_id] = Tag(
-            id=tag_id,
-            name=tag_name,
-            type=TagType.KEYWORD
-        )
+        self.tag_registry[tag_id] = Tag(id=tag_id, name=tag_name, type=TagType.KEYWORD)
 
         return tag_id
 
     def get_popular_tags(self, limit: int = 20) -> List[Tuple[str, int]]:
         """Get most popular tags"""
-        sorted_tags = sorted(
-            self.tag_statistics.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_tags = sorted(self.tag_statistics.items(), key=lambda x: x[1], reverse=True)
 
         return sorted_tags[:limit]
 
@@ -534,20 +492,20 @@ class AutoTagger:
 
         # Simulated clusters
         return {
-            'financial': ['rechnung', 'zahlung', 'budget', 'kosten'],
-            'legal': ['vertrag', 'vereinbarung', 'contract'],
-            'administrative': ['bericht', 'dienst', 'service']
+            "financial": ["rechnung", "zahlung", "budget", "kosten"],
+            "legal": ["vertrag", "vereinbarung", "contract"],
+            "administrative": ["bericht", "dienst", "service"],
         }
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get tagging statistics"""
         return {
-            'total_tags': len(self.tag_registry),
-            'total_applications': sum(self.tag_statistics.values()),
-            'avg_tags_per_document': sum(self.tag_statistics.values()) / max(len(self.tag_statistics), 1),
-            'popular_tags': self.get_popular_tags(limit=10),
-            'tfidf_corpus_size': self.tfidf_extractor.total_documents,
-            'topics': len(self.topic_modeler.topics)
+            "total_tags": len(self.tag_registry),
+            "total_applications": sum(self.tag_statistics.values()),
+            "avg_tags_per_document": sum(self.tag_statistics.values()) / max(len(self.tag_statistics), 1),
+            "popular_tags": self.get_popular_tags(limit=10),
+            "tfidf_corpus_size": self.tfidf_extractor.total_documents,
+            "topics": len(self.topic_modeler.topics),
         }
 
 

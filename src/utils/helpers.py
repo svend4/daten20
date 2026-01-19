@@ -1,14 +1,15 @@
 """Helper functions for the Document Management System"""
 
-import re
-import os
 import json
-import yaml
+import os
+import re
 from datetime import datetime
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Dict, List, Optional
-from decimal import Decimal, ROUND_HALF_UP
 
-from .constants import VARIABLE_PATTERN, DATE_PATTERN, EMAIL_PATTERN, PHONE_PATTERN
+import yaml
+
+from .constants import DATE_PATTERN, EMAIL_PATTERN, PHONE_PATTERN, VARIABLE_PATTERN
 
 
 def extract_variables(text: str) -> List[str]:
@@ -39,7 +40,7 @@ def validate_date(date_str: str) -> bool:
         return False
 
     try:
-        day, month, year = map(int, date_str.split('.'))
+        day, month, year = map(int, date_str.split("."))
         datetime(year, month, day)
         return True
     except ValueError:
@@ -95,7 +96,7 @@ def round_currency(amount: float) -> Decimal:
     Returns:
         Rounded Decimal
     """
-    return Decimal(str(amount)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    return Decimal(str(amount)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def load_config(file_path: str) -> Dict[str, Any]:
@@ -117,10 +118,10 @@ def load_config(file_path: str) -> Dict[str, Any]:
 
     ext = os.path.splitext(file_path)[1].lower()
 
-    with open(file_path, 'r', encoding='utf-8') as f:
-        if ext == '.json':
+    with open(file_path, "r", encoding="utf-8") as f:
+        if ext == ".json":
             return json.load(f)
-        elif ext in ['.yaml', '.yml']:
+        elif ext in [".yaml", ".yml"]:
             return yaml.safe_load(f)
         else:
             raise ValueError(f"Unsupported file format: {ext}. Use .json or .yaml")
@@ -141,10 +142,10 @@ def save_config(config: Dict[str, Any], file_path: str) -> None:
 
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-    with open(file_path, 'w', encoding='utf-8') as f:
-        if ext == '.json':
+    with open(file_path, "w", encoding="utf-8") as f:
+        if ext == ".json":
             json.dump(config, f, ensure_ascii=False, indent=2)
-        elif ext in ['.yaml', '.yml']:
+        elif ext in [".yaml", ".yml"]:
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
         else:
             raise ValueError(f"Unsupported file format: {ext}. Use .json or .yaml")
@@ -196,10 +197,10 @@ def sanitize_filename(filename: str) -> str:
     # Replace invalid characters with underscore
     invalid_chars = '<>:"/\\|?*'
     for char in invalid_chars:
-        filename = filename.replace(char, '_')
+        filename = filename.replace(char, "_")
 
     # Remove leading/trailing spaces and dots
-    filename = filename.strip('. ')
+    filename = filename.strip(". ")
 
     return filename
 
@@ -218,7 +219,7 @@ def truncate_text(text: str, max_length: int = 50, suffix: str = "...") -> str:
     """
     if len(text) <= max_length:
         return text
-    return text[:max_length - len(suffix)] + suffix
+    return text[: max_length - len(suffix)] + suffix
 
 
 def deep_merge(dict1: Dict, dict2: Dict) -> Dict:
@@ -257,7 +258,7 @@ def validate_required_fields(data: Dict, required_fields: List[str]) -> List[str
     missing = []
 
     for field in required_fields:
-        parts = field.split('.')
+        parts = field.split(".")
         value = data
 
         try:
@@ -290,8 +291,8 @@ def parse_number(value: str) -> Optional[float]:
     value = value.strip()
 
     # Handle German format (1.234,56)
-    if ',' in value:
-        value = value.replace('.', '').replace(',', '.')
+    if "," in value:
+        value = value.replace(".", "").replace(",", ".")
 
     try:
         return float(value)
@@ -327,7 +328,7 @@ def chunk_list(lst: List, chunk_size: int) -> List[List]:
     Returns:
         List of chunks
     """
-    return [lst[i:i + chunk_size] for i in range(0, len(lst), chunk_size)]
+    return [lst[i : i + chunk_size] for i in range(0, len(lst), chunk_size)]
 
 
 def calculate_percentage(part: float, whole: float) -> float:

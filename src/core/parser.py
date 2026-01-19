@@ -1,11 +1,9 @@
 """Document parser for template analysis"""
 
 import re
-from typing import List, Dict, Tuple, Optional
-from ..models.template import (
-    TemplateStructure, Block, Section, Variable,
-    TemplateStats, ValidationResult
-)
+from typing import Dict, List, Optional, Tuple
+
+from ..models.template import Block, Section, TemplateStats, TemplateStructure, ValidationResult, Variable
 from ..utils.constants import TEMPLATE_BLOCKS, VARIABLE_PATTERN
 from ..utils.helpers import extract_variables
 
@@ -28,7 +26,7 @@ class TemplateParser:
         """Load template file into memory"""
         if self.template_path is None:
             raise ValueError("Cannot load: no template_path specified")
-        with open(self.template_path, 'r', encoding='utf-8') as f:
+        with open(self.template_path, "r", encoding="utf-8") as f:
             self.lines = f.readlines()
 
     def parse(self, file_path: Optional[str] = None):
@@ -46,7 +44,7 @@ class TemplateParser:
         # Generic document parsing (for new applications)
         if file_path is not None:
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, "r", encoding="utf-8") as f:
                     text = f.read()
                 return {"text": text, "file_path": file_path}
             except Exception as e:
@@ -102,11 +100,7 @@ class TemplateParser:
 
                 # Start new block
                 block_id, block_title = block_match
-                current_block = Block(
-                    id=block_id,
-                    title=block_title,
-                    description=""
-                )
+                current_block = Block(id=block_id, title=block_title, description="")
                 current_section_lines = []
                 in_block = True
                 continue
@@ -147,10 +141,7 @@ class TemplateParser:
                 return (0, title)
 
         # Roman numerals for blocks I-X
-        roman_map = {
-            "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5,
-            "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10
-        }
+        roman_map = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10}
 
         for roman, num in roman_map.items():
             if line.startswith(f"БЛОК {roman}:"):
@@ -179,20 +170,12 @@ class TemplateParser:
 
         # Create section
         section_id = f"{block.id}.{len(block.sections) + 1}"
-        section = Section(
-            id=section_id,
-            title=section_title,
-            content=content
-        )
+        section = Section(id=section_id, title=section_title, content=content)
 
         # Extract variables from section
         var_names = extract_variables(content)
         for var_name in var_names:
-            var = Variable(
-                name=var_name,
-                block_id=block.id,
-                section=section_id
-            )
+            var = Variable(name=var_name, block_id=block.id, section=section_id)
             section.variables.append(var)
             block.variables.append(var)
 
@@ -317,6 +300,7 @@ class TemplateParser:
                 results.append((i, line.strip()))
 
         return results
+
 
 # Alias for backward compatibility
 DocumentParser = TemplateParser

@@ -5,33 +5,44 @@ Interactive Editor - Интерактивный редактор
 Пошаговое заполнение шаблона с валидацией и подсказками.
 """
 
-import sys
 import argparse
-from pathlib import Path
-from typing import Dict, Any, Optional, List
-from decimal import Decimal
 import json
+import sys
+from decimal import Decimal
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.models.service import Service, BasicInfo, Funding, SystemSettings
-from src.models.financial import FinancialParameters
 from src.core.validator import TemplateValidator
-from src.financial_calculator import FinancialCalculator
 from src.document_generator import DocumentGenerator
-from src.utils.formatting import (
-    header, section, success, error, warning, info,
-    key_value, colored, bold, title_box, divider, progress_bar
-)
-from src.utils.helpers import (
-    save_config, validate_date, validate_email, validate_phone,
-    parse_number, get_date_string
-)
+from src.financial_calculator import FinancialCalculator
+from src.models.financial import FinancialParameters
+from src.models.service import BasicInfo, Funding, Service, SystemSettings
 from src.utils.constants import (
-    SERVICE_TYPES, REGIONAL_COEFFICIENTS, FUNDING_SOURCES,
-    DEFAULT_INSURANCE_RATES, DEFAULT_UMLAGES, DEFAULT_SURCHARGES
+    DEFAULT_INSURANCE_RATES,
+    DEFAULT_SURCHARGES,
+    DEFAULT_UMLAGES,
+    FUNDING_SOURCES,
+    REGIONAL_COEFFICIENTS,
+    SERVICE_TYPES,
 )
+from src.utils.formatting import (
+    bold,
+    colored,
+    divider,
+    error,
+    header,
+    info,
+    key_value,
+    progress_bar,
+    section,
+    success,
+    title_box,
+    warning,
+)
+from src.utils.helpers import get_date_string, parse_number, save_config, validate_date, validate_email, validate_phone
 
 
 class InteractiveEditor:
@@ -92,45 +103,31 @@ class InteractiveEditor:
         print()
 
         self.service.basic_info.service_name = self._prompt(
-            "Название услуги",
-            "Например: Сопровождение в магазин",
-            required=True
+            "Название услуги", "Например: Сопровождение в магазин", required=True
         )
 
         self.service.basic_info.target_group = self._prompt(
-            "Целевая группа",
-            "Например: Люди с ограниченной мобильностью",
-            required=True
+            "Целевая группа", "Например: Люди с ограниченной мобильностью", required=True
         )
 
         self.service.basic_info.region = self._prompt_choice(
-            "Регион/земля",
-            list(REGIONAL_COEFFICIENTS.keys()),
-            required=True
+            "Регион/земля", list(REGIONAL_COEFFICIENTS.keys()), required=True
         )
 
         self.service.basic_info.provider_type = self._prompt(
-            "Тип исполнителя/квалификация",
-            "Например: Квалифицированный ассистент"
+            "Тип исполнителя/квалификация", "Например: Квалифицированный ассистент"
         )
 
         self.service.basic_info.document_date = self._prompt(
             "Дата создания карточки",
             f"Формат: ДД.ММ.ГГГГ (по умолчанию: {get_date_string()})",
             default=get_date_string(),
-            validator=validate_date
+            validator=validate_date,
         )
 
-        self.service.basic_info.document_version = self._prompt(
-            "Версия документа",
-            "По умолчанию: 1.0",
-            default="1.0"
-        )
+        self.service.basic_info.document_version = self._prompt("Версия документа", "По умолчанию: 1.0", default="1.0")
 
-        self.service.basic_info.responsible_person = self._prompt(
-            "Ответственный за актуализацию",
-            "ФИО и должность"
-        )
+        self.service.basic_info.responsible_person = self._prompt("Ответственный за актуализацию", "ФИО и должность")
 
         print(success("✓ Базовая информация заполнена"))
         print()
@@ -143,20 +140,14 @@ class InteractiveEditor:
 
         # Brutto rate
         brutto = self._prompt_number(
-            "Ставка брутто €/ч",
-            "Почасовая ставка до отчислений",
-            required=True,
-            min_value=0.0
+            "Ставка брутто €/ч", "Почасовая ставка до отчислений", required=True, min_value=0.0
         )
         self.service.financial.brutto_rate = Decimal(str(brutto))
 
         # Insurance rates
         print()
         print(bold("Социальные отчисления работодателя (в процентах):"))
-        use_defaults = self._prompt_yes_no(
-            "Использовать значения по умолчанию?",
-            default=True
-        )
+        use_defaults = self._prompt_yes_no("Использовать значения по умолчанию?", default=True)
 
         if not use_defaults:
             rates = self.service.financial.insurance_rates
@@ -176,10 +167,7 @@ class InteractiveEditor:
         # Umlages
         print()
         print(bold("Умлаги (Umlages) в процентах:"))
-        use_default_umlages = self._prompt_yes_no(
-            "Использовать значения по умолчанию?",
-            default=True
-        )
+        use_default_umlages = self._prompt_yes_no("Использовать значения по умолчанию?", default=True)
 
         if not use_default_umlages:
             uml = self.service.financial.umlages
@@ -190,10 +178,7 @@ class InteractiveEditor:
         # Surcharges
         print()
         print(bold("Надбавки (в процентах):"))
-        edit_surcharges = self._prompt_yes_no(
-            "Изменить надбавки?",
-            default=False
-        )
+        edit_surcharges = self._prompt_yes_no("Изменить надбавки?", default=False)
 
         if edit_surcharges:
             sur = self.service.financial.surcharges
@@ -206,17 +191,10 @@ class InteractiveEditor:
         print()
         print(bold("Материалы и административные расходы:"))
 
-        materials_month = self._prompt_number(
-            "Материалы/проезд/связь €/месяц",
-            default=0.0
-        )
+        materials_month = self._prompt_number("Материалы/проезд/связь €/месяц", default=0.0)
         self.service.financial.materials_per_month = Decimal(str(materials_month))
 
-        admin_pct = self._prompt_number(
-            "Административные затраты %",
-            "Процент от фонда оплаты",
-            default=5.0
-        )
+        admin_pct = self._prompt_number("Административные затраты %", "Процент от фонда оплаты", default=5.0)
         self.service.financial.admin_percent = Decimal(str(admin_pct))
 
         # Regional coefficient
@@ -224,21 +202,15 @@ class InteractiveEditor:
         region_coef = REGIONAL_COEFFICIENTS.get(self.service.basic_info.region, 1.0)
         print(info(f"Региональный коэффициент для {self.service.basic_info.region}: {region_coef}"))
 
-        custom_coef = self._prompt_yes_no(
-            "Использовать другой коэффициент?",
-            default=False
-        )
+        custom_coef = self._prompt_yes_no("Использовать другой коэффициент?", default=False)
 
         if custom_coef:
             region_coef = self._prompt_number(
-                "Региональный коэффициент",
-                default=region_coef,
-                min_value=0.5,
-                max_value=3.0
+                "Региональный коэффициент", default=region_coef, min_value=0.5, max_value=3.0
             )
 
         self.service.financial.region_coefficient = Decimal(str(region_coef))
-        self.service.financial.is_saxony = (self.service.basic_info.region == "Sachsen")
+        self.service.financial.is_saxony = self.service.basic_info.region == "Sachsen"
 
         print(success("✓ Финансовые параметры заполнены"))
         print()
@@ -258,9 +230,7 @@ class InteractiveEditor:
         # Calculation mode
         print(bold("Режим социальных выплат:"))
         use_umlages = self._prompt_yes_no(
-            "Использовать U-умлаги (U1/U2/U3)?",
-            info_text="Альтернатива: резерв на отпуск/больничные",
-            default=True
+            "Использовать U-умлаги (U1/U2/U3)?", info_text="Альтернатива: резерв на отпуск/больничные", default=True
         )
 
         self.service.system_settings.use_umlages = use_umlages
@@ -274,11 +244,7 @@ class InteractiveEditor:
         print("1. К полной стоимости часа (включая накладные)")
         print("2. К ставке брутто (без материалов/админа)")
 
-        surcharge_base_choice = self._prompt_choice(
-            "Выберите базу",
-            ["1", "2"],
-            default="1"
-        )
+        surcharge_base_choice = self._prompt_choice("Выберите базу", ["1", "2"], default="1")
 
         self.service.system_settings.surcharge_base = "full_cost" if surcharge_base_choice == "1" else "brutto_only"
         self.service.financial.surcharge_base = self.service.system_settings.surcharge_base
@@ -290,9 +256,7 @@ class InteractiveEditor:
             print(f"{i}. {desc}")
 
         service_type_idx = self._prompt_choice(
-            "Выберите тип услуги",
-            [str(i) for i in range(1, len(SERVICE_TYPES) + 1)],
-            default="2"
+            "Выберите тип услуги", [str(i) for i in range(1, len(SERVICE_TYPES) + 1)], default="2"
         )
 
         service_types_list = list(SERVICE_TYPES.keys())
@@ -311,11 +275,7 @@ class InteractiveEditor:
         for i, source in enumerate(FUNDING_SOURCES, 1):
             print(f"{i}. {source}")
 
-        payer_idx = self._prompt_choice(
-            "Плательщик",
-            [str(i) for i in range(1, len(FUNDING_SOURCES) + 1)],
-            default="1"
-        )
+        payer_idx = self._prompt_choice("Плательщик", [str(i) for i in range(1, len(FUNDING_SOURCES) + 1)], default="1")
 
         self.service.funding.payer = FUNDING_SOURCES[int(payer_idx) - 1]
 
@@ -341,10 +301,7 @@ class InteractiveEditor:
         print(section(f"[{self.current_section}/{self.total_sections}] ДОПОЛНИТЕЛЬНЫЕ ПОЛЯ"))
         print()
 
-        add_custom = self._prompt_yes_no(
-            "Добавить дополнительные поля?",
-            default=False
-        )
+        add_custom = self._prompt_yes_no("Добавить дополнительные поля?", default=False)
 
         if add_custom:
             print(info("Введите пары ключ=значение (пустая строка для завершения):"))
@@ -353,8 +310,8 @@ class InteractiveEditor:
                 if not field:
                     break
 
-                if '=' in field:
-                    key, value = field.split('=', 1)
+                if "=" in field:
+                    key, value = field.split("=", 1)
                     self.service.custom_fields[key.strip()] = value.strip()
                 else:
                     value = input(f"  Значение для '{field}': ").strip()
@@ -396,17 +353,11 @@ class InteractiveEditor:
         print()
 
         # Save options
-        save_config_ask = self._prompt_yes_no(
-            "Сохранить конфигурацию?",
-            default=True
-        )
+        save_config_ask = self._prompt_yes_no("Сохранить конфигурацию?", default=True)
 
         if save_config_ask:
             default_filename = f"config/service_{self.service.basic_info.service_name.replace(' ', '_')}.yaml"
-            filename = self._prompt(
-                "Имя файла",
-                default=default_filename
-            )
+            filename = self._prompt("Имя файла", default=default_filename)
 
             try:
                 save_config(self.service.to_dict(), filename)
@@ -416,10 +367,7 @@ class InteractiveEditor:
 
         # Generate document
         print()
-        generate_doc = self._prompt_yes_no(
-            "Сгенерировать документ сейчас?",
-            default=True
-        )
+        generate_doc = self._prompt_yes_no("Сгенерировать документ сейчас?", default=True)
 
         if generate_doc:
             self._generate_document()
@@ -429,17 +377,10 @@ class InteractiveEditor:
         print()
         print(info("Генерация документа..."))
 
-        format_choice = self._prompt_choice(
-            "Формат выходного файла",
-            ["txt", "html", "md"],
-            default="html"
-        )
+        format_choice = self._prompt_choice("Формат выходного файла", ["txt", "html", "md"], default="html")
 
         default_filename = f"data/exports/{self.service.basic_info.service_name.replace(' ', '_')}.{format_choice}"
-        filename = self._prompt(
-            "Имя файла",
-            default=default_filename
-        )
+        filename = self._prompt("Имя файла", default=default_filename)
 
         try:
             # Generate
@@ -461,12 +402,7 @@ class InteractiveEditor:
             print(error(f"Ошибка при генерации: {e}"))
 
     def _prompt(
-        self,
-        field_name: str,
-        hint: str = "",
-        default: str = "",
-        required: bool = False,
-        validator=None
+        self, field_name: str, hint: str = "", default: str = "", required: bool = False, validator=None
     ) -> str:
         """
         Prompt for text input
@@ -513,7 +449,7 @@ class InteractiveEditor:
         default: float = None,
         required: bool = False,
         min_value: float = None,
-        max_value: float = None
+        max_value: float = None,
     ) -> float:
         """Prompt for number input"""
         while True:
@@ -549,15 +485,9 @@ class InteractiveEditor:
         if not response:
             return default
 
-        return response in ['y', 'yes', 'да', 'д']
+        return response in ["y", "yes", "да", "д"]
 
-    def _prompt_choice(
-        self,
-        field_name: str,
-        choices: List[str],
-        default: str = None,
-        required: bool = False
-    ) -> str:
+    def _prompt_choice(self, field_name: str, choices: List[str], default: str = None, required: bool = False) -> str:
         """Prompt for choice from list"""
         while True:
             value = self._prompt(field_name, "", default or "", required)
@@ -571,8 +501,7 @@ class InteractiveEditor:
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
-        description="Интерактивный редактор шаблонов",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Интерактивный редактор шаблонов", formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
     args = parser.parse_args()

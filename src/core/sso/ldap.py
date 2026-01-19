@@ -4,15 +4,16 @@ LDAP / Active Directory Authentication
 Provides LDAP and Active Directory authentication integration.
 """
 
-from typing import Optional, Dict, Any, List, Set
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime
 import re
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 
 class LDAPAuthMethod(str, Enum):
     """LDAP authentication methods"""
+
     SIMPLE = "simple"
     SASL = "sasl"
     ANONYMOUS = "anonymous"
@@ -20,6 +21,7 @@ class LDAPAuthMethod(str, Enum):
 
 class LDAPScope(str, Enum):
     """LDAP search scope"""
+
     BASE = "base"
     ONE_LEVEL = "onelevel"
     SUBTREE = "subtree"
@@ -28,6 +30,7 @@ class LDAPScope(str, Enum):
 @dataclass
 class LDAPConfig:
     """LDAP connection configuration"""
+
     host: str
     port: int = 389
     use_ssl: bool = False
@@ -44,6 +47,7 @@ class LDAPConfig:
 @dataclass
 class ADConfig(LDAPConfig):
     """Active Directory specific configuration"""
+
     domain: str = ""
     use_paging: bool = True
     page_size: int = 1000
@@ -53,6 +57,7 @@ class ADConfig(LDAPConfig):
 @dataclass
 class UserMapping:
     """User attribute mapping configuration"""
+
     username_attr: str = "uid"
     email_attr: str = "mail"
     first_name_attr: str = "givenName"
@@ -66,6 +71,7 @@ class UserMapping:
 @dataclass
 class GroupMapping:
     """Group attribute mapping configuration"""
+
     name_attr: str = "cn"
     member_attr: str = "member"
     object_class: str = "groupOfNames"
@@ -75,6 +81,7 @@ class GroupMapping:
 @dataclass
 class LDAPUser:
     """LDAP user object"""
+
     dn: str
     username: str
     email: Optional[str] = None
@@ -89,6 +96,7 @@ class LDAPUser:
 @dataclass
 class LDAPGroup:
     """LDAP group object"""
+
     dn: str
     name: str
     members: List[str] = field(default_factory=list)
@@ -156,7 +164,7 @@ class LDAPConnection:
         search_base: str,
         search_filter: str,
         attributes: Optional[List[str]] = None,
-        scope: LDAPScope = LDAPScope.SUBTREE
+        scope: LDAPScope = LDAPScope.SUBTREE,
     ) -> List[Dict[str, Any]]:
         """
         Search LDAP directory
@@ -196,7 +204,7 @@ class LDAPAuthenticator:
         self,
         config: LDAPConfig,
         user_mapping: Optional[UserMapping] = None,
-        group_mapping: Optional[GroupMapping] = None
+        group_mapping: Optional[GroupMapping] = None,
     ):
         self.config = config
         self.user_mapping = user_mapping or UserMapping()
@@ -246,7 +254,7 @@ class LDAPAuthenticator:
                 use_ssl=self.config.use_ssl,
                 use_tls=self.config.use_tls,
                 bind_dn=user_dn,
-                bind_password=password
+                bind_password=password,
             )
 
             temp_conn = LDAPConnection(temp_config)
@@ -269,10 +277,7 @@ class LDAPAuthenticator:
             search_filter = f"(&{self.user_mapping.user_filter}({self.user_mapping.username_attr}={username}))"
 
             results = conn.search(
-                search_base=self.config.base_dn,
-                search_filter=search_filter,
-                attributes=["dn"],
-                scope=LDAPScope.SUBTREE
+                search_base=self.config.base_dn, search_filter=search_filter, attributes=["dn"], scope=LDAPScope.SUBTREE
             )
 
             if results:
@@ -314,7 +319,7 @@ class LDAPAuthenticator:
                 search_base=self.config.base_dn,
                 search_filter=search_filter,
                 attributes=attributes,
-                scope=LDAPScope.SUBTREE
+                scope=LDAPScope.SUBTREE,
             )
 
             if not results:
@@ -330,17 +335,13 @@ class LDAPAuthenticator:
                 last_name=entry.get(self.user_mapping.last_name_attr),
                 display_name=entry.get(self.user_mapping.display_name_attr),
                 groups=entry.get(self.user_mapping.group_attr, []),
-                attributes=entry
+                attributes=entry,
             )
 
         finally:
             self.return_connection(conn)
 
-    def search_users(
-        self,
-        search_filter: Optional[str] = None,
-        max_results: int = 100
-    ) -> List[LDAPUser]:
+    def search_users(self, search_filter: Optional[str] = None, max_results: int = 100) -> List[LDAPUser]:
         """
         Search for users in LDAP
 
@@ -374,7 +375,7 @@ class LDAPAuthenticator:
                 search_base=self.config.base_dn,
                 search_filter=combined_filter,
                 attributes=attributes,
-                scope=LDAPScope.SUBTREE
+                scope=LDAPScope.SUBTREE,
             )
 
             users = []
@@ -387,7 +388,7 @@ class LDAPAuthenticator:
                     last_name=entry.get(self.user_mapping.last_name_attr),
                     display_name=entry.get(self.user_mapping.display_name_attr),
                     groups=entry.get(self.user_mapping.group_attr, []),
-                    attributes=entry
+                    attributes=entry,
                 )
                 users.append(user)
 
@@ -422,7 +423,7 @@ class LDAPAuthenticator:
                 search_base=self.config.base_dn,
                 search_filter=search_filter,
                 attributes=attributes,
-                scope=LDAPScope.SUBTREE
+                scope=LDAPScope.SUBTREE,
             )
 
             if not results:
@@ -434,7 +435,7 @@ class LDAPAuthenticator:
                 dn=entry.get("dn", ""),
                 name=entry.get(self.group_mapping.name_attr, group_name),
                 members=entry.get(self.group_mapping.member_attr, []),
-                attributes=entry
+                attributes=entry,
             )
 
         finally:
@@ -458,7 +459,7 @@ class LDAPAuthenticator:
         group_names = []
         for group_dn in user.groups:
             # Parse CN from DN (e.g., "CN=Admin,OU=Groups,DC=example,DC=com" -> "Admin")
-            match = re.search(r'CN=([^,]+)', group_dn)
+            match = re.search(r"CN=([^,]+)", group_dn)
             if match:
                 group_names.append(match.group(1))
 
@@ -483,10 +484,7 @@ class ActiveDirectoryAuthenticator(LDAPAuthenticator):
     """Active Directory specific authenticator"""
 
     def __init__(
-        self,
-        config: ADConfig,
-        user_mapping: Optional[UserMapping] = None,
-        group_mapping: Optional[GroupMapping] = None
+        self, config: ADConfig, user_mapping: Optional[UserMapping] = None, group_mapping: Optional[GroupMapping] = None
     ):
         # AD specific defaults
         if user_mapping is None:
@@ -498,15 +496,12 @@ class ActiveDirectoryAuthenticator(LDAPAuthenticator):
                 display_name_attr="displayName",
                 group_attr="memberOf",
                 object_class="user",
-                user_filter="(&(objectClass=user)(objectCategory=person))"
+                user_filter="(&(objectClass=user)(objectCategory=person))",
             )
 
         if group_mapping is None:
             group_mapping = GroupMapping(
-                name_attr="cn",
-                member_attr="member",
-                object_class="group",
-                group_filter="(objectClass=group)"
+                name_attr="cn", member_attr="member", object_class="group", group_filter="(objectClass=group)"
             )
 
         super().__init__(config, user_mapping, group_mapping)
@@ -519,7 +514,7 @@ class ActiveDirectoryAuthenticator(LDAPAuthenticator):
         Supports both username and username@domain formats
         """
         # If domain is configured and username doesn't contain @, add domain
-        if self.ad_config.domain and '@' not in username:
+        if self.ad_config.domain and "@" not in username:
             username_with_domain = f"{username}@{self.ad_config.domain}"
         else:
             username_with_domain = username
@@ -555,7 +550,7 @@ _ldap_authenticator: Optional[LDAPAuthenticator] = None
 
 def get_ldap_authenticator() -> LDAPAuthenticator:
     """Get global LDAP authenticator instance"""
-    global _ldap_authenticator
+    global _ldap_authenticator  # noqa: F824
     if _ldap_authenticator is None:
         raise ValueError("LDAP authenticator not configured. Call configure_ldap_authenticator first.")
     return _ldap_authenticator
@@ -565,7 +560,7 @@ def configure_ldap_authenticator(
     config: LDAPConfig,
     user_mapping: Optional[UserMapping] = None,
     group_mapping: Optional[GroupMapping] = None,
-    use_ad: bool = False
+    use_ad: bool = False,
 ):
     """
     Configure global LDAP authenticator
@@ -579,14 +574,6 @@ def configure_ldap_authenticator(
     global _ldap_authenticator
 
     if use_ad and isinstance(config, ADConfig):
-        _ldap_authenticator = ActiveDirectoryAuthenticator(
-            config,
-            user_mapping,
-            group_mapping
-        )
+        _ldap_authenticator = ActiveDirectoryAuthenticator(config, user_mapping, group_mapping)
     else:
-        _ldap_authenticator = LDAPAuthenticator(
-            config,
-            user_mapping,
-            group_mapping
-        )
+        _ldap_authenticator = LDAPAuthenticator(config, user_mapping, group_mapping)

@@ -5,21 +5,23 @@ Provides OAuth 2.0 and OpenID Connect authentication flows.
 Supports multiple OAuth providers (Google, Microsoft, GitHub, etc.)
 """
 
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime, timedelta
-import hashlib
-import secrets
 import base64
+import hashlib
 import json
-from urllib.parse import urlencode, parse_qs, urlparse
+import secrets
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional
+from urllib.parse import parse_qs, urlencode, urlparse
+
 import jwt
 import requests
 
 
 class OAuthGrantType(str, Enum):
     """OAuth 2.0 grant types"""
+
     AUTHORIZATION_CODE = "authorization_code"
     REFRESH_TOKEN = "refresh_token"
     CLIENT_CREDENTIALS = "client_credentials"
@@ -28,6 +30,7 @@ class OAuthGrantType(str, Enum):
 
 class OAuthResponseType(str, Enum):
     """OAuth response types"""
+
     CODE = "code"
     TOKEN = "token"
     ID_TOKEN = "id_token"
@@ -35,6 +38,7 @@ class OAuthResponseType(str, Enum):
 
 class OAuthTokenType(str, Enum):
     """Token types"""
+
     BEARER = "Bearer"
     MAC = "MAC"
 
@@ -42,6 +46,7 @@ class OAuthTokenType(str, Enum):
 @dataclass
 class OAuthScope:
     """OAuth scope definition"""
+
     name: str
     description: str
     required: bool = False
@@ -50,6 +55,7 @@ class OAuthScope:
 @dataclass
 class OAuthProvider:
     """OAuth provider configuration"""
+
     name: str
     client_id: str
     client_secret: str
@@ -69,6 +75,7 @@ class OAuthProvider:
 @dataclass
 class OAuthState:
     """OAuth state for CSRF protection"""
+
     state: str
     code_verifier: Optional[str] = None  # For PKCE
     redirect_uri: str = ""
@@ -84,6 +91,7 @@ class OAuthState:
 @dataclass
 class OAuthToken:
     """OAuth access token"""
+
     access_token: str
     token_type: str = "Bearer"
     expires_in: Optional[int] = None
@@ -111,6 +119,7 @@ class OAuthToken:
 @dataclass
 class UserInfo:
     """User information from OAuth provider"""
+
     sub: str  # Subject (user ID)
     email: Optional[str] = None
     email_verified: bool = False
@@ -141,13 +150,10 @@ class OAuthClient:
     def generate_code_challenge(self, verifier: str) -> str:
         """Generate code challenge from verifier (S256 method)"""
         digest = hashlib.sha256(verifier.encode()).digest()
-        return base64.urlsafe_b64encode(digest).decode().rstrip('=')
+        return base64.urlsafe_b64encode(digest).decode().rstrip("=")
 
     def create_authorization_url(
-        self,
-        scopes: Optional[List[str]] = None,
-        state: Optional[str] = None,
-        **extra_params
+        self, scopes: Optional[List[str]] = None, state: Optional[str] = None, **extra_params
     ) -> str:
         """
         Create OAuth authorization URL
@@ -167,11 +173,7 @@ class OAuthClient:
             scopes = self.provider.scopes
 
         # Create OAuth state
-        oauth_state = OAuthState(
-            state=state,
-            redirect_uri=self.redirect_uri,
-            scopes=scopes
-        )
+        oauth_state = OAuthState(state=state, redirect_uri=self.redirect_uri, scopes=scopes)
 
         params = {
             "client_id": self.provider.client_id,
@@ -219,11 +221,7 @@ class OAuthClient:
 
         return True
 
-    def exchange_code_for_token(
-        self,
-        code: str,
-        state: str
-    ) -> OAuthToken:
+    def exchange_code_for_token(self, code: str, state: str) -> OAuthToken:
         """
         Exchange authorization code for access token
 
@@ -258,11 +256,7 @@ class OAuthClient:
             data["code_verifier"] = oauth_state.code_verifier
 
         # Request token
-        response = requests.post(
-            self.provider.token_endpoint,
-            data=data,
-            headers={"Accept": "application/json"}
-        )
+        response = requests.post(self.provider.token_endpoint, data=data, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
             raise ValueError(f"Token exchange failed: {response.text}")
@@ -278,7 +272,7 @@ class OAuthClient:
             expires_in=token_data.get("expires_in"),
             refresh_token=token_data.get("refresh_token"),
             scope=token_data.get("scope"),
-            id_token=token_data.get("id_token")
+            id_token=token_data.get("id_token"),
         )
 
     def refresh_access_token(self, refresh_token: str) -> OAuthToken:
@@ -301,11 +295,7 @@ class OAuthClient:
             "client_secret": self.provider.client_secret,
         }
 
-        response = requests.post(
-            self.provider.token_endpoint,
-            data=data,
-            headers={"Accept": "application/json"}
-        )
+        response = requests.post(self.provider.token_endpoint, data=data, headers={"Accept": "application/json"})
 
         if response.status_code != 200:
             raise ValueError(f"Token refresh failed: {response.text}")
@@ -317,7 +307,7 @@ class OAuthClient:
             token_type=token_data.get("token_type", "Bearer"),
             expires_in=token_data.get("expires_in"),
             refresh_token=token_data.get("refresh_token", refresh_token),
-            scope=token_data.get("scope")
+            scope=token_data.get("scope"),
         )
 
     def get_user_info(self, access_token: str) -> UserInfo:
@@ -338,10 +328,7 @@ class OAuthClient:
 
         response = requests.get(
             self.provider.userinfo_endpoint,
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/json"
-            }
+            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
         )
 
         if response.status_code != 200:
@@ -358,14 +345,10 @@ class OAuthClient:
             family_name=data.get("family_name"),
             picture=data.get("picture"),
             locale=data.get("locale"),
-            raw_data=data
+            raw_data=data,
         )
 
-    def decode_id_token(
-        self,
-        id_token: str,
-        verify_signature: bool = True
-    ) -> Dict[str, Any]:
+    def decode_id_token(self, id_token: str, verify_signature: bool = True) -> Dict[str, Any]:
         """
         Decode and verify OpenID Connect ID token
 
@@ -426,10 +409,7 @@ class OAuthClient:
             "client_secret": self.provider.client_secret,
         }
 
-        response = requests.post(
-            self.provider.revocation_endpoint,
-            data=data
-        )
+        response = requests.post(self.provider.revocation_endpoint, data=data)
 
         return response.status_code == 200
 
@@ -446,7 +426,7 @@ GOOGLE_PROVIDER = OAuthProvider(
     jwks_uri="https://www.googleapis.com/oauth2/v3/certs",
     issuer="https://accounts.google.com",
     scopes=["openid", "email", "profile"],
-    use_pkce=True
+    use_pkce=True,
 )
 
 MICROSOFT_PROVIDER = OAuthProvider(
@@ -459,7 +439,7 @@ MICROSOFT_PROVIDER = OAuthProvider(
     jwks_uri="https://login.microsoftonline.com/common/discovery/v2.0/keys",
     issuer="https://login.microsoftonline.com",
     scopes=["openid", "email", "profile"],
-    use_pkce=True
+    use_pkce=True,
 )
 
 GITHUB_PROVIDER = OAuthProvider(
@@ -470,7 +450,7 @@ GITHUB_PROVIDER = OAuthProvider(
     token_endpoint="https://github.com/login/oauth/access_token",
     userinfo_endpoint="https://api.github.com/user",
     scopes=["read:user", "user:email"],
-    use_pkce=False  # GitHub doesn't support PKCE yet
+    use_pkce=False,  # GitHub doesn't support PKCE yet
 )
 
 
@@ -493,11 +473,7 @@ class OAuthManager:
         """List all active providers"""
         return [p for p in self.providers.values() if p.active]
 
-    def create_client(
-        self,
-        provider_name: str,
-        redirect_uri: str
-    ) -> OAuthClient:
+    def create_client(self, provider_name: str, redirect_uri: str) -> OAuthClient:
         """
         Create OAuth client for provider
 

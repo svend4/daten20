@@ -57,44 +57,186 @@ Version: 1.0.0
 
 import argparse
 import json
+import logging
 import os
 import uuid
-from pathlib import Path
-from typing import Dict, Any, List, Optional
 from datetime import datetime
-import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 try:
-    from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, BackgroundTasks, Header
-    from fastapi.responses import JSONResponse, FileResponse
-    from fastapi.middleware.cors import CORSMiddleware
-    from pydantic import BaseModel, Field
     import uvicorn
+    from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, UploadFile
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import FileResponse, JSONResponse
+    from pydantic import BaseModel, Field
+
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
     print("WARNING: FastAPI not installed. Install with: pip install fastapi uvicorn[standard] python-multipart")
 
-# Import our modules
-from src.core.parser import DocumentParser
 from src.core.database import DocumentDatabase
 from src.core.logging_config import setup_logging
-from src.ml.ner import NEREngine, EntityType
-from src.ml.classifier import TfidfSVMClassifier, DocumentCategory
+
+# Import our modules
+from src.core.parser import DocumentParser
+from src.ml.classifier import DocumentCategory, TfidfSVMClassifier
+from src.ml.knowledge_graph import GraphFormat, KnowledgeGraphBuilder
+from src.ml.ner import EntityType, NEREngine
 from src.ml.relation_extractor import RelationExtractor, RelationType
-from src.ml.knowledge_graph import KnowledgeGraphBuilder, GraphFormat
+
+# Import rate limiting
+from src.core.rate_limiter import (
+    FastAPIRateLimitMiddleware,
+    RateLimiter,
+    RateLimitTier,
+    RedisRateLimiter,
+    create_rate_limit_dependency,
+)
 
 # Setup logging
 logger = setup_logging(__name__, log_level="INFO")
 
+# OpenAPI metadata
+if FASTAPI_AVAILABLE:
+    tags_metadata = [
+        {
+            "name": "Root",
+            "description": "Root endpoints for API information and navigation",
+        },
+        {
+            "name": "System",
+            "description": "System health checks and statistics",
+        },
+        {
+            "name": "Documents",
+            "description": "Document upload, retrieval, and management operations",
+        },
+        {
+            "name": "Extraction",
+            "description": "Entity and relation extraction from text using NLP",
+        },
+        {
+            "name": "Classification",
+            "description": "Document classification and categorization",
+        },
+        {
+            "name": "Knowledge Graph",
+            "description": "Knowledge graph construction and visualization",
+        },
+        {
+            "name": "Batch",
+            "description": "Batch processing operations for multiple documents",
+        },
+    ]
+
+    api_description = """
+# Document Intelligence API
+
+**AI-powered document analysis and processing platform**
+
+## Features
+
+This API provides comprehensive document intelligence capabilities:
+
+### 🔍 **Entity Extraction**
+- Named Entity Recognition (NER) with spaCy
+- Support for PERSON, ORG, LOCATION, DATE, and more
+- Confidence scores for each entity
+- Custom entity types support
+
+### 🔗 **Relation Extraction**
+- Extract relationships between entities
+- Multiple relation types (WORKS_FOR, LOCATED_IN, etc.)
+- Graph-based relationship modeling
+
+### 📊 **Document Classification**
+- Multi-category classification
+- TF-IDF + SVM classifier
+- Confidence scores and probability distributions
+- Support for custom categories
+
+### 🕸️ **Knowledge Graphs**
+- Automatic knowledge graph construction
+- Multiple export formats (GraphML, JSON, DOT)
+- Visualization-ready outputs
+
+### ⚡ **Batch Processing**
+- Process multiple documents asynchronously
+- Job status tracking
+- Background task execution
+
+## Rate Limiting
+
+API requests are rate-limited based on your tier:
+- **FREE:** 100 requests/minute
+- **BASIC:** 500 requests/minute
+- **PREMIUM:** 2,000 requests/minute
+- **ENTERPRISE:** 10,000 requests/minute
+
+Rate limit information is included in response headers:
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Remaining requests in window
+- `X-RateLimit-Reset`: Time when limit resets (Unix timestamp)
+
+## Authentication
+
+API key authentication can be enabled in production mode.
+Include your API key in the request header:
+
+```
+X-API-Key: your_api_key_here
+```
+
+## Getting Started
+
+1. Upload a document via `/api/v1/documents`
+2. Extract entities with `/api/v1/extract/entities`
+3. Classify the document with `/api/v1/classify`
+4. Build a knowledge graph with `/api/v1/graph/build`
+
+For detailed examples, see the endpoint documentation below.
+    """
+
+    # Security schemes for OpenAPI
+    from fastapi.security import APIKeyHeader
+
+    api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
 # FastAPI app setup
-app = FastAPI(
-    title="Document Intelligence API",
-    description="AI-powered document analysis and processing API",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-) if FASTAPI_AVAILABLE else None
+app = (
+    FastAPI(
+        title="Document Intelligence API",
+        description=api_description,
+        version="1.0.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_tags=tags_metadata,
+        contact={
+            "name": "Document Management System Team",
+            "url": "https://github.com/yourusername/daten20",
+            "email": "support@docmanagement.example.com",
+        },
+        license_info={
+            "name": "MIT License",
+            "url": "https://opensource.org/licenses/MIT",
+        },
+        terms_of_service="https://example.com/terms/",
+        servers=[
+            {
+                "url": "http://localhost:8000",
+                "description": "Local development server"
+            },
+            {
+                "url": "https://api.example.com",
+                "description": "Production server"
+            }
+        ]
+    )
+    if FASTAPI_AVAILABLE
+    else None
+)
 
 if app:
     # CORS middleware
@@ -106,69 +248,241 @@ if app:
         allow_headers=["*"],
     )
 
+    # Rate limiting middleware
+    # Use FREE tier by default (100 req/min)
+    # Can be configured via environment variable or CLI args
+    rate_limit_tier = os.getenv("RATE_LIMIT_TIER", "FREE")
+    use_redis = os.getenv("USE_REDIS_RATE_LIMIT", "false").lower() == "true"
+
+    api_rate_limiter = RateLimitTier.get_limiter(rate_limit_tier, use_redis=use_redis)
+    logger.info(f"Rate limiting enabled: {rate_limit_tier} tier ({api_rate_limiter.requests} req/{api_rate_limiter.window}s)")
+
+    # Add rate limiting middleware
+    app.add_middleware(FastAPIRateLimitMiddleware, limiter=api_rate_limiter)
+
 
 # Pydantic models for request/response validation
 if FASTAPI_AVAILABLE:
+
     class TextInput(BaseModel):
         """Text input for extraction endpoints."""
-        text: str = Field(..., description="Input text to process")
-        options: Optional[Dict[str, Any]] = Field(default={}, description="Processing options")
+
+        text: str = Field(
+            ...,
+            description="Input text to process",
+            min_length=1,
+            max_length=1000000,
+            example="Apple Inc. was founded by Steve Jobs in Cupertino, California."
+        )
+        options: Optional[Dict[str, Any]] = Field(
+            default={},
+            description="Processing options (e.g., entity_types, min_confidence)",
+            example={"entity_types": ["PERSON", "ORG"], "min_confidence": 0.7}
+        )
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "text": "Apple Inc. was founded by Steve Jobs in Cupertino, California.",
+                    "options": {"entity_types": ["PERSON", "ORG", "GPE"]}
+                }
+            }
 
     class EntityResponse(BaseModel):
         """Entity extraction response."""
-        text: str
-        type: str
-        start: int
-        end: int
-        confidence: float
+
+        text: str = Field(..., description="The extracted entity text", example="Apple Inc.")
+        type: str = Field(..., description="Entity type (PERSON, ORG, GPE, etc.)", example="ORG")
+        start: int = Field(..., description="Start character position in text", example=0, ge=0)
+        end: int = Field(..., description="End character position in text", example=10, ge=0)
+        confidence: float = Field(..., description="Confidence score (0.0-1.0)", example=0.95, ge=0.0, le=1.0)
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "text": "Apple Inc.",
+                    "type": "ORG",
+                    "start": 0,
+                    "end": 10,
+                    "confidence": 0.95
+                }
+            }
 
     class RelationResponse(BaseModel):
         """Relation extraction response."""
-        source: str
-        source_type: str
-        relation: str
-        target: str
-        target_type: str
-        confidence: float
+
+        source: str = Field(..., description="Source entity text", example="Steve Jobs")
+        source_type: str = Field(..., description="Source entity type", example="PERSON")
+        relation: str = Field(..., description="Relation type", example="FOUNDED")
+        target: str = Field(..., description="Target entity text", example="Apple Inc.")
+        target_type: str = Field(..., description="Target entity type", example="ORG")
+        confidence: float = Field(..., description="Confidence score (0.0-1.0)", example=0.89, ge=0.0, le=1.0)
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "source": "Steve Jobs",
+                    "source_type": "PERSON",
+                    "relation": "FOUNDED",
+                    "target": "Apple Inc.",
+                    "target_type": "ORG",
+                    "confidence": 0.89
+                }
+            }
 
     class ClassificationResponse(BaseModel):
         """Document classification response."""
-        category: str
-        confidence: float
-        probabilities: Optional[Dict[str, float]] = None
+
+        category: str = Field(..., description="Predicted category", example="TECHNOLOGY")
+        confidence: float = Field(..., description="Confidence score (0.0-1.0)", example=0.92, ge=0.0, le=1.0)
+        probabilities: Optional[Dict[str, float]] = Field(
+            None,
+            description="Probability distribution for all categories",
+            example={
+                "TECHNOLOGY": 0.92,
+                "BUSINESS": 0.05,
+                "SCIENCE": 0.02,
+                "OTHER": 0.01
+            }
+        )
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "category": "TECHNOLOGY",
+                    "confidence": 0.92,
+                    "probabilities": {
+                        "TECHNOLOGY": 0.92,
+                        "BUSINESS": 0.05,
+                        "SCIENCE": 0.02
+                    }
+                }
+            }
 
     class DocumentResponse(BaseModel):
         """Document processing response."""
-        document_id: str
-        filename: str
-        processed_at: str
-        statistics: Dict[str, Any]
+
+        document_id: str = Field(..., description="Unique document identifier", example="doc_abc123")
+        filename: str = Field(..., description="Original filename", example="annual_report.pdf")
+        processed_at: str = Field(..., description="Processing timestamp (ISO 8601)", example="2026-01-18T12:00:00Z")
+        statistics: Dict[str, Any] = Field(
+            ...,
+            description="Document statistics",
+            example={
+                "word_count": 1250,
+                "char_count": 7890,
+                "sentences": 45,
+                "paragraphs": 12
+            }
+        )
         classification: ClassificationResponse
-        entities: List[EntityResponse]
-        relations: List[RelationResponse]
-        knowledge_graph: Optional[Dict[str, Any]] = None
+        entities: List[EntityResponse] = Field(..., description="Extracted entities")
+        relations: List[RelationResponse] = Field(..., description="Extracted relations")
+        knowledge_graph: Optional[Dict[str, Any]] = Field(
+            None,
+            description="Knowledge graph representation",
+            example={"nodes": 15, "edges": 23, "format": "graphml"}
+        )
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "document_id": "doc_abc123",
+                    "filename": "annual_report.pdf",
+                    "processed_at": "2026-01-18T12:00:00Z",
+                    "statistics": {
+                        "word_count": 1250,
+                        "char_count": 7890,
+                        "sentences": 45
+                    },
+                    "classification": {
+                        "category": "TECHNOLOGY",
+                        "confidence": 0.92
+                    },
+                    "entities": [
+                        {
+                            "text": "Apple Inc.",
+                            "type": "ORG",
+                            "start": 0,
+                            "end": 10,
+                            "confidence": 0.95
+                        }
+                    ],
+                    "relations": [
+                        {
+                            "source": "Steve Jobs",
+                            "source_type": "PERSON",
+                            "relation": "FOUNDED",
+                            "target": "Apple Inc.",
+                            "target_type": "ORG",
+                            "confidence": 0.89
+                        }
+                    ]
+                }
+            }
 
     class BatchJobResponse(BaseModel):
         """Batch job response."""
-        job_id: str
-        status: str
-        total_documents: int
-        processed: int
-        failed: int
-        created_at: str
-        updated_at: str
+
+        job_id: str = Field(..., description="Unique job identifier", example="job_xyz789")
+        status: str = Field(..., description="Job status", example="processing", pattern="^(pending|processing|completed|failed)$")
+        total_documents: int = Field(..., description="Total documents in batch", example=100, ge=0)
+        processed: int = Field(..., description="Number of processed documents", example=45, ge=0)
+        failed: int = Field(..., description="Number of failed documents", example=2, ge=0)
+        created_at: str = Field(..., description="Job creation timestamp", example="2026-01-18T12:00:00Z")
+        updated_at: str = Field(..., description="Last update timestamp", example="2026-01-18T12:05:30Z")
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "job_id": "job_xyz789",
+                    "status": "processing",
+                    "total_documents": 100,
+                    "processed": 45,
+                    "failed": 2,
+                    "created_at": "2026-01-18T12:00:00Z",
+                    "updated_at": "2026-01-18T12:05:30Z"
+                }
+            }
 
     class HealthResponse(BaseModel):
         """Health check response."""
-        status: str
-        version: str
-        uptime: float
-        components: Dict[str, str]
+
+        status: str = Field(..., description="Overall health status", example="healthy", pattern="^(healthy|degraded|unhealthy)$")
+        version: str = Field(..., description="API version", example="1.0.0")
+        uptime: float = Field(..., description="Uptime in seconds", example=3600.5, ge=0.0)
+        components: Dict[str, str] = Field(
+            ...,
+            description="Component health status",
+            example={
+                "parser": "operational",
+                "ner": "operational",
+                "classifier": "operational",
+                "database": "operational"
+            }
+        )
+
+        class Config:
+            schema_extra = {
+                "example": {
+                    "status": "healthy",
+                    "version": "1.0.0",
+                    "uptime": 3600.5,
+                    "components": {
+                        "parser": "operational",
+                        "ner": "operational",
+                        "classifier": "operational",
+                        "relation_extractor": "operational",
+                        "knowledge_graph": "operational"
+                    }
+                }
+            }
 
 
 # Global components
 class APIComponents:
     """Global API components."""
+
     def __init__(self):
         self.parser = DocumentParser()
         self.database = DocumentDatabase("data/api_documents.db")
@@ -181,12 +495,7 @@ class APIComponents:
         self.batch_jobs: Dict[str, Dict] = {}
 
         # Statistics
-        self.stats = {
-            "total_requests": 0,
-            "documents_processed": 0,
-            "entities_extracted": 0,
-            "relations_extracted": 0
-        }
+        self.stats = {"total_requests": 0, "documents_processed": 0, "entities_extracted": 0, "relations_extracted": 0}
 
         # Create upload directory
         os.makedirs("data/api_uploads", exist_ok=True)
@@ -205,6 +514,7 @@ components = APIComponents() if FASTAPI_AVAILABLE else None
 
 # API Routes
 if FASTAPI_AVAILABLE:
+
     @app.get("/", tags=["Root"])
     async def root():
         """API root endpoint."""
@@ -215,7 +525,7 @@ if FASTAPI_AVAILABLE:
             "redoc": "/redoc",
             "openapi_spec": "/openapi.json",
             "unified_docs": "http://localhost:5000/api/docs",
-            "health": "/api/v1/health"
+            "health": "/api/v1/health",
         }
 
     @app.get("/api/v1/health", response_model=HealthResponse, tags=["System"])
@@ -230,8 +540,8 @@ if FASTAPI_AVAILABLE:
                 "ner": "operational",
                 "classifier": "operational",
                 "relation_extractor": "operational",
-                "knowledge_graph": "operational"
-            }
+                "knowledge_graph": "operational",
+            },
         }
 
     @app.get("/api/v1/stats", tags=["System"])
@@ -241,9 +551,7 @@ if FASTAPI_AVAILABLE:
 
     @app.post("/api/v1/documents", response_model=DocumentResponse, tags=["Documents"])
     async def upload_document(
-        file: UploadFile = File(...),
-        build_graph: bool = False,
-        x_api_key: Optional[str] = Header(None)
+        file: UploadFile = File(...), build_graph: bool = False, x_api_key: Optional[str] = Header(None)
     ):
         """
         Upload and process a document.
@@ -299,20 +607,14 @@ if FASTAPI_AVAILABLE:
                 "text_length": len(text),
                 "word_count": len(text.split()),
                 "entity_count": len(entities),
-                "relation_count": len(relations)
+                "relation_count": len(relations),
             },
             "classification": {
-                "category": classification.category.value if hasattr(classification, 'category') else "UNKNOWN",
-                "confidence": getattr(classification, 'confidence', 0.0)
+                "category": classification.category.value if hasattr(classification, "category") else "UNKNOWN",
+                "confidence": getattr(classification, "confidence", 0.0),
             },
             "entities": [
-                {
-                    "text": e.text,
-                    "type": e.type.value,
-                    "start": e.start,
-                    "end": e.end,
-                    "confidence": e.confidence
-                }
+                {"text": e.text, "type": e.type.value, "start": e.start, "end": e.end, "confidence": e.confidence}
                 for e in entities
             ],
             "relations": [
@@ -322,11 +624,11 @@ if FASTAPI_AVAILABLE:
                     "relation": r.relation_type.value,
                     "target": r.target_entity,
                     "target_type": r.target_type.value,
-                    "confidence": r.confidence
+                    "confidence": r.confidence,
                 }
                 for r in relations
             ],
-            "knowledge_graph": knowledge_graph
+            "knowledge_graph": knowledge_graph,
         }
 
         components.stats["documents_processed"] += 1
@@ -334,10 +636,7 @@ if FASTAPI_AVAILABLE:
         return response
 
     @app.post("/api/v1/extract/entities", response_model=List[EntityResponse], tags=["Extraction"])
-    async def extract_entities(
-        input_data: TextInput,
-        entity_types: Optional[str] = None
-    ):
+    async def extract_entities(input_data: TextInput, entity_types: Optional[str] = None):
         """
         Extract named entities from text.
 
@@ -364,13 +663,7 @@ if FASTAPI_AVAILABLE:
         components.stats["entities_extracted"] += len(entities)
 
         return [
-            {
-                "text": e.text,
-                "type": e.type.value,
-                "start": e.start,
-                "end": e.end,
-                "confidence": e.confidence
-            }
+            {"text": e.text, "type": e.type.value, "start": e.start, "end": e.end, "confidence": e.confidence}
             for e in entities
         ]
 
@@ -397,7 +690,7 @@ if FASTAPI_AVAILABLE:
                 "relation": r.relation_type.value,
                 "target": r.target_entity,
                 "target_type": r.target_type.value,
-                "confidence": r.confidence
+                "confidence": r.confidence,
             }
             for r in relations
         ]
@@ -418,16 +711,13 @@ if FASTAPI_AVAILABLE:
         classification = components.classifier.predict(input_data.text)
 
         return {
-            "category": classification.category.value if hasattr(classification, 'category') else "UNKNOWN",
-            "confidence": getattr(classification, 'confidence', 0.0),
-            "probabilities": getattr(classification, 'probabilities', None)
+            "category": classification.category.value if hasattr(classification, "category") else "UNKNOWN",
+            "confidence": getattr(classification, "confidence", 0.0),
+            "probabilities": getattr(classification, "probabilities", None),
         }
 
     @app.post("/api/v1/graph/build", tags=["Knowledge Graph"])
-    async def build_knowledge_graph(
-        input_data: TextInput,
-        export_format: str = "json"
-    ):
+    async def build_knowledge_graph(input_data: TextInput, export_format: str = "json"):
         """
         Build knowledge graph from text.
 
@@ -447,7 +737,7 @@ if FASTAPI_AVAILABLE:
             "json": GraphFormat.JSON,
             "cypher": GraphFormat.CYPHER,
             "graphml": GraphFormat.GRAPHML,
-            "adjacency": GraphFormat.ADJACENCY
+            "adjacency": GraphFormat.ADJACENCY,
         }
 
         graph_format = format_map.get(export_format.lower(), GraphFormat.JSON)
@@ -460,10 +750,7 @@ if FASTAPI_AVAILABLE:
             return {"format": export_format, "data": exported}
 
     @app.post("/api/v1/batch/process", response_model=BatchJobResponse, tags=["Batch"])
-    async def batch_process(
-        background_tasks: BackgroundTasks,
-        files: List[UploadFile] = File(...)
-    ):
+    async def batch_process(background_tasks: BackgroundTasks, files: List[UploadFile] = File(...)):
         """
         Submit batch processing job.
 
@@ -485,7 +772,7 @@ if FASTAPI_AVAILABLE:
             "failed": 0,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
-            "results": []
+            "results": [],
         }
 
         components.batch_jobs[job_id] = job
@@ -522,14 +809,37 @@ def main():
     parser.add_argument("--api-key", help="API key for authentication")
     parser.add_argument("--workers", type=int, default=1, help="Number of worker processes")
 
+    # Rate limiting options
+    parser.add_argument(
+        "--rate-limit-tier",
+        choices=["free", "basic", "premium", "enterprise"],
+        default=os.getenv("RATE_LIMIT_TIER", "free").lower(),
+        help="Rate limit tier: free (100/min), basic (500/min), premium (2000/min), enterprise (10000/min)",
+    )
+    parser.add_argument(
+        "--use-redis-rate-limit",
+        action="store_true",
+        default=os.getenv("USE_REDIS_RATE_LIMIT", "false").lower() == "true",
+        help="Use Redis for distributed rate limiting (requires Redis running)",
+    )
+
     args = parser.parse_args()
+
+    # Set environment variables for rate limiting (used in middleware setup)
+    os.environ["RATE_LIMIT_TIER"] = args.rate_limit_tier.upper()
+    os.environ["USE_REDIS_RATE_LIMIT"] = str(args.use_redis_rate_limit).lower()
 
     if not FASTAPI_AVAILABLE:
         print("ERROR: FastAPI is required to run the API server")
         print("Install with: pip install fastapi uvicorn[standard] python-multipart")
         return
 
-    print(f"""
+    # Get rate limit info
+    tier_config = getattr(RateLimitTier, args.rate_limit_tier.upper(), RateLimitTier.FREE)
+    rate_limit_info = f"{tier_config['requests']}/{tier_config['window']}s"
+
+    print(
+        f"""
 ╔════════════════════════════════════════════════════════════════╗
 ║        Document Intelligence API v1.0.0                        ║
 ╠════════════════════════════════════════════════════════════════╣
@@ -538,13 +848,16 @@ def main():
 ║  📊 Entity & relation extraction                               ║
 ║  🕸️  Knowledge graph construction                              ║
 ║  📚 OpenAPI/Swagger documentation                              ║
+║  🛡️  Rate limiting: {args.rate_limit_tier.upper()} ({rate_limit_info}){'  ║' if len(rate_limit_info) <= 20 else ''}
 ╠════════════════════════════════════════════════════════════════╣
 ║  Server: http://{args.host}:{args.port}
 ║  Docs:   http://{args.host}:{args.port}/docs
 ║  Mode:   {'Production' if args.production else 'Development'}
 ║  Auth:   {'Enabled' if args.api_key else 'Disabled'}
+║  Redis:  {'Enabled' if args.use_redis_rate_limit else 'Disabled'}
 ╚════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     # Run uvicorn server
     uvicorn.run(
@@ -552,7 +865,7 @@ def main():
         host=args.host,
         port=args.port,
         workers=args.workers if args.production else 1,
-        reload=not args.production
+        reload=not args.production,
     )
 
 

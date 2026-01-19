@@ -3,10 +3,15 @@
 Service Manager - Менеджер услуг
 
 Управление базой данных услуг: создание, редактирование, поиск, статистика.
+
+Улучшения v1.0.1:
+- Добавлена полноценная пагинация с page/per_page
+- Добавлена мета-информация пагинации
+- Улучшена навигация по результатам
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -14,25 +19,37 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.core.database import Database
+from src.core.pagination import Paginator, PaginatedResult, get_paginator
 from src.models.service import Service
 from src.utils.formatting import (
-    header, section, success, error, warning, info,
-    table, key_value, colored, bold, divider
+    bold,
+    colored,
+    divider,
+    error,
+    header,
+    info,
+    key_value,
+    section,
+    success,
+    table,
+    warning,
 )
 from src.utils.helpers import load_config, truncate_text
 
 
 class ServiceManager:
-    """Service Manager for database operations"""
+    """Service Manager for database operations with pagination support"""
 
-    def __init__(self, db_path: str = "data/services.db"):
+    def __init__(self, db_path: str = "data/services.db", per_page: int = 50):
         """
         Initialize manager
 
         Args:
             db_path: Path to database file
+            per_page: Default items per page for pagination
         """
         self.db = Database(db_path)
+        self.paginator = get_paginator(per_page=per_page)
 
     def add_service(self, config_path: str) -> Optional[int]:
         """
@@ -61,31 +78,73 @@ class ServiceManager:
 
     def list_services(
         self,
+        page: int = 1,
+        per_page: Optional[int] = None,
         region: Optional[str] = None,
-        service_type: Optional[str] = None,
-        limit: int = 50
-    ) -> None:
+        service_type: Optional[str] = None
+    ) -> PaginatedResult[Service]:
         """
-        List all services
+        List all services with pagination
 
         Args:
+            page: Page number (1-indexed)
+            per_page: Items per page (uses default if None)
             region: Filter by region
             service_type: Filter by service type
-            limit: Maximum number of results
+
+        Returns:
+            PaginatedResult with services and pagination info
         """
         print(section("СПИСОК УСЛУГ"))
 
-        services = self.db.list_services(limit=limit, region=region, service_type=service_type)
+        # Get offset and limit for database query
+        offset, limit = self.paginator.get_offset_limit(page, per_page)
+
+        # Get total count for pagination
+        total_count = self.db.count_services(region=region, service_type=service_type)
+
+        # Get services from database
+        services = self.db.list_services(
+            limit=limit,
+            offset=offset,
+            region=region,
+            service_type=service_type
+        )
 
         if not services:
             print(warning("Услуги не найдены"))
-            return
+            return self.paginator.paginate([], page=page, per_page=per_page, total_count=0)
 
-        print(info(f"Найдено услуг: {len(services)}"))
+        # Paginate results
+        result = self.paginator.paginate(
+            services,
+            page=page,
+            per_page=per_page or self.paginator.per_page,
+            total_count=total_count
+        )
+
+        # Display results
+        self._display_service_list(result)
+
+        return result
+
+    def _display_service_list(self, result: PaginatedResult[Service]) -> None:
+        """
+        Display paginated service list
+
+        Args:
+            result: Paginated result to display
+        """
+        pagination = result.pagination
+
+        print(info(
+            f"Страница {pagination.page}/{pagination.total_pages} "
+            f"({pagination.total_items} услуг)"
+        ))
         print()
 
         rows = []
-        for service in services:
+        for service in result.items:
             service_id = service.id or "N/A"
             name = truncate_text(service.basic_info.service_name, 40)
             target_group = truncate_text(service.basic_info.target_group, 30)
@@ -97,6 +156,9 @@ class ServiceManager:
         headers = ["ID", "Название", "Целевая группа", "Регион", "Ставка"]
         print(table(headers, rows))
         print()
+
+        # Show pagination navigation
+        self._show_pagination_info(pagination)
 
     def show_service(self, service_id: int, detailed: bool = False) -> None:
         """
@@ -163,26 +225,59 @@ class ServiceManager:
                     print(f"  v{ver['version']} - {ver['created_at']} - {ver['notes']}")
                 print()
 
-    def search(self, query: str) -> None:
+    def _show_pagination_info(self, pagination) -> None:
         """
-        Search services
+        Show pagination navigation information
+
+        Args:
+            pagination: PaginationInfo object
+        """
+        nav_parts = []
+
+        if pagination.has_prev:
+            nav_parts.append(f"← Предыдущая (стр. {pagination.prev_page})")
+
+        nav_parts.append(f"Страница {pagination.page}/{pagination.total_pages}")
+
+        if pagination.has_next:
+            nav_parts.append(f"Следующая (стр. {pagination.next_page}) →")
+
+        nav_text = " | ".join(nav_parts)
+        print(info(nav_text))
+        print()
+
+    def search(self, query: str, page: int = 1, per_page: Optional[int] = None) -> PaginatedResult[Service]:
+        """
+        Search services with pagination
 
         Args:
             query: Search query
+            page: Page number (1-indexed)
+            per_page: Items per page
+
+        Returns:
+            PaginatedResult with services
         """
         print(section(f"ПОИСК: '{query}'"))
 
-        services = self.db.search_services(query)
+        # Get all matching services
+        all_services = self.db.search_services(query)
 
-        if not services:
+        if not all_services:
             print(warning("Ничего не найдено"))
-            return
+            return self.paginator.paginate([], page=page, per_page=per_page)
 
-        print(success(f"Найдено: {len(services)} услуг"))
+        # Paginate results
+        result = self.paginator.paginate(all_services, page=page, per_page=per_page)
+
+        print(success(
+            f"Найдено: {result.pagination.total_items} услуг "
+            f"(страница {result.pagination.page}/{result.pagination.total_pages})"
+        ))
         print()
 
         rows = []
-        for service in services:
+        for service in result.items:
             service_id = service.id or "N/A"
             name = truncate_text(service.basic_info.service_name, 50)
             target_group = truncate_text(service.basic_info.target_group, 40)
@@ -192,6 +287,11 @@ class ServiceManager:
         headers = ["ID", "Название", "Целевая группа"]
         print(table(headers, rows))
         print()
+
+        # Show pagination navigation
+        self._show_pagination_info(result.pagination)
+
+        return result
 
     def delete_service(self, service_id: int, confirm: bool = True) -> bool:
         """
@@ -214,7 +314,7 @@ class ServiceManager:
             print(warning(f"Удаление услуги: {service.basic_info.service_name}"))
             response = input("Вы уверены? (yes/no): ").strip().lower()
 
-            if response not in ['yes', 'y', 'да', 'д']:
+            if response not in ["yes", "y", "да", "д"]:
                 print(info("Отменено"))
                 return False
 
@@ -231,29 +331,29 @@ class ServiceManager:
 
         stats = self.db.get_statistics()
 
-        print(key_value("Всего услуг", str(stats['total_services'])))
+        print(key_value("Всего услуг", str(stats["total_services"])))
         print(key_value("Средняя ставка брутто", f"{stats['avg_brutto_rate']:.2f} €/ч"))
         print()
 
         # By region
-        if stats['by_region']:
+        if stats["by_region"]:
             print(bold("Услуг по регионам:"))
-            for region, count in sorted(stats['by_region'].items()):
+            for region, count in sorted(stats["by_region"].items()):
                 region_name = region if region else "Не указан"
                 print(key_value(f"  {region_name}", str(count)))
             print()
 
         # By type
-        if stats['by_type']:
+        if stats["by_type"]:
             print(bold("Услуг по типам:"))
             type_names = {
                 "domestic": "Домашние услуги",
                 "social": "Социальные услуги",
                 "medical": "Медицинские услуги",
                 "professional": "Профессиональные услуги",
-                "educational": "Образовательные услуги"
+                "educational": "Образовательные услуги",
             }
-            for stype, count in sorted(stats['by_type'].items()):
+            for stype, count in sorted(stats["by_type"].items()):
                 type_name = type_names.get(stype, stype)
                 print(key_value(f"  {type_name}", str(count)))
             print()
@@ -277,6 +377,7 @@ class ServiceManager:
 
         try:
             from src.utils.helpers import save_config
+
             save_config(service.to_dict(), output_path)
             print(success(f"✓ Конфигурация экспортирована: {output_path}"))
             return True
@@ -288,15 +389,10 @@ class ServiceManager:
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
-        description="Менеджер услуг - управление базой данных",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Менеджер услуг - управление базой данных", formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    parser.add_argument(
-        "--db",
-        default="data/services.db",
-        help="Путь к файлу базы данных"
-    )
+    parser.add_argument("--db", default="data/services.db", help="Путь к файлу базы данных")
 
     subparsers = parser.add_subparsers(dest="command", help="Команда")
 
@@ -308,7 +404,8 @@ def main():
     list_parser = subparsers.add_parser("list", help="Список услуг")
     list_parser.add_argument("--region", help="Фильтр по региону")
     list_parser.add_argument("--type", help="Фильтр по типу")
-    list_parser.add_argument("--limit", type=int, default=50, help="Лимит результатов")
+    list_parser.add_argument("--page", type=int, default=1, help="Номер страницы (по умолчанию: 1)")
+    list_parser.add_argument("--per-page", type=int, help="Результатов на странице (по умолчанию: 50)")
 
     # Show command
     show_parser = subparsers.add_parser("show", help="Показать услугу")
@@ -318,6 +415,8 @@ def main():
     # Search command
     search_parser = subparsers.add_parser("search", help="Поиск услуг")
     search_parser.add_argument("query", help="Поисковый запрос")
+    search_parser.add_argument("--page", type=int, default=1, help="Номер страницы (по умолчанию: 1)")
+    search_parser.add_argument("--per-page", type=int, help="Результатов на странице (по умолчанию: 50)")
 
     # Delete command
     delete_parser = subparsers.add_parser("delete", help="Удалить услугу")
@@ -348,13 +447,18 @@ def main():
         manager.add_service(args.config)
 
     elif args.command == "list":
-        manager.list_services(region=args.region, service_type=args.type, limit=args.limit)
+        manager.list_services(
+            page=args.page,
+            per_page=getattr(args, 'per_page', None),
+            region=args.region,
+            service_type=args.type
+        )
 
     elif args.command == "show":
         manager.show_service(args.id, args.detailed)
 
     elif args.command == "search":
-        manager.search(args.query)
+        manager.search(args.query, page=args.page, per_page=getattr(args, 'per_page', None))
 
     elif args.command == "delete":
         manager.delete_service(args.id, confirm=not args.force)

@@ -10,14 +10,15 @@ Extracts entities from text:
 - Custom entities
 """
 
-from typing import Optional, List, Dict, Any
+import re
 from dataclasses import dataclass
 from enum import Enum
-import re
+from typing import Any, Dict, List, Optional
 
 
 class EntityType(str, Enum):
     """Entity types"""
+
     PERSON = "person"
     ORGANIZATION = "organization"
     LOCATION = "location"
@@ -31,6 +32,7 @@ class EntityType(str, Enum):
 @dataclass
 class Entity:
     """Named entity"""
+
     text: str
     type: EntityType
     start: int
@@ -43,11 +45,11 @@ class RegexNER:
 
     def __init__(self):
         self.patterns = {
-            EntityType.EMAIL: r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-            EntityType.PHONE: r'\b\+?[\d\s\-\(\)]{10,20}\b',
-            EntityType.MONEY: r'\b\d+[.,]\d{2}\s?(€|EUR|USD|\$)\b',
-            EntityType.DATE: r'\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b',
-            EntityType.IBAN: r'\b[A-Z]{2}\d{2}[\s]?[\d\s]{10,30}\b'
+            EntityType.EMAIL: r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+            EntityType.PHONE: r"\b\+?[\d\s\-\(\)]{10,20}\b",
+            EntityType.MONEY: r"\b\d+[.,]\d{2}\s?(€|EUR|USD|\$)\b",
+            EntityType.DATE: r"\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b",
+            EntityType.IBAN: r"\b[A-Z]{2}\d{2}[\s]?[\d\s]{10,30}\b",
         }
 
     def extract(self, text: str) -> List[Entity]:
@@ -56,12 +58,7 @@ class RegexNER:
 
         for entity_type, pattern in self.patterns.items():
             for match in re.finditer(pattern, text):
-                entities.append(Entity(
-                    text=match.group(),
-                    type=entity_type,
-                    start=match.start(),
-                    end=match.end()
-                ))
+                entities.append(Entity(text=match.group(), type=entity_type, start=match.start(), end=match.end()))
 
         return entities
 
@@ -82,6 +79,7 @@ class SpacyNER:
 
         try:
             import spacy
+
             self.nlp = spacy.load(model_name)
             self.available = True
         except (ImportError, OSError):
@@ -92,17 +90,17 @@ class SpacyNER:
         # Map spaCy entity labels to our EntityType
         self.label_mapping = {
             # German model labels
-            'PER': EntityType.PERSON,
-            'PERSON': EntityType.PERSON,
-            'ORG': EntityType.ORGANIZATION,
-            'LOC': EntityType.LOCATION,
-            'GPE': EntityType.LOCATION,  # Geopolitical entity (city, country, etc.)
+            "PER": EntityType.PERSON,
+            "PERSON": EntityType.PERSON,
+            "ORG": EntityType.ORGANIZATION,
+            "LOC": EntityType.LOCATION,
+            "GPE": EntityType.LOCATION,  # Geopolitical entity (city, country, etc.)
             # English model labels
-            'PERSON': EntityType.PERSON,
-            'ORG': EntityType.ORGANIZATION,
-            'GPE': EntityType.LOCATION,
-            'LOC': EntityType.LOCATION,
-            'FAC': EntityType.LOCATION,  # Facility (buildings, airports, etc.)
+            "PERSON": EntityType.PERSON,
+            "ORG": EntityType.ORGANIZATION,
+            "GPE": EntityType.LOCATION,
+            "LOC": EntityType.LOCATION,
+            "FAC": EntityType.LOCATION,  # Facility (buildings, airports, etc.)
         }
 
     def extract(self, text: str) -> List[Entity]:
@@ -122,13 +120,15 @@ class SpacyNER:
                 entity_type = self.label_mapping.get(ent.label_)
 
                 if entity_type:
-                    entities.append(Entity(
-                        text=ent.text,
-                        type=entity_type,
-                        start=ent.start_char,
-                        end=ent.end_char,
-                        confidence=0.9  # spaCy doesn't provide confidence scores by default
-                    ))
+                    entities.append(
+                        Entity(
+                            text=ent.text,
+                            type=entity_type,
+                            start=ent.start_char,
+                            end=ent.end_char,
+                            confidence=0.9,  # spaCy doesn't provide confidence scores by default
+                        )
+                    )
 
         except Exception:
             # If spaCy processing fails, return empty list

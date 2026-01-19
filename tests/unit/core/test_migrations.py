@@ -2,10 +2,11 @@
 Tests for database migration system.
 """
 
-import pytest
-import tempfile
 import sqlite3
+import tempfile
 from pathlib import Path
+
+import pytest
 
 from src.core.migrations import Migration, MigrationManager, register_all_migrations
 
@@ -13,7 +14,7 @@ from src.core.migrations import Migration, MigrationManager, register_all_migrat
 @pytest.fixture
 def temp_db():
     """Create temporary database."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
     yield db_path
     # Cleanup
@@ -28,6 +29,7 @@ class TestMigration:
 
     def test_migration_creation(self):
         """Test creating migration."""
+
         def up(conn):
             pass
 
@@ -42,6 +44,7 @@ class TestMigration:
 
     def test_migration_without_down(self):
         """Test migration without rollback."""
+
         def up(conn):
             pass
 
@@ -55,14 +58,14 @@ class TestMigration:
         def up(conn):
             cursor = conn.cursor()
             cursor.execute("CREATE TABLE test (id INTEGER)")
-            executed.append('up')
+            executed.append("up")
 
         migration = Migration(1, "Create test table", up)
 
         with sqlite3.connect(temp_db) as conn:
             migration.apply(conn)
 
-        assert 'up' in executed
+        assert "up" in executed
 
         # Verify table created
         with sqlite3.connect(temp_db) as conn:
@@ -72,6 +75,7 @@ class TestMigration:
 
     def test_rollback_migration(self, temp_db):
         """Test rolling back migration."""
+
         def up(conn):
             cursor = conn.cursor()
             cursor.execute("CREATE TABLE test (id INTEGER)")
@@ -94,6 +98,7 @@ class TestMigration:
 
     def test_rollback_without_down_raises_error(self):
         """Test rollback raises error if no down function."""
+
         def up(conn):
             pass
 
@@ -223,8 +228,8 @@ class TestMigrationManager:
 
         history = manager.get_migration_history()
         assert len(history) == 1
-        assert 'execution_time_ms' in history[0]
-        assert history[0]['execution_time_ms'] >= 0
+        assert "execution_time_ms" in history[0]
+        assert history[0]["execution_time_ms"] >= 0
 
     def test_migrate_to_latest(self, temp_db):
         """Test migrating to latest version."""
@@ -252,8 +257,8 @@ class TestMigrationManager:
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = {row[0] for row in cursor.fetchall()}
-            assert 'table1' in tables
-            assert 'table2' in tables
+            assert "table1" in tables
+            assert "table2" in tables
 
     def test_migrate_to_latest_already_up_to_date(self, temp_db):
         """Test migrating when already up to date."""
@@ -309,8 +314,8 @@ class TestMigrationManager:
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = {row[0] for row in cursor.fetchall()}
-            assert 'table1' in tables
-            assert 'table2' not in tables
+            assert "table1" in tables
+            assert "table2" not in tables
 
     def test_get_migration_history(self, temp_db):
         """Test getting migration history."""
@@ -326,10 +331,10 @@ class TestMigrationManager:
 
         history = manager.get_migration_history()
         assert len(history) == 2
-        assert history[0]['version'] == 1
-        assert history[0]['description'] == "First migration"
-        assert history[1]['version'] == 2
-        assert history[1]['description'] == "Second migration"
+        assert history[0]["version"] == 1
+        assert history[0]["description"] == "First migration"
+        assert history[1]["version"] == 2
+        assert history[1]["description"] == "Second migration"
 
     def test_print_status(self, temp_db, capsys):
         """Test printing migration status."""
@@ -374,9 +379,9 @@ class TestRegisteredMigrations:
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = {row[0] for row in cursor.fetchall()}
 
-            assert 'services' in tables
-            assert 'financial_data' in tables
-            assert 'versions' in tables
+            assert "services" in tables
+            assert "financial_data" in tables
+            assert "versions" in tables
 
     def test_migration_2_adds_subscriptions(self, temp_db):
         """Test migration 2 adds subscriptions table."""
@@ -437,5 +442,5 @@ class TestRegisteredMigrations:
         assert manager.get_current_version() == expected_version
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

@@ -18,25 +18,25 @@ Usage:
     python enterprise-admin.py scaling status
 """
 
-import sys
 import argparse
+import sys
 from datetime import datetime
-from typing import Optional
 from decimal import Decimal
+from typing import Optional
 
 # Import enterprise modules
 try:
     from src.enterprise import (
-        get_tenant_manager,
+        BillingCycle,
+        ColorScheme,
+        IsolationStrategy,
+        SubscriptionTier,
         get_billing_engine,
         get_monitoring_engine,
         get_scaling_engine,
-        get_whitelabel_manager,
+        get_tenant_manager,
         get_tenant_portal,
-        IsolationStrategy,
-        SubscriptionTier,
-        BillingCycle,
-        ColorScheme,
+        get_whitelabel_manager,
     )
 except ImportError:
     print("Error: Enterprise modules not found. Please ensure the project is properly set up.")
@@ -70,9 +70,11 @@ class EnterpriseAdmin:
         print("-" * 80)
 
         for tenant in self.tenant_manager.tenants.values():
-            print(f"{tenant.id[:10]:<12} {tenant.name[:24]:<25} "
-                  f"{tenant.tier.value:<15} {tenant.status.value:<12} "
-                  f"{tenant.created_at.strftime('%Y-%m-%d'):<12}")
+            print(
+                f"{tenant.id[:10]:<12} {tenant.name[:24]:<25} "
+                f"{tenant.tier.value:<15} {tenant.status.value:<12} "
+                f"{tenant.created_at.strftime('%Y-%m-%d'):<12}"
+            )
 
         print(f"\nTotal: {len(self.tenant_manager.tenants)} tenants")
 
@@ -83,13 +85,11 @@ class EnterpriseAdmin:
 
         try:
             tier_enum = SubscriptionTier(tier)
-            isolation_enum = IsolationStrategy(f"{isolation}_per_tenant" if isolation != "shared" else "shared_database")
-
-            tenant = self.tenant_manager.create_tenant(
-                name=name,
-                tier=tier_enum,
-                isolation_strategy=isolation_enum
+            isolation_enum = IsolationStrategy(
+                f"{isolation}_per_tenant" if isolation != "shared" else "shared_database"
             )
+
+            tenant = self.tenant_manager.create_tenant(name=name, tier=tier_enum, isolation_strategy=isolation_enum)
 
             print(f"✅ Tenant created successfully!")
             print(f"   ID: {tenant.id}")
@@ -181,18 +181,17 @@ class EnterpriseAdmin:
             cycle = BillingCycle(billing_cycle)
 
             subscription = self.billing_engine.create_subscription(
-                tenant_id=tenant_id,
-                plan_id=plan_id,
-                billing_cycle=cycle,
-                trial=True
+                tenant_id=tenant_id, plan_id=plan_id, billing_cycle=cycle, trial=True
             )
 
             print("✅ Subscription created!")
             print(f"   Plan: {plan_id.upper()}")
             print(f"   Billing: {billing_cycle}")
             print(f"   Status: {subscription.status}")
-            print(f"   Period: {subscription.current_period_start.strftime('%Y-%m-%d')} - "
-                  f"{subscription.current_period_end.strftime('%Y-%m-%d')}")
+            print(
+                f"   Period: {subscription.current_period_start.strftime('%Y-%m-%d')} - "
+                f"{subscription.current_period_end.strftime('%Y-%m-%d')}"
+            )
 
             if subscription.trial_end:
                 print(f"   Trial ends: {subscription.trial_end.strftime('%Y-%m-%d')}")
@@ -206,10 +205,7 @@ class EnterpriseAdmin:
         print(f"\n📄 Generating invoice for tenant {tenant_id[:10]}...")
 
         # Find subscription
-        subscription = next(
-            (s for s in self.billing_engine.subscriptions.values() if s.tenant_id == tenant_id),
-            None
-        )
+        subscription = next((s for s in self.billing_engine.subscriptions.values() if s.tenant_id == tenant_id), None)
 
         if not subscription:
             print("❌ No subscription found for this tenant")
@@ -265,8 +261,7 @@ class EnterpriseAdmin:
 
         for name, check in results.items():
             status_icon = "✅" if check.status.value == "healthy" else "❌"
-            print(f"{status_icon} {name:<20} {check.status.value:<12} "
-                  f"({check.response_time_ms:.1f}ms)")
+            print(f"{status_icon} {name:<20} {check.status.value:<12} " f"({check.response_time_ms:.1f}ms)")
 
         # Overall health
         overall = self.monitoring_engine.health_check_manager.get_overall_health()
@@ -289,7 +284,7 @@ class EnterpriseAdmin:
 
         # Performance summary
         perf = self.monitoring_engine.performance_monitor.get_performance_summary()
-        if perf.get('http_requests'):
+        if perf.get("http_requests"):
             print(f"\nHTTP Requests (last hour):")
             print(f"  Count:          {perf['http_requests'].get('count', 0)}")
             print(f"  Avg:            {perf['http_requests'].get('avg', 0):.1f}ms")
@@ -307,13 +302,8 @@ class EnterpriseAdmin:
             return
 
         for alert in alerts:
-            severity_icons = {
-                'info': 'ℹ️',
-                'warning': '⚠️',
-                'error': '❌',
-                'critical': '🚨'
-            }
-            icon = severity_icons.get(alert.severity.value, '⚠️')
+            severity_icons = {"info": "ℹ️", "warning": "⚠️", "error": "❌", "critical": "🚨"}
+            icon = severity_icons.get(alert.severity.value, "⚠️")
 
             print(f"{icon} [{alert.severity.value.upper()}] {alert.name}")
             print(f"   {alert.message}")
@@ -341,24 +331,23 @@ class EnterpriseAdmin:
             print(f"  Healthy Instances:  {service_info['healthy_instances']}")
             print(f"  Total Requests:     {service_info['total_requests']:,}")
 
-            if service_info['instances']:
+            if service_info["instances"]:
                 print(f"\n  Instances:")
-                for instance in service_info['instances']:
-                    status_icon = "✅" if instance['status'] == 'healthy' else "❌"
-                    print(f"    {status_icon} {instance['id']:<15} "
-                          f"{instance['host']}:{instance['port']:<6} "
-                          f"({instance['active_connections']} conn, "
-                          f"{instance['total_requests']:,} req)")
+                for instance in service_info["instances"]:
+                    status_icon = "✅" if instance["status"] == "healthy" else "❌"
+                    print(
+                        f"    {status_icon} {instance['id']:<15} "
+                        f"{instance['host']}:{instance['port']:<6} "
+                        f"({instance['active_connections']} conn, "
+                        f"{instance['total_requests']:,} req)"
+                    )
 
     def scaling_register_instance(self, service_name: str, instance_id: str, host: str, port: int):
         """Register service instance"""
         print(f"\n📝 Registering instance: {instance_id}")
 
         instance = self.scaling_engine.register_service_instance(
-            service_name=service_name,
-            instance_id=instance_id,
-            host=host,
-            port=port
+            service_name=service_name, instance_id=instance_id, host=host, port=port
         )
 
         print(f"✅ Instance registered!")
@@ -374,11 +363,7 @@ class EnterpriseAdmin:
         """Setup white-label configuration"""
         print(f"\n🎨 Setting up white-label for: {company_name}")
 
-        config = self.whitelabel_manager.create_config(
-            tenant_id=tenant_id,
-            company_name=company_name,
-            domain=domain
-        )
+        config = self.whitelabel_manager.create_config(tenant_id=tenant_id, company_name=company_name, domain=domain)
 
         print("✅ White-label configuration created!")
         print(f"   Company: {company_name}")
@@ -403,18 +388,15 @@ class EnterpriseAdmin:
         print(f"  Status:         {dashboard['subscription']['status']}")
         print(f"\nCurrent Usage:")
 
-        usage = dashboard['usage']
-        if 'api_calls' in usage['current']:
-            print(f"  API Calls:      {usage['current']['api_calls']:,.0f} / "
-                  f"{usage['limits']['api_calls']:,}")
+        usage = dashboard["usage"]
+        if "api_calls" in usage["current"]:
+            print(f"  API Calls:      {usage['current']['api_calls']:,.0f} / " f"{usage['limits']['api_calls']:,}")
 
-        if 'storage_gb' in usage['current']:
-            print(f"  Storage:        {usage['current']['storage_gb']:.1f} GB / "
-                  f"{usage['limits']['storage_gb']} GB")
+        if "storage_gb" in usage["current"]:
+            print(f"  Storage:        {usage['current']['storage_gb']:.1f} GB / " f"{usage['limits']['storage_gb']} GB")
 
-        if 'documents' in usage['current']:
-            print(f"  Documents:      {usage['current']['documents']:,.0f} / "
-                  f"{usage['limits']['documents']:,}")
+        if "documents" in usage["current"]:
+            print(f"  Documents:      {usage['current']['documents']:,.0f} / " f"{usage['limits']['documents']:,}")
 
         print(f"\nSystem Health:    {dashboard['health']['overall'].upper()}")
 
@@ -422,7 +404,7 @@ class EnterpriseAdmin:
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
-        description='Enterprise Administration CLI for v3.0',
+        description="Enterprise Administration CLI for v3.0",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -446,81 +428,81 @@ Examples:
   %(prog)s whitelabel setup <tenant-id> "Company Name" --domain app.example.com
 
   %(prog)s portal dashboard <tenant-id>
-        """
+        """,
     )
 
-    subparsers = parser.add_subparsers(dest='command', help='Command to execute')
+    subparsers = parser.add_subparsers(dest="command", help="Command to execute")
 
     # Tenant commands
-    tenant_parser = subparsers.add_parser('tenant', help='Tenant management')
-    tenant_subparsers = tenant_parser.add_subparsers(dest='subcommand')
+    tenant_parser = subparsers.add_parser("tenant", help="Tenant management")
+    tenant_subparsers = tenant_parser.add_subparsers(dest="subcommand")
 
-    tenant_subparsers.add_parser('list', help='List all tenants')
+    tenant_subparsers.add_parser("list", help="List all tenants")
 
-    tenant_create = tenant_subparsers.add_parser('create', help='Create new tenant')
-    tenant_create.add_argument('name', help='Tenant name')
-    tenant_create.add_argument('--tier', default='free', choices=['free', 'starter', 'professional', 'enterprise'])
-    tenant_create.add_argument('--isolation', default='schema', choices=['database', 'schema', 'shared'])
+    tenant_create = tenant_subparsers.add_parser("create", help="Create new tenant")
+    tenant_create.add_argument("name", help="Tenant name")
+    tenant_create.add_argument("--tier", default="free", choices=["free", "starter", "professional", "enterprise"])
+    tenant_create.add_argument("--isolation", default="schema", choices=["database", "schema", "shared"])
 
-    tenant_info = tenant_subparsers.add_parser('info', help='Show tenant information')
-    tenant_info.add_argument('tenant_id', help='Tenant ID')
+    tenant_info = tenant_subparsers.add_parser("info", help="Show tenant information")
+    tenant_info.add_argument("tenant_id", help="Tenant ID")
 
-    tenant_delete = tenant_subparsers.add_parser('delete', help='Delete tenant')
-    tenant_delete.add_argument('tenant_id', help='Tenant ID')
-    tenant_delete.add_argument('--confirm', action='store_true', help='Confirm deletion')
+    tenant_delete = tenant_subparsers.add_parser("delete", help="Delete tenant")
+    tenant_delete.add_argument("tenant_id", help="Tenant ID")
+    tenant_delete.add_argument("--confirm", action="store_true", help="Confirm deletion")
 
     # Billing commands
-    billing_parser = subparsers.add_parser('billing', help='Billing management')
-    billing_subparsers = billing_parser.add_subparsers(dest='subcommand')
+    billing_parser = subparsers.add_parser("billing", help="Billing management")
+    billing_subparsers = billing_parser.add_subparsers(dest="subcommand")
 
-    billing_subparsers.add_parser('plans', help='List subscription plans')
+    billing_subparsers.add_parser("plans", help="List subscription plans")
 
-    billing_subscribe = billing_subparsers.add_parser('subscribe', help='Create subscription')
-    billing_subscribe.add_argument('tenant_id', help='Tenant ID')
-    billing_subscribe.add_argument('plan_id', choices=['free', 'starter', 'professional', 'enterprise'])
-    billing_subscribe.add_argument('--cycle', default='monthly', choices=['monthly', 'quarterly', 'yearly'])
+    billing_subscribe = billing_subparsers.add_parser("subscribe", help="Create subscription")
+    billing_subscribe.add_argument("tenant_id", help="Tenant ID")
+    billing_subscribe.add_argument("plan_id", choices=["free", "starter", "professional", "enterprise"])
+    billing_subscribe.add_argument("--cycle", default="monthly", choices=["monthly", "quarterly", "yearly"])
 
-    billing_invoice = billing_subparsers.add_parser('invoice', help='Generate invoice')
-    billing_invoice.add_argument('tenant_id', help='Tenant ID')
+    billing_invoice = billing_subparsers.add_parser("invoice", help="Generate invoice")
+    billing_invoice.add_argument("tenant_id", help="Tenant ID")
 
-    billing_summary = billing_subparsers.add_parser('summary', help='Show billing summary')
-    billing_summary.add_argument('tenant_id', help='Tenant ID')
+    billing_summary = billing_subparsers.add_parser("summary", help="Show billing summary")
+    billing_summary.add_argument("tenant_id", help="Tenant ID")
 
     # Monitoring commands
-    monitoring_parser = subparsers.add_parser('monitoring', help='Monitoring and metrics')
-    monitoring_subparsers = monitoring_parser.add_subparsers(dest='subcommand')
+    monitoring_parser = subparsers.add_parser("monitoring", help="Monitoring and metrics")
+    monitoring_subparsers = monitoring_parser.add_subparsers(dest="subcommand")
 
-    monitoring_subparsers.add_parser('health', help='Run health checks')
-    monitoring_subparsers.add_parser('metrics', help='Show system metrics')
-    monitoring_subparsers.add_parser('alerts', help='Show active alerts')
+    monitoring_subparsers.add_parser("health", help="Run health checks")
+    monitoring_subparsers.add_parser("metrics", help="Show system metrics")
+    monitoring_subparsers.add_parser("alerts", help="Show active alerts")
 
     # Scaling commands
-    scaling_parser = subparsers.add_parser('scaling', help='Scaling management')
-    scaling_subparsers = scaling_parser.add_subparsers(dest='subcommand')
+    scaling_parser = subparsers.add_parser("scaling", help="Scaling management")
+    scaling_subparsers = scaling_parser.add_subparsers(dest="subcommand")
 
-    scaling_subparsers.add_parser('status', help='Show scaling status')
+    scaling_subparsers.add_parser("status", help="Show scaling status")
 
-    scaling_register = scaling_subparsers.add_parser('register', help='Register service instance')
-    scaling_register.add_argument('service', help='Service name')
-    scaling_register.add_argument('instance_id', help='Instance ID')
-    scaling_register.add_argument('host', help='Host address')
-    scaling_register.add_argument('port', type=int, help='Port number')
+    scaling_register = scaling_subparsers.add_parser("register", help="Register service instance")
+    scaling_register.add_argument("service", help="Service name")
+    scaling_register.add_argument("instance_id", help="Instance ID")
+    scaling_register.add_argument("host", help="Host address")
+    scaling_register.add_argument("port", type=int, help="Port number")
 
     # White-label commands
-    whitelabel_parser = subparsers.add_parser('whitelabel', help='White-label management')
-    whitelabel_subparsers = whitelabel_parser.add_subparsers(dest='subcommand')
+    whitelabel_parser = subparsers.add_parser("whitelabel", help="White-label management")
+    whitelabel_subparsers = whitelabel_parser.add_subparsers(dest="subcommand")
 
-    whitelabel_setup = whitelabel_subparsers.add_parser('setup', help='Setup white-label config')
-    whitelabel_setup.add_argument('tenant_id', help='Tenant ID')
-    whitelabel_setup.add_argument('company_name', help='Company name')
-    whitelabel_setup.add_argument('--domain', help='Custom domain')
+    whitelabel_setup = whitelabel_subparsers.add_parser("setup", help="Setup white-label config")
+    whitelabel_setup.add_argument("tenant_id", help="Tenant ID")
+    whitelabel_setup.add_argument("company_name", help="Company name")
+    whitelabel_setup.add_argument("--domain", help="Custom domain")
 
     # Portal commands
-    portal_parser = subparsers.add_parser('portal', help='Portal management')
-    portal_subparsers = portal_parser.add_subparsers(dest='subcommand')
+    portal_parser = subparsers.add_parser("portal", help="Portal management")
+    portal_subparsers = portal_parser.add_subparsers(dest="subcommand")
 
-    portal_dashboard = portal_subparsers.add_parser('dashboard', help='Show portal dashboard')
-    portal_dashboard.add_argument('tenant_id', help='Tenant ID')
+    portal_dashboard = portal_subparsers.add_parser("dashboard", help="Show portal dashboard")
+    portal_dashboard.add_argument("tenant_id", help="Tenant ID")
 
     args = parser.parse_args()
 
@@ -532,51 +514,51 @@ Examples:
 
     try:
         # Tenant commands
-        if args.command == 'tenant':
-            if args.subcommand == 'list':
+        if args.command == "tenant":
+            if args.subcommand == "list":
                 admin.tenant_list()
-            elif args.subcommand == 'create':
+            elif args.subcommand == "create":
                 admin.tenant_create(args.name, args.tier, args.isolation)
-            elif args.subcommand == 'info':
+            elif args.subcommand == "info":
                 admin.tenant_info(args.tenant_id)
-            elif args.subcommand == 'delete':
+            elif args.subcommand == "delete":
                 admin.tenant_delete(args.tenant_id, args.confirm)
 
         # Billing commands
-        elif args.command == 'billing':
-            if args.subcommand == 'plans':
+        elif args.command == "billing":
+            if args.subcommand == "plans":
                 admin.billing_list_plans()
-            elif args.subcommand == 'subscribe':
+            elif args.subcommand == "subscribe":
                 admin.billing_create_subscription(args.tenant_id, args.plan_id, args.cycle)
-            elif args.subcommand == 'invoice':
+            elif args.subcommand == "invoice":
                 admin.billing_generate_invoice(args.tenant_id)
-            elif args.subcommand == 'summary':
+            elif args.subcommand == "summary":
                 admin.billing_summary(args.tenant_id)
 
         # Monitoring commands
-        elif args.command == 'monitoring':
-            if args.subcommand == 'health':
+        elif args.command == "monitoring":
+            if args.subcommand == "health":
                 admin.monitoring_health_check()
-            elif args.subcommand == 'metrics':
+            elif args.subcommand == "metrics":
                 admin.monitoring_metrics()
-            elif args.subcommand == 'alerts':
+            elif args.subcommand == "alerts":
                 admin.monitoring_alerts()
 
         # Scaling commands
-        elif args.command == 'scaling':
-            if args.subcommand == 'status':
+        elif args.command == "scaling":
+            if args.subcommand == "status":
                 admin.scaling_status()
-            elif args.subcommand == 'register':
+            elif args.subcommand == "register":
                 admin.scaling_register_instance(args.service, args.instance_id, args.host, args.port)
 
         # White-label commands
-        elif args.command == 'whitelabel':
-            if args.subcommand == 'setup':
+        elif args.command == "whitelabel":
+            if args.subcommand == "setup":
                 admin.whitelabel_setup(args.tenant_id, args.company_name, args.domain)
 
         # Portal commands
-        elif args.command == 'portal':
-            if args.subcommand == 'dashboard':
+        elif args.command == "portal":
+            if args.subcommand == "dashboard":
                 admin.portal_dashboard(args.tenant_id)
 
     except KeyboardInterrupt:
@@ -585,9 +567,10 @@ Examples:
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

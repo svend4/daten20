@@ -5,20 +5,22 @@ Tests the full workflow of document processing from upload to export,
 including all intermediate steps like parsing, analysis, and storage.
 """
 
-import pytest
-import os
-import tempfile
-import shutil
-from pathlib import Path
-from datetime import datetime
 import json
+import os
+import shutil
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+
+from src.core.database import DocumentDatabase
+from src.core.exporter import DocumentExporter
 
 # Import document processing components
 from src.core.parser import DocumentParser
-from src.core.exporter import DocumentExporter
-from src.core.database import DocumentDatabase
-from src.ml.ner import NEREngine
 from src.ml.classifier import DocumentClassifier
+from src.ml.ner import NEREngine
 
 
 class TestDocumentProcessingWorkflow:
@@ -53,19 +55,14 @@ class TestDocumentProcessingWorkflow:
     def create_test_document(self, filename: str, content: str) -> Path:
         """Create a test document"""
         doc_path = self.upload_dir / filename
-        doc_path.write_text(content, encoding='utf-8')
+        doc_path.write_text(content, encoding="utf-8")
         return doc_path
 
     def _add_document_to_store(self, content, file_path, metadata):
         """Add document to simple storage"""
         self.doc_id_counter += 1
         doc_id = self.doc_id_counter
-        self.doc_store[doc_id] = {
-            'id': doc_id,
-            'content': content,
-            'file_path': file_path,
-            **metadata
-        }
+        self.doc_store[doc_id] = {"id": doc_id, "content": content, "file_path": file_path, **metadata}
         return doc_id
 
     def _get_document_from_store(self, doc_id):
@@ -76,7 +73,7 @@ class TestDocumentProcessingWorkflow:
         """Update document in simple storage"""
         if doc_id in self.doc_store:
             if content is not None:
-                self.doc_store[doc_id]['content'] = content
+                self.doc_store[doc_id]["content"] = content
             if metadata:
                 self.doc_store[doc_id].update(metadata)
             return True
@@ -86,7 +83,7 @@ class TestDocumentProcessingWorkflow:
         """Simple search in document storage"""
         results = []
         for doc_id, doc in self.doc_store.items():
-            if query.lower() in doc.get('content', '').lower():
+            if query.lower() in doc.get("content", "").lower():
                 results.append(doc)
         return results
 
@@ -138,12 +135,12 @@ class TestDocumentProcessingWorkflow:
             if isinstance(entities_raw, list):
                 entities = []
                 for entity in entities_raw:
-                    if hasattr(entity, '__dict__'):
+                    if hasattr(entity, "__dict__"):
                         # Convert Entity object to dict
                         entity_dict = {
-                            'text': str(entity.text) if hasattr(entity, 'text') else '',
-                            'type': str(entity.type) if hasattr(entity, 'type') else '',
-                            'confidence': float(entity.confidence) if hasattr(entity, 'confidence') else 0.0
+                            "text": str(entity.text) if hasattr(entity, "text") else "",
+                            "type": str(entity.type) if hasattr(entity, "type") else "",
+                            "confidence": float(entity.confidence) if hasattr(entity, "confidence") else 0.0,
                         }
                         entities.append(entity_dict)
                     else:
@@ -160,7 +157,7 @@ class TestDocumentProcessingWorkflow:
             classifier = DocumentClassifier()
             doc_type_result = classifier.classify(text)
             # Convert ClassificationResult to string if necessary
-            if hasattr(doc_type_result, 'category'):
+            if hasattr(doc_type_result, "category"):
                 doc_type = str(doc_type_result.category)
             else:
                 doc_type = str(doc_type_result) if doc_type_result else "unknown"
@@ -174,13 +171,13 @@ class TestDocumentProcessingWorkflow:
         self.doc_id_counter += 1
         doc_id = self.doc_id_counter
         self.doc_store[doc_id] = {
-            'id': doc_id,
-            'content': text,
-            'file_path': str(doc_path),
-            'filename': 'invoice_001.txt',
-            'type': doc_type,
-            'entities': entities if isinstance(entities, list) else [],
-            'processed_at': datetime.now().isoformat()
+            "id": doc_id,
+            "content": text,
+            "file_path": str(doc_path),
+            "filename": "invoice_001.txt",
+            "type": doc_type,
+            "entities": entities if isinstance(entities, list) else [],
+            "processed_at": datetime.now().isoformat(),
         }
         assert doc_id is not None
 
@@ -193,18 +190,18 @@ class TestDocumentProcessingWorkflow:
 
         # Export to JSON (manually since there's no export_to_json)
         json_path = str(export_base) + ".json"
-        with open(json_path, 'w') as f:
+        with open(json_path, "w") as f:
             json.dump(retrieved_doc, f, indent=2)
         assert Path(json_path).exists()
 
         # Verify JSON content
-        with open(json_path, 'r') as f:
+        with open(json_path, "r") as f:
             json_data = json.load(f)
-            assert 'content' in json_data or 'id' in json_data
+            assert "content" in json_data or "id" in json_data
 
         # Export to TXT using exporter
         txt_path = str(export_base) + ".txt"
-        self.exporter.export_to_text(retrieved_doc.get('content', ''), txt_path)
+        self.exporter.export_to_text(retrieved_doc.get("content", ""), txt_path)
         assert Path(txt_path).exists()
 
         # Step 7: Verify all outputs exist
@@ -242,9 +239,7 @@ class TestDocumentProcessingWorkflow:
             text = doc_path.read_text()
 
             doc_id = self._add_document_to_store(
-                content=text,
-                file_path=str(doc_path),
-                metadata={'filename': doc_path.name}
+                content=text, file_path=str(doc_path), metadata={"filename": doc_path.name}
             )
             doc_ids.append(doc_id)
 
@@ -257,12 +252,12 @@ class TestDocumentProcessingWorkflow:
         # Step 4: Export batch report
         report_path = self.output_dir / "batch_report.json"
         batch_report = {
-            'total_documents': len(doc_ids),
-            'document_ids': doc_ids,
-            'processed_at': datetime.now().isoformat()
+            "total_documents": len(doc_ids),
+            "document_ids": doc_ids,
+            "processed_at": datetime.now().isoformat(),
         }
 
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump(batch_report, f, indent=2)
 
         assert report_path.exists()
@@ -287,29 +282,21 @@ class TestDocumentProcessingWorkflow:
         # Simplified: read file directly
         text = doc_path.read_text()
 
-        doc_id = self._add_document_to_store(
-            content=text,
-            file_path=str(doc_path),
-            metadata={'version': 1}
-        )
+        doc_id = self._add_document_to_store(content=text, file_path=str(doc_path), metadata={"version": 1})
 
         # Step 2: Retrieve document
         doc = self._get_document_from_store(doc_id)
         assert doc is not None
-        original_content = doc.get('content', '')
+        original_content = doc.get("content", "")
 
         # Step 3: Update document
         updated_content = "Updated content"
-        self._update_document_in_store(
-            doc_id,
-            content=updated_content,
-            metadata={'version': 2}
-        )
+        self._update_document_in_store(doc_id, content=updated_content, metadata={"version": 2})
 
         # Step 4: Verify update
         updated_doc = self._get_document_from_store(doc_id)
         assert updated_doc is not None
-        new_content = updated_doc.get('content', '')
+        new_content = updated_doc.get("content", "")
         assert new_content == updated_content
         assert new_content != original_content
 
@@ -330,7 +317,7 @@ class TestDocumentProcessingWorkflow:
         documents = [
             ("Python is a programming language", "python.txt"),
             ("JavaScript is used for web development", "javascript.txt"),
-            ("Java is an object-oriented language", "java.txt")
+            ("Java is an object-oriented language", "java.txt"),
         ]
 
         doc_ids = []
@@ -339,11 +326,7 @@ class TestDocumentProcessingWorkflow:
             # Simplified: read file directly
             text = doc_path.read_text()
 
-            doc_id = self._add_document_to_store(
-                content=text,
-                file_path=str(doc_path),
-                metadata={'filename': filename}
-            )
+            doc_id = self._add_document_to_store(content=text, file_path=str(doc_path), metadata={"filename": filename})
             doc_ids.append((doc_id, content))
 
         # Step 2 & 3: Search and verify
@@ -357,5 +340,5 @@ class TestDocumentProcessingWorkflow:
         print(f"   - Documents stored: {len(doc_ids)}")
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '-s'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "-s"])

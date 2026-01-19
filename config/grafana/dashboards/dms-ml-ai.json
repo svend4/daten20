@@ -1,0 +1,176 @@
+{
+  "dashboard": {
+    "title": "DMS - ML/AI Performance",
+    "tags": ["dms", "ml", "ai"],
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "ML Inference Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_ml_predictions_total[5m])) by (model_name)",
+            "legendFormat": "{{model_name}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Predictions/sec"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "ML Success Rate",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_ml_predictions_total{status=\"success\"}[5m])) / sum(rate(dms_ml_predictions_total[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 0.9, "color": "yellow"},
+                {"value": 0.95, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Inference Duration by Model (p50, p95, p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(dms_ml_inference_duration_seconds_bucket[5m])) by (le, model_name))",
+            "legendFormat": "p50 - {{model_name}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(dms_ml_inference_duration_seconds_bucket[5m])) by (le, model_name))",
+            "legendFormat": "p95 - {{model_name}}",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(dms_ml_inference_duration_seconds_bucket[5m])) by (le, model_name))",
+            "legendFormat": "p99 - {{model_name}}",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Duration"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "NER Entities Extracted",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_ner_entities_extracted_total[5m])) by (entity_type)",
+            "legendFormat": "{{entity_type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Entities/sec"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Translation Operations",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_translations_total[5m])) by (backend)",
+            "legendFormat": "{{backend}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Translations/sec"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Semantic Search Operations",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_semantic_searches_total[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "ML Errors by Model",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 16, "x": 8, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(rate(dms_ml_predictions_total{status=\"error\"}[5m])) by (model_name)",
+            "legendFormat": "{{model_name}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Errors/sec"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Translation Language Pairs (Top 10)",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "topk(10, sum(increase(dms_translations_total[1h])) by (source_lang, target_lang))",
+            "format": "table",
+            "refId": "A"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -11,106 +11,87 @@ experiences. These are functional models for improved human-AI interaction.
 Version: 7.0.0
 """
 
-__version__ = '7.0.0'
+__version__ = "7.0.0"
 
-from .emotions_services import (
-    # Emotional Awareness Engine
-    EmotionType,
-    Emotion,
-    EmotionalState,
-    AppraisalResult,
-    EmotionalAwarenessEngine,
-    get_emotional_awareness_engine,
-
-    # Affective Computing System
-    EmotionRegulationStrategy,
-    Mood,
-    AffectiveResponse,
+from .emotions_services import (  # Emotional Awareness Engine; Affective Computing System; Empathy Simulator; Emotional Intelligence System; Emotional Memory System; Emotional Decision Making; Emotional Expression Generator
     AffectiveComputingSystem,
-    get_affective_system,
-
-    # Empathy Simulator
-    EmpathyType,
-    PerspectiveTaking,
-    EmpatheticResponse,
-    EmpathySimulator,
-    get_empathy_simulator,
-
-    # Emotional Intelligence System
-    EmotionalSkill,
-    EQAssessment,
-    SkillApplication,
-    EmotionalIntelligenceSystem,
-    get_eq_system,
-
-    # Emotional Memory System
-    EmotionalMemory,
-    MemoryQuery,
-    EmotionalMemorySystem,
-    get_emotional_memory,
-
-    # Emotional Decision Making
+    AffectiveResponse,
+    AppraisalResult,
+    CulturalContext,
     DecisionOption,
-    EmotionalValuation,
+    Emotion,
+    EmotionalAwarenessEngine,
     EmotionalDecision,
     EmotionalDecisionMaking,
-    get_emotional_decision_system,
-
-    # Emotional Expression Generator
-    EmotionalTone,
-    CulturalContext,
-    FacialExpression,
     EmotionalExpressionGenerator,
+    EmotionalIntelligenceSystem,
+    EmotionalMemory,
+    EmotionalMemorySystem,
+    EmotionalSkill,
+    EmotionalState,
+    EmotionalTone,
+    EmotionalValuation,
+    EmotionRegulationStrategy,
+    EmotionType,
+    EmpatheticResponse,
+    EmpathySimulator,
+    EmpathyType,
+    EQAssessment,
+    FacialExpression,
+    MemoryQuery,
+    Mood,
+    PerspectiveTaking,
+    SkillApplication,
+    get_affective_system,
+    get_emotional_awareness_engine,
+    get_emotional_decision_system,
+    get_emotional_memory,
+    get_empathy_simulator,
+    get_eq_system,
     get_expression_generator,
 )
 
 __all__ = [
     # Emotional Awareness Engine
-    'EmotionType',
-    'Emotion',
-    'EmotionalState',
-    'AppraisalResult',
-    'EmotionalAwarenessEngine',
-    'get_emotional_awareness_engine',
-
+    "EmotionType",
+    "Emotion",
+    "EmotionalState",
+    "AppraisalResult",
+    "EmotionalAwarenessEngine",
+    "get_emotional_awareness_engine",
     # Affective Computing System
-    'EmotionRegulationStrategy',
-    'Mood',
-    'AffectiveResponse',
-    'AffectiveComputingSystem',
-    'get_affective_system',
-
+    "EmotionRegulationStrategy",
+    "Mood",
+    "AffectiveResponse",
+    "AffectiveComputingSystem",
+    "get_affective_system",
     # Empathy Simulator
-    'EmpathyType',
-    'PerspectiveTaking',
-    'EmpatheticResponse',
-    'EmpathySimulator',
-    'get_empathy_simulator',
-
+    "EmpathyType",
+    "PerspectiveTaking",
+    "EmpatheticResponse",
+    "EmpathySimulator",
+    "get_empathy_simulator",
     # Emotional Intelligence System
-    'EmotionalSkill',
-    'EQAssessment',
-    'SkillApplication',
-    'EmotionalIntelligenceSystem',
-    'get_eq_system',
-
+    "EmotionalSkill",
+    "EQAssessment",
+    "SkillApplication",
+    "EmotionalIntelligenceSystem",
+    "get_eq_system",
     # Emotional Memory System
-    'EmotionalMemory',
-    'MemoryQuery',
-    'EmotionalMemorySystem',
-    'get_emotional_memory',
-
+    "EmotionalMemory",
+    "MemoryQuery",
+    "EmotionalMemorySystem",
+    "get_emotional_memory",
     # Emotional Decision Making
-    'DecisionOption',
-    'EmotionalValuation',
-    'EmotionalDecision',
-    'EmotionalDecisionMaking',
-    'get_emotional_decision_system',
-
+    "DecisionOption",
+    "EmotionalValuation",
+    "EmotionalDecision",
+    "EmotionalDecisionMaking",
+    "get_emotional_decision_system",
     # Emotional Expression Generator
-    'EmotionalTone',
-    'CulturalContext',
-    'FacialExpression',
-    'EmotionalExpressionGenerator',
-    'get_expression_generator',
+    "EmotionalTone",
+    "CulturalContext",
+    "FacialExpression",
+    "EmotionalExpressionGenerator",
+    "get_expression_generator",
 ]

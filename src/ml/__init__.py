@@ -10,61 +10,37 @@ Provides ML capabilities:
 - Predictive analytics
 """
 
+from .anomaly import AnomalyDetectionEngine, AnomalyType, get_anomaly_detector
 from .classifier import (
-    DocumentClassifier,
-    get_document_classifier,
-    configure_document_classifier,
     DocumentCategory,
-    ModelType
+    DocumentClassifier,
+    ModelType,
+    configure_document_classifier,
+    get_document_classifier,
 )
-
-from .tagging import (
-    AutoTagger,
-    get_auto_tagger,
-    configure_auto_tagger,
-    TagType
-)
-
-from .anomaly import (
-    AnomalyDetectionEngine,
-    get_anomaly_detector,
-    AnomalyType
-)
-
-from .ner import (
-    NEREngine,
-    get_ner_engine,
-    EntityType
-)
-
-from .recommendations import (
-    RecommendationEngine,
-    get_recommendation_engine
-)
-
-from .predictive import (
-    PredictiveAnalyticsEngine,
-    get_predictive_engine
-)
+from .ner import EntityType, NEREngine, get_ner_engine
+from .predictive import PredictiveAnalyticsEngine, get_predictive_engine
+from .recommendations import RecommendationEngine, get_recommendation_engine
+from .tagging import AutoTagger, TagType, configure_auto_tagger, get_auto_tagger
 
 __all__ = [
-    'DocumentClassifier',
-    'get_document_classifier',
-    'configure_document_classifier',
-    'AutoTagger',
-    'get_auto_tagger',
-    'configure_auto_tagger',
-    'AnomalyDetectionEngine',
-    'get_anomaly_detector',
-    'NEREngine',
-    'get_ner_engine',
-    'RecommendationEngine',
-    'get_recommendation_engine',
-    'PredictiveAnalyticsEngine',
-    'get_predictive_engine',
-    'DocumentCategory',
-    'ModelType',
-    'TagType',
-    'AnomalyType',
-    'EntityType'
+    "DocumentClassifier",
+    "get_document_classifier",
+    "configure_document_classifier",
+    "AutoTagger",
+    "get_auto_tagger",
+    "configure_auto_tagger",
+    "AnomalyDetectionEngine",
+    "get_anomaly_detector",
+    "NEREngine",
+    "get_ner_engine",
+    "RecommendationEngine",
+    "get_recommendation_engine",
+    "PredictiveAnalyticsEngine",
+    "get_predictive_engine",
+    "DocumentCategory",
+    "ModelType",
+    "TagType",
+    "AnomalyType",
+    "EntityType",
 ]

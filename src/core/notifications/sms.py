@@ -4,15 +4,16 @@ SMS Notifications via Twilio
 Sends SMS notifications for important events.
 """
 
-from typing import Optional, List, Dict, Any
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-import re
+from typing import Any, Dict, List, Optional
 
 
 class SMSStatus(str, Enum):
     """SMS delivery status"""
+
     QUEUED = "queued"
     SENDING = "sending"
     SENT = "sent"
@@ -24,6 +25,7 @@ class SMSStatus(str, Enum):
 @dataclass
 class SMSMessage:
     """SMS message data"""
+
     to: str
     body: str
     from_number: str
@@ -38,6 +40,7 @@ class SMSMessage:
 @dataclass
 class SMSTemplate:
     """SMS message template"""
+
     name: str
     template: str
     max_length: int = 160
@@ -46,14 +49,14 @@ class SMSTemplate:
     def __post_init__(self):
         if self.variables is None:
             # Extract variables from template
-            self.variables = re.findall(r'\{(\w+)\}', self.template)
+            self.variables = re.findall(r"\{(\w+)\}", self.template)
 
     def render(self, **kwargs) -> str:
         """Render template with variables"""
         try:
             message = self.template.format(**kwargs)
             if len(message) > self.max_length:
-                message = message[:self.max_length-3] + "..."
+                message = message[: self.max_length - 3] + "..."
             return message
         except KeyError as e:
             raise ValueError(f"Missing template variable: {e}")
@@ -62,13 +65,7 @@ class SMSTemplate:
 class SMSManager:
     """Manages SMS notifications via Twilio"""
 
-    def __init__(
-        self,
-        account_sid: str,
-        auth_token: str,
-        from_number: str,
-        test_mode: bool = False
-    ):
+    def __init__(self, account_sid: str, auth_token: str, from_number: str, test_mode: bool = False):
         self.account_sid = account_sid
         self.auth_token = auth_token
         self.from_number = from_number
@@ -87,46 +84,36 @@ class SMSManager:
     def _register_default_templates(self):
         """Register default SMS templates"""
         self.templates = {
-            'service_created': SMSTemplate(
-                name='Service Created',
+            "service_created": SMSTemplate(
+                name="Service Created",
                 template='DMS: New service "{service_name}" created in {region}. Rate: {rate}€/h',
-                max_length=160
+                max_length=160,
             ),
-            'service_updated': SMSTemplate(
-                name='Service Updated',
+            "service_updated": SMSTemplate(
+                name="Service Updated",
                 template='DMS: Service "{service_name}" was updated. Check your dashboard for details.',
-                max_length=160
+                max_length=160,
             ),
-            'approval_required': SMSTemplate(
-                name='Approval Required',
+            "approval_required": SMSTemplate(
+                name="Approval Required",
                 template='DMS: Action required! Please approve "{item_name}". Login to review.',
-                max_length=160
+                max_length=160,
             ),
-            'document_ready': SMSTemplate(
-                name='Document Ready',
-                template='DMS: Your document "{doc_name}" is ready for download.',
-                max_length=160
+            "document_ready": SMSTemplate(
+                name="Document Ready", template='DMS: Your document "{doc_name}" is ready for download.', max_length=160
             ),
-            'system_alert': SMSTemplate(
-                name='System Alert',
-                template='DMS Alert: {message}',
-                max_length=160
+            "system_alert": SMSTemplate(name="System Alert", template="DMS Alert: {message}", max_length=160),
+            "verification_code": SMSTemplate(
+                name="Verification Code",
+                template="DMS: Your verification code is {code}. Valid for 10 minutes.",
+                max_length=160,
             ),
-            'verification_code': SMSTemplate(
-                name='Verification Code',
-                template='DMS: Your verification code is {code}. Valid for 10 minutes.',
-                max_length=160
+            "password_reset": SMSTemplate(
+                name="Password Reset",
+                template="DMS: Password reset requested. Code: {code}. If not you, ignore this.",
+                max_length=160,
             ),
-            'password_reset': SMSTemplate(
-                name='Password Reset',
-                template='DMS: Password reset requested. Code: {code}. If not you, ignore this.',
-                max_length=160
-            ),
-            'reminder': SMSTemplate(
-                name='Reminder',
-                template='DMS Reminder: {message}',
-                max_length=160
-            )
+            "reminder": SMSTemplate(name="Reminder", template="DMS Reminder: {message}", max_length=160),
         }
 
     def register_template(self, template: SMSTemplate):
@@ -136,21 +123,21 @@ class SMSManager:
     def validate_phone_number(self, phone: str) -> bool:
         """Validate phone number format"""
         # E.164 format: +[country code][number]
-        pattern = r'^\+?[1-9]\d{1,14}$'
-        return bool(re.match(pattern, phone.replace(' ', '').replace('-', '')))
+        pattern = r"^\+?[1-9]\d{1,14}$"
+        return bool(re.match(pattern, phone.replace(" ", "").replace("-", "")))
 
     def normalize_phone_number(self, phone: str) -> str:
         """Normalize phone number to E.164 format"""
         # Remove spaces, dashes, parentheses
-        normalized = re.sub(r'[\s\-\(\)]', '', phone)
+        normalized = re.sub(r"[\s\-\(\)]", "", phone)
 
         # Add + if missing
-        if not normalized.startswith('+'):
+        if not normalized.startswith("+"):
             # Assume German number if no country code
-            if normalized.startswith('0'):
-                normalized = '+49' + normalized[1:]
+            if normalized.startswith("0"):
+                normalized = "+49" + normalized[1:]
             else:
-                normalized = '+' + normalized
+                normalized = "+" + normalized
 
         return normalized
 
@@ -169,13 +156,7 @@ class SMSManager:
         normalized = self.normalize_phone_number(phone)
         return normalized in self.opted_out_numbers
 
-    def send_sms(
-        self,
-        to: str,
-        body: str,
-        template: Optional[str] = None,
-        **template_vars
-    ) -> SMSMessage:
+    def send_sms(self, to: str, body: str, template: Optional[str] = None, **template_vars) -> SMSMessage:
         """Send SMS message"""
 
         # Normalize phone number
@@ -188,7 +169,7 @@ class SMSManager:
                 body=body,
                 from_number=self.from_number,
                 status=SMSStatus.FAILED,
-                error_message="Phone number has opted out"
+                error_message="Phone number has opted out",
             )
             self.sent_messages.append(message)
             return message
@@ -200,7 +181,7 @@ class SMSManager:
                 body=body,
                 from_number=self.from_number,
                 status=SMSStatus.FAILED,
-                error_message="Invalid phone number format"
+                error_message="Invalid phone number format",
             )
             self.sent_messages.append(message)
             return message
@@ -215,7 +196,7 @@ class SMSManager:
                     body=body,
                     from_number=self.from_number,
                     status=SMSStatus.FAILED,
-                    error_message=str(e)
+                    error_message=str(e),
                 )
                 self.sent_messages.append(message)
                 return message
@@ -233,7 +214,7 @@ class SMSManager:
                 status=SMSStatus.DELIVERED,
                 sid=f"TEST{datetime.now().timestamp()}",
                 sent_at=datetime.now(),
-                delivered_at=datetime.now()
+                delivered_at=datetime.now(),
             )
             self.sent_messages.append(message)
             print(f"[TEST MODE] SMS to {to_normalized}: {body}")
@@ -257,28 +238,20 @@ class SMSManager:
                 from_number=self.from_number,
                 status=SMSStatus.SENT,
                 sid=f"SM{datetime.now().timestamp()}",
-                sent_at=datetime.now()
+                sent_at=datetime.now(),
             )
             self.sent_messages.append(message)
             return message
 
         except Exception as e:
             message = SMSMessage(
-                to=to_normalized,
-                body=body,
-                from_number=self.from_number,
-                status=SMSStatus.FAILED,
-                error_message=str(e)
+                to=to_normalized, body=body, from_number=self.from_number, status=SMSStatus.FAILED, error_message=str(e)
             )
             self.sent_messages.append(message)
             return message
 
     def send_bulk_sms(
-        self,
-        recipients: List[str],
-        body: str,
-        template: Optional[str] = None,
-        **template_vars
+        self, recipients: List[str], body: str, template: Optional[str] = None, **template_vars
     ) -> List[SMSMessage]:
         """Send SMS to multiple recipients"""
         results = []
@@ -295,10 +268,7 @@ class SMSManager:
         return None
 
     def get_sent_messages(
-        self,
-        to: Optional[str] = None,
-        status: Optional[SMSStatus] = None,
-        limit: int = 100
+        self, to: Optional[str] = None, status: Optional[SMSStatus] = None, limit: int = 100
     ) -> List[SMSMessage]:
         """Get sent message history"""
         messages = self.sent_messages
@@ -316,75 +286,44 @@ class SMSManager:
         """Get SMS statistics"""
         total = len(self.sent_messages)
         if total == 0:
-            return {
-                'total': 0,
-                'delivered': 0,
-                'failed': 0,
-                'delivery_rate': 0.0
-            }
+            return {"total": 0, "delivered": 0, "failed": 0, "delivery_rate": 0.0}
 
         delivered = len([m for m in self.sent_messages if m.status == SMSStatus.DELIVERED])
         failed = len([m for m in self.sent_messages if m.status == SMSStatus.FAILED])
 
         return {
-            'total': total,
-            'delivered': delivered,
-            'failed': failed,
-            'delivery_rate': (delivered / total * 100) if total > 0 else 0.0,
-            'opted_out': len(self.opted_out_numbers)
+            "total": total,
+            "delivered": delivered,
+            "failed": failed,
+            "delivery_rate": (delivered / total * 100) if total > 0 else 0.0,
+            "opted_out": len(self.opted_out_numbers),
         }
 
     # Convenience methods for common notifications
 
     def notify_service_created(self, to: str, service_name: str, region: str, rate: float):
         """Notify about new service creation"""
-        return self.send_sms(
-            to, '',
-            template='service_created',
-            service_name=service_name,
-            region=region,
-            rate=rate
-        )
+        return self.send_sms(to, "", template="service_created", service_name=service_name, region=region, rate=rate)
 
     def notify_service_updated(self, to: str, service_name: str):
         """Notify about service update"""
-        return self.send_sms(
-            to, '',
-            template='service_updated',
-            service_name=service_name
-        )
+        return self.send_sms(to, "", template="service_updated", service_name=service_name)
 
     def notify_approval_required(self, to: str, item_name: str):
         """Notify about approval requirement"""
-        return self.send_sms(
-            to, '',
-            template='approval_required',
-            item_name=item_name
-        )
+        return self.send_sms(to, "", template="approval_required", item_name=item_name)
 
     def send_verification_code(self, to: str, code: str):
         """Send verification code"""
-        return self.send_sms(
-            to, '',
-            template='verification_code',
-            code=code
-        )
+        return self.send_sms(to, "", template="verification_code", code=code)
 
     def send_password_reset(self, to: str, code: str):
         """Send password reset code"""
-        return self.send_sms(
-            to, '',
-            template='password_reset',
-            code=code
-        )
+        return self.send_sms(to, "", template="password_reset", code=code)
 
     def send_system_alert(self, to: str, message: str):
         """Send system alert"""
-        return self.send_sms(
-            to, '',
-            template='system_alert',
-            message=message
-        )
+        return self.send_sms(to, "", template="system_alert", message=message)
 
 
 # Global instance
@@ -398,21 +337,13 @@ def get_sms_manager() -> SMSManager:
     if _sms_manager is None:
         # Default configuration (test mode)
         _sms_manager = SMSManager(
-            account_sid="test_account_sid",
-            auth_token="test_auth_token",
-            from_number="+4915112345678",
-            test_mode=True
+            account_sid="test_account_sid", auth_token="test_auth_token", from_number="+4915112345678", test_mode=True
         )
 
     return _sms_manager
 
 
-def configure_sms_manager(
-    account_sid: str,
-    auth_token: str,
-    from_number: str,
-    test_mode: bool = False
-):
+def configure_sms_manager(account_sid: str, auth_token: str, from_number: str, test_mode: bool = False):
     """Configure SMS manager"""
     global _sms_manager
     _sms_manager = SMSManager(account_sid, auth_token, from_number, test_mode)

@@ -1,0 +1,86 @@
+name: Notifications
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline", "Tests - Comprehensive Test Suite"]
+    types:
+      - completed
+
+jobs:
+  notify-on-failure:
+    name: Send Notifications on Failure
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+
+    steps:
+    - name: Check workflow status
+      id: check
+      run: |
+        echo "Workflow: ${{ github.event.workflow_run.name }}"
+        echo "Status: ${{ github.event.workflow_run.conclusion }}"
+        echo "Branch: ${{ github.event.workflow_run.head_branch }}"
+        echo "Commit: ${{ github.event.workflow_run.head_sha }}"
+        echo "Actor: ${{ github.event.workflow_run.actor.login }}"
+
+    - name: Display failure information
+      run: |
+        echo "## ❌ Workflow Failed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Workflow:** ${{ github.event.workflow_run.name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** ${{ github.event.workflow_run.head_branch }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** [\`${{ github.event.workflow_run.head_sha }}\`](${{ github.event.workflow_run.html_url }})" >> $GITHUB_STEP_SUMMARY
+        echo "**Author:** @${{ github.event.workflow_run.actor.login }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "🔗 [View Workflow Run](${{ github.event.workflow_run.html_url }})" >> $GITHUB_STEP_SUMMARY
+
+    - name: Comment on PR (if applicable)
+      if: github.event.workflow_run.event == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const workflow_name = '${{ github.event.workflow_run.name }}';
+          const workflow_url = '${{ github.event.workflow_run.html_url }}';
+          const commit_sha = '${{ github.event.workflow_run.head_sha }}';
+
+          // Find associated PR
+          const { data: prs } = await github.rest.pulls.list({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            head: `${context.repo.owner}:${{ github.event.workflow_run.head_branch }}`
+          });
+
+          if (prs.length > 0) {
+            const pr = prs[0];
+
+            const comment = `## ❌ CI Failure
+
+            The workflow **${workflow_name}** has failed for commit \`${commit_sha.substring(0, 7)}\`.
+
+            🔗 [View Workflow Run](${workflow_url})
+
+            Please review the errors and fix them before merging.`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: comment
+            });
+          }
+
+  notify-on-success:
+    name: Notify on Success
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+    - name: Display success information
+      run: |
+        echo "## ✅ Workflow Succeeded" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Workflow:** ${{ github.event.workflow_run.name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** ${{ github.event.workflow_run.head_branch }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** [\`${{ github.event.workflow_run.head_sha }}\`](${{ github.event.workflow_run.html_url }})" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "All tests passed successfully! 🎉" >> $GITHUB_STEP_SUMMARY

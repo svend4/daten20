@@ -19,23 +19,33 @@ Dependencies:
 - pandas, numpy (for data processing)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Tuple, Set
-from enum import Enum
+from __future__ import annotations
+
 import threading
 from collections import defaultdict
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+
+if TYPE_CHECKING:
+    import numpy as np
+    import pandas as pd
 
 try:
-    import pandas as pd
     import numpy as np
+    import pandas as pd
+
     PANDAS_AVAILABLE = True
 except ImportError:
     PANDAS_AVAILABLE = False
+    np = None  # type: ignore
+    pd = None  # type: ignore
     print("Warning: pandas not available. OLAP features limited.")
 
 
 class AggregationType(str, Enum):
     """Aggregation functions"""
+
     SUM = "sum"
     AVG = "avg"
     COUNT = "count"
@@ -47,6 +57,7 @@ class AggregationType(str, Enum):
 @dataclass
 class Dimension:
     """OLAP dimension"""
+
     name: str
     hierarchy: List[str]  # Levels in hierarchy (e.g., ["Year", "Quarter", "Month", "Day"])
     members: List[str] = field(default_factory=list)
@@ -55,6 +66,7 @@ class Dimension:
 @dataclass
 class Measure:
     """OLAP measure"""
+
     name: str
     aggregation: AggregationType
     format: str = "numeric"  # "numeric", "currency", "percentage"
@@ -63,6 +75,7 @@ class Measure:
 @dataclass
 class CubeCell:
     """Individual cube cell with coordinates and value"""
+
     coordinates: Dict[str, str]  # dimension -> member
     value: float
     aggregation: AggregationType
@@ -145,13 +158,7 @@ class OLAPCube:
 
         return result
 
-    def drill_down(
-        self,
-        data: pd.DataFrame,
-        dimension: str,
-        from_level: str,
-        to_level: str
-    ) -> pd.DataFrame:
+    def drill_down(self, data: pd.DataFrame, dimension: str, from_level: str, to_level: str) -> pd.DataFrame:
         """
         Drill down from higher level to lower level in hierarchy
 
@@ -179,7 +186,7 @@ class OLAPCube:
         if to_level in data.columns:
             group_cols.append(to_level)
 
-        agg_dict = {m: 'sum' for m in measure_cols if m in data.columns}
+        agg_dict = {m: "sum" for m in measure_cols if m in data.columns}
 
         if group_cols:
             result = data.groupby(group_cols).agg(agg_dict).reset_index()
@@ -188,13 +195,7 @@ class OLAPCube:
 
         return result
 
-    def drill_up(
-        self,
-        data: pd.DataFrame,
-        dimension: str,
-        from_level: str,
-        to_level: str
-    ) -> pd.DataFrame:
+    def drill_up(self, data: pd.DataFrame, dimension: str, from_level: str, to_level: str) -> pd.DataFrame:
         """
         Drill up (roll up) from lower level to higher level
 
@@ -231,11 +232,7 @@ class OLAPCube:
         return result
 
     def pivot(
-        self,
-        rows: List[str],
-        columns: List[str],
-        values: str,
-        aggregation: AggregationType = AggregationType.SUM
+        self, rows: List[str], columns: List[str], values: str, aggregation: AggregationType = AggregationType.SUM
     ) -> pd.DataFrame:
         """
         Create pivot table
@@ -253,21 +250,13 @@ class OLAPCube:
             raise ValueError("Cube has no data loaded")
 
         pivot = pd.pivot_table(
-            self.data,
-            index=rows,
-            columns=columns,
-            values=values,
-            aggfunc=aggregation.value,
-            fill_value=0
+            self.data, index=rows, columns=columns, values=values, aggfunc=aggregation.value, fill_value=0
         )
 
         return pivot
 
     def aggregate(
-        self,
-        dimensions: List[str],
-        measures: List[str],
-        filters: Optional[Dict[str, List[str]]] = None
+        self, dimensions: List[str], measures: List[str], filters: Optional[Dict[str, List[str]]] = None
     ) -> pd.DataFrame:
         """
         Aggregate data by dimensions
@@ -380,31 +369,31 @@ class MDXQueryEngine:
         # Full MDX support would require a proper parser
 
         # Extract components
-        lines = [l.strip() for l in mdx_query.upper().split('\n')]
+        lines = [l.strip() for l in mdx_query.upper().split("\n")]
 
         measures = []
         dimensions = []
         filters = {}
 
         for line in lines:
-            if 'SELECT' in line and 'ON COLUMNS' in line:
+            if "SELECT" in line and "ON COLUMNS" in line:
                 # Extract measures
-                parts = line.split('ON COLUMNS')[0].replace('SELECT', '').strip()
-                measures = [p.strip('[] ') for p in parts.split(',')]
+                parts = line.split("ON COLUMNS")[0].replace("SELECT", "").strip()
+                measures = [p.strip("[] ") for p in parts.split(",")]
 
-            elif 'ON ROWS' in line:
+            elif "ON ROWS" in line:
                 # Extract dimensions
-                parts = line.split('ON ROWS')[0].split(',')
-                dimensions = [p.strip('[] ') for p in parts if p.strip()]
+                parts = line.split("ON ROWS")[0].split(",")
+                dimensions = [p.strip("[] ") for p in parts if p.strip()]
 
-            elif 'WHERE' in line:
+            elif "WHERE" in line:
                 # Extract filters
-                parts = line.split('WHERE')[1].strip()
+                parts = line.split("WHERE")[1].strip()
                 # Simple parsing: Dimension = 'Value'
-                if '=' in parts:
-                    dim, value = parts.split('=')
-                    dim = dim.strip('[] ')
-                    value = value.strip('\'" ')
+                if "=" in parts:
+                    dim, value = parts.split("=")
+                    dim = dim.strip("[] ")
+                    value = value.strip("'\" ")
                     filters[dim] = [value]
 
         # Execute query
@@ -443,24 +432,15 @@ class CubeManager:
         cube = self.create_cube("Sales")
 
         # Time dimension
-        time_dim = Dimension(
-            name="Time",
-            hierarchy=["Year", "Quarter", "Month", "Day"]
-        )
+        time_dim = Dimension(name="Time", hierarchy=["Year", "Quarter", "Month", "Day"])
         cube.add_dimension(time_dim)
 
         # Geography dimension
-        geo_dim = Dimension(
-            name="Geography",
-            hierarchy=["Region", "Country", "State", "City"]
-        )
+        geo_dim = Dimension(name="Geography", hierarchy=["Region", "Country", "State", "City"])
         cube.add_dimension(geo_dim)
 
         # Product dimension
-        product_dim = Dimension(
-            name="Product",
-            hierarchy=["Category", "Subcategory", "Product"]
-        )
+        product_dim = Dimension(name="Product", hierarchy=["Category", "Subcategory", "Product"])
         cube.add_dimension(product_dim)
 
         # Measures
@@ -475,17 +455,11 @@ class CubeManager:
         cube = self.create_cube("Usage")
 
         # Time dimension
-        time_dim = Dimension(
-            name="Date",
-            hierarchy=["Year", "Month", "Day"]
-        )
+        time_dim = Dimension(name="Date", hierarchy=["Year", "Month", "Day"])
         cube.add_dimension(time_dim)
 
         # Tenant dimension
-        tenant_dim = Dimension(
-            name="Tenant",
-            hierarchy=["Tenant"]
-        )
+        tenant_dim = Dimension(name="Tenant", hierarchy=["Tenant"])
         cube.add_dimension(tenant_dim)
 
         # Measures
@@ -525,31 +499,30 @@ if __name__ == "__main__":
 
     # Create sample data
     if PANDAS_AVAILABLE:
-        data = pd.DataFrame({
-            'Year': ['2025', '2025', '2025', '2026'],
-            'Quarter': ['Q1', 'Q1', 'Q2', 'Q1'],
-            'Month': ['Jan', 'Feb', 'Mar', 'Jan'],
-            'Region': ['North', 'North', 'South', 'East'],
-            'Country': ['USA', 'USA', 'UK', 'Japan'],
-            'Product': ['A', 'B', 'A', 'C'],
-            'Revenue': [1000, 1500, 2000, 1200],
-            'Units': [10, 15, 20, 12],
-            'Profit': [300, 450, 600, 360]
-        })
+        data = pd.DataFrame(
+            {
+                "Year": ["2025", "2025", "2025", "2026"],
+                "Quarter": ["Q1", "Q1", "Q2", "Q1"],
+                "Month": ["Jan", "Feb", "Mar", "Jan"],
+                "Region": ["North", "North", "South", "East"],
+                "Country": ["USA", "USA", "UK", "Japan"],
+                "Product": ["A", "B", "A", "C"],
+                "Revenue": [1000, 1500, 2000, 1200],
+                "Units": [10, 15, 20, 12],
+                "Profit": [300, 450, 600, 360],
+            }
+        )
 
         sales_cube.load_data(data)
         print(f"\nLoaded {len(data)} rows into cube")
 
         # Slice
-        q1_data = sales_cube.slice('Quarter', 'Q1')
+        q1_data = sales_cube.slice("Quarter", "Q1")
         print(f"\nQ1 slice: {len(q1_data)} rows")
 
         # Pivot
         pivot = sales_cube.pivot(
-            rows=['Year', 'Quarter'],
-            columns=['Region'],
-            values='Revenue',
-            aggregation=AggregationType.SUM
+            rows=["Year", "Quarter"], columns=["Region"], values="Revenue", aggregation=AggregationType.SUM
         )
         print("\nPivot table:")
         print(pivot)

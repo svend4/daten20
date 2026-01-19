@@ -33,20 +33,21 @@ Version: 1.0.0
 
 import argparse
 import json
-import sys
+import math
 import os
 import re
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass, asdict, field
-from datetime import datetime
+import sys
 from collections import Counter
-import math
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+from src.core.logging_config import setup_logging
 
 # Import core modules
 from src.core.parser import DocumentParser
 from src.core.validator import DocumentValidator
-from src.core.logging_config import setup_logging
 
 # Import ML modules
 from src.ml.ner import NEREngine
@@ -58,6 +59,7 @@ logger = setup_logging(__name__, log_level="INFO")
 @dataclass
 class QualityIssue:
     """Quality issue found in document."""
+
     type: str  # missing_field, invalid_value, inconsistency, etc.
     severity: str  # low, medium, high, critical
     dimension: str  # completeness, accuracy, consistency, readability
@@ -69,6 +71,7 @@ class QualityIssue:
 @dataclass
 class QualityDimension:
     """Quality dimension score."""
+
     name: str
     score: float  # 0-100
     issues: List[QualityIssue] = field(default_factory=list)
@@ -78,6 +81,7 @@ class QualityDimension:
 @dataclass
 class QualityReport:
     """Complete quality assessment report."""
+
     file_path: str
     analyzed_at: str
     overall_quality: float  # 0-100
@@ -94,17 +98,13 @@ class QualityReport:
             "analyzed_at": self.analyzed_at,
             "overall_quality": self.overall_quality,
             "dimensions": {
-                name: {
-                    "score": dim.score,
-                    "issues": [asdict(issue) for issue in dim.issues],
-                    "metrics": dim.metrics
-                }
+                name: {"score": dim.score, "issues": [asdict(issue) for issue in dim.issues], "metrics": dim.metrics}
                 for name, dim in self.dimensions.items()
             },
             "total_issues": self.total_issues,
             "issues_by_severity": self.issues_by_severity,
             "recommendations": self.recommendations,
-            "passed": self.passed
+            "passed": self.passed,
         }
         return result
 
@@ -119,12 +119,7 @@ class DocumentQualityAnalyzer:
         self.ner_engine = NEREngine(use_spacy=True)
         logger.info("DocumentQualityAnalyzer initialized")
 
-    def analyze(
-        self,
-        file_path: str,
-        dimensions: Optional[List[str]] = None,
-        threshold: float = 0.0
-    ) -> QualityReport:
+    def analyze(self, file_path: str, dimensions: Optional[List[str]] = None, threshold: float = 0.0) -> QualityReport:
         """
         Analyze document quality.
 
@@ -187,7 +182,7 @@ class DocumentQualityAnalyzer:
             total_issues=len(all_issues),
             issues_by_severity=dict(issues_by_severity),
             recommendations=recommendations,
-            passed=overall_quality >= threshold
+            passed=overall_quality >= threshold,
         )
 
         logger.info(f"Quality analysis complete. Score: {overall_quality:.1f}/100")
@@ -200,23 +195,25 @@ class DocumentQualityAnalyzer:
 
         # Check text length
         if len(text) < 100:
-            issues.append(QualityIssue(
-                type="insufficient_content",
-                severity="high",
-                dimension="completeness",
-                location="entire document",
-                message="Document has very little content (< 100 characters)",
-                suggestion="Add more detailed information"
-            ))
+            issues.append(
+                QualityIssue(
+                    type="insufficient_content",
+                    severity="high",
+                    dimension="completeness",
+                    location="entire document",
+                    message="Document has very little content (< 100 characters)",
+                    suggestion="Add more detailed information",
+                )
+            )
 
         # Check for common required fields (extracted from entities)
         entities = self.ner_engine.extract_entities(text)
         entity_types_found = set(e.type.value for e in entities)
 
         # Metrics
-        metrics['text_length'] = len(text)
-        metrics['word_count'] = len(text.split())
-        metrics['entity_types_found'] = list(entity_types_found)
+        metrics["text_length"] = len(text)
+        metrics["word_count"] = len(text.split())
+        metrics["entity_types_found"] = list(entity_types_found)
 
         # Calculate score
         score = 100.0
@@ -232,12 +229,7 @@ class DocumentQualityAnalyzer:
 
         score = max(0, min(100, score))
 
-        return QualityDimension(
-            name="Completeness",
-            score=score,
-            issues=issues,
-            metrics=metrics
-        )
+        return QualityDimension(name="Completeness", score=score, issues=issues, metrics=metrics)
 
     def _check_accuracy(self, text: str, metadata: Dict[str, Any]) -> QualityDimension:
         """Check data accuracy."""
@@ -252,16 +244,18 @@ class DocumentQualityAnalyzer:
         invalid_emails = 0
         for email_entity in emails:
             email = email_entity.text
-            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
                 invalid_emails += 1
-                issues.append(QualityIssue(
-                    type="invalid_email",
-                    severity="medium",
-                    dimension="accuracy",
-                    location=f"position {email_entity.start}",
-                    message=f"Invalid email format: {email}",
-                    suggestion="Correct email format"
-                ))
+                issues.append(
+                    QualityIssue(
+                        type="invalid_email",
+                        severity="medium",
+                        dimension="accuracy",
+                        location=f"position {email_entity.start}",
+                        message=f"Invalid email format: {email}",
+                        suggestion="Correct email format",
+                    )
+                )
 
         # Validate phones
         phones = [e for e in entities if e.type.value == "PHONE"]
@@ -269,36 +263,34 @@ class DocumentQualityAnalyzer:
         for phone_entity in phones:
             phone = phone_entity.text
             # Basic phone validation
-            if not re.search(r'\d', phone):
+            if not re.search(r"\d", phone):
                 invalid_phones += 1
-                issues.append(QualityIssue(
-                    type="invalid_phone",
-                    severity="low",
-                    dimension="accuracy",
-                    location=f"position {phone_entity.start}",
-                    message=f"Invalid phone format: {phone}",
-                    suggestion="Use standard phone format"
-                ))
+                issues.append(
+                    QualityIssue(
+                        type="invalid_phone",
+                        severity="low",
+                        dimension="accuracy",
+                        location=f"position {phone_entity.start}",
+                        message=f"Invalid phone format: {phone}",
+                        suggestion="Use standard phone format",
+                    )
+                )
 
         # Metrics
-        metrics['emails_checked'] = len(emails)
-        metrics['invalid_emails'] = invalid_emails
-        metrics['phones_checked'] = len(phones)
-        metrics['invalid_phones'] = invalid_phones
-        metrics['accuracy_rate'] = (
+        metrics["emails_checked"] = len(emails)
+        metrics["invalid_emails"] = invalid_emails
+        metrics["phones_checked"] = len(phones)
+        metrics["invalid_phones"] = invalid_phones
+        metrics["accuracy_rate"] = (
             1.0 - (invalid_emails + invalid_phones) / (len(emails) + len(phones))
-            if (len(emails) + len(phones)) > 0 else 1.0
+            if (len(emails) + len(phones)) > 0
+            else 1.0
         )
 
         # Calculate score
-        score = 100.0 * metrics['accuracy_rate']
+        score = 100.0 * metrics["accuracy_rate"]
 
-        return QualityDimension(
-            name="Accuracy",
-            score=score,
-            issues=issues,
-            metrics=metrics
-        )
+        return QualityDimension(name="Accuracy", score=score, issues=issues, metrics=metrics)
 
     def _check_consistency(self, text: str, metadata: Dict[str, Any]) -> QualityDimension:
         """Check internal consistency."""
@@ -311,19 +303,17 @@ class DocumentQualityAnalyzer:
         entity_counts = Counter(entity_texts)
 
         # Find entities mentioned multiple times (potentially good or bad)
-        frequently_mentioned = {
-            text: count for text, count in entity_counts.items() if count > 3
-        }
+        frequently_mentioned = {text: count for text, count in entity_counts.items() if count > 3}
 
-        metrics['unique_entities'] = len(entity_counts)
-        metrics['total_entity_mentions'] = len(entity_texts)
-        metrics['frequently_mentioned'] = frequently_mentioned
+        metrics["unique_entities"] = len(entity_counts)
+        metrics["total_entity_mentions"] = len(entity_texts)
+        metrics["frequently_mentioned"] = frequently_mentioned
 
         # Check text formatting consistency
-        lines = text.split('\n')
+        lines = text.split("\n")
         empty_lines = sum(1 for line in lines if not line.strip())
-        metrics['empty_lines'] = empty_lines
-        metrics['total_lines'] = len(lines)
+        metrics["empty_lines"] = empty_lines
+        metrics["total_lines"] = len(lines)
 
         # Calculate score (high consistency = good)
         score = 100.0
@@ -335,12 +325,7 @@ class DocumentQualityAnalyzer:
 
         score = max(0, min(100, score))
 
-        return QualityDimension(
-            name="Consistency",
-            score=score,
-            issues=issues,
-            metrics=metrics
-        )
+        return QualityDimension(name="Consistency", score=score, issues=issues, metrics=metrics)
 
     def _check_readability(self, text: str) -> QualityDimension:
         """Check readability metrics."""
@@ -348,7 +333,7 @@ class DocumentQualityAnalyzer:
         metrics = {}
 
         # Basic readability metrics
-        sentences = re.split(r'[.!?]+', text)
+        sentences = re.split(r"[.!?]+", text)
         sentences = [s.strip() for s in sentences if s.strip()]
 
         words = text.split()
@@ -362,14 +347,16 @@ class DocumentQualityAnalyzer:
         long_sentences = sum(1 for s in sentences if len(s.split()) > 40)
 
         if long_sentences > total_sentences * 0.3:
-            issues.append(QualityIssue(
-                type="long_sentences",
-                severity="medium",
-                dimension="readability",
-                location="entire document",
-                message=f"Document has many long sentences ({long_sentences}/{total_sentences})",
-                suggestion="Break long sentences into shorter ones for better readability"
-            ))
+            issues.append(
+                QualityIssue(
+                    type="long_sentences",
+                    severity="medium",
+                    dimension="readability",
+                    location="entire document",
+                    message=f"Document has many long sentences ({long_sentences}/{total_sentences})",
+                    suggestion="Break long sentences into shorter ones for better readability",
+                )
+            )
 
         # Complex words (> 10 characters)
         complex_words = sum(1 for w in words if len(w) > 10)
@@ -383,25 +370,20 @@ class DocumentQualityAnalyzer:
         flesch_score = max(0, min(100, flesch_score))
 
         # Metrics
-        metrics['total_words'] = total_words
-        metrics['total_sentences'] = total_sentences
-        metrics['avg_sentence_length'] = round(avg_sentence_length, 2)
-        metrics['long_sentences'] = long_sentences
-        metrics['complex_words'] = complex_words
-        metrics['complex_word_ratio'] = round(complex_word_ratio, 3)
-        metrics['flesch_reading_ease'] = round(flesch_score, 2)
+        metrics["total_words"] = total_words
+        metrics["total_sentences"] = total_sentences
+        metrics["avg_sentence_length"] = round(avg_sentence_length, 2)
+        metrics["long_sentences"] = long_sentences
+        metrics["complex_words"] = complex_words
+        metrics["complex_word_ratio"] = round(complex_word_ratio, 3)
+        metrics["flesch_reading_ease"] = round(flesch_score, 2)
 
         # Calculate score
         # Flesch score:  90-100 = very easy, 60-70 = standard, 0-30 = very difficult
         # Normalize to 0-100 where higher is better
         score = flesch_score
 
-        return QualityDimension(
-            name="Readability",
-            score=score,
-            issues=issues,
-            metrics=metrics
-        )
+        return QualityDimension(name="Readability", score=score, issues=issues, metrics=metrics)
 
     def _check_timeliness(self, text: str, metadata: Dict[str, Any]) -> QualityDimension:
         """Check timeliness/relevance."""
@@ -419,25 +401,27 @@ class DocumentQualityAnalyzer:
         for date_entity in dates:
             date_text = date_entity.text
             # Try to extract year
-            year_match = re.search(r'\b(19|20)\d{2}\b', date_text)
+            year_match = re.search(r"\b(19|20)\d{2}\b", date_text)
             if year_match:
                 year = int(year_match.group(0))
                 if year < current_year - 5:  # More than 5 years old
                     old_dates.append((date_text, year))
 
         if old_dates:
-            issues.append(QualityIssue(
-                type="outdated_dates",
-                severity="medium",
-                dimension="timeliness",
-                location="multiple locations",
-                message=f"Document contains {len(old_dates)} dates older than 5 years",
-                suggestion="Verify information is still current"
-            ))
+            issues.append(
+                QualityIssue(
+                    type="outdated_dates",
+                    severity="medium",
+                    dimension="timeliness",
+                    location="multiple locations",
+                    message=f"Document contains {len(old_dates)} dates older than 5 years",
+                    suggestion="Verify information is still current",
+                )
+            )
 
         # Metrics
-        metrics['dates_found'] = len(dates)
-        metrics['old_dates'] = len(old_dates)
+        metrics["dates_found"] = len(dates)
+        metrics["old_dates"] = len(old_dates)
 
         # Calculate score
         score = 100.0
@@ -446,12 +430,7 @@ class DocumentQualityAnalyzer:
             old_ratio = len(old_dates) / len(dates) if dates else 0
             score = max(50, 100 - (old_ratio * 50))
 
-        return QualityDimension(
-            name="Timeliness",
-            score=score,
-            issues=issues,
-            metrics=metrics
-        )
+        return QualityDimension(name="Timeliness", score=score, issues=issues, metrics=metrics)
 
     def _count_syllables(self, word: str) -> int:
         """Count syllables in word (simplified)."""
@@ -467,7 +446,7 @@ class DocumentQualityAnalyzer:
             previous_was_vowel = is_vowel
 
         # Adjust for silent 'e'
-        if word.endswith('e'):
+        if word.endswith("e"):
             syllable_count -= 1
 
         # At least one syllable
@@ -479,13 +458,7 @@ class DocumentQualityAnalyzer:
             return 0.0
 
         # Weighted average (can be customized)
-        weights = {
-            "completeness": 0.25,
-            "accuracy": 0.30,
-            "consistency": 0.20,
-            "readability": 0.15,
-            "timeliness": 0.10
-        }
+        weights = {"completeness": 0.25, "accuracy": 0.30, "consistency": 0.20, "readability": 0.15, "timeliness": 0.10}
 
         total_score = 0.0
         total_weight = 0.0
@@ -498,9 +471,7 @@ class DocumentQualityAnalyzer:
         return total_score / total_weight if total_weight > 0 else 0.0
 
     def _generate_recommendations(
-        self,
-        dimensions: Dict[str, QualityDimension],
-        all_issues: List[QualityIssue]
+        self, dimensions: Dict[str, QualityDimension], all_issues: List[QualityIssue]
     ) -> List[str]:
         """Generate actionable recommendations."""
         recommendations = []
@@ -521,9 +492,7 @@ class DocumentQualityAnalyzer:
         # Dimension-specific recommendations
         for name, dimension in dimensions.items():
             if dimension.score < 70:
-                recommendations.append(
-                    f"Improve {name}: Current score {dimension.score:.1f}/100"
-                )
+                recommendations.append(f"Improve {name}: Current score {dimension.score:.1f}/100")
 
         return recommendations
 
@@ -549,7 +518,7 @@ Examples:
 
   # Generate HTML report
   python doc-quality.py analyze document.pdf --report html --output quality.html
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -557,23 +526,25 @@ Examples:
     # Analyze command
     analyze_parser = subparsers.add_parser("analyze", help="Analyze document quality")
     analyze_parser.add_argument("file", help="Document to analyze")
-    analyze_parser.add_argument("--full", action="store_true",
-                               help="Run full analysis (all dimensions)")
-    analyze_parser.add_argument("--dimension", "-d", action="append",
-                               choices=["completeness", "accuracy", "consistency", "readability", "timeliness"],
-                               help="Specific dimension(s) to check")
-    analyze_parser.add_argument("--threshold", type=float, default=0.0,
-                               help="Quality threshold (0-100)")
-    analyze_parser.add_argument("--fail-on-low-quality", action="store_true",
-                               help="Exit with error if quality below threshold")
+    analyze_parser.add_argument("--full", action="store_true", help="Run full analysis (all dimensions)")
+    analyze_parser.add_argument(
+        "--dimension",
+        "-d",
+        action="append",
+        choices=["completeness", "accuracy", "consistency", "readability", "timeliness"],
+        help="Specific dimension(s) to check",
+    )
+    analyze_parser.add_argument("--threshold", type=float, default=0.0, help="Quality threshold (0-100)")
+    analyze_parser.add_argument(
+        "--fail-on-low-quality", action="store_true", help="Exit with error if quality below threshold"
+    )
     analyze_parser.add_argument("--output", "-o", help="Output file for report (JSON)")
 
     # Batch command
     batch_parser = subparsers.add_parser("batch", help="Batch quality check")
     batch_parser.add_argument("input_dir", help="Input directory")
     batch_parser.add_argument("--output", "-o", help="Output report file (JSON)")
-    batch_parser.add_argument("--threshold", type=float, default=70.0,
-                             help="Quality threshold")
+    batch_parser.add_argument("--threshold", type=float, default=70.0, help="Quality threshold")
 
     args = parser.parse_args()
 
@@ -619,7 +590,7 @@ Examples:
 
             # Save report if requested
             if args.output:
-                with open(args.output, 'w') as f:
+                with open(args.output, "w") as f:
                     json.dump(report.to_dict(), f, indent=2, ensure_ascii=False)
                 print(f"\nReport saved to: {args.output}")
 
@@ -649,11 +620,11 @@ Examples:
                     "total_files": len(files),
                     "analyzed": len(results),
                     "threshold": args.threshold,
-                    "passed": sum(1 for r in results if r['passed']),
-                    "failed": sum(1 for r in results if not r['passed']),
-                    "results": results
+                    "passed": sum(1 for r in results if r["passed"]),
+                    "failed": sum(1 for r in results if not r["passed"]),
+                    "results": results,
                 }
-                with open(args.output, 'w') as f:
+                with open(args.output, "w") as f:
                     json.dump(batch_report, f, indent=2, ensure_ascii=False)
                 print(f"\nBatch report saved to: {args.output}")
 

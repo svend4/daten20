@@ -11,14 +11,14 @@ Provides advanced logging utilities:
 - Error tracking integration
 """
 
-import logging
-import time
 import functools
 import json
-from typing import Optional, Callable, Any, Dict
-from datetime import datetime
+import logging
+import time
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Callable, Dict, Optional
 
 
 class PerformanceLogger:
@@ -54,13 +54,13 @@ class PerformanceLogger:
             duration = time.time() - start_time
             self.logger.info(
                 f"[PERF] Completed: {operation} in {duration:.2f}s",
-                extra={"context": {**context, "duration_seconds": duration, "status": "success"}}
+                extra={"context": {**context, "duration_seconds": duration, "status": "success"}},
             )
         except Exception as e:
             duration = time.time() - start_time
             self.logger.error(
                 f"[PERF] Failed: {operation} after {duration:.2f}s - {str(e)}",
-                extra={"context": {**context, "duration_seconds": duration, "status": "failed", "error": str(e)}}
+                extra={"context": {**context, "duration_seconds": duration, "status": "failed", "error": str(e)}},
             )
             raise
 
@@ -76,6 +76,7 @@ class PerformanceLogger:
             def process_doc(doc_id):
                 ...
         """
+
         def decorator(func):
             op_name = operation or func.__name__
 
@@ -88,19 +89,19 @@ class PerformanceLogger:
                     result = func(*args, **kwargs)
                     duration = time.time() - start_time
                     self.logger.info(
-                        f"[PERF] Completed: {op_name} in {duration:.2f}s",
-                        extra={"duration_seconds": duration}
+                        f"[PERF] Completed: {op_name} in {duration:.2f}s", extra={"duration_seconds": duration}
                     )
                     return result
                 except Exception as e:
                     duration = time.time() - start_time
                     self.logger.error(
                         f"[PERF] Failed: {op_name} after {duration:.2f}s - {str(e)}",
-                        extra={"duration_seconds": duration, "error": str(e)}
+                        extra={"duration_seconds": duration, "error": str(e)},
                     )
                     raise
 
             return wrapper
+
         return decorator
 
 
@@ -122,21 +123,11 @@ class AuditLogger:
         if audit_log_path:
             audit_handler = logging.FileHandler(audit_log_path)
             audit_handler.setLevel(logging.INFO)
-            formatter = logging.Formatter(
-                '%(asctime)s - AUDIT - %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S'
-            )
+            formatter = logging.Formatter("%(asctime)s - AUDIT - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
             audit_handler.setFormatter(formatter)
             self.logger.addHandler(audit_handler)
 
-    def log_action(
-        self,
-        action: str,
-        user: str,
-        resource: str,
-        status: str = "success",
-        **details
-    ):
+    def log_action(self, action: str, user: str, resource: str, status: str = "success", **details):
         """
         Log an audit event
 
@@ -153,13 +144,10 @@ class AuditLogger:
             "user": user,
             "resource": resource,
             "status": status,
-            **details
+            **details,
         }
 
-        self.logger.info(
-            f"[AUDIT] {action.upper()} {resource} by {user} - {status}",
-            extra={"audit_data": audit_data}
-        )
+        self.logger.info(f"[AUDIT] {action.upper()} {resource} by {user} - {status}", extra={"audit_data": audit_data})
 
     def log_access(self, user: str, resource: str, granted: bool, reason: Optional[str] = None):
         """Log access attempt"""
@@ -169,35 +157,16 @@ class AuditLogger:
 
     def log_data_access(self, user: str, data_type: str, operation: str, count: int = 1):
         """Log data access for GDPR compliance"""
-        self.log_action(
-            "data_access",
-            user,
-            data_type,
-            "success",
-            operation=operation,
-            record_count=count
-        )
+        self.log_action("data_access", user, data_type, "success", operation=operation, record_count=count)
 
     def log_pii_access(self, user: str, pii_type: str, purpose: str):
         """Log PII (Personally Identifiable Information) access"""
-        self.log_action(
-            "pii_access",
-            user,
-            pii_type,
-            "success",
-            purpose=purpose,
-            compliance="GDPR"
-        )
+        self.log_action("pii_access", user, pii_type, "success", purpose=purpose, compliance="GDPR")
 
     def log_configuration_change(self, user: str, config_key: str, old_value: Any, new_value: Any):
         """Log configuration changes"""
         self.log_action(
-            "config_change",
-            user,
-            config_key,
-            "success",
-            old_value=str(old_value),
-            new_value=str(new_value)
+            "config_change", user, config_key, "success", old_value=str(old_value), new_value=str(new_value)
         )
 
 
@@ -220,7 +189,7 @@ class StructuredLogger:
         user: Optional[str] = None,
         status_code: Optional[int] = None,
         duration: Optional[float] = None,
-        **extra
+        **extra,
     ):
         """
         Log HTTP request
@@ -239,27 +208,16 @@ class StructuredLogger:
             "user": user,
             "status_code": status_code,
             "duration_ms": duration * 1000 if duration else None,
-            **extra
+            **extra,
         }
 
         if status_code and status_code >= 400:
-            self.logger.warning(
-                f"[API] {method} {endpoint} - {status_code}",
-                extra={"context": context}
-            )
+            self.logger.warning(f"[API] {method} {endpoint} - {status_code}", extra={"context": context})
         else:
-            self.logger.info(
-                f"[API] {method} {endpoint}",
-                extra={"context": context}
-            )
+            self.logger.info(f"[API] {method} {endpoint}", extra={"context": context})
 
     def log_operation(
-        self,
-        operation: str,
-        status: str,
-        entity_type: Optional[str] = None,
-        entity_id: Optional[str] = None,
-        **details
+        self, operation: str, status: str, entity_type: Optional[str] = None, entity_id: Optional[str] = None, **details
     ):
         """
         Log business operation
@@ -276,7 +234,7 @@ class StructuredLogger:
             "status": status,
             "entity_type": entity_type,
             "entity_id": entity_id,
-            **details
+            **details,
         }
 
         level = logging.INFO
@@ -288,16 +246,10 @@ class StructuredLogger:
         self.logger.log(
             level,
             f"[OP] {operation} - {status}" + (f" ({entity_type}:{entity_id})" if entity_id else ""),
-            extra={"context": context}
+            extra={"context": context},
         )
 
-    def log_security_event(
-        self,
-        event_type: str,
-        severity: str,
-        description: str,
-        **details
-    ):
+    def log_security_event(self, event_type: str, severity: str, description: str, **details):
         """
         Log security event
 
@@ -311,7 +263,7 @@ class StructuredLogger:
             "event_type": event_type,
             "severity": severity,
             "timestamp": datetime.utcnow().isoformat(),
-            **details
+            **details,
         }
 
         level = logging.WARNING
@@ -319,17 +271,10 @@ class StructuredLogger:
             level = logging.ERROR
 
         self.logger.log(
-            level,
-            f"[SECURITY] {event_type} - {severity.upper()} - {description}",
-            extra={"context": context}
+            level, f"[SECURITY] {event_type} - {severity.upper()} - {description}", extra={"context": context}
         )
 
-    def log_error(
-        self,
-        error: Exception,
-        context: Optional[Dict[str, Any]] = None,
-        user_message: Optional[str] = None
-    ):
+    def log_error(self, error: Exception, context: Optional[Dict[str, Any]] = None, user_message: Optional[str] = None):
         """
         Log error with context
 
@@ -342,13 +287,11 @@ class StructuredLogger:
             "error_type": type(error).__name__,
             "error_message": str(error),
             "user_message": user_message,
-            **(context or {})
+            **(context or {}),
         }
 
         self.logger.error(
-            f"[ERROR] {type(error).__name__}: {str(error)}",
-            exc_info=True,
-            extra={"context": error_context}
+            f"[ERROR] {type(error).__name__}: {str(error)}", exc_info=True, extra={"context": error_context}
         )
 
 
@@ -419,10 +362,7 @@ def get_performance_logger(logger_name: str = "performance") -> PerformanceLogge
     return PerformanceLogger(logger)
 
 
-def get_audit_logger(
-    logger_name: str = "audit",
-    audit_log_path: Optional[Path] = None
-) -> AuditLogger:
+def get_audit_logger(logger_name: str = "audit", audit_log_path: Optional[Path] = None) -> AuditLogger:
     """Get an audit logger instance"""
     logger = logging.getLogger(logger_name)
     return AuditLogger(logger, audit_log_path)

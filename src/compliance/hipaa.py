@@ -10,17 +10,18 @@ Implements HIPAA (Health Insurance Portability and Accountability Act) complianc
 - Administrative, Physical, and Technical Safeguards
 """
 
-from typing import Optional, List, Dict, Any, Set
+import hashlib
+import json
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-import hashlib
-import uuid
-import json
+from typing import Any, Dict, List, Optional, Set
 
 
 class PHICategory(str, Enum):
     """Categories of Protected Health Information (45 CFR §160.103)"""
+
     # Demographic identifiers
     NAMES = "names"
     DATES = "dates"  # Birth, admission, discharge, death
@@ -51,6 +52,7 @@ class PHICategory(str, Enum):
 
 class SafeguardType(str, Enum):
     """Types of HIPAA Safeguards"""
+
     ADMINISTRATIVE = "administrative"  # §164.308
     PHYSICAL = "physical"  # §164.310
     TECHNICAL = "technical"  # §164.312
@@ -58,6 +60,7 @@ class SafeguardType(str, Enum):
 
 class AccessLevel(str, Enum):
     """Access levels for PHI"""
+
     NO_ACCESS = "no_access"
     READ_ONLY = "read_only"
     LIMITED = "limited"
@@ -66,6 +69,7 @@ class AccessLevel(str, Enum):
 
 class BreachRiskLevel(str, Enum):
     """HIPAA breach risk assessment levels"""
+
     LOW = "low"
     MODERATE = "moderate"
     HIGH = "high"
@@ -74,6 +78,7 @@ class BreachRiskLevel(str, Enum):
 @dataclass
 class PHIField:
     """Protected Health Information field"""
+
     field_name: str
     category: PHICategory
     encrypted: bool = False
@@ -84,6 +89,7 @@ class PHIField:
 @dataclass
 class AccessLog:
     """Access log for PHI (§164.308(a)(1)(ii)(D) - Audit Controls)"""
+
     id: str
     user_id: int
     username: str
@@ -99,6 +105,7 @@ class AccessLog:
 @dataclass
 class BusinessAssociate:
     """Business Associate Agreement (BAA) tracking"""
+
     id: str
     name: str
     contact_email: str
@@ -114,6 +121,7 @@ class BusinessAssociate:
 @dataclass
 class SecurityIncident:
     """Security incident tracking (§164.308(a)(6))"""
+
     id: str
     reported_at: datetime
     incident_type: str
@@ -130,6 +138,7 @@ class SecurityIncident:
 @dataclass
 class RiskAssessment:
     """Security Risk Assessment (§164.308(a)(1)(ii)(A))"""
+
     id: str
     conducted_date: datetime
     conducted_by: str
@@ -146,10 +155,10 @@ class PHIIdentifier:
 
     def __init__(self):
         self.phi_patterns = {
-            PHICategory.SSN: r'\b\d{3}-\d{2}-\d{4}\b',
-            PHICategory.TELEPHONE: r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b',
-            PHICategory.EMAIL: r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-            PHICategory.IP_ADDRESS: r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',
+            PHICategory.SSN: r"\b\d{3}-\d{2}-\d{4}\b",
+            PHICategory.TELEPHONE: r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b",
+            PHICategory.EMAIL: r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+            PHICategory.IP_ADDRESS: r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",
         }
 
     def identify_phi(self, data: Dict[str, Any]) -> List[PHIField]:
@@ -163,12 +172,9 @@ class PHIIdentifier:
             # Check against patterns
             for category, pattern in self.phi_patterns.items():
                 import re
+
                 if re.search(pattern, value):
-                    phi_fields.append(PHIField(
-                        field_name=field_name,
-                        category=category,
-                        encrypted=False
-                    ))
+                    phi_fields.append(PHIField(field_name=field_name, category=category, encrypted=False))
                     break
 
         return phi_fields
@@ -226,7 +232,7 @@ class AccessControlManager:
         action: str,
         ip_address: str,
         success: bool,
-        data_accessed: Optional[List[str]] = None
+        data_accessed: Optional[List[str]] = None,
     ):
         """Log PHI access (§164.308(a)(1)(ii)(D) - Audit controls)"""
         log = AccessLog(
@@ -238,7 +244,7 @@ class AccessControlManager:
             timestamp=datetime.now(),
             ip_address=ip_address,
             success=success,
-            data_accessed=data_accessed
+            data_accessed=data_accessed,
         )
 
         self.access_logs.append(log)
@@ -248,10 +254,7 @@ class AccessControlManager:
         self.access_logs = [log for log in self.access_logs if log.timestamp > cutoff_date]
 
     def get_access_report(
-        self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        user_id: Optional[int] = None
+        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None, user_id: Optional[int] = None
     ) -> List[AccessLog]:
         """Generate access report for auditing"""
         logs = self.access_logs
@@ -275,11 +278,7 @@ class AccessControlManager:
         for log in self.access_logs[-1000:]:  # Last 1000 logs
             hour = log.timestamp.hour
             if 2 <= hour <= 5:
-                anomalies.append({
-                    'type': 'unusual_time',
-                    'log': log,
-                    'description': 'Access during unusual hours'
-                })
+                anomalies.append({"type": "unusual_time", "log": log, "description": "Access during unusual hours"})
 
         # Check for bulk access
         user_access_counts = {}
@@ -288,12 +287,14 @@ class AccessControlManager:
 
         for user_id, count in user_access_counts.items():
             if count > 100:  # More than 100 accesses in recent period
-                anomalies.append({
-                    'type': 'bulk_access',
-                    'user_id': user_id,
-                    'count': count,
-                    'description': 'Unusually high access volume'
-                })
+                anomalies.append(
+                    {
+                        "type": "bulk_access",
+                        "user_id": user_id,
+                        "count": count,
+                        "description": "Unusually high access volume",
+                    }
+                )
 
         return anomalies
 
@@ -308,6 +309,7 @@ class EncryptionManager:
         """Generate encryption key (AES-256 in production)"""
         # In production, use proper key management (KMS, HSM)
         import secrets
+
         return secrets.token_hex(32)
 
     def encrypt_phi(self, data: str) -> str:
@@ -315,12 +317,14 @@ class EncryptionManager:
         # In production, use AES-256 or similar
         # For demonstration, using simple hash
         import base64
+
         return base64.b64encode(data.encode()).decode()
 
     def decrypt_phi(self, encrypted_data: str) -> str:
         """Decrypt PHI data"""
         # In production, use proper decryption
         import base64
+
         return base64.b64decode(encrypted_data.encode()).decode()
 
     def encrypt_at_rest(self, file_path: str) -> bool:
@@ -330,11 +334,7 @@ class EncryptionManager:
 
     def encrypt_in_transit(self) -> Dict[str, Any]:
         """Ensure encryption in transit (TLS 1.2+)"""
-        return {
-            'tls_version': '1.2',
-            'cipher_suite': 'AES-256-GCM',
-            'certificate_valid': True
-        }
+        return {"tls_version": "1.2", "cipher_suite": "AES-256-GCM", "certificate_valid": True}
 
 
 class BreachNotificationManager:
@@ -344,11 +344,7 @@ class BreachNotificationManager:
         self.incidents: Dict[str, SecurityIncident] = {}
 
     def report_incident(
-        self,
-        incident_type: str,
-        description: str,
-        phi_compromised: bool,
-        affected_individuals: int
+        self, incident_type: str, description: str, phi_compromised: bool, affected_individuals: int
     ) -> str:
         """Report security incident"""
         incident_id = str(uuid.uuid4())
@@ -363,7 +359,7 @@ class BreachNotificationManager:
             description=description,
             severity=severity,
             phi_compromised=phi_compromised,
-            affected_individuals=affected_individuals
+            affected_individuals=affected_individuals,
         )
 
         self.incidents[incident_id] = incident
@@ -422,15 +418,15 @@ class BreachNotificationManager:
         incident = self.incidents[incident_id]
 
         return {
-            'incident_id': incident.id,
-            'discovery_date': incident.reported_at.isoformat(),
-            'breach_type': incident.incident_type,
-            'location': 'Electronic',
-            'affected_individuals': incident.affected_individuals,
-            'description': incident.description,
-            'mitigation_steps': incident.mitigation_steps,
-            'business_associates_involved': [],
-            'safeguards_in_place': []
+            "incident_id": incident.id,
+            "discovery_date": incident.reported_at.isoformat(),
+            "breach_type": incident.incident_type,
+            "location": "Electronic",
+            "affected_individuals": incident.affected_individuals,
+            "description": incident.description,
+            "mitigation_steps": incident.mitigation_steps,
+            "business_associates_involved": [],
+            "safeguards_in_place": [],
         }
 
 
@@ -454,11 +450,7 @@ class HIPAAComplianceEngine:
         self.training_records: Dict[int, List[datetime]] = {}
 
     def register_business_associate(
-        self,
-        name: str,
-        contact_email: str,
-        services_provided: List[str],
-        phi_categories: List[PHICategory]
+        self, name: str, contact_email: str, services_provided: List[str], phi_categories: List[PHICategory]
     ) -> str:
         """Register Business Associate"""
         ba_id = str(uuid.uuid4())
@@ -471,7 +463,7 @@ class HIPAAComplianceEngine:
             baa_signed_date=None,
             baa_expiry_date=None,
             services_provided=services_provided,
-            phi_categories_accessed=phi_categories
+            phi_categories_accessed=phi_categories,
         )
 
         self.business_associates[ba_id] = ba
@@ -489,11 +481,7 @@ class HIPAAComplianceEngine:
 
         return True
 
-    def conduct_risk_assessment(
-        self,
-        conducted_by: str,
-        scope: str
-    ) -> str:
+    def conduct_risk_assessment(self, conducted_by: str, scope: str) -> str:
         """Conduct Security Risk Assessment (§164.308(a)(1)(ii)(A))"""
         assessment_id = str(uuid.uuid4())
 
@@ -506,7 +494,7 @@ class HIPAAComplianceEngine:
             vulnerabilities_identified=[],
             current_security_measures=[],
             recommended_actions=[],
-            next_assessment_date=datetime.now() + timedelta(days=365)
+            next_assessment_date=datetime.now() + timedelta(days=365),
         )
 
         self.risk_assessments.append(assessment)
@@ -532,10 +520,7 @@ class HIPAAComplianceEngine:
         # Check various compliance requirements
 
         # Administrative Safeguards
-        users_with_training = len([
-            uid for uid in self.training_records
-            if self.check_training_current(uid)
-        ])
+        users_with_training = len([uid for uid in self.training_records if self.check_training_current(uid)])
 
         # Technical Safeguards
         encryption_status = self.encryption.encrypt_in_transit()
@@ -543,42 +528,41 @@ class HIPAAComplianceEngine:
         # Physical Safeguards (would check facility access, workstation security, etc.)
 
         # Business Associate Agreements
-        active_baas = len([
-            ba for ba in self.business_associates.values()
-            if ba.baa_signed and ba.baa_expiry_date and ba.baa_expiry_date > datetime.now()
-        ])
+        active_baas = len(
+            [
+                ba
+                for ba in self.business_associates.values()
+                if ba.baa_signed and ba.baa_expiry_date and ba.baa_expiry_date > datetime.now()
+            ]
+        )
 
         # Risk Assessments
-        recent_assessments = len([
-            ra for ra in self.risk_assessments
-            if (datetime.now() - ra.conducted_date).days < 365
-        ])
+        recent_assessments = len(
+            [ra for ra in self.risk_assessments if (datetime.now() - ra.conducted_date).days < 365]
+        )
 
         return {
-            'administrative_safeguards': {
-                'trained_users': users_with_training,
-                'access_controls_enabled': len(self.access_control.authorized_users) > 0,
-                'audit_logs_enabled': len(self.access_control.access_logs) > 0
+            "administrative_safeguards": {
+                "trained_users": users_with_training,
+                "access_controls_enabled": len(self.access_control.authorized_users) > 0,
+                "audit_logs_enabled": len(self.access_control.access_logs) > 0,
             },
-            'technical_safeguards': {
-                'encryption_in_transit': encryption_status['tls_version'] >= '1.2',
-                'encryption_at_rest': True,
-                'access_logging': True,
-                'automatic_logoff': True
+            "technical_safeguards": {
+                "encryption_in_transit": encryption_status["tls_version"] >= "1.2",
+                "encryption_at_rest": True,
+                "access_logging": True,
+                "automatic_logoff": True,
             },
-            'physical_safeguards': {
-                'facility_access_controls': True,
-                'workstation_security': True,
-                'device_controls': True
+            "physical_safeguards": {
+                "facility_access_controls": True,
+                "workstation_security": True,
+                "device_controls": True,
             },
-            'business_associates': {
-                'active_baas': active_baas,
-                'total': len(self.business_associates)
+            "business_associates": {"active_baas": active_baas, "total": len(self.business_associates)},
+            "risk_management": {
+                "recent_assessments": recent_assessments,
+                "incidents_open": len([i for i in self.breach_notification.incidents.values() if not i.resolved]),
             },
-            'risk_management': {
-                'recent_assessments': recent_assessments,
-                'incidents_open': len([i for i in self.breach_notification.incidents.values() if not i.resolved])
-            }
         }
 
 
