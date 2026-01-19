@@ -6,8 +6,10 @@ Intelligence operating at planetary to universal scales.
 
 from .cosmic_services import (
     CivilizationScale,
+    CosmicIntelligenceConfig,
     DysonStructure,
     GalacticCivilizationService,
+    IntegratedCosmicSystem,
     OmegaPointService,
     PhysicsManipulationService,
     PlanetaryIntelligenceService,
@@ -15,6 +17,7 @@ from .cosmic_services import (
     StellarEngineeringService,
     TranscendentReasoningService,
     UniversalComputationService,
+    get_cosmic_system,
     get_galactic_service,
     get_omega_point_service,
     get_physics_manipulation_service,
@@ -27,6 +30,7 @@ from .cosmic_services import (
 __version__ = "27.0.0"
 
 __all__ = [
+    # Services
     "PlanetaryIntelligenceService",
     "StellarEngineeringService",
     "GalacticCivilizationService",
@@ -34,9 +38,15 @@ __all__ = [
     "PhysicsManipulationService",
     "TranscendentReasoningService",
     "OmegaPointService",
+    # Integrated System
+    "IntegratedCosmicSystem",
+    # Enums
     "CivilizationScale",
+    # Data Structures
     "PlanetaryState",
     "DysonStructure",
+    "CosmicIntelligenceConfig",
+    # Singleton Getters
     "get_planetary_service",
     "get_stellar_service",
     "get_galactic_service",
@@ -44,5 +54,7 @@ __all__ = [
     "get_physics_manipulation_service",
     "get_transcendent_reasoning_service",
     "get_omega_point_service",
+    "get_cosmic_system",
+    # Version
     "__version__",
 ]
