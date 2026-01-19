@@ -1403,6 +1403,332 @@ class ContinuousModelRefinement:
 
 
 # ============================================================================
+# Integrated System
+# ============================================================================
+
+
+@dataclass
+class WorldModelsConfig:
+    """Configuration for Integrated World Models System"""
+
+    # Enable subsystems
+    enable_world_model_learning: bool = True
+    enable_predictive_learning: bool = True
+    enable_model_based_planning: bool = True
+    enable_imagination_learning: bool = True
+    enable_causal_reasoning: bool = True
+    enable_uncertainty_prediction: bool = True
+    enable_model_refinement: bool = True
+
+    # Default settings
+    default_model_type: ModelType = ModelType.HYBRID
+    default_planning_algorithm: PlanningAlgorithm = PlanningAlgorithm.CEM
+    prediction_horizon: int = 10
+    planning_horizon: int = 5
+
+    # Model parameters
+    latent_dim: int = 128
+    ensemble_size: int = 5
+    imagination_rollouts: int = 10
+    refinement_interval_steps: int = 1000
+
+
+class IntegratedWorldModelsSystem:
+    """
+    Unified World Models System.
+
+    Integrates all 7 subsystems for learning world models, predicting future states,
+    and planning through mental simulation:
+    1. World Model Learning & Representation
+    2. Predictive Learning & Forecasting
+    3. Model-Based Planning & Simulation
+    4. Imagination-Based Learning
+    5. Causal Reasoning & Intervention
+    6. Uncertainty-Aware Prediction
+    7. Continuous Model Refinement
+    """
+
+    def __init__(self, config: Optional[WorldModelsConfig] = None):
+        """Initialize integrated world models system"""
+        self.config = config or WorldModelsConfig()
+
+        # Initialize subsystems
+        self.world_model = get_world_model_learning() if self.config.enable_world_model_learning else None
+        self.predictive = get_predictive_learning() if self.config.enable_predictive_learning else None
+        self.planning = get_model_based_planning() if self.config.enable_model_based_planning else None
+        self.imagination = get_imagination_learning() if self.config.enable_imagination_learning else None
+        self.causal = get_causal_reasoning() if self.config.enable_causal_reasoning else None
+        self.uncertainty = get_uncertainty_prediction() if self.config.enable_uncertainty_prediction else None
+        self.refinement = get_model_refinement() if self.config.enable_model_refinement else None
+
+    async def learn_and_plan_from_experience(
+        self,
+        experiences: List[Dict[str, Any]],
+        goal_state: Optional[Any] = None,
+        planning_budget: int = 100,
+    ) -> Dict[str, Any]:
+        """
+        Complete workflow: Learn world model → predict future → plan actions.
+
+        Pipeline:
+        1. Learn world model from experiences
+        2. Predict future states
+        3. Plan optimal action sequence
+        4. Estimate uncertainty
+        5. Refine model based on errors
+
+        Args:
+            experiences: Historical state-action-reward experiences
+            goal_state: Optional goal to reach
+            planning_budget: Number of planning simulations
+
+        Returns:
+            Plan with actions, predicted outcomes, and uncertainties
+        """
+        # Step 1: Learn world model from experiences
+        model_id = f"model_{datetime.now().timestamp()}"
+        model = await self.world_model.learn_model(
+            model_id=model_id,
+            data=experiences,
+            model_type=self.config.default_model_type,
+        )
+
+        # Step 2: Predict future trajectories
+        current_state = experiences[-1] if experiences else {"state": np.random.randn(10)}
+        predictions = []
+        for h in range(self.config.prediction_horizon):
+            pred = await self.predictive.predict(
+                model_id=model_id,
+                current_state=current_state,
+                prediction_horizon=1,
+                prediction_type=PredictionType.SINGLE_STEP,
+            )
+            predictions.append(pred)
+            current_state = pred  # Roll forward
+
+        # Step 3: Plan using model-based planning
+        plan = await self.planning.plan(
+            model_id=model_id,
+            current_state=experiences[-1] if experiences else {"state": np.random.randn(10)},
+            goal_state=goal_state or {"state": np.random.randn(10)},
+            horizon=self.config.planning_horizon,
+            algorithm=self.config.default_planning_algorithm,
+            num_simulations=planning_budget,
+        )
+
+        # Step 4: Uncertainty estimation
+        uncertainty = await self.uncertainty.estimate_uncertainty(
+            predictions=predictions,
+            uncertainty_type=UncertaintyType.EPISTEMIC,
+        )
+
+        # Step 5: Model refinement check
+        error_data = []
+        for i, pred in enumerate(predictions[:3]):
+            error_data.append({
+                "predicted": pred,
+                "actual": pred,  # In real setting, would be actual observed state
+                "error": np.random.uniform(0.01, 0.1),
+            })
+
+        refinement_result = await self.refinement.detect_model_errors(
+            model_id=model_id,
+            error_data=error_data,
+        )
+
+        return {
+            "model_id": model_id,
+            "plan": plan,
+            "predicted_trajectory": predictions,
+            "uncertainty": uncertainty,
+            "refinement_needed": refinement_result.get("errors_detected", False),
+            "planning_budget_used": planning_budget,
+        }
+
+    async def imagination_based_learning(
+        self,
+        model_id: str,
+        num_imagined_rollouts: int = 10,
+        learning_task: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Learn from imagined experiences using world model.
+
+        Workflow:
+        1. Generate imagined trajectories using world model
+        2. Learn policy from imagined data
+        3. Estimate value of imagined experiences
+        4. Refine world model if imagination diverges
+
+        Args:
+            model_id: World model to use for imagination
+            num_imagined_rollouts: Number of rollouts to imagine
+            learning_task: Optional task specification
+
+        Returns:
+            Learning results from imagined experiences
+        """
+        # Step 1: Generate imagined trajectories
+        imagined_trajectories = []
+        for _ in range(num_imagined_rollouts):
+            start_state = {"state": np.random.randn(self.config.latent_dim)}
+            trajectory = await self.imagination.imagine_trajectory(
+                model_id=model_id,
+                start_state=start_state,
+                num_steps=20,
+            )
+            imagined_trajectories.append(trajectory)
+
+        # Step 2: Learn from imagined experiences
+        learning_result = await self.imagination.learn_from_imagination(
+            imagined_data=imagined_trajectories,
+            learning_objective=learning_task or "maximize_reward",
+        )
+
+        # Step 3: Evaluate imagination quality
+        imagination_rewards = [t.total_reward for t in imagined_trajectories]
+        avg_imagined_reward = np.mean(imagination_rewards)
+
+        # Step 4: Check if model refinement needed
+        imagination_quality = await self.uncertainty.estimate_uncertainty(
+            predictions=imagined_trajectories,
+            uncertainty_type=UncertaintyType.EPISTEMIC,
+        )
+
+        needs_refinement = imagination_quality.get("epistemic_uncertainty", 0.0) > 0.5
+
+        return {
+            "num_trajectories_imagined": len(imagined_trajectories),
+            "average_imagined_reward": avg_imagined_reward,
+            "learning_performance": learning_result.get("performance_gain", 0.0),
+            "imagination_quality": imagination_quality,
+            "needs_model_refinement": needs_refinement,
+            "model_id": model_id,
+        }
+
+    async def causal_intervention_planning(
+        self,
+        causal_graph_data: Dict[str, Any],
+        intervention_target: str,
+        desired_outcome: Any,
+    ) -> Dict[str, Any]:
+        """
+        Plan interventions using causal reasoning.
+
+        Workflow:
+        1. Build causal graph from data
+        2. Simulate interventions (do-calculus)
+        3. Predict counterfactual outcomes
+        4. Plan optimal intervention strategy
+        5. Estimate uncertainty in causal effects
+
+        Args:
+            causal_graph_data: Data for building causal graph
+            intervention_target: Variable to intervene on
+            desired_outcome: Target outcome to achieve
+
+        Returns:
+            Intervention plan with predicted causal effects
+        """
+        # Step 1: Build causal graph
+        graph_id = f"graph_{datetime.now().timestamp()}"
+        causal_graph = await self.causal.build_causal_graph(
+            graph_id=graph_id,
+            observational_data=causal_graph_data,
+        )
+
+        # Step 2: Simulate intervention
+        intervention_result = await self.causal.simulate_intervention(
+            graph_id=graph_id,
+            intervention_variable=intervention_target,
+            intervention_value=1.0,
+            intervention_type=InterventionType.DO,
+        )
+
+        # Step 3: Counterfactual reasoning
+        counterfactual = await self.causal.counterfactual_reasoning(
+            graph_id=graph_id,
+            factual_observation={"outcome": 0.5},
+            counterfactual_intervention={intervention_target: 1.0},
+        )
+
+        # Step 4: Estimate causal effects
+        causal_effects = await self.causal.estimate_causal_effect(
+            graph_id=graph_id,
+            treatment_variable=intervention_target,
+            outcome_variable="outcome",
+        )
+
+        # Step 5: Uncertainty in causal estimates
+        uncertainty = await self.uncertainty.estimate_uncertainty(
+            predictions=[intervention_result, counterfactual],
+            uncertainty_type=UncertaintyType.STRUCTURAL,
+        )
+
+        return {
+            "graph_id": graph_id,
+            "intervention_target": intervention_target,
+            "predicted_outcome": intervention_result.get("outcome", 0.0),
+            "counterfactual_outcome": counterfactual.get("counterfactual_outcome", 0.0),
+            "causal_effect": causal_effects.get("effect_size", 0.0),
+            "uncertainty": uncertainty,
+            "recommended_intervention": causal_effects.get("effect_size", 0.0) > 0.5,
+        }
+
+    def get_system_status(self) -> Dict[str, Any]:
+        """Get current system status"""
+        return {
+            "world_model_learning_enabled": self.world_model is not None,
+            "predictive_learning_enabled": self.predictive is not None,
+            "model_based_planning_enabled": self.planning is not None,
+            "imagination_learning_enabled": self.imagination is not None,
+            "causal_reasoning_enabled": self.causal is not None,
+            "uncertainty_prediction_enabled": self.uncertainty is not None,
+            "model_refinement_enabled": self.refinement is not None,
+            "config": {
+                "default_model_type": self.config.default_model_type.value,
+                "planning_algorithm": self.config.default_planning_algorithm.value,
+                "prediction_horizon": self.config.prediction_horizon,
+                "latent_dim": self.config.latent_dim,
+            },
+        }
+
+    async def benchmark_performance(self) -> List[Dict[str, Any]]:
+        """Benchmark all subsystems"""
+        benchmarks = []
+
+        if self.world_model:
+            model = await self.world_model.learn_model("bench_model", [{"state": np.random.randn(10)}], ModelType.DETERMINISTIC)
+            benchmarks.append({"subsystem": "world_model_learning", "operations": 1, "status": "ok"})
+
+        if self.predictive:
+            await self.predictive.predict("model_1", {"state": np.random.randn(10)}, 5, PredictionType.MULTI_STEP)
+            benchmarks.append({"subsystem": "predictive_learning", "operations": 1, "status": "ok"})
+
+        if self.planning:
+            await self.planning.plan("model_1", {"state": np.random.randn(10)}, {"state": np.random.randn(10)}, 5, PlanningAlgorithm.RANDOM_SHOOTING, 10)
+            benchmarks.append({"subsystem": "model_based_planning", "operations": 1, "status": "ok"})
+
+        if self.imagination:
+            await self.imagination.imagine_trajectory("model_1", {"state": np.random.randn(10)}, 10)
+            benchmarks.append({"subsystem": "imagination_learning", "operations": 1, "status": "ok"})
+
+        if self.causal:
+            await self.causal.build_causal_graph("graph_1", [{"x": 1, "y": 2}])
+            benchmarks.append({"subsystem": "causal_reasoning", "operations": 1, "status": "ok"})
+
+        if self.uncertainty:
+            await self.uncertainty.estimate_uncertainty([{"state": np.random.randn(10)}], UncertaintyType.EPISTEMIC)
+            benchmarks.append({"subsystem": "uncertainty_prediction", "operations": 1, "status": "ok"})
+
+        if self.refinement:
+            await self.refinement.detect_model_errors("model_1", [{"error": 0.1}])
+            benchmarks.append({"subsystem": "model_refinement", "operations": 1, "status": "ok"})
+
+        return benchmarks
+
+
+# ============================================================================
 # Singleton Getters
 # ============================================================================
 
@@ -1413,6 +1739,7 @@ _imagination_learning_instance = None
 _causal_reasoning_instance = None
 _uncertainty_prediction_instance = None
 _model_refinement_instance = None
+_integrated_world_models_instance = None
 
 
 def get_world_model_learning() -> WorldModelLearning:
@@ -1475,3 +1802,11 @@ def get_model_refinement() -> ContinuousModelRefinement:
         wm_service = get_world_model_learning()
         _model_refinement_instance = ContinuousModelRefinement(wm_service)
     return _model_refinement_instance
+
+
+def get_world_models_system(config: Optional[WorldModelsConfig] = None) -> IntegratedWorldModelsSystem:
+    """Get singleton instance of Integrated World Models System"""
+    global _integrated_world_models_instance
+    if _integrated_world_models_instance is None:
+        _integrated_world_models_instance = IntegratedWorldModelsSystem(config)
+    return _integrated_world_models_instance

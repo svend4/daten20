@@ -25,6 +25,7 @@ from .world_models_services import (  # Core Systems; Enums; Data Classes; Singl
     ContinuousModelRefinement,
     ImaginationLearning,
     ImaginedTrajectory,
+    IntegratedWorldModelsSystem,
     InterventionType,
     ModelBasedPlanning,
     ModelType,
@@ -40,6 +41,7 @@ from .world_models_services import (  # Core Systems; Enums; Data Classes; Singl
     UncertaintyType,
     WorldModel,
     WorldModelLearning,
+    WorldModelsConfig,
     get_causal_reasoning,
     get_imagination_learning,
     get_model_based_planning,
@@ -47,6 +49,7 @@ from .world_models_services import (  # Core Systems; Enums; Data Classes; Singl
     get_predictive_learning,
     get_uncertainty_prediction,
     get_world_model_learning,
+    get_world_models_system,
 )
 
 __all__ = [
@@ -59,6 +62,8 @@ __all__ = [
     "CausalReasoning",
     "UncertaintyAwarePrediction",
     "ContinuousModelRefinement",
+    # Integrated System
+    "IntegratedWorldModelsSystem",
     # Enums
     "ModelType",
     "PredictionType",
@@ -74,6 +79,7 @@ __all__ = [
     "ImaginedTrajectory",
     "CausalGraph",
     "UncertaintyEstimate",
+    "WorldModelsConfig",
     # Singleton Getters
     "get_world_model_learning",
     "get_predictive_learning",
@@ -82,4 +88,5 @@ __all__ = [
     "get_causal_reasoning",
     "get_uncertainty_prediction",
     "get_model_refinement",
+    "get_world_models_system",
 ]
