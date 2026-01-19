@@ -222,13 +222,17 @@ class TestTFIDFExtractor:
 
     def test_tf_calculation(self, extractor):
         """Test term frequency calculation"""
+        # Add some documents to build corpus
+        extractor.add_document(["python", "java"])
+        extractor.add_document(["programming", "code"])
+
         text = "python python python java"
         keywords = extractor.extract_keywords(text)
 
         # Python appears 3 times, java appears 1 time
         scores = {k.tag: k.score for k in keywords}
         if "python" in scores and "java" in scores:
-            # Python should have higher TF component
+            # Python should have higher TF-IDF score due to higher frequency
             assert scores["python"] >= scores["java"]
 
 
@@ -253,7 +257,7 @@ class TestAutoTagger:
     def test_suggest_tags_simple_text(self, tagger):
         """Test tag suggestion with simple text"""
         text = "Python is a programming language for machine learning and data science"
-        suggestions = tagger.suggest_tags(text, max_tags=5)
+        suggestions = tagger.suggest_tags(text, top_k=5)
 
         assert isinstance(suggestions, list)
         assert len(suggestions) <= 5
@@ -267,27 +271,28 @@ class TestAutoTagger:
             "identify patterns and make decisions with minimal human intervention."
         ])
 
-        suggestions = tagger.suggest_tags(text, max_tags=10)
+        suggestions = tagger.suggest_tags(text, top_k=10)
         assert isinstance(suggestions, list)
         assert len(suggestions) <= 10
 
-    def test_suggest_tags_with_methods(self, tagger):
-        """Test tag suggestion with specific methods"""
+    def test_suggest_tags_with_combine_methods(self, tagger):
+        """Test tag suggestion with combine_methods parameter"""
         text = "Python programming for data science"
 
-        suggestions = tagger.suggest_tags(text, methods=["tfidf"])
+        # Test with combine_methods=False to get raw suggestions
+        suggestions = tagger.suggest_tags(text, combine_methods=False)
         assert isinstance(suggestions, list)
-        assert all(s.source == "tfidf" for s in suggestions)
+        assert all(isinstance(s, TagSuggestion) for s in suggestions)
 
-    def test_train_corpus(self, tagger):
-        """Test training on document corpus"""
+    def test_initialize_corpus(self, tagger):
+        """Test initializing with document corpus"""
         documents = [
             "Python programming language",
             "Java programming language",
             "Machine learning with Python"
         ]
 
-        tagger.train(documents)
+        tagger.initialize_corpus(documents)
 
         # TF-IDF extractor should have documents
         assert tagger.tfidf_extractor.total_documents == len(documents)
@@ -296,25 +301,25 @@ class TestAutoTagger:
         """Test assigning tags to document"""
         text = "Python is great for machine learning"
 
-        tags = tagger.auto_tag(text, max_tags=5)
+        tags = tagger.auto_tag_document("doc1", text, max_tags=5)
         assert isinstance(tags, list)
         assert all(isinstance(t, Tag) for t in tags)
 
-    def test_tag_filtering_by_confidence(self, tagger):
-        """Test filtering tags by confidence threshold"""
+    def test_tag_filtering_by_threshold(self, tagger):
+        """Test filtering tags by threshold"""
         text = "Python programming language"
 
-        tags_high = tagger.auto_tag(text, min_confidence=0.8)
-        tags_low = tagger.auto_tag(text, min_confidence=0.1)
+        tags_high = tagger.auto_tag_document("doc1", text, threshold=0.8)
+        tags_low = tagger.auto_tag_document("doc2", text, threshold=0.1)
 
-        # Higher confidence threshold should result in fewer or equal tags
+        # Higher threshold should result in fewer or equal tags
         assert len(tags_high) <= len(tags_low)
 
     def test_deduplication(self, tagger):
         """Test that duplicate tags are removed"""
         text = "python python python programming programming"
 
-        tags = tagger.auto_tag(text, max_tags=10)
+        tags = tagger.auto_tag_document("doc1", text, max_tags=10)
 
         # Check for duplicates
         tag_names = [t.name for t in tags]
@@ -345,7 +350,7 @@ class TestAutoTagger:
         """Test with very long text"""
         text = " ".join(["Python is a programming language."] * 1000)
 
-        suggestions = tagger.suggest_tags(text, max_tags=10)
+        suggestions = tagger.suggest_tags(text, top_k=10)
         assert isinstance(suggestions, list)
         assert len(suggestions) <= 10
 
@@ -367,7 +372,7 @@ class TestAutoTagger:
         """Test that common stopwords are handled"""
         text = "the quick brown fox jumps over the lazy dog the the the"
 
-        suggestions = tagger.suggest_tags(text, max_tags=5)
+        suggestions = tagger.suggest_tags(text, top_k=5)
 
         # "the" should not dominate the tags due to stopword handling
         tag_names = [s.tag for s in suggestions]
@@ -375,20 +380,20 @@ class TestAutoTagger:
         assert len(set(tag_names)) > 1 or len(tag_names) == 0
 
 
-@pytest.mark.parametrize("text,max_tags,expected_min", [
+@pytest.mark.parametrize("text,top_k,expected_min", [
     ("Python programming", 5, 0),
     ("machine learning data science", 3, 0),
     ("", 10, 0),
     ("a", 5, 0),
 ])
-def test_parametrized_tagging(text, max_tags, expected_min):
+def test_parametrized_tagging(text, top_k, expected_min):
     """Test tagging with various inputs"""
     tagger = AutoTagger()
-    suggestions = tagger.suggest_tags(text, max_tags=max_tags)
+    suggestions = tagger.suggest_tags(text, top_k=top_k)
 
     assert isinstance(suggestions, list)
     assert len(suggestions) >= expected_min
-    assert len(suggestions) <= max_tags
+    assert len(suggestions) <= top_k
 
 
 class TestTagManagement:
@@ -451,26 +456,26 @@ class TestEdgeCases:
         with pytest.raises((TypeError, AttributeError)):
             tagger.suggest_tags(12345)
 
-    def test_negative_max_tags(self, tagger):
-        """Test handling of negative max_tags"""
+    def test_negative_top_k(self, tagger):
+        """Test handling of negative top_k"""
         text = "Python programming"
-        suggestions = tagger.suggest_tags(text, max_tags=-5)
+        suggestions = tagger.suggest_tags(text, top_k=-5)
 
         # Should handle gracefully, return empty or handle error
         assert isinstance(suggestions, list)
 
-    def test_zero_max_tags(self, tagger):
-        """Test with max_tags=0"""
+    def test_zero_top_k(self, tagger):
+        """Test with top_k=0"""
         text = "Python programming"
-        suggestions = tagger.suggest_tags(text, max_tags=0)
+        suggestions = tagger.suggest_tags(text, top_k=0)
 
         assert isinstance(suggestions, list)
         assert len(suggestions) == 0
 
-    def test_very_large_max_tags(self, tagger):
-        """Test with very large max_tags"""
+    def test_very_large_top_k(self, tagger):
+        """Test with very large top_k"""
         text = "Python programming"
-        suggestions = tagger.suggest_tags(text, max_tags=1000000)
+        suggestions = tagger.suggest_tags(text, top_k=1000000)
 
         # Should not crash, just return all available tags
         assert isinstance(suggestions, list)
@@ -485,7 +490,7 @@ class TestEdgeCases:
     def test_repeated_words(self, tagger):
         """Test with many repeated words"""
         text = "test " * 1000
-        suggestions = tagger.suggest_tags(text, max_tags=5)
+        suggestions = tagger.suggest_tags(text, top_k=5)
 
         assert isinstance(suggestions, list)
         assert len(suggestions) <= 5

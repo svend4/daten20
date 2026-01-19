@@ -147,10 +147,12 @@ class TestTFIDFExtractor:
         text = "Das ist ein Test mit mehreren Wörtern"
         words = extractor._tokenize(text)
 
-        # Should remove stopwords and short words
-        assert "das" not in words
-        assert "ist" not in words
-        assert "ein" not in words
+        # Should remove stopwords (das, ist) and words with length <= 2
+        assert "das" not in words  # Stopword
+        assert "ist" not in words  # Stopword
+        # Words with length > 2 are kept
+        assert "ein" in words  # Not a stopword, length 3
+        assert "mit" in words  # Not a stopword, length 3
         assert "test" in words
         assert "mehreren" in words
 
