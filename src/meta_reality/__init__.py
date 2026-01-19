@@ -4,7 +4,9 @@ from .meta_reality_services import (
     ConsciousnessSubstrateService,
     InfiniteTimelineService,
     InfiniteUnificationService,
+    IntegratedMetaRealitySystem,
     MathematicalUniverseService,
+    MetaRealityConfig,
     MultiverseNavigationService,
     RealityOptimizationService,
     RealitySimulationService,
@@ -14,6 +16,7 @@ from .meta_reality_services import (
     get_infinite_timeline_service,
     get_infinite_unification_service,
     get_mathematical_universe_service,
+    get_meta_reality_system,
     get_multiverse_navigation_service,
     get_reality_optimization_service,
     get_reality_simulation_service,
@@ -22,6 +25,7 @@ from .meta_reality_services import (
 __version__ = "28.0.0"
 
 __all__ = [
+    # Services
     "RealitySimulationService",
     "MultiverseNavigationService",
     "ConsciousnessSubstrateService",
@@ -29,8 +33,14 @@ __all__ = [
     "MathematicalUniverseService",
     "RealityOptimizationService",
     "InfiniteUnificationService",
+    # Integrated System
+    "IntegratedMetaRealitySystem",
+    # Enums
     "RealityType",
+    # Data Structures
     "Universe",
+    "MetaRealityConfig",
+    # Singleton Getters
     "get_reality_simulation_service",
     "get_multiverse_navigation_service",
     "get_consciousness_substrate_service",
@@ -38,5 +48,7 @@ __all__ = [
     "get_mathematical_universe_service",
     "get_reality_optimization_service",
     "get_infinite_unification_service",
+    "get_meta_reality_system",
+    # Version
     "__version__",
 ]
