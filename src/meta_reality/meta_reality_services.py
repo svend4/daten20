@@ -1,11 +1,11 @@
 """v28.0: Meta-Reality Engineering & Multiverse Intelligence Services"""
 
 import asyncio
+import random
+import statistics
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List
-
-import numpy as np
 
 
 class RealityType(Enum):
@@ -70,7 +70,7 @@ class MultiverseNavigationService:
         return {
             "target_universe": target,
             "navigation_success": True,
-            "quantum_branch": np.random.randint(0, int(1e100)),
+            "quantum_branch": random.randint(0, int(1e100)),
             "precision": 0.999,
         }
 
@@ -144,7 +144,7 @@ class MathematicalUniverseService:
         return {
             "structure": structure,
             "consistency": True,
-            "isomorphisms_found": np.random.randint(1, 100),
+            "isomorphisms_found": random.randint(1, 100),
             "existence_type": "platonic",
         }
 
@@ -171,7 +171,7 @@ class RealityOptimizationService:
             "reality_id": reality_id,
             "suffering_eliminated": 1.0,
             "flourishing_maximized": 0.999999,
-            "bugs_fixed": np.random.randint(100, 1000),
+            "bugs_fixed": random.randint(100, 1000),
             "improvement": 0.999999,
         }
 
@@ -354,10 +354,10 @@ class IntegratedMetaRealitySystem:
         universes = []
         for i in range(min(num_universes, self.config.max_universes_to_create)):
             physics = {
-                "dimensions": np.random.choice([3, 4, 10, 11, 26]),
-                "speed_of_light": 299792458 * np.random.uniform(0.5, 2.0),
-                "planck_constant": 6.626e-34 * np.random.uniform(0.1, 10.0),
-                "fine_structure": np.random.uniform(0.001, 0.1),
+                "dimensions": random.choice([3, 4, 10, 11, 26]),
+                "speed_of_light": 299792458 * random.uniform(0.5, 2.0),
+                "planck_constant": 6.626e-34 * random.uniform(0.1, 10.0),
+                "fine_structure": random.uniform(0.001, 0.1),
             }
             universe = await self.reality_sim.create_universe(physics)
             universes.append(universe)
@@ -372,7 +372,7 @@ class IntegratedMetaRealitySystem:
         structures = []
         for i in range(min(50, self.config.structures_to_explore)):
             structure_types = ["topos", "category", "manifold", "hilbert_space", "algebra"]
-            structure = await self.mathematical.explore_mathematical_structure(np.random.choice(structure_types))
+            structure = await self.mathematical.explore_mathematical_structure(random.choice(structure_types))
             structures.append(structure)
 
         # 4. Optimize realities
@@ -384,7 +384,7 @@ class IntegratedMetaRealitySystem:
         # 5. Manage timelines
         timeline_results = []
         for u in universes[:20]:  # Manage timelines for first 20 universes
-            timelines = await self.timelines.manage_timelines(count=np.random.randint(1000, 10000))
+            timelines = await self.timelines.manage_timelines(count=random.randint(1000, 10000))
             timeline_results.append(timelines)
 
         # 6. Consciousness transfers
@@ -403,10 +403,10 @@ class IntegratedMetaRealitySystem:
         return {
             "universes_created": len(universes),
             "total_conscious_beings": sum(u.conscious_beings for u in universes),
-            "average_simulation_speed": np.mean([u.simulation_speed for u in universes]),
+            "average_simulation_speed": statistics.mean([u.simulation_speed for u in universes]),
             "multiverse_navigation": {
                 "universes_navigated": len(navigations),
-                "average_precision": np.mean([n["precision"] for n in navigations]),
+                "average_precision": statistics.mean([n["precision"] for n in navigations]),
                 "quantum_branches_accessed": len(set(n["quantum_branch"] for n in navigations)),
             },
             "mathematical_exploration": {
@@ -415,7 +415,7 @@ class IntegratedMetaRealitySystem:
             },
             "reality_optimization": {
                 "universes_optimized": len(optimizations),
-                "average_flourishing": np.mean([o["flourishing_maximized"] for o in optimizations]),
+                "average_flourishing": statistics.mean([o["flourishing_maximized"] for o in optimizations]),
                 "suffering_eliminated": all(o["suffering_eliminated"] >= 0.99 for o in optimizations),
             },
             "timeline_management": {
@@ -425,7 +425,7 @@ class IntegratedMetaRealitySystem:
             },
             "consciousness_transfers": {
                 "transfers_completed": len(transfers),
-                "average_fidelity": np.mean([t["fidelity"] for t in transfers]),
+                "average_fidelity": statistics.mean([t["fidelity"] for t in transfers]),
                 "cross_reality_success": all(t["success"] for t in transfers),
             },
             "unification_progress": {
@@ -518,7 +518,7 @@ class IntegratedMetaRealitySystem:
             "substrate_universes": len(substrate_universes),
             "consciousness_network": {
                 "total_transfers": len(transfer_network),
-                "network_fidelity": np.mean([t["fidelity"] for t in transfer_network]),
+                "network_fidelity": statistics.mean([t["fidelity"] for t in transfer_network]),
                 "fully_connected": len(transfer_network) >= len(substrate_universes) - 1,
             },
             "timeline_coherence": {
@@ -528,7 +528,7 @@ class IntegratedMetaRealitySystem:
             },
             "multiverse_exploration": {
                 "locations_discovered": len(consciousness_locations),
-                "average_precision": np.mean([loc["precision"] for loc in consciousness_locations]),
+                "average_precision": statistics.mean([loc["precision"] for loc in consciousness_locations]),
             },
             "consciousness_mathematics": {
                 "structures_explored": len(consciousness_structures),
@@ -536,7 +536,7 @@ class IntegratedMetaRealitySystem:
             },
             "reality_optimization": {
                 "optimized_universes": len(consciousness_optimizations),
-                "flourishing_achieved": np.mean([o["flourishing_maximized"] for o in consciousness_optimizations]),
+                "flourishing_achieved": statistics.mean([o["flourishing_maximized"] for o in consciousness_optimizations]),
             },
             "unification": {
                 "final_level": unification_iterations[-1]["unification_level"] if unification_iterations else 0.0,
@@ -632,11 +632,11 @@ class IntegratedMetaRealitySystem:
             },
             "mathematical_navigation": {
                 "universes_navigated": len(navigation_results),
-                "average_precision": np.mean([n["precision"] for n in navigation_results]),
+                "average_precision": statistics.mean([n["precision"] for n in navigation_results]),
             },
             "optimization": {
                 "optimized_realities": len(optimizations),
-                "average_flourishing": np.mean([o["flourishing_maximized"] for o in optimizations]) if optimizations else 0.0,
+                "average_flourishing": statistics.mean([o["flourishing_maximized"] for o in optimizations]) if optimizations else 0.0,
             },
             "unification": {
                 "level": unification["unification_level"],
