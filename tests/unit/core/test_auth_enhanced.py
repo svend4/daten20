@@ -2,23 +2,21 @@
 Tests for enhanced authentication module (refresh tokens and blacklist).
 """
 
-import pytest
-import jwt
-import time
-import tempfile
 import os
+import tempfile
+import time
 from datetime import datetime, timedelta
-from src.core.auth_enhanced import (
-    TokenBlacklist,
-    RefreshTokenManager,
-    EnhancedAuthManager
-)
+
+import jwt
+import pytest
+
+from src.core.auth_enhanced import EnhancedAuthManager, RefreshTokenManager, TokenBlacklist
 
 
 @pytest.fixture
 def temp_db():
     """Create temporary database for testing."""
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
     temp_file.close()
     yield temp_file.name
     # Cleanup
@@ -68,17 +66,11 @@ class TestTokenBlacklist:
 
         # Add expired token
         expired_token = "expired_token"
-        blacklist.add_token(
-            expired_token, 1,
-            datetime.now() - timedelta(hours=1)
-        )
+        blacklist.add_token(expired_token, 1, datetime.now() - timedelta(hours=1))
 
         # Add active token
         active_token = "active_token"
-        blacklist.add_token(
-            active_token, 2,
-            datetime.now() + timedelta(hours=1)
-        )
+        blacklist.add_token(active_token, 2, datetime.now() + timedelta(hours=1))
 
         # Cleanup
         blacklist.cleanup_expired()
@@ -109,10 +101,7 @@ class TestRefreshTokenManager:
         user_id = 1
 
         token = manager.create_refresh_token(
-            user_id,
-            expires_in_days=30,
-            ip_address="127.0.0.1",
-            user_agent="Test Browser"
+            user_id, expires_in_days=30, ip_address="127.0.0.1", user_agent="Test Browser"
         )
 
         assert token is not None
@@ -206,8 +195,8 @@ class TestRefreshTokenManager:
         tokens = manager.get_user_tokens(user_id)
 
         assert len(tokens) == 2
-        assert any(t['token'] == token1 for t in tokens)
-        assert any(t['token'] == token2 for t in tokens)
+        assert any(t["token"] == token1 for t in tokens)
+        assert any(t["token"] == token2 for t in tokens)
 
     def test_cleanup_expired_refresh_tokens(self, temp_db):
         """Test cleanup of expired refresh tokens."""
@@ -241,7 +230,7 @@ class TestRefreshTokenManager:
         # Get token info
         tokens = manager.get_user_tokens(user_id)
         assert len(tokens) == 1
-        assert tokens[0]['last_used_at'] is not None
+        assert tokens[0]["last_used_at"] is not None
 
 
 class TestEnhancedAuthManagerIntegration:
@@ -253,45 +242,45 @@ class TestEnhancedAuthManagerIntegration:
         def authenticate(self, username, password):
             """Mock authenticate."""
             if username == "valid_user" and password == "valid_pass":
+
                 class MockUser:
                     id = 1
                     username = "valid_user"
+
                 return MockUser()
             return None
 
         def generate_token(self, user, secret_key, expires_in=3600):
             """Mock generate token."""
             payload = {
-                'user_id': user.id,
-                'username': user.username,
-                'exp': datetime.now() + timedelta(seconds=expires_in)
+                "user_id": user.id,
+                "username": user.username,
+                "exp": datetime.now() + timedelta(seconds=expires_in),
             }
-            return jwt.encode(payload, secret_key, algorithm='HS256')
+            return jwt.encode(payload, secret_key, algorithm="HS256")
 
         def verify_token(self, token, secret_key):
             """Mock verify token."""
             try:
-                return jwt.decode(token, secret_key, algorithms=['HS256'])
+                return jwt.decode(token, secret_key, algorithms=["HS256"])
             except:
                 return None
 
         def load_user(self, user_id):
             """Mock load user."""
             if user_id == 1:
+
                 class MockUser:
                     id = 1
                     username = "valid_user"
+
                 return MockUser()
             return None
 
     def test_login_success(self, temp_db):
         """Test successful login."""
         mock_auth = self.MockAuthManager()
-        enhanced = EnhancedAuthManager(
-            mock_auth,
-            secret_key="test_secret",
-            db_path=temp_db
-        )
+        enhanced = EnhancedAuthManager(mock_auth, secret_key="test_secret", db_path=temp_db)
 
         result = enhanced.login("valid_user", "valid_pass")
         assert result is not None
@@ -303,11 +292,7 @@ class TestEnhancedAuthManagerIntegration:
     def test_login_failure(self, temp_db):
         """Test failed login."""
         mock_auth = self.MockAuthManager()
-        enhanced = EnhancedAuthManager(
-            mock_auth,
-            secret_key="test_secret",
-            db_path=temp_db
-        )
+        enhanced = EnhancedAuthManager(mock_auth, secret_key="test_secret", db_path=temp_db)
 
         result = enhanced.login("invalid_user", "invalid_pass")
         assert result is None
@@ -315,11 +300,7 @@ class TestEnhancedAuthManagerIntegration:
     def test_refresh_access_token(self, temp_db):
         """Test refreshing access token."""
         mock_auth = self.MockAuthManager()
-        enhanced = EnhancedAuthManager(
-            mock_auth,
-            secret_key="test_secret",
-            db_path=temp_db
-        )
+        enhanced = EnhancedAuthManager(mock_auth, secret_key="test_secret", db_path=temp_db)
 
         # Login to get tokens
         access_token, refresh_token = enhanced.login("valid_user", "valid_pass")
@@ -332,11 +313,7 @@ class TestEnhancedAuthManagerIntegration:
     def test_refresh_with_invalid_token(self, temp_db):
         """Test refreshing with invalid token."""
         mock_auth = self.MockAuthManager()
-        enhanced = EnhancedAuthManager(
-            mock_auth,
-            secret_key="test_secret",
-            db_path=temp_db
-        )
+        enhanced = EnhancedAuthManager(mock_auth, secret_key="test_secret", db_path=temp_db)
 
         result = enhanced.refresh_access_token("invalid_refresh_token")
         assert result is None
@@ -344,11 +321,7 @@ class TestEnhancedAuthManagerIntegration:
     def test_logout(self, temp_db):
         """Test logout revokes tokens."""
         mock_auth = self.MockAuthManager()
-        enhanced = EnhancedAuthManager(
-            mock_auth,
-            secret_key="test_secret",
-            db_path=temp_db
-        )
+        enhanced = EnhancedAuthManager(mock_auth, secret_key="test_secret", db_path=temp_db)
 
         # Login
         access_token, refresh_token = enhanced.login("valid_user", "valid_pass")
@@ -366,11 +339,7 @@ class TestEnhancedAuthManagerIntegration:
     def test_verify_access_token_valid(self, temp_db):
         """Test verifying valid access token."""
         mock_auth = self.MockAuthManager()
-        enhanced = EnhancedAuthManager(
-            mock_auth,
-            secret_key="test_secret",
-            db_path=temp_db
-        )
+        enhanced = EnhancedAuthManager(mock_auth, secret_key="test_secret", db_path=temp_db)
 
         # Login
         access_token, _ = enhanced.login("valid_user", "valid_pass")
@@ -378,16 +347,12 @@ class TestEnhancedAuthManagerIntegration:
         # Verify
         payload = enhanced.verify_access_token(access_token)
         assert payload is not None
-        assert payload['user_id'] == 1
+        assert payload["user_id"] == 1
 
     def test_verify_access_token_blacklisted(self, temp_db):
         """Test verifying blacklisted token."""
         mock_auth = self.MockAuthManager()
-        enhanced = EnhancedAuthManager(
-            mock_auth,
-            secret_key="test_secret",
-            db_path=temp_db
-        )
+        enhanced = EnhancedAuthManager(mock_auth, secret_key="test_secret", db_path=temp_db)
 
         # Login
         access_token, refresh_token = enhanced.login("valid_user", "valid_pass")
@@ -402,11 +367,7 @@ class TestEnhancedAuthManagerIntegration:
     def test_revoke_all_user_sessions(self, temp_db):
         """Test revoking all sessions for a user."""
         mock_auth = self.MockAuthManager()
-        enhanced = EnhancedAuthManager(
-            mock_auth,
-            secret_key="test_secret",
-            db_path=temp_db
-        )
+        enhanced = EnhancedAuthManager(mock_auth, secret_key="test_secret", db_path=temp_db)
 
         # Login multiple times
         _, refresh1 = enhanced.login("valid_user", "valid_pass")
@@ -463,5 +424,5 @@ class TestSecurityFeatures:
         assert blacklist.is_blacklisted(token)
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

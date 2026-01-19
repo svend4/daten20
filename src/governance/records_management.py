@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class RecordClass(Enum):
     """Standard record classifications."""
+
     FINANCIAL_RECORDS = "financial_records"
     TAX_RECORDS = "tax_records"
     LEGAL_CONTRACTS = "legal_contracts"
@@ -34,6 +35,7 @@ class RecordClass(Enum):
 
 class LifecycleState(Enum):
     """Record lifecycle states."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     ARCHIVED = "archived"
@@ -43,6 +45,7 @@ class LifecycleState(Enum):
 
 class TriggerEvent(Enum):
     """Retention trigger events."""
+
     CREATION_DATE = "creation_date"
     MODIFICATION_DATE = "modification_date"
     CLOSURE_DATE = "closure_date"
@@ -54,6 +57,7 @@ class TriggerEvent(Enum):
 @dataclass
 class RetentionSchedule:
     """Retention policy configuration."""
+
     schedule_id: str
     record_class: RecordClass
     retention_years: int
@@ -68,6 +72,7 @@ class RetentionSchedule:
 @dataclass
 class Record:
     """Managed record."""
+
     record_id: str
     document_id: str
     record_class: RecordClass
@@ -86,6 +91,7 @@ class Record:
 @dataclass
 class LegalHold:
     """Legal hold on record."""
+
     hold_id: str
     case_id: str
     case_name: str
@@ -98,6 +104,7 @@ class LegalHold:
 @dataclass
 class DispositionItem:
     """Scheduled disposition."""
+
     disposition_id: str
     record_id: str
     scheduled_date: datetime
@@ -113,6 +120,7 @@ class DispositionItem:
 @dataclass
 class VitalRecord:
     """Critical/vital record designation."""
+
     record_id: str
     designation_reason: str
     recovery_priority: int  # 1=highest
@@ -130,19 +138,14 @@ class RecordLifecycle:
             LifecycleState.INACTIVE: [LifecycleState.ACTIVE, LifecycleState.ARCHIVED, LifecycleState.LEGAL_HOLD],
             LifecycleState.ARCHIVED: [LifecycleState.DISPOSED, LifecycleState.LEGAL_HOLD],
             LifecycleState.LEGAL_HOLD: [LifecycleState.ACTIVE, LifecycleState.INACTIVE, LifecycleState.ARCHIVED],
-            LifecycleState.DISPOSED: []
+            LifecycleState.DISPOSED: [],
         }
 
     def can_transition(self, current: LifecycleState, target: LifecycleState) -> bool:
         """Check if state transition is allowed."""
         return target in self.transitions.get(current, [])
 
-    async def transition(
-        self,
-        record: Record,
-        target_state: LifecycleState,
-        reason: Optional[str] = None
-    ) -> bool:
+    async def transition(self, record: Record, target_state: LifecycleState, reason: Optional[str] = None) -> bool:
         """Execute state transition."""
         if not self.can_transition(record.lifecycle_state, target_state):
             logger.warning(f"Invalid transition from {record.lifecycle_state} to {target_state}")
@@ -179,11 +182,7 @@ class DispositionManager:
     def __init__(self):
         self.queue: List[DispositionItem] = []
 
-    async def schedule_disposition(
-        self,
-        record: Record,
-        retention_schedule: RetentionSchedule
-    ) -> DispositionItem:
+    async def schedule_disposition(self, record: Record, retention_schedule: RetentionSchedule) -> DispositionItem:
         """Schedule record for disposition."""
         await asyncio.sleep(0.05)
 
@@ -200,7 +199,7 @@ class DispositionManager:
             record_id=record.record_id,
             scheduled_date=disposition_date,
             action=retention_schedule.disposition_action,
-            requires_approval=retention_schedule.legal_review_required
+            requires_approval=retention_schedule.legal_review_required,
         )
 
         self.queue.append(disposition)
@@ -210,31 +209,21 @@ class DispositionManager:
         return disposition
 
     async def get_disposition_queue(
-        self,
-        days_ahead: int = 30,
-        requires_approval: Optional[bool] = None
+        self, days_ahead: int = 30, requires_approval: Optional[bool] = None
     ) -> List[DispositionItem]:
         """Get upcoming dispositions."""
         await asyncio.sleep(0.05)
 
         cutoff_date = datetime.now() + timedelta(days=days_ahead)
 
-        queue = [
-            d for d in self.queue
-            if d.scheduled_date <= cutoff_date and not d.executed
-        ]
+        queue = [d for d in self.queue if d.scheduled_date <= cutoff_date and not d.executed]
 
         if requires_approval is not None:
             queue = [d for d in queue if d.requires_approval == requires_approval]
 
         return sorted(queue, key=lambda x: x.scheduled_date)
 
-    async def approve_disposition(
-        self,
-        disposition_id: str,
-        approver: str,
-        notes: Optional[str] = None
-    ) -> bool:
+    async def approve_disposition(self, disposition_id: str, approver: str, notes: Optional[str] = None) -> bool:
         """Approve scheduled disposition."""
         await asyncio.sleep(0.05)
 
@@ -248,11 +237,7 @@ class DispositionManager:
 
         return False
 
-    async def execute_disposition(
-        self,
-        disposition_id: str,
-        executor: str
-    ) -> bool:
+    async def execute_disposition(self, disposition_id: str, executor: str) -> bool:
         """Execute approved disposition."""
         await asyncio.sleep(0.1)
 
@@ -274,12 +259,7 @@ class DispositionManager:
         """Process disposition queue."""
         await asyncio.sleep(0.2)
 
-        stats = {
-            "processed": 0,
-            "approved": 0,
-            "executed": 0,
-            "skipped": 0
-        }
+        stats = {"processed": 0, "approved": 0, "executed": 0, "skipped": 0}
 
         today = datetime.now()
 
@@ -315,20 +295,13 @@ class VitalRecordsManager:
         self.vital_records: Dict[str, VitalRecord] = {}
 
     async def designate_vital(
-        self,
-        record_id: str,
-        reason: str,
-        priority: int = 1,
-        backup_location: str = "offsite_vault"
+        self, record_id: str, reason: str, priority: int = 1, backup_location: str = "offsite_vault"
     ) -> VitalRecord:
         """Designate record as vital."""
         await asyncio.sleep(0.05)
 
         vital = VitalRecord(
-            record_id=record_id,
-            designation_reason=reason,
-            recovery_priority=priority,
-            backup_location=backup_location
+            record_id=record_id, designation_reason=reason, recovery_priority=priority, backup_location=backup_location
         )
 
         self.vital_records[record_id] = vital
@@ -349,10 +322,7 @@ class VitalRecordsManager:
         logger.info(f"Backed up vital record {record_id} to {vital.backup_location}")
         return True
 
-    async def get_vital_records(
-        self,
-        priority: Optional[int] = None
-    ) -> List[VitalRecord]:
+    async def get_vital_records(self, priority: Optional[int] = None) -> List[VitalRecord]:
         """Get vital records list."""
         records = list(self.vital_records.values())
 
@@ -368,8 +338,7 @@ class VitalRecordsManager:
         total = len(self.vital_records)
         backed_up = sum(1 for v in self.vital_records.values() if v.last_backup is not None)
         outdated = sum(
-            1 for v in self.vital_records.values()
-            if v.last_backup and (datetime.now() - v.last_backup).days > 30
+            1 for v in self.vital_records.values() if v.last_backup and (datetime.now() - v.last_backup).days > 30
         )
 
         return {
@@ -377,7 +346,7 @@ class VitalRecordsManager:
             "backed_up": backed_up,
             "never_backed_up": total - backed_up,
             "outdated_backups": outdated,
-            "compliance_rate": (backed_up / total * 100) if total > 0 else 100.0
+            "compliance_rate": (backed_up / total * 100) if total > 0 else 100.0,
         }
 
 
@@ -402,7 +371,7 @@ class RecordsManager:
                 retention_years=7,
                 trigger_event=TriggerEvent.FISCAL_YEAR_END,
                 legal_review_required=True,
-                description="Financial records - 7 years per IRS requirements"
+                description="Financial records - 7 years per IRS requirements",
             ),
             RetentionSchedule(
                 schedule_id="tax-001",
@@ -411,7 +380,7 @@ class RecordsManager:
                 trigger_event=TriggerEvent.FISCAL_YEAR_END,
                 legal_review_required=True,
                 vital_record=True,
-                description="Tax records - 7 years"
+                description="Tax records - 7 years",
             ),
             RetentionSchedule(
                 schedule_id="legal-001",
@@ -419,7 +388,7 @@ class RecordsManager:
                 retention_years=10,
                 trigger_event=TriggerEvent.CONTRACT_END,
                 legal_review_required=True,
-                description="Legal contracts - 10 years after termination"
+                description="Legal contracts - 10 years after termination",
             ),
             RetentionSchedule(
                 schedule_id="hr-001",
@@ -427,7 +396,7 @@ class RecordsManager:
                 retention_years=7,
                 trigger_event=TriggerEvent.EMPLOYEE_TERMINATION,
                 legal_review_required=True,
-                description="HR personnel files - 7 years after termination"
+                description="HR personnel files - 7 years after termination",
             ),
             RetentionSchedule(
                 schedule_id="email-001",
@@ -435,7 +404,7 @@ class RecordsManager:
                 retention_years=3,
                 trigger_event=TriggerEvent.CREATION_DATE,
                 legal_review_required=False,
-                description="Email retention - 3 years"
+                description="Email retention - 3 years",
             ),
         ]
 
@@ -448,7 +417,7 @@ class RecordsManager:
         record_class: str,
         title: str,
         metadata: Optional[Dict[str, Any]] = None,
-        trigger_date: Optional[datetime] = None
+        trigger_date: Optional[datetime] = None,
     ) -> Record:
         """Declare document as formal record."""
         await asyncio.sleep(0.05)
@@ -462,7 +431,7 @@ class RecordsManager:
             title=title,
             lifecycle_state=LifecycleState.ACTIVE,
             retention_trigger_date=trigger_date,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         self.records[record.record_id] = record
@@ -483,12 +452,7 @@ class RecordsManager:
 
         return False
 
-    async def apply_retention(
-        self,
-        record_id: str,
-        schedule_id: str,
-        trigger_date: Optional[datetime] = None
-    ) -> bool:
+    async def apply_retention(self, record_id: str, schedule_id: str, trigger_date: Optional[datetime] = None) -> bool:
         """Apply retention schedule to record."""
         await asyncio.sleep(0.05)
 
@@ -509,29 +473,17 @@ class RecordsManager:
         if schedule.vital_record:
             record.is_vital = True
             await self.vital_records_manager.designate_vital(
-                record_id,
-                f"Vital per retention schedule: {schedule.description}"
+                record_id, f"Vital per retention schedule: {schedule.description}"
             )
 
         logger.info(f"Applied retention schedule {schedule_id} to {record_id}")
         return True
 
-    async def place_legal_hold(
-        self,
-        record_id: str,
-        case_id: str,
-        case_name: str,
-        reason: str
-    ) -> LegalHold:
+    async def place_legal_hold(self, record_id: str, case_id: str, case_name: str, reason: str) -> LegalHold:
         """Place legal hold on record."""
         await asyncio.sleep(0.05)
 
-        hold = LegalHold(
-            hold_id=str(uuid4()),
-            case_id=case_id,
-            case_name=case_name,
-            reason=reason
-        )
+        hold = LegalHold(hold_id=str(uuid4()), case_id=case_id, case_name=case_name, reason=reason)
 
         self.legal_holds[hold.hold_id] = hold
 
@@ -543,11 +495,7 @@ class RecordsManager:
         logger.info(f"Placed legal hold on {record_id}: {case_name}")
         return hold
 
-    async def release_legal_hold(
-        self,
-        hold_id: str,
-        restore_state: Optional[LifecycleState] = None
-    ) -> bool:
+    async def release_legal_hold(self, hold_id: str, restore_state: Optional[LifecycleState] = None) -> bool:
         """Release legal hold."""
         await asyncio.sleep(0.05)
 
@@ -596,7 +544,7 @@ class RecordsManager:
             "vital_records": vital_status,
             "upcoming_dispositions": len(disposition_queue),
             "retention_schedules": len(self.schedules),
-            "generated_at": datetime.now().isoformat()
+            "generated_at": datetime.now().isoformat(),
         }
 
 

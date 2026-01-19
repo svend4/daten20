@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class QoSLevel(Enum):
     """MQTT Quality of Service levels."""
+
     AT_MOST_ONCE = 0  # Fire and forget
     AT_LEAST_ONCE = 1  # Acknowledged delivery
     EXACTLY_ONCE = 2  # Assured delivery
@@ -30,6 +31,7 @@ class QoSLevel(Enum):
 
 class MessageType(Enum):
     """MQTT message types."""
+
     CONNECT = "connect"
     CONNACK = "connack"
     PUBLISH = "publish"
@@ -46,6 +48,7 @@ class MessageType(Enum):
 @dataclass
 class MQTTMessage:
     """MQTT message structure."""
+
     topic: str
     payload: Any
     qos: QoSLevel = QoSLevel.AT_MOST_ONCE
@@ -63,6 +66,7 @@ class MQTTMessage:
 @dataclass
 class Subscription:
     """Client subscription to topic."""
+
     client_id: str
     topic: str
     qos: QoSLevel
@@ -73,6 +77,7 @@ class Subscription:
 @dataclass
 class ClientSession:
     """MQTT client session."""
+
     client_id: str
     clean_session: bool
     connected: bool = True
@@ -95,20 +100,20 @@ class TopicMatcher:
         # = multi-level wildcard
         """
         # Split into levels
-        filter_levels = topic_filter.split('/')
-        topic_levels = topic.split('/')
+        filter_levels = topic_filter.split("/")
+        topic_levels = topic.split("/")
 
         # # must be last and alone
-        if '#' in filter_levels[:-1]:
+        if "#" in filter_levels[:-1]:
             return False
 
-        if '#' in filter_levels[-1] and filter_levels[-1] != '#':
+        if "#" in filter_levels[-1] and filter_levels[-1] != "#":
             return False
 
         # Match levels
         for i, filter_level in enumerate(filter_levels):
             # Multi-level wildcard matches rest
-            if filter_level == '#':
+            if filter_level == "#":
                 return True
 
             # Need more topic levels
@@ -116,7 +121,7 @@ class TopicMatcher:
                 return False
 
             # Single level wildcard
-            if filter_level == '+':
+            if filter_level == "+":
                 continue
 
             # Exact match required
@@ -133,12 +138,12 @@ class TopicMatcher:
             return False
 
         # Topic cannot start with $
-        if topic.startswith('$'):
+        if topic.startswith("$"):
             return False
 
         # Check wildcards
         if not is_filter:
-            if '+' in topic or '#' in topic:
+            if "+" in topic or "#" in topic:
                 return False
 
         return True
@@ -185,11 +190,7 @@ class QoSHandler:
         self.pending_acks: Dict[str, MQTTMessage] = {}
         self.acknowledged: Set[str] = set()
 
-    async def send_with_qos(
-        self,
-        message: MQTTMessage,
-        send_func: Callable
-    ) -> bool:
+    async def send_with_qos(self, message: MQTTMessage, send_func: Callable) -> bool:
         """Send message with QoS handling."""
         if message.qos == QoSLevel.AT_MOST_ONCE:
             # QoS 0 - just send
@@ -203,10 +204,7 @@ class QoSHandler:
 
             # Wait for acknowledgment (with timeout)
             try:
-                await asyncio.wait_for(
-                    self._wait_for_ack(message.message_id),
-                    timeout=5.0
-                )
+                await asyncio.wait_for(self._wait_for_ack(message.message_id), timeout=5.0)
                 return True
             except asyncio.TimeoutError:
                 logger.warning(f"QoS 1 timeout for message {message.message_id}")
@@ -219,10 +217,7 @@ class QoSHandler:
             await send_func(message)
 
             try:
-                await asyncio.wait_for(
-                    self._wait_for_ack(message.message_id),
-                    timeout=10.0
-                )
+                await asyncio.wait_for(self._wait_for_ack(message.message_id), timeout=10.0)
                 return True
             except asyncio.TimeoutError:
                 logger.warning(f"QoS 2 timeout for message {message.message_id}")
@@ -255,10 +250,7 @@ class Topic:
 
     def remove_subscription(self, client_id: str):
         """Remove client subscription."""
-        self.subscriptions = [
-            sub for sub in self.subscriptions
-            if sub.client_id != client_id
-        ]
+        self.subscriptions = [sub for sub in self.subscriptions if sub.client_id != client_id]
 
     def get_subscribers(self) -> List[Subscription]:
         """Get all subscribers."""
@@ -282,20 +274,16 @@ class MQTTBroker:
 
         # Statistics
         self.stats = {
-            'messages_published': 0,
-            'messages_delivered': 0,
-            'bytes_sent': 0,
-            'bytes_received': 0,
-            'active_clients': 0,
-            'total_subscriptions': 0
+            "messages_published": 0,
+            "messages_delivered": 0,
+            "bytes_sent": 0,
+            "bytes_received": 0,
+            "active_clients": 0,
+            "total_subscriptions": 0,
         }
 
     async def connect(
-        self,
-        client_id: str,
-        clean_session: bool = True,
-        will_message: Optional[MQTTMessage] = None,
-        **kwargs
+        self, client_id: str, clean_session: bool = True, will_message: Optional[MQTTMessage] = None, **kwargs
     ) -> bool:
         """Handle client connection."""
         # Check if client already connected
@@ -307,14 +295,11 @@ class MQTTBroker:
 
         # Create session
         session = ClientSession(
-            client_id=client_id,
-            clean_session=clean_session,
-            will_message=will_message,
-            metadata=kwargs
+            client_id=client_id, clean_session=clean_session, will_message=will_message, metadata=kwargs
         )
 
         self.clients[client_id] = session
-        self.stats['active_clients'] = len([c for c in self.clients.values() if c.connected])
+        self.stats["active_clients"] = len([c for c in self.clients.values() if c.connected])
 
         logger.info(f"Client {client_id} connected (clean_session={clean_session})")
         return True
@@ -332,7 +317,7 @@ class MQTTBroker:
                 payload=session.will_message.payload,
                 qos=session.will_message.qos,
                 retain=session.will_message.retain,
-                client_id=client_id
+                client_id=client_id,
             )
 
         # Clean session
@@ -347,17 +332,12 @@ class MQTTBroker:
             # Keep session but mark disconnected
             session.connected = False
 
-        self.stats['active_clients'] = len([c for c in self.clients.values() if c.connected])
+        self.stats["active_clients"] = len([c for c in self.clients.values() if c.connected])
 
         logger.info(f"Client {client_id} disconnected")
 
     async def publish(
-        self,
-        topic: str,
-        payload: Any,
-        qos: int = 0,
-        retain: bool = False,
-        client_id: Optional[str] = None
+        self, topic: str, payload: Any, qos: int = 0, retain: bool = False, client_id: Optional[str] = None
     ) -> bool:
         """Publish message to topic."""
         # Validate topic
@@ -366,12 +346,7 @@ class MQTTBroker:
             return False
 
         # Create message
-        message = MQTTMessage(
-            topic=topic,
-            payload=payload,
-            qos=QoSLevel(qos),
-            retain=retain
-        )
+        message = MQTTMessage(topic=topic, payload=payload, qos=QoSLevel(qos), retain=retain)
 
         # Store retained message
         if retain:
@@ -388,7 +363,7 @@ class MQTTBroker:
         await self._route_message(message)
 
         # Update statistics
-        self.stats['messages_published'] += 1
+        self.stats["messages_published"] += 1
 
         logger.debug(f"Published to {topic} (QoS {qos}, retain={retain})")
         return True
@@ -407,15 +382,10 @@ class MQTTBroker:
                     await self._deliver_message(session, message, subscription)
                     delivered += 1
 
-        self.stats['messages_delivered'] += delivered
+        self.stats["messages_delivered"] += delivered
         logger.debug(f"Message delivered to {delivered} subscribers")
 
-    async def _deliver_message(
-        self,
-        session: ClientSession,
-        message: MQTTMessage,
-        subscription: Subscription
-    ):
+    async def _deliver_message(self, session: ClientSession, message: MQTTMessage, subscription: Subscription):
         """Deliver message to specific subscriber."""
         # Adjust QoS to subscription level
         delivery_qos = min(message.qos, subscription.qos)
@@ -436,13 +406,7 @@ class MQTTBroker:
 
         session.last_activity = datetime.now()
 
-    async def subscribe(
-        self,
-        client_id: str,
-        topic: str,
-        qos: int = 0,
-        callback: Optional[Callable] = None
-    ) -> bool:
+    async def subscribe(self, client_id: str, topic: str, qos: int = 0, callback: Optional[Callable] = None) -> bool:
         """Subscribe client to topic."""
         # Validate topic filter
         if not TopicMatcher.validate_topic(topic, is_filter=True):
@@ -455,12 +419,7 @@ class MQTTBroker:
             return False
 
         # Create subscription
-        subscription = Subscription(
-            client_id=client_id,
-            topic=topic,
-            qos=QoSLevel(qos),
-            callback=callback
-        )
+        subscription = Subscription(client_id=client_id, topic=topic, qos=QoSLevel(qos), callback=callback)
 
         # Add to session
         session.subscriptions[topic] = subscription
@@ -470,9 +429,7 @@ class MQTTBroker:
         for msg in retained_messages:
             await self._deliver_message(session, msg, subscription)
 
-        self.stats['total_subscriptions'] = sum(
-            len(s.subscriptions) for s in self.clients.values()
-        )
+        self.stats["total_subscriptions"] = sum(len(s.subscriptions) for s in self.clients.values())
 
         logger.info(f"Client {client_id} subscribed to {topic} (QoS {qos})")
         return True
@@ -487,9 +444,7 @@ class MQTTBroker:
         if topic in session.subscriptions:
             del session.subscriptions[topic]
 
-            self.stats['total_subscriptions'] = sum(
-                len(s.subscriptions) for s in self.clients.values()
-            )
+            self.stats["total_subscriptions"] = sum(len(s.subscriptions) for s in self.clients.values())
 
             logger.info(f"Client {client_id} unsubscribed from {topic}")
             return True
@@ -539,19 +494,19 @@ class MQTTBroker:
             return None
 
         return {
-            'name': topic_obj.name,
-            'subscribers': len(topic_obj.subscriptions),
-            'message_count': topic_obj.message_count,
-            'last_message': topic_obj.last_message
+            "name": topic_obj.name,
+            "subscribers": len(topic_obj.subscriptions),
+            "message_count": topic_obj.message_count,
+            "last_message": topic_obj.last_message,
         }
 
     def get_broker_stats(self) -> Dict[str, Any]:
         """Get broker statistics."""
         return {
             **self.stats,
-            'total_clients': len(self.clients),
-            'total_topics': len(self.topics),
-            'retained_messages': len(self.retained.messages)
+            "total_clients": len(self.clients),
+            "total_topics": len(self.topics),
+            "retained_messages": len(self.retained.messages),
         }
 
     async def cleanup_inactive_clients(self, timeout_seconds: int = 3600):
@@ -587,21 +542,15 @@ class MQTTClient:
         clean_session: bool = True,
         will_topic: Optional[str] = None,
         will_payload: Optional[Any] = None,
-        will_qos: int = 0
+        will_qos: int = 0,
     ) -> bool:
         """Connect to broker."""
         will_message = None
         if will_topic and will_payload:
-            will_message = MQTTMessage(
-                topic=will_topic,
-                payload=will_payload,
-                qos=QoSLevel(will_qos)
-            )
+            will_message = MQTTMessage(topic=will_topic, payload=will_payload, qos=QoSLevel(will_qos))
 
         self.connected = await self.broker.connect(
-            client_id=self.client_id,
-            clean_session=clean_session,
-            will_message=will_message
+            client_id=self.client_id, clean_session=clean_session, will_message=will_message
         )
 
         return self.connected
@@ -611,43 +560,21 @@ class MQTTClient:
         await self.broker.disconnect(self.client_id)
         self.connected = False
 
-    async def publish(
-        self,
-        topic: str,
-        payload: Any,
-        qos: int = 0,
-        retain: bool = False
-    ) -> bool:
+    async def publish(self, topic: str, payload: Any, qos: int = 0, retain: bool = False) -> bool:
         """Publish message."""
         if not self.connected:
             logger.error(f"Client {self.client_id} not connected")
             return False
 
-        return await self.broker.publish(
-            topic=topic,
-            payload=payload,
-            qos=qos,
-            retain=retain,
-            client_id=self.client_id
-        )
+        return await self.broker.publish(topic=topic, payload=payload, qos=qos, retain=retain, client_id=self.client_id)
 
-    async def subscribe(
-        self,
-        topic: str,
-        qos: int = 0,
-        callback: Optional[Callable] = None
-    ) -> bool:
+    async def subscribe(self, topic: str, qos: int = 0, callback: Optional[Callable] = None) -> bool:
         """Subscribe to topic."""
         if not self.connected:
             logger.error(f"Client {self.client_id} not connected")
             return False
 
-        return await self.broker.subscribe(
-            client_id=self.client_id,
-            topic=topic,
-            qos=qos,
-            callback=callback
-        )
+        return await self.broker.subscribe(client_id=self.client_id, topic=topic, qos=qos, callback=callback)
 
     async def unsubscribe(self, topic: str) -> bool:
         """Unsubscribe from topic."""

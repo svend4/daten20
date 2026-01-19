@@ -19,22 +19,23 @@ Dependencies:
 - requests (for HTTP health checks)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable, Set
-from enum import Enum
-from datetime import datetime, timedelta
+import hashlib
+import logging
+import random
 import threading
 import time
-import random
-import hashlib
 from collections import defaultdict
-import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
 class ServiceStatus(str, Enum):
     """Service health status"""
+
     HEALTHY = "healthy"
     UNHEALTHY = "unhealthy"
     DEGRADED = "degraded"
@@ -43,6 +44,7 @@ class ServiceStatus(str, Enum):
 
 class LoadBalancingAlgorithm(str, Enum):
     """Load balancing strategies"""
+
     ROUND_ROBIN = "round_robin"
     LEAST_CONNECTIONS = "least_connections"
     IP_HASH = "ip_hash"
@@ -52,6 +54,7 @@ class LoadBalancingAlgorithm(str, Enum):
 
 class CircuitState(str, Enum):
     """Circuit breaker states"""
+
     CLOSED = "closed"  # Normal operation
     OPEN = "open"  # Failing, reject requests
     HALF_OPEN = "half_open"  # Testing recovery
@@ -59,6 +62,7 @@ class CircuitState(str, Enum):
 
 class DiscoveryBackend(str, Enum):
     """Service discovery backends"""
+
     CONSUL = "consul"
     EUREKA = "eureka"
     ETCD = "etcd"
@@ -68,6 +72,7 @@ class DiscoveryBackend(str, Enum):
 @dataclass
 class ServiceInstance:
     """Service instance metadata"""
+
     service_name: str
     instance_id: str
     host: str
@@ -83,6 +88,7 @@ class ServiceInstance:
 @dataclass
 class HealthCheckConfig:
     """Health check configuration"""
+
     interval_seconds: int = 30
     timeout_seconds: int = 5
     healthy_threshold: int = 2
@@ -94,6 +100,7 @@ class HealthCheckConfig:
 @dataclass
 class CircuitBreakerConfig:
     """Circuit breaker configuration"""
+
     failure_threshold: int = 5
     success_threshold: int = 2
     timeout_seconds: int = 60
@@ -103,6 +110,7 @@ class CircuitBreakerConfig:
 @dataclass
 class RetryPolicy:
     """Retry policy configuration"""
+
     max_attempts: int = 3
     initial_backoff_ms: int = 100
     max_backoff_ms: int = 10000
@@ -143,8 +151,10 @@ class CircuitBreaker:
         with self._lock:
             # Check if circuit should transition from OPEN to HALF_OPEN
             if self.state == CircuitState.OPEN:
-                if self.last_failure_time and \
-                   (datetime.now() - self.last_failure_time).total_seconds() >= self.config.timeout_seconds:
+                if (
+                    self.last_failure_time
+                    and (datetime.now() - self.last_failure_time).total_seconds() >= self.config.timeout_seconds
+                ):
                     self.state = CircuitState.HALF_OPEN
                     self.half_open_requests = 0
                     logger.info("Circuit breaker transitioning to HALF_OPEN")
@@ -213,9 +223,7 @@ class LoadBalancer:
         self._lock = threading.Lock()
 
     def select_instance(
-        self,
-        instances: List[ServiceInstance],
-        client_ip: Optional[str] = None
+        self, instances: List[ServiceInstance], client_ip: Optional[str] = None
     ) -> Optional[ServiceInstance]:
         """
         Select service instance based on load balancing algorithm
@@ -527,11 +535,7 @@ class ServiceMesh:
     circuit breaking, and traffic management.
     """
 
-    def __init__(
-        self,
-        registry: Optional[ServiceRegistry] = None,
-        load_balancer: Optional[LoadBalancer] = None
-    ):
+    def __init__(self, registry: Optional[ServiceRegistry] = None, load_balancer: Optional[LoadBalancer] = None):
         self.registry = registry or ServiceRegistry()
         self.load_balancer = load_balancer or LoadBalancer()
         self._circuit_breakers: Dict[str, CircuitBreaker] = {}
@@ -552,7 +556,7 @@ class ServiceMesh:
         *args,
         client_ip: Optional[str] = None,
         use_circuit_breaker: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Any:
         """
         Call service with load balancing and circuit breaker
@@ -644,19 +648,11 @@ if __name__ == "__main__":
 
     # Register some service instances
     instance1 = ServiceInstance(
-        service_name="user-service",
-        instance_id="user-1",
-        host="localhost",
-        port=8001,
-        metadata={"zone": "us-east-1a"}
+        service_name="user-service", instance_id="user-1", host="localhost", port=8001, metadata={"zone": "us-east-1a"}
     )
 
     instance2 = ServiceInstance(
-        service_name="user-service",
-        instance_id="user-2",
-        host="localhost",
-        port=8002,
-        metadata={"zone": "us-east-1b"}
+        service_name="user-service", instance_id="user-2", host="localhost", port=8002, metadata={"zone": "us-east-1b"}
     )
 
     mesh.register_service(instance1)

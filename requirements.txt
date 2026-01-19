@@ -25,6 +25,8 @@ pytest-cov>=4.1.0
 # CLI/UI Enhancements
 tqdm>=4.66.0
 # Progress bars for CLI operations
+argcomplete>=3.2.0
+# Command-line tab completion for Python scripts
 
 # Optional dependencies for enhanced functionality
 
@@ -65,6 +67,8 @@ python-dotenv>=1.0.0
 
 # Caching (optional - for production)
 redis>=5.0.0
+Flask-Session>=0.6.0
+# Server-side session management with Redis backend
 # For Redis caching support
 
 # API Documentation
@@ -100,6 +104,8 @@ Pillow>=10.0.0
 # Image processing for QR codes
 Flask-CORS>=4.0.0
 # CORS support
+Flask-Compress>=1.15
+# Response compression (gzip, deflate, brotli)
 Flask-SocketIO>=5.3.0
 # WebSockets for real-time notifications
 graphene>=3.3.0
@@ -299,15 +305,21 @@ scikit-learn>=1.3.0
 # docker>=7.0.0
 # For Docker API client
 
-# Distributed tracing (optional - for production)
-# opentelemetry-api>=1.21.0
+# Distributed tracing (Phase 4 - TASK 38)
+opentelemetry-api>=1.22.0
 # OpenTelemetry API
-# opentelemetry-sdk>=1.21.0
+opentelemetry-sdk>=1.22.0
 # OpenTelemetry SDK
-# opentelemetry-instrumentation-flask>=0.42b0
+opentelemetry-instrumentation-flask>=0.42b0
 # Flask instrumentation
-# jaeger-client>=4.8.0
-# For Jaeger tracing
+opentelemetry-instrumentation-requests>=0.42b0
+# Requests instrumentation
+opentelemetry-instrumentation-sqlalchemy>=0.42b0
+# SQLAlchemy instrumentation
+opentelemetry-exporter-jaeger>=1.22.0
+# Jaeger exporter
+opentelemetry-exporter-otlp>=1.22.0
+# OTLP exporter for OpenTelemetry Collector
 
 # Advanced monitoring (optional - for production)
 # statsd>=4.0.0
@@ -442,6 +454,8 @@ onnxruntime==1.16.3
 sqlalchemy==2.0.23
 alembic==1.13.1
 psycopg2-binary==2.9.9
+PyMySQL==1.1.0
+# MySQL/MariaDB support
 
 # Async Database Support
 asyncpg==0.29.0

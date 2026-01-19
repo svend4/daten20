@@ -1,13 +1,14 @@
 """Template data models"""
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
 
 
 @dataclass
 class Variable:
     """Represents a template variable"""
+
     name: str
     description: str = ""
     value: Optional[str] = None
@@ -20,16 +21,18 @@ class Variable:
 @dataclass
 class Section:
     """Represents a section within a block"""
+
     id: str
     title: str
     content: str
     variables: List[Variable] = field(default_factory=list)
-    subsections: List['Section'] = field(default_factory=list)
+    subsections: List["Section"] = field(default_factory=list)
 
 
 @dataclass
 class Block:
     """Represents a major block in the template"""
+
     id: int
     title: str
     description: str = ""
@@ -40,6 +43,7 @@ class Block:
 @dataclass
 class TemplateStructure:
     """Complete template structure"""
+
     blocks: List[Block] = field(default_factory=list)
     all_variables: List[Variable] = field(default_factory=list)
     metadata: Dict[str, str] = field(default_factory=dict)
@@ -78,6 +82,7 @@ class TemplateStructure:
 @dataclass
 class TemplateStats:
     """Statistics about a template"""
+
     total_lines: int = 0
     total_characters: int = 0
     total_blocks: int = 0
@@ -95,6 +100,7 @@ class TemplateStats:
 @dataclass
 class ValidationResult:
     """Result of template validation"""
+
     is_valid: bool = True
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)

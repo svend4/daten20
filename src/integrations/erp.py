@@ -10,17 +10,18 @@ Provides integrations with major ERP systems:
 - Real-time updates
 """
 
-from typing import Optional, List, Dict, Any, Callable
+import hashlib
+import json
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import json
-import uuid
-import hashlib
+from typing import Any, Callable, Dict, List, Optional
 
 
 class ERPSystem(str, Enum):
     """Supported ERP systems"""
+
     SAP_S4HANA = "sap_s4hana"
     SAP_ECC = "sap_ecc"
     ORACLE_ERP_CLOUD = "oracle_erp_cloud"
@@ -36,6 +37,7 @@ class ERPSystem(str, Enum):
 
 class SyncDirection(str, Enum):
     """Data synchronization direction"""
+
     BIDIRECTIONAL = "bidirectional"
     TO_ERP = "to_erp"
     FROM_ERP = "from_erp"
@@ -43,6 +45,7 @@ class SyncDirection(str, Enum):
 
 class SyncStatus(str, Enum):
     """Synchronization status"""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -52,6 +55,7 @@ class SyncStatus(str, Enum):
 
 class EntityType(str, Enum):
     """ERP entity types"""
+
     CUSTOMER = "customer"
     VENDOR = "vendor"
     PRODUCT = "product"
@@ -67,6 +71,7 @@ class EntityType(str, Enum):
 @dataclass
 class ERPConnection:
     """ERP system connection configuration"""
+
     id: str
     name: str
     system_type: ERPSystem
@@ -86,6 +91,7 @@ class ERPConnection:
 @dataclass
 class FieldMapping:
     """Field mapping between DMS and ERP"""
+
     source_field: str
     target_field: str
     transformation: Optional[str] = None  # Python expression or function name
@@ -96,6 +102,7 @@ class FieldMapping:
 @dataclass
 class EntityMapping:
     """Entity mapping configuration"""
+
     id: str
     connection_id: str
     entity_type: EntityType
@@ -111,6 +118,7 @@ class EntityMapping:
 @dataclass
 class SyncLog:
     """Synchronization log entry"""
+
     id: str
     connection_id: str
     entity_type: EntityType
@@ -152,11 +160,7 @@ class SAPConnector:
             print(f"[SAP] Connection failed: {e}")
             return False
 
-    def read_data(
-        self,
-        entity_type: EntityType,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
+    def read_data(self, entity_type: EntityType, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Read data from SAP"""
         # Simulated data retrieval
         # In production, use BAPI calls or OData queries
@@ -165,11 +169,11 @@ class SAPConnector:
             # Example: BAPI_CUSTOMER_GETLIST
             return [
                 {
-                    'KUNNR': '0000100001',  # Customer number
-                    'NAME1': 'Sample Customer GmbH',
-                    'STRAS': 'Main Street 123',
-                    'ORT01': 'Munich',
-                    'LAND1': 'DE'
+                    "KUNNR": "0000100001",  # Customer number
+                    "NAME1": "Sample Customer GmbH",
+                    "STRAS": "Main Street 123",
+                    "ORT01": "Munich",
+                    "LAND1": "DE",
                 }
             ]
 
@@ -177,21 +181,17 @@ class SAPConnector:
             # Example: BAPI_ACC_INVOICE_RECEIPT_GET
             return [
                 {
-                    'BELNR': '1900000001',  # Document number
-                    'BUKRS': '1000',  # Company code
-                    'GJAHR': '2024',  # Fiscal year
-                    'WRBTR': 1500.00,  # Amount
-                    'WAERS': 'EUR'  # Currency
+                    "BELNR": "1900000001",  # Document number
+                    "BUKRS": "1000",  # Company code
+                    "GJAHR": "2024",  # Fiscal year
+                    "WRBTR": 1500.00,  # Amount
+                    "WAERS": "EUR",  # Currency
                 }
             ]
 
         return []
 
-    def write_data(
-        self,
-        entity_type: EntityType,
-        data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def write_data(self, entity_type: EntityType, data: Dict[str, Any]) -> Dict[str, Any]:
         """Write data to SAP"""
         # In production, use BAPI calls
         # Example: BAPI_CUSTOMER_CREATEFROMDATA1
@@ -199,13 +199,9 @@ class SAPConnector:
         if entity_type == EntityType.CUSTOMER:
             # Simulate customer creation
             customer_number = f"000{uuid.uuid4().hex[:7].upper()}"
-            return {
-                'success': True,
-                'KUNNR': customer_number,
-                'message': 'Customer created successfully'
-            }
+            return {"success": True, "KUNNR": customer_number, "message": "Customer created successfully"}
 
-        return {'success': False, 'error': 'Unsupported entity type'}
+        return {"success": False, "error": "Unsupported entity type"}
 
     def disconnect(self):
         """Close SAP connection"""
@@ -235,11 +231,7 @@ class OracleERPConnector:
             print(f"[Oracle] Connection failed: {e}")
             return False
 
-    def read_data(
-        self,
-        entity_type: EntityType,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
+    def read_data(self, entity_type: EntityType, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Read data from Oracle ERP"""
         # Use REST API endpoints
 
@@ -247,12 +239,12 @@ class OracleERPConnector:
             # GET /fscmRestApi/resources/11.13.18.05/customers
             return [
                 {
-                    'PartyId': 100001,
-                    'PartyNumber': 'CUST-001',
-                    'OrganizationName': 'Oracle Customer Ltd',
-                    'Address': 'Oracle Parkway 1',
-                    'City': 'Redwood City',
-                    'Country': 'US'
+                    "PartyId": 100001,
+                    "PartyNumber": "CUST-001",
+                    "OrganizationName": "Oracle Customer Ltd",
+                    "Address": "Oracle Parkway 1",
+                    "City": "Redwood City",
+                    "Country": "US",
                 }
             ]
 
@@ -260,33 +252,29 @@ class OracleERPConnector:
             # GET /fscmRestApi/resources/11.13.18.05/invoices
             return [
                 {
-                    'InvoiceId': 200001,
-                    'InvoiceNumber': 'INV-2024-001',
-                    'InvoiceAmount': 2500.00,
-                    'InvoiceCurrency': 'USD',
-                    'InvoiceDate': '2024-01-15'
+                    "InvoiceId": 200001,
+                    "InvoiceNumber": "INV-2024-001",
+                    "InvoiceAmount": 2500.00,
+                    "InvoiceCurrency": "USD",
+                    "InvoiceDate": "2024-01-15",
                 }
             ]
 
         return []
 
-    def write_data(
-        self,
-        entity_type: EntityType,
-        data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def write_data(self, entity_type: EntityType, data: Dict[str, Any]) -> Dict[str, Any]:
         """Write data to Oracle ERP"""
         # POST to REST API endpoints
 
         if entity_type == EntityType.CUSTOMER:
             # POST /fscmRestApi/resources/11.13.18.05/customers
             return {
-                'success': True,
-                'PartyId': 100000 + hash(str(data)) % 10000,
-                'PartyNumber': f"CUST-{uuid.uuid4().hex[:6].upper()}"
+                "success": True,
+                "PartyId": 100000 + hash(str(data)) % 10000,
+                "PartyNumber": f"CUST-{uuid.uuid4().hex[:6].upper()}",
             }
 
-        return {'success': False, 'error': 'Unsupported entity type'}
+        return {"success": False, "error": "Unsupported entity type"}
 
 
 class Dynamics365Connector:
@@ -310,11 +298,7 @@ class Dynamics365Connector:
             print(f"[Dynamics365] Connection failed: {e}")
             return False
 
-    def read_data(
-        self,
-        entity_type: EntityType,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
+    def read_data(self, entity_type: EntityType, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Read data from Dynamics 365"""
         # Use Web API (OData)
 
@@ -322,12 +306,12 @@ class Dynamics365Connector:
             # GET /api/data/v9.2/accounts
             return [
                 {
-                    'accountid': uuid.uuid4(),
-                    'accountnumber': 'ACC-001',
-                    'name': 'Microsoft Customer Inc',
-                    'address1_line1': 'One Microsoft Way',
-                    'address1_city': 'Redmond',
-                    'address1_country': 'USA'
+                    "accountid": uuid.uuid4(),
+                    "accountnumber": "ACC-001",
+                    "name": "Microsoft Customer Inc",
+                    "address1_line1": "One Microsoft Way",
+                    "address1_city": "Redmond",
+                    "address1_country": "USA",
                 }
             ]
 
@@ -335,32 +319,28 @@ class Dynamics365Connector:
             # GET /api/data/v9.2/invoices
             return [
                 {
-                    'invoiceid': uuid.uuid4(),
-                    'invoicenumber': 'INV-2024-001',
-                    'totalamount': 3000.00,
-                    'transactioncurrencyid': 'USD'
+                    "invoiceid": uuid.uuid4(),
+                    "invoicenumber": "INV-2024-001",
+                    "totalamount": 3000.00,
+                    "transactioncurrencyid": "USD",
                 }
             ]
 
         return []
 
-    def write_data(
-        self,
-        entity_type: EntityType,
-        data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def write_data(self, entity_type: EntityType, data: Dict[str, Any]) -> Dict[str, Any]:
         """Write data to Dynamics 365"""
         # POST to Web API
 
         if entity_type == EntityType.CUSTOMER:
             # POST /api/data/v9.2/accounts
             return {
-                'success': True,
-                'accountid': str(uuid.uuid4()),
-                'accountnumber': f"ACC-{uuid.uuid4().hex[:6].upper()}"
+                "success": True,
+                "accountid": str(uuid.uuid4()),
+                "accountnumber": f"ACC-{uuid.uuid4().hex[:6].upper()}",
             }
 
-        return {'success': False, 'error': 'Unsupported entity type'}
+        return {"success": False, "error": "Unsupported entity type"}
 
 
 class ERPIntegrationEngine:
@@ -410,11 +390,7 @@ class ERPIntegrationEngine:
 
         return None
 
-    def sync_entity(
-        self,
-        mapping_id: str,
-        direction: Optional[SyncDirection] = None
-    ) -> str:
+    def sync_entity(self, mapping_id: str, direction: Optional[SyncDirection] = None) -> str:
         """Synchronize entity data"""
         if mapping_id not in self.mappings:
             return ""
@@ -430,7 +406,7 @@ class ERPIntegrationEngine:
             entity_type=mapping.entity_type,
             direction=sync_direction.value,
             status=SyncStatus.IN_PROGRESS,
-            started_at=datetime.now()
+            started_at=datetime.now(),
         )
 
         self.sync_logs.append(log)
@@ -465,12 +441,7 @@ class ERPIntegrationEngine:
 
         return log_id
 
-    def _sync_from_erp(
-        self,
-        mapping: EntityMapping,
-        connector: Any,
-        log: SyncLog
-    ):
+    def _sync_from_erp(self, mapping: EntityMapping, connector: Any, log: SyncLog):
         """Sync data from ERP to DMS"""
         # Read from ERP
         erp_data = connector.read_data(mapping.entity_type)
@@ -480,11 +451,7 @@ class ERPIntegrationEngine:
         for record in erp_data:
             try:
                 # Apply field mappings
-                transformed = self._apply_field_mappings(
-                    record,
-                    mapping.field_mappings,
-                    reverse=False
-                )
+                transformed = self._apply_field_mappings(record, mapping.field_mappings, reverse=False)
 
                 # Insert into DMS database
                 # self._insert_to_database(mapping.dms_table, transformed)
@@ -495,12 +462,7 @@ class ERPIntegrationEngine:
                 log.records_failed += 1
                 print(f"[Sync] Failed to sync record: {e}")
 
-    def _sync_to_erp(
-        self,
-        mapping: EntityMapping,
-        connector: Any,
-        log: SyncLog
-    ):
+    def _sync_to_erp(self, mapping: EntityMapping, connector: Any, log: SyncLog):
         """Sync data from DMS to ERP"""
         # Read from DMS database
         # dms_data = self._read_from_database(mapping.dms_table)
@@ -514,16 +476,12 @@ class ERPIntegrationEngine:
         for record in dms_data:
             try:
                 # Apply field mappings (reverse)
-                transformed = self._apply_field_mappings(
-                    record,
-                    mapping.field_mappings,
-                    reverse=True
-                )
+                transformed = self._apply_field_mappings(record, mapping.field_mappings, reverse=True)
 
                 # Write to ERP
                 result = connector.write_data(mapping.entity_type, transformed)
 
-                if result.get('success'):
+                if result.get("success"):
                     log.records_success += 1
                 else:
                     log.records_failed += 1
@@ -533,10 +491,7 @@ class ERPIntegrationEngine:
                 print(f"[Sync] Failed to sync record: {e}")
 
     def _apply_field_mappings(
-        self,
-        data: Dict[str, Any],
-        mappings: List[FieldMapping],
-        reverse: bool = False
+        self, data: Dict[str, Any], mappings: List[FieldMapping], reverse: bool = False
     ) -> Dict[str, Any]:
         """Apply field mappings to data"""
         result = {}
@@ -565,11 +520,7 @@ class ERPIntegrationEngine:
                 return log
         return None
 
-    def get_sync_history(
-        self,
-        connection_id: Optional[str] = None,
-        limit: int = 50
-    ) -> List[SyncLog]:
+    def get_sync_history(self, connection_id: Optional[str] = None, limit: int = 50) -> List[SyncLog]:
         """Get synchronization history"""
         logs = self.sync_logs
 
@@ -593,16 +544,16 @@ class ERPIntegrationEngine:
         successful_records = sum(l.records_success for l in self.sync_logs)
 
         return {
-            'total_connections': len(self.connections),
-            'active_connections': len([c for c in self.connections.values() if c.enabled]),
-            'total_mappings': len(self.mappings),
-            'total_syncs': total_syncs,
-            'successful_syncs': successful_syncs,
-            'failed_syncs': total_syncs - successful_syncs,
-            'success_rate': (successful_syncs / total_syncs * 100) if total_syncs > 0 else 0,
-            'total_records_processed': total_records,
-            'total_records_success': successful_records,
-            'last_sync': max([l.started_at for l in self.sync_logs]) if self.sync_logs else None
+            "total_connections": len(self.connections),
+            "active_connections": len([c for c in self.connections.values() if c.enabled]),
+            "total_mappings": len(self.mappings),
+            "total_syncs": total_syncs,
+            "successful_syncs": successful_syncs,
+            "failed_syncs": total_syncs - successful_syncs,
+            "success_rate": (successful_syncs / total_syncs * 100) if total_syncs > 0 else 0,
+            "total_records_processed": total_records,
+            "total_records_success": successful_records,
+            "last_sync": max([l.started_at for l in self.sync_logs]) if self.sync_logs else None,
         }
 
 

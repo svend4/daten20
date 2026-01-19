@@ -11,30 +11,27 @@ Tests all major functionality of MasterControlPanel:
 - Command execution
 """
 
-import pytest
-import sys
-import os
 import json
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+import os
+import sys
 from datetime import datetime
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the master control module
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("doc_master", "doc-master.py")
 doc_master = importlib.util.module_from_spec(spec)
-sys.modules['doc_master'] = doc_master  # Add to sys.modules for imports to work
+sys.modules["doc_master"] = doc_master  # Add to sys.modules for imports to work
 spec.loader.exec_module(doc_master)
 
-from doc_master import (
-    MasterControlPanel,
-    ServiceInfo,
-    PipelineStep,
-    PipelineResult
-)
+from doc_master import MasterControlPanel, PipelineResult, PipelineStep, ServiceInfo
 
 
 # Fixtures
@@ -53,18 +50,14 @@ def sample_service_info():
         description="Test service description",
         type="tool",
         is_available=True,
-        status="available"
+        status="available",
     )
 
 
 @pytest.fixture
 def sample_pipeline_step():
     """Create sample PipelineStep."""
-    return PipelineStep(
-        tool="processor",
-        action="process",
-        params={"threshold": 0.8}
-    )
+    return PipelineStep(tool="processor", action="process", params={"threshold": 0.8})
 
 
 @pytest.fixture
@@ -80,8 +73,8 @@ def sample_pipeline_result():
         results=[
             {"step": "process", "status": "success"},
             {"step": "quality", "status": "success"},
-            {"step": "anonymize", "status": "failed", "error": "Test error"}
-        ]
+            {"step": "anonymize", "status": "failed", "error": "Test error"},
+        ],
     )
 
 
@@ -108,12 +101,7 @@ class TestDataClasses:
 
     def test_service_info_defaults(self):
         """Test ServiceInfo with default values."""
-        service = ServiceInfo(
-            name="Test",
-            script="test.py",
-            description="Test",
-            type="tool"
-        )
+        service = ServiceInfo(name="Test", script="test.py", description="Test", type="tool")
 
         assert service.is_available is False
         assert service.status == "unknown"
@@ -152,10 +140,7 @@ class TestMasterControlPanel:
         assert isinstance(services, dict)
 
         # Check expected services are present
-        expected_services = [
-            "processor", "batch", "api", "dashboard", "search",
-            "comparator", "anonymizer", "quality"
-        ]
+        expected_services = ["processor", "batch", "api", "dashboard", "search", "comparator", "anonymizer", "quality"]
 
         for service_key in expected_services:
             assert service_key in services
@@ -396,11 +381,8 @@ class TestMasterControlPanel:
     def test_run_command_failure(self, mock_run, panel):
         """Test command execution failure."""
         import subprocess
-        mock_run.side_effect = subprocess.CalledProcessError(
-            returncode=1,
-            cmd=["test"],
-            stderr="Error message"
-        )
+
+        mock_run.side_effect = subprocess.CalledProcessError(returncode=1, cmd=["test"], stderr="Error message")
 
         with pytest.raises(RuntimeError, match="Command failed"):
             panel._run_command(["false"])
@@ -409,10 +391,8 @@ class TestMasterControlPanel:
     def test_run_command_timeout(self, mock_run, panel):
         """Test command timeout."""
         import subprocess
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["sleep", "1000"],
-            timeout=1
-        )
+
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["sleep", "1000"], timeout=1)
 
         with pytest.raises(RuntimeError, match="timed out"):
             panel._run_command(["sleep", "1000"], timeout=1)
@@ -427,7 +407,7 @@ class TestMasterControlPanel:
             "search": "service",
             "comparator": "tool",
             "anonymizer": "tool",
-            "quality": "tool"
+            "quality": "tool",
         }
 
         for key, expected_type in expected_types.items():
@@ -456,7 +436,7 @@ class TestMasterControlPanelIntegration:
 
         # 3. Save status to file
         status_file = tmp_path / "status.json"
-        with open(status_file, 'w') as f:
+        with open(status_file, "w") as f:
             json.dump(status, f, indent=2)
 
         # 4. Verify saved status
@@ -501,7 +481,8 @@ class TestMasterControlPanelIntegration:
         # 4. Save result
         result_file = tmp_path / "pipeline_result.json"
         from dataclasses import asdict
-        with open(result_file, 'w') as f:
+
+        with open(result_file, "w") as f:
             json.dump(asdict(result), f, indent=2)
 
         # 5. Verify saved result
@@ -559,11 +540,7 @@ class TestEdgeCases:
 
     def test_pipeline_with_optional_params(self, panel, mock_document):
         """Test pipeline execution with optional parameters."""
-        result = panel.run_pipeline(
-            "quality-assurance",
-            mock_document,
-            params={"threshold": 90}
-        )
+        result = panel.run_pipeline("quality-assurance", mock_document, params={"threshold": 90})
 
         assert isinstance(result, PipelineResult)
 
@@ -585,6 +562,7 @@ class TestEdgeCases:
         data_dir = tmp_path / "data"
         if data_dir.exists():
             import shutil
+
             shutil.rmtree(data_dir)
 
         # Run health check

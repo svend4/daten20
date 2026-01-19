@@ -4,14 +4,15 @@ Bulk Operations System
 Provides mass update, delete, and export capabilities for services.
 """
 
-from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class BulkOperationType(str, Enum):
     """Bulk operation types"""
+
     UPDATE = "update"
     DELETE = "delete"
     EXPORT = "export"
@@ -24,6 +25,7 @@ class BulkOperationType(str, Enum):
 @dataclass
 class BulkOperation:
     """Bulk operation definition"""
+
     operation_type: BulkOperationType
     service_ids: List[int]
     parameters: Dict[str, Any]
@@ -34,6 +36,7 @@ class BulkOperation:
 @dataclass
 class BulkOperationResult:
     """Result of bulk operation"""
+
     success: bool
     affected_count: int
     failed_count: int
@@ -54,6 +57,7 @@ class BulkOperationManager:
     def execute(self, operation: BulkOperation) -> BulkOperationResult:
         """Execute bulk operation"""
         import time
+
         start_time = time.time()
 
         # Validate operation
@@ -66,7 +70,7 @@ class BulkOperationManager:
                 errors=validation_errors,
                 warnings=[],
                 execution_time_ms=(time.time() - start_time) * 1000,
-                dry_run=operation.dry_run
+                dry_run=operation.dry_run,
             )
 
         # Execute based on operation type
@@ -92,7 +96,7 @@ class BulkOperationManager:
                 errors=[{"error": f"Unknown operation type: {operation.operation_type}"}],
                 warnings=[],
                 execution_time_ms=0,
-                dry_run=operation.dry_run
+                dry_run=operation.dry_run,
             )
 
         execution_time = (time.time() - start_time) * 1000
@@ -115,19 +119,13 @@ class BulkOperationManager:
 
         # Check if services exist
         cursor = self.db.conn.cursor()
-        placeholders = ','.join(['?' for _ in operation.service_ids])
-        cursor.execute(
-            f"SELECT id FROM services WHERE id IN ({placeholders})",
-            operation.service_ids
-        )
+        placeholders = ",".join(["?" for _ in operation.service_ids])
+        cursor.execute(f"SELECT id FROM services WHERE id IN ({placeholders})", operation.service_ids)
         existing_ids = {row[0] for row in cursor.fetchall()}
 
         missing_ids = set(operation.service_ids) - existing_ids
         if missing_ids:
-            errors.append({
-                "error": f"Services not found: {missing_ids}",
-                "missing_ids": list(missing_ids)
-            })
+            errors.append({"error": f"Services not found: {missing_ids}", "missing_ids": list(missing_ids)})
 
         # Operation-specific validation
         if operation.operation_type == BulkOperationType.UPDATE:
@@ -148,7 +146,7 @@ class BulkOperationManager:
         params = []
 
         for field, value in operation.parameters.items():
-            if field in ['brutto_rate', 'hours_per_month', 'region', 'service_name']:
+            if field in ["brutto_rate", "hours_per_month", "region", "service_name"]:
                 update_fields.append(f"{field} = ?")
                 params.append(value)
             else:
@@ -162,7 +160,7 @@ class BulkOperationManager:
                 errors=[{"error": "No valid update fields"}],
                 warnings=warnings,
                 execution_time_ms=0,
-                dry_run=operation.dry_run
+                dry_run=operation.dry_run,
             )
 
         # Add updated_at timestamp
@@ -170,7 +168,7 @@ class BulkOperationManager:
         params.append(datetime.now().isoformat())
 
         # Add service IDs to params
-        placeholders = ','.join(['?' for _ in operation.service_ids])
+        placeholders = ",".join(["?" for _ in operation.service_ids])
         params.extend(operation.service_ids)
 
         sql = f"""
@@ -182,12 +180,8 @@ class BulkOperationManager:
         if operation.dry_run:
             # Preview mode - just count affected services
             cursor = self.db.conn.cursor()
-            cursor.execute(
-                f"SELECT * FROM services WHERE id IN ({placeholders})",
-                operation.service_ids
-            )
-            preview = [dict(zip([col[0] for col in cursor.description], row))
-                      for row in cursor.fetchall()]
+            cursor.execute(f"SELECT * FROM services WHERE id IN ({placeholders})", operation.service_ids)
+            preview = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
 
             return BulkOperationResult(
                 success=True,
@@ -197,7 +191,7 @@ class BulkOperationManager:
                 warnings=warnings,
                 execution_time_ms=0,
                 dry_run=True,
-                preview=preview
+                preview=preview,
             )
 
         # Execute update
@@ -218,7 +212,7 @@ class BulkOperationManager:
             errors=errors,
             warnings=warnings,
             execution_time_ms=0,
-            dry_run=False
+            dry_run=False,
         )
 
     def _bulk_delete(self, operation: BulkOperation) -> BulkOperationResult:
@@ -231,13 +225,9 @@ class BulkOperationManager:
         if operation.dry_run:
             # Preview mode
             cursor = self.db.conn.cursor()
-            placeholders = ','.join(['?' for _ in operation.service_ids])
-            cursor.execute(
-                f"SELECT * FROM services WHERE id IN ({placeholders})",
-                operation.service_ids
-            )
-            preview = [dict(zip([col[0] for col in cursor.description], row))
-                      for row in cursor.fetchall()]
+            placeholders = ",".join(["?" for _ in operation.service_ids])
+            cursor.execute(f"SELECT * FROM services WHERE id IN ({placeholders})", operation.service_ids)
+            preview = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
 
             warnings.append(f"Dry run: Would delete {len(preview)} services")
 
@@ -249,17 +239,14 @@ class BulkOperationManager:
                 warnings=warnings,
                 execution_time_ms=0,
                 dry_run=True,
-                preview=preview
+                preview=preview,
             )
 
         # Execute delete
         try:
             cursor = self.db.conn.cursor()
-            placeholders = ','.join(['?' for _ in operation.service_ids])
-            cursor.execute(
-                f"DELETE FROM services WHERE id IN ({placeholders})",
-                operation.service_ids
-            )
+            placeholders = ",".join(["?" for _ in operation.service_ids])
+            cursor.execute(f"DELETE FROM services WHERE id IN ({placeholders})", operation.service_ids)
             self.db.conn.commit()
             affected_count = cursor.rowcount
         except Exception as e:
@@ -274,24 +261,20 @@ class BulkOperationManager:
             errors=errors,
             warnings=warnings,
             execution_time_ms=0,
-            dry_run=False
+            dry_run=False,
         )
 
     def _bulk_export(self, operation: BulkOperation) -> BulkOperationResult:
         """Export multiple services"""
         # This would integrate with excel_export module
         cursor = self.db.conn.cursor()
-        placeholders = ','.join(['?' for _ in operation.service_ids])
-        cursor.execute(
-            f"SELECT * FROM services WHERE id IN ({placeholders})",
-            operation.service_ids
-        )
+        placeholders = ",".join(["?" for _ in operation.service_ids])
+        cursor.execute(f"SELECT * FROM services WHERE id IN ({placeholders})", operation.service_ids)
 
-        services = [dict(zip([col[0] for col in cursor.description], row))
-                   for row in cursor.fetchall()]
+        services = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
 
-        export_format = operation.parameters.get('format', 'csv')
-        output_path = operation.parameters.get('output_path', 'bulk_export.csv')
+        export_format = operation.parameters.get("format", "csv")
+        output_path = operation.parameters.get("output_path", "bulk_export.csv")
 
         # Create export (simplified for now)
         warnings = [f"Export to {output_path} completed"]
@@ -304,12 +287,12 @@ class BulkOperationManager:
             warnings=warnings,
             execution_time_ms=0,
             dry_run=operation.dry_run,
-            preview=services if operation.dry_run else None
+            preview=services if operation.dry_run else None,
         )
 
     def _bulk_tag(self, operation: BulkOperation) -> BulkOperationResult:
         """Add tags to multiple services"""
-        tags = operation.parameters.get('tags', [])
+        tags = operation.parameters.get("tags", [])
 
         if not tags:
             return BulkOperationResult(
@@ -319,7 +302,7 @@ class BulkOperationManager:
                 errors=[{"error": "No tags provided"}],
                 warnings=[],
                 execution_time_ms=0,
-                dry_run=operation.dry_run
+                dry_run=operation.dry_run,
             )
 
         warnings = [f"Added tags: {', '.join(tags)}"]
@@ -331,12 +314,12 @@ class BulkOperationManager:
             errors=[],
             warnings=warnings,
             execution_time_ms=0,
-            dry_run=operation.dry_run
+            dry_run=operation.dry_run,
         )
 
     def _bulk_untag(self, operation: BulkOperation) -> BulkOperationResult:
         """Remove tags from multiple services"""
-        tags = operation.parameters.get('tags', [])
+        tags = operation.parameters.get("tags", [])
 
         if not tags:
             return BulkOperationResult(
@@ -346,7 +329,7 @@ class BulkOperationManager:
                 errors=[{"error": "No tags provided"}],
                 warnings=[],
                 execution_time_ms=0,
-                dry_run=operation.dry_run
+                dry_run=operation.dry_run,
             )
 
         warnings = [f"Removed tags: {', '.join(tags)}"]
@@ -358,7 +341,7 @@ class BulkOperationManager:
             errors=[],
             warnings=warnings,
             execution_time_ms=0,
-            dry_run=operation.dry_run
+            dry_run=operation.dry_run,
         )
 
     def _bulk_activate(self, operation: BulkOperation) -> BulkOperationResult:
@@ -372,7 +355,7 @@ class BulkOperationManager:
             errors=[],
             warnings=warnings,
             execution_time_ms=0,
-            dry_run=operation.dry_run
+            dry_run=operation.dry_run,
         )
 
     def _bulk_deactivate(self, operation: BulkOperation) -> BulkOperationResult:
@@ -386,7 +369,7 @@ class BulkOperationManager:
             errors=[],
             warnings=warnings,
             execution_time_ms=0,
-            dry_run=operation.dry_run
+            dry_run=operation.dry_run,
         )
 
     def _log_audit(self, operation: BulkOperation, result: BulkOperationResult):
@@ -408,15 +391,15 @@ class BulkOperationManager:
             user_id=operation.user_id,
             username="bulk_operation",
             level=AuditLevel.INFO if result.success else AuditLevel.ERROR,
-            resource_type='services',
+            resource_type="services",
             resource_id=None,
             details={
-                'operation_type': operation.operation_type,
-                'service_ids': operation.service_ids,
-                'affected_count': result.affected_count,
-                'failed_count': result.failed_count
+                "operation_type": operation.operation_type,
+                "service_ids": operation.service_ids,
+                "affected_count": result.affected_count,
+                "failed_count": result.failed_count,
             },
-            status='success' if result.success else 'failure'
+            status="success" if result.success else "failure",
         )
 
 

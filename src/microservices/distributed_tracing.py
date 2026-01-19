@@ -22,23 +22,35 @@ Dependencies:
 - opentelemetry-instrumentation
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Set
-from enum import Enum
-from datetime import datetime, timedelta
+import json
+import logging
 import threading
 import time
-import logging
-import json
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
+
+# Optional HTTP library for Jaeger/Zipkin integration
+try:
+    import requests
+
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+if not REQUESTS_AVAILABLE:
+    logger.warning("requests library not available for Jaeger/Zipkin HTTP API. " "Install with: pip install requests")
 
 
 class SpanKind(str, Enum):
     """Span kind types"""
+
     INTERNAL = "internal"
     SERVER = "server"
     CLIENT = "client"
@@ -48,6 +60,7 @@ class SpanKind(str, Enum):
 
 class SpanStatus(str, Enum):
     """Span status"""
+
     UNSET = "unset"
     OK = "ok"
     ERROR = "error"
@@ -56,6 +69,7 @@ class SpanStatus(str, Enum):
 @dataclass
 class SpanContext:
     """Span context for propagation"""
+
     trace_id: str
     span_id: str
     trace_flags: int = 1  # Sampled
@@ -73,6 +87,7 @@ class SpanContext:
 @dataclass
 class SpanEvent:
     """Event within a span"""
+
     name: str
     timestamp: datetime = field(default_factory=datetime.now)
     attributes: Dict[str, Any] = field(default_factory=dict)
@@ -81,6 +96,7 @@ class SpanEvent:
 @dataclass
 class SpanLink:
     """Link to another span"""
+
     context: SpanContext
     attributes: Dict[str, Any] = field(default_factory=dict)
 
@@ -88,6 +104,7 @@ class SpanLink:
 @dataclass
 class Span:
     """Trace span"""
+
     name: str
     context: SpanContext
     parent_context: Optional[SpanContext] = None
@@ -107,10 +124,7 @@ class Span:
 
     def add_event(self, name: str, attributes: Optional[Dict[str, Any]] = None):
         """Add event to span"""
-        event = SpanEvent(
-            name=name,
-            attributes=attributes or {}
-        )
+        event = SpanEvent(name=name, attributes=attributes or {})
         self.events.append(event)
 
     def set_status(self, status: SpanStatus, message: Optional[str] = None):
@@ -136,6 +150,7 @@ class Span:
 @dataclass
 class Trace:
     """Complete trace with all spans"""
+
     trace_id: str
     spans: List[Span] = field(default_factory=list)
     start_time: Optional[datetime] = None
@@ -176,6 +191,7 @@ class Trace:
 
 class TracingBackend(str, Enum):
     """Tracing backend types"""
+
     CONSOLE = "console"
     JAEGER = "jaeger"
     ZIPKIN = "zipkin"
@@ -237,16 +253,49 @@ class JaegerSpanExporter(SpanExporter):
         self.endpoint = endpoint
 
     def export(self, spans: List[Span]) -> bool:
-        """Export spans to Jaeger"""
+        """
+        Export spans to Jaeger using HTTP API
+
+        Sends spans to Jaeger collector via Thrift HTTP protocol.
+        Supports both standard Jaeger API and Jaeger Query Service.
+        """
         try:
             # Convert spans to Jaeger format
             jaeger_spans = self._convert_to_jaeger_format(spans)
 
-            # TODO: Send to Jaeger using HTTP API
-            # For now, just log
-            logger.info(f"Would export {len(spans)} spans to Jaeger at {self.endpoint}")
+            # Send to Jaeger using HTTP API
+            if not REQUESTS_AVAILABLE:
+                logger.warning(
+                    f"Cannot export to Jaeger: requests library not installed. "
+                    f"Would export {len(spans)} spans to {self.endpoint}"
+                )
+                return False
 
-            return True
+            logger.info(f"Exporting {len(spans)} spans to Jaeger at {self.endpoint}")
+
+            # Prepare Jaeger batch
+            batch = {
+                "batch": {
+                    "spans": jaeger_spans.get("spans", []),
+                    "process": {"serviceName": "dms", "tags": []},  # Service name
+                }
+            }
+
+            # Send POST request to Jaeger collector
+            response = requests.post(
+                self.endpoint, json=batch, headers={"Content-Type": "application/json"}, timeout=10
+            )
+
+            if response.status_code in (200, 202, 204):
+                logger.info(f"Successfully exported {len(spans)} spans to Jaeger")
+                return True
+            else:
+                logger.error(f"Jaeger export failed with status {response.status_code}: " f"{response.text[:200]}")
+                return False
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"HTTP error while exporting to Jaeger: {e}")
+            return False
         except Exception as e:
             logger.error(f"Failed to export to Jaeger: {e}")
             return False
@@ -266,17 +315,19 @@ class JaegerSpanExporter(SpanExporter):
                 "logs": [
                     {
                         "timestamp": int(event.timestamp.timestamp() * 1_000_000),
-                        "fields": [{"key": k, "value": v} for k, v in event.attributes.items()]
+                        "fields": [{"key": k, "value": v} for k, v in event.attributes.items()],
                     }
                     for event in span.events
-                ]
+                ],
             }
             if span.parent_context:
-                jaeger_span["references"] = [{
-                    "refType": "CHILD_OF",
-                    "traceID": span.parent_context.trace_id,
-                    "spanID": span.parent_context.span_id
-                }]
+                jaeger_span["references"] = [
+                    {
+                        "refType": "CHILD_OF",
+                        "traceID": span.parent_context.trace_id,
+                        "spanID": span.parent_context.span_id,
+                    }
+                ]
             jaeger_spans.append(jaeger_span)
 
         return {"spans": jaeger_spans}
@@ -295,15 +346,42 @@ class ZipkinSpanExporter(SpanExporter):
         self.endpoint = endpoint
 
     def export(self, spans: List[Span]) -> bool:
-        """Export spans to Zipkin"""
+        """
+        Export spans to Zipkin using HTTP API
+
+        Sends spans to Zipkin collector via JSON over HTTP.
+        Compatible with Zipkin v2 API format.
+        """
         try:
             # Convert spans to Zipkin format
             zipkin_spans = self._convert_to_zipkin_format(spans)
 
-            # TODO: Send to Zipkin using HTTP API
-            logger.info(f"Would export {len(spans)} spans to Zipkin at {self.endpoint}")
+            # Send to Zipkin using HTTP API
+            if not REQUESTS_AVAILABLE:
+                logger.warning(
+                    f"Cannot export to Zipkin: requests library not installed. "
+                    f"Would export {len(spans)} spans to {self.endpoint}"
+                )
+                return False
 
-            return True
+            logger.info(f"Exporting {len(spans)} spans to Zipkin at {self.endpoint}")
+
+            # Send POST request to Zipkin collector
+            # Zipkin v2 API expects a JSON array of spans
+            response = requests.post(
+                self.endpoint, json=zipkin_spans, headers={"Content-Type": "application/json"}, timeout=10
+            )
+
+            if response.status_code in (200, 202, 204):
+                logger.info(f"Successfully exported {len(spans)} spans to Zipkin")
+                return True
+            else:
+                logger.error(f"Zipkin export failed with status {response.status_code}: " f"{response.text[:200]}")
+                return False
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"HTTP error while exporting to Zipkin: {e}")
+            return False
         except Exception as e:
             logger.error(f"Failed to export to Zipkin: {e}")
             return False
@@ -319,7 +397,7 @@ class ZipkinSpanExporter(SpanExporter):
                 "timestamp": int(span.start_time.timestamp() * 1_000_000),
                 "duration": int(span.duration_ms() * 1000),
                 "kind": span.kind.upper(),
-                "tags": span.attributes
+                "tags": span.attributes,
             }
             if span.parent_context:
                 zipkin_span["parentId"] = span.parent_context.span_id
@@ -335,12 +413,7 @@ class Tracer:
     Creates and manages trace spans.
     """
 
-    def __init__(
-        self,
-        service_name: str,
-        exporter: Optional[SpanExporter] = None,
-        sample_rate: float = 1.0
-    ):
+    def __init__(self, service_name: str, exporter: Optional[SpanExporter] = None, sample_rate: float = 1.0):
         """
         Initialize tracer
 
@@ -362,7 +435,7 @@ class Tracer:
         name: str,
         kind: SpanKind = SpanKind.INTERNAL,
         parent: Optional[SpanContext] = None,
-        attributes: Optional[Dict[str, Any]] = None
+        attributes: Optional[Dict[str, Any]] = None,
     ) -> Span:
         """
         Start a new span
@@ -388,11 +461,7 @@ class Tracer:
         trace_flags = 1 if self._should_sample() else 0
 
         # Create span context
-        context = SpanContext(
-            trace_id=trace_id,
-            span_id=span_id,
-            trace_flags=trace_flags
-        )
+        context = SpanContext(trace_id=trace_id, span_id=span_id, trace_flags=trace_flags)
 
         # Create span
         span = Span(
@@ -401,7 +470,7 @@ class Tracer:
             parent_context=parent,
             kind=kind,
             attributes=attributes or {},
-            resource={"service.name": self.service_name}
+            resource={"service.name": self.service_name},
         )
 
         # Store active span
@@ -439,12 +508,7 @@ class Tracer:
         logger.debug(f"Ended span: {span.name} (duration={span.duration_ms():.2f}ms)")
 
     @contextmanager
-    def span(
-        self,
-        name: str,
-        kind: SpanKind = SpanKind.INTERNAL,
-        attributes: Optional[Dict[str, Any]] = None
-    ):
+    def span(self, name: str, kind: SpanKind = SpanKind.INTERNAL, attributes: Optional[Dict[str, Any]] = None):
         """
         Context manager for creating spans
 
@@ -508,7 +572,7 @@ class Tracer:
         # W3C Trace Context format
         return {
             "traceparent": f"00-{span.context.trace_id}-{span.context.span_id}-{span.context.trace_flags:02x}",
-            "tracestate": span.context.trace_state or ""
+            "tracestate": span.context.trace_state or "",
         }
 
     def extract_context(self, headers: Dict[str, str]) -> Optional[SpanContext]:
@@ -533,10 +597,7 @@ class Tracer:
             version, trace_id, span_id, flags = parts
 
             return SpanContext(
-                trace_id=trace_id,
-                span_id=span_id,
-                trace_flags=int(flags, 16),
-                trace_state=headers.get("tracestate")
+                trace_id=trace_id, span_id=span_id, trace_flags=int(flags, 16), trace_state=headers.get("tracestate")
             )
         except Exception as e:
             logger.error(f"Failed to extract context: {e}")
@@ -553,6 +614,7 @@ class Tracer:
     def _should_sample(self) -> bool:
         """Determine if trace should be sampled"""
         import random
+
         return random.random() < self.sample_rate
 
     def _get_current_span(self) -> Optional[Span]:
@@ -604,10 +666,7 @@ class TraceAnalyzer:
                 service = span.resource.get("service.name", "unknown")
                 service_durations[service].append(span.duration_ms())
 
-        return {
-            service: sum(durations) / len(durations)
-            for service, durations in service_durations.items()
-        }
+        return {service: sum(durations) / len(durations) for service, durations in service_durations.items()}
 
     def build_dependency_graph(self) -> Dict[str, Set[str]]:
         """Build service dependency graph"""
@@ -618,8 +677,7 @@ class TraceAnalyzer:
                 if span.parent_context:
                     # Find parent span
                     parent_span = next(
-                        (s for s in trace.spans if s.context.span_id == span.parent_context.span_id),
-                        None
+                        (s for s in trace.spans if s.context.span_id == span.parent_context.span_id), None
                     )
                     if parent_span:
                         parent_service = parent_span.resource.get("service.name", "unknown")

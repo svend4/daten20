@@ -2,20 +2,21 @@
 Tests for database connection pool.
 """
 
-import pytest
-import tempfile
 import sqlite3
+import tempfile
 import threading
 import time
 from pathlib import Path
 
-from src.core.connection_pool import ConnectionPool, get_connection_pool, close_connection_pool
+import pytest
+
+from src.core.connection_pool import ConnectionPool, close_connection_pool, get_connection_pool
 
 
 @pytest.fixture
 def temp_db():
     """Create temporary database."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
     yield db_path
     # Cleanup
@@ -34,8 +35,8 @@ class TestConnectionPool:
         assert pool.pool_size == 3
         assert pool.db_path == temp_db
         stats = pool.get_stats()
-        assert stats['pool_size'] == 3
-        assert stats['connections_created'] == 3
+        assert stats["pool_size"] == 3
+        assert stats["connections_created"] == 3
         pool.close_all()
 
     def test_get_connection(self, temp_db):
@@ -53,12 +54,12 @@ class TestConnectionPool:
         conn = pool.get_connection()
 
         stats1 = pool.get_stats()
-        available_before = stats1['available_connections']
+        available_before = stats1["available_connections"]
 
         pool.return_connection(conn)
 
         stats2 = pool.get_stats()
-        available_after = stats2['available_connections']
+        available_after = stats2["available_connections"]
 
         assert available_after == available_before + 1
         pool.close_all()
@@ -95,7 +96,7 @@ class TestConnectionPool:
             cursor.execute("SELECT * FROM test WHERE id = 1")
             result = cursor.fetchone()
             assert result is not None
-            assert result[1] == 'test'
+            assert result[1] == "test"
 
         pool.close_all()
 
@@ -136,7 +137,7 @@ class TestConnectionPool:
         conn3 = pool.get_connection()  # Should create new connection
 
         stats = pool.get_stats()
-        assert stats['connections_created'] >= 3
+        assert stats["connections_created"] >= 3
 
         pool.return_connection(conn1)
         pool.return_connection(conn2)
@@ -166,7 +167,7 @@ class TestConnectionPool:
 
             # Check journal mode
             cursor.execute("PRAGMA journal_mode")
-            assert cursor.fetchone()[0] == 'wal'
+            assert cursor.fetchone()[0] == "wal"
 
             # Check foreign keys
             cursor.execute("PRAGMA foreign_keys")
@@ -214,33 +215,33 @@ class TestConnectionPool:
         pool = ConnectionPool(temp_db, pool_size=3)
 
         stats_before = pool.get_stats()
-        assert stats_before['available_connections'] == 3
+        assert stats_before["available_connections"] == 3
 
         pool.close_all()
 
         stats_after = pool.get_stats()
-        assert stats_after['available_connections'] == 0
+        assert stats_after["available_connections"] == 0
 
     def test_stats(self, temp_db):
         """Test pool statistics."""
         pool = ConnectionPool(temp_db, pool_size=3)
 
         stats = pool.get_stats()
-        assert 'pool_size' in stats
-        assert 'connections_created' in stats
-        assert 'available_connections' in stats
-        assert 'active_connections' in stats
+        assert "pool_size" in stats
+        assert "connections_created" in stats
+        assert "available_connections" in stats
+        assert "active_connections" in stats
 
-        assert stats['pool_size'] == 3
-        assert stats['connections_created'] == 3
-        assert stats['available_connections'] == 3
-        assert stats['active_connections'] == 0
+        assert stats["pool_size"] == 3
+        assert stats["connections_created"] == 3
+        assert stats["available_connections"] == 3
+        assert stats["active_connections"] == 0
 
         # Get a connection
         conn = pool.get_connection()
         stats2 = pool.get_stats()
-        assert stats2['available_connections'] == 2
-        assert stats2['active_connections'] == 1
+        assert stats2["available_connections"] == 2
+        assert stats2["active_connections"] == 1
 
         pool.return_connection(conn)
         pool.close_all()
@@ -291,12 +292,304 @@ class TestPoolContextManager:
         """Test using pool as context manager."""
         with ConnectionPool(temp_db, pool_size=2) as pool:
             stats = pool.get_stats()
-            assert stats['pool_size'] == 2
+            assert stats["pool_size"] == 2
 
         # Pool should be closed after exiting context
         stats_after = pool.get_stats()
-        assert stats_after['available_connections'] == 0
+        assert stats_after["available_connections"] == 0
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+class TestDatabaseIntegration:
+    """Tests for Database class integration with connection pool."""
+
+    def test_database_uses_connection_pool(self, temp_db):
+        """Test that Database class uses connection pool."""
+        from src.core.database import Database
+
+        db = Database(temp_db, pool_size=3)
+
+        assert db.pool is not None
+        assert isinstance(db.pool, ConnectionPool)
+
+        stats = db.pool.get_stats()
+        assert stats["pool_size"] == 3
+        assert stats["connections_created"] == 3
+
+    def test_create_service_uses_pool(self, temp_db):
+        """Test that create_service uses connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=3)
+
+        service = Service(
+            basic_info=BasicInfo(service_name="Test Service", target_group="test", region="us-east-1"),
+            financial=Financial(brutto_rate=100.0),
+            system_settings=SystemSettings(service_type="translation"),
+        )
+
+        service_id = db.create_service(service)
+        assert service_id > 0
+
+        # Verify connection was returned to pool
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+    def test_get_service_uses_pool(self, temp_db):
+        """Test that get_service uses connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=3)
+
+        # Create service
+        service = Service(
+            basic_info=BasicInfo(service_name="Test Service", target_group="test", region="us-east-1"),
+            financial=Financial(brutto_rate=100.0),
+            system_settings=SystemSettings(service_type="translation"),
+        )
+        service_id = db.create_service(service)
+
+        # Get service
+        retrieved = db.get_service(service_id)
+        assert retrieved is not None
+        assert retrieved.basic_info.service_name == "Test Service"
+
+        # Verify connection was returned to pool
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+    def test_update_service_uses_pool(self, temp_db):
+        """Test that update_service uses connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=3)
+
+        # Create service
+        service = Service(
+            basic_info=BasicInfo(service_name="Test Service", target_group="test", region="us-east-1"),
+            financial=Financial(brutto_rate=100.0),
+            system_settings=SystemSettings(service_type="translation"),
+        )
+        service_id = db.create_service(service)
+
+        # Update service
+        service.id = service_id
+        service.basic_info.service_name = "Updated Service"
+        success = db.update_service(service)
+        assert success
+
+        # Verify connection was returned to pool
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+    def test_delete_service_uses_pool(self, temp_db):
+        """Test that delete_service uses connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=3)
+
+        # Create service
+        service = Service(
+            basic_info=BasicInfo(service_name="Test Service", target_group="test", region="us-east-1"),
+            financial=Financial(brutto_rate=100.0),
+            system_settings=SystemSettings(service_type="translation"),
+        )
+        service_id = db.create_service(service)
+
+        # Delete service
+        success = db.delete_service(service_id)
+        assert success
+
+        # Verify connection was returned to pool
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+    def test_list_services_uses_pool(self, temp_db):
+        """Test that list_services uses connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=3)
+
+        # Create services
+        for i in range(3):
+            service = Service(
+                basic_info=BasicInfo(service_name=f"Service {i}", target_group="test", region="us-east-1"),
+                financial=Financial(brutto_rate=100.0),
+                system_settings=SystemSettings(service_type="translation"),
+            )
+            db.create_service(service)
+
+        # List services
+        services = db.list_services()
+        assert len(services) == 3
+
+        # Verify connection was returned to pool
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+    def test_count_services_uses_pool(self, temp_db):
+        """Test that count_services uses connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=3)
+
+        # Create services
+        for i in range(5):
+            service = Service(
+                basic_info=BasicInfo(service_name=f"Service {i}", target_group="test", region="us-east-1"),
+                financial=Financial(brutto_rate=100.0),
+                system_settings=SystemSettings(service_type="translation"),
+            )
+            db.create_service(service)
+
+        # Count services
+        count = db.count_services()
+        assert count == 5
+
+        # Verify connection was returned to pool
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+    def test_search_services_uses_pool(self, temp_db):
+        """Test that search_services uses connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=3)
+
+        # Create services
+        service = Service(
+            basic_info=BasicInfo(service_name="Test Service", target_group="test", region="us-east-1"),
+            financial=Financial(brutto_rate=100.0),
+            system_settings=SystemSettings(service_type="translation"),
+        )
+        db.create_service(service)
+
+        # Search services
+        results = db.search_services("Test")
+        assert len(results) == 1
+
+        # Verify connection was returned to pool
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+    def test_get_service_versions_uses_pool(self, temp_db):
+        """Test that get_service_versions uses connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=3)
+
+        # Create service
+        service = Service(
+            basic_info=BasicInfo(service_name="Test Service", target_group="test", region="us-east-1"),
+            financial=Financial(brutto_rate=100.0),
+            system_settings=SystemSettings(service_type="translation"),
+        )
+        service_id = db.create_service(service)
+
+        # Get versions
+        versions = db.get_service_versions(service_id)
+        assert len(versions) > 0
+
+        # Verify connection was returned to pool
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+    def test_get_statistics_uses_pool(self, temp_db):
+        """Test that get_statistics uses connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=3)
+
+        # Create service
+        service = Service(
+            basic_info=BasicInfo(service_name="Test Service", target_group="test", region="us-east-1"),
+            financial=Financial(brutto_rate=100.0),
+            system_settings=SystemSettings(service_type="translation"),
+        )
+        db.create_service(service)
+
+        # Get statistics
+        stats = db.get_statistics()
+        assert stats["total_services"] == 1
+
+        # Verify connection was returned to pool
+        pool_stats = db.pool.get_stats()
+        assert pool_stats["active_connections"] == 0
+
+    def test_subscription_methods_use_pool(self, temp_db):
+        """Test that subscription methods use connection pool."""
+        from src.core.database import Database
+
+        db = Database(temp_db, pool_size=3)
+
+        # Create subscription
+        success = db.create_subscription(
+            subscription_id="sub_123",
+            tenant_id="tenant_001",
+            billing_cycle="monthly",
+            amount=99.00,
+            status="active",
+            metadata={"plan": "professional"},
+        )
+        assert success
+
+        # Get subscriptions
+        subs = db.get_subscriptions(tenant_id="tenant_001")
+        assert len(subs) == 1
+
+        # Update subscription
+        success = db.update_subscription_status("sub_123", "canceled")
+        assert success
+
+        # Delete subscription
+        success = db.delete_subscription("sub_123")
+        assert success
+
+        # Verify connection was returned to pool after all operations
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+    def test_concurrent_database_operations(self, temp_db):
+        """Test concurrent database operations with connection pool."""
+        from src.core.database import Database
+        from src.models.service import BasicInfo, Financial, Service, SystemSettings
+
+        db = Database(temp_db, pool_size=5)
+
+        def create_service_thread(thread_id):
+            service = Service(
+                basic_info=BasicInfo(service_name=f"Service {thread_id}", target_group="test", region="us-east-1"),
+                financial=Financial(brutto_rate=100.0 + thread_id),
+                system_settings=SystemSettings(service_type="translation"),
+            )
+            db.create_service(service)
+
+        # Create services concurrently
+        threads = []
+        for i in range(10):
+            t = threading.Thread(target=create_service_thread, args=(i,))
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join()
+
+        # Verify all services created
+        services = db.list_services()
+        assert len(services) == 10
+
+        # Verify all connections returned to pool
+        stats = db.pool.get_stats()
+        assert stats["active_connections"] == 0
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

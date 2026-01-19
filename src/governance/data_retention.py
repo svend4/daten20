@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class TriggerEvent(Enum):
     """Retention trigger events."""
+
     CREATION_DATE = "creation_date"
     MODIFICATION_DATE = "modification_date"
     CLOSURE_DATE = "closure_date"
@@ -29,6 +30,7 @@ class TriggerEvent(Enum):
 
 class DispositionAction(Enum):
     """Actions to take when retention period expires."""
+
     PERMANENT_DELETE = "permanent_delete"
     ARCHIVE = "archive"
     TRANSFER = "transfer"
@@ -37,6 +39,7 @@ class DispositionAction(Enum):
 
 class HoldType(Enum):
     """Types of retention holds."""
+
     LEGAL = "legal"
     AUDIT = "audit"
     BUSINESS = "business"
@@ -46,6 +49,7 @@ class HoldType(Enum):
 @dataclass
 class RetentionPolicy:
     """Retention policy definition."""
+
     policy_id: str
     name: str
     description: str
@@ -64,6 +68,7 @@ class RetentionPolicy:
 @dataclass
 class AppliedRetention:
     """Retention policy applied to an item."""
+
     retention_id: str
     item_id: str
     policy_id: str
@@ -78,6 +83,7 @@ class AppliedRetention:
 @dataclass
 class RetentionHold:
     """Retention hold preventing disposition."""
+
     hold_id: str
     hold_type: HoldType
     reason: str
@@ -93,6 +99,7 @@ class RetentionHold:
 @dataclass
 class DispositionQueueItem:
     """Item scheduled for disposition."""
+
     queue_item_id: str
     retention_id: str
     item_id: str
@@ -113,6 +120,7 @@ class DispositionQueueItem:
 @dataclass
 class RetentionException:
     """Exception to retention policy."""
+
     exception_id: str
     item_id: str
     policy_id: str
@@ -138,7 +146,7 @@ class PolicyEngine:
         trigger_event: str,
         applies_to: Dict[str, Any],
         disposition_action: str = "permanent_delete",
-        **kwargs
+        **kwargs,
     ) -> RetentionPolicy:
         """Create retention policy."""
         await asyncio.sleep(0.05)
@@ -152,7 +160,7 @@ class PolicyEngine:
             disposition_action=DispositionAction(disposition_action),
             applies_to=applies_to,
             created_by=kwargs.get("created_by", "system"),
-            **{k: v for k, v in kwargs.items() if k != "created_by"}
+            **{k: v for k, v in kwargs.items() if k != "created_by"},
         )
 
         self.policies[policy.policy_id] = policy
@@ -160,10 +168,7 @@ class PolicyEngine:
         logger.info(f"Created retention policy: {name}")
         return policy
 
-    async def find_applicable_policy(
-        self,
-        item: Dict[str, Any]
-    ) -> Optional[RetentionPolicy]:
+    async def find_applicable_policy(self, item: Dict[str, Any]) -> Optional[RetentionPolicy]:
         """Find policy that applies to item."""
         await asyncio.sleep(0.02)
 
@@ -194,11 +199,7 @@ class DispositionQueue:
     def __init__(self):
         self.queue: Dict[str, DispositionQueueItem] = {}
 
-    async def schedule(
-        self,
-        retention: AppliedRetention,
-        policy: RetentionPolicy
-    ) -> DispositionQueueItem:
+    async def schedule(self, retention: AppliedRetention, policy: RetentionPolicy) -> DispositionQueueItem:
         """Schedule item for disposition."""
         await asyncio.sleep(0.02)
 
@@ -211,7 +212,7 @@ class DispositionQueue:
             action=policy.disposition_action,
             requires_approval=policy.requires_approval,
             on_hold=len(retention.holds) > 0,
-            hold_ids=retention.holds.copy()
+            hold_ids=retention.holds.copy(),
         )
 
         self.queue[item.queue_item_id] = item
@@ -219,31 +220,21 @@ class DispositionQueue:
         logger.info(f"Scheduled {item.item_id} for {item.action.value} on {item.scheduled_date}")
         return item
 
-    async def get_due_items(
-        self,
-        days_ahead: int = 30,
-        include_held: bool = False
-    ) -> List[DispositionQueueItem]:
+    async def get_due_items(self, days_ahead: int = 30, include_held: bool = False) -> List[DispositionQueueItem]:
         """Get items due for disposition."""
         await asyncio.sleep(0.05)
 
         cutoff = datetime.now() + timedelta(days=days_ahead)
 
         items = [
-            item for item in self.queue.values()
-            if item.scheduled_date <= cutoff
-            and not item.executed
-            and (include_held or not item.on_hold)
+            item
+            for item in self.queue.values()
+            if item.scheduled_date <= cutoff and not item.executed and (include_held or not item.on_hold)
         ]
 
         return sorted(items, key=lambda x: x.scheduled_date)
 
-    async def approve(
-        self,
-        queue_item_id: str,
-        approver: str,
-        notes: Optional[str] = None
-    ) -> bool:
+    async def approve(self, queue_item_id: str, approver: str, notes: Optional[str] = None) -> bool:
         """Approve disposition."""
         await asyncio.sleep(0.05)
 
@@ -263,11 +254,7 @@ class DispositionQueue:
         logger.info(f"Approved disposition of {item.item_id}")
         return True
 
-    async def execute(
-        self,
-        queue_item_id: str,
-        executor: str
-    ) -> bool:
+    async def execute(self, queue_item_id: str, executor: str) -> bool:
         """Execute disposition."""
         await asyncio.sleep(0.1)
 
@@ -297,13 +284,14 @@ class DispositionQueue:
         executed = sum(1 for i in self.queue.values() if i.executed)
         on_hold = sum(1 for i in self.queue.values() if i.on_hold and not i.executed)
         pending_approval = sum(
-            1 for i in self.queue.values()
+            1
+            for i in self.queue.values()
             if i.requires_approval and not i.approved and not i.on_hold and not i.executed
         )
         ready_to_execute = sum(
-            1 for i in self.queue.values()
-            if (not i.requires_approval or i.approved)
-            and not i.on_hold and not i.executed
+            1
+            for i in self.queue.values()
+            if (not i.requires_approval or i.approved) and not i.on_hold and not i.executed
         )
 
         return {
@@ -312,7 +300,7 @@ class DispositionQueue:
             "on_hold": on_hold,
             "pending_approval": pending_approval,
             "ready_to_execute": ready_to_execute,
-            "remaining": total - executed
+            "remaining": total - executed,
         }
 
 
@@ -323,12 +311,7 @@ class HoldManager:
         self.holds: Dict[str, RetentionHold] = {}
 
     async def place_hold(
-        self,
-        hold_type: str,
-        reason: str,
-        placed_by: str,
-        items: Optional[List[str]] = None,
-        **kwargs
+        self, hold_type: str, reason: str, placed_by: str, items: Optional[List[str]] = None, **kwargs
     ) -> RetentionHold:
         """Place retention hold."""
         await asyncio.sleep(0.05)
@@ -339,7 +322,7 @@ class HoldManager:
             reason=reason,
             placed_by=placed_by,
             items=set(items or []),
-            **kwargs
+            **kwargs,
         )
 
         self.holds[hold.hold_id] = hold
@@ -347,11 +330,7 @@ class HoldManager:
         logger.info(f"Placed {hold_type} hold on {len(hold.items)} items: {reason}")
         return hold
 
-    async def add_items_to_hold(
-        self,
-        hold_id: str,
-        items: List[str]
-    ) -> bool:
+    async def add_items_to_hold(self, hold_id: str, items: List[str]) -> bool:
         """Add items to existing hold."""
         await asyncio.sleep(0.05)
 
@@ -364,10 +343,7 @@ class HoldManager:
         logger.info(f"Added {len(items)} items to hold {hold_id}")
         return True
 
-    async def release_hold(
-        self,
-        hold_id: str
-    ) -> bool:
+    async def release_hold(self, hold_id: str) -> bool:
         """Release retention hold."""
         await asyncio.sleep(0.05)
 
@@ -381,15 +357,9 @@ class HoldManager:
         logger.info(f"Released hold {hold_id}")
         return True
 
-    async def get_active_holds_for_item(
-        self,
-        item_id: str
-    ) -> List[RetentionHold]:
+    async def get_active_holds_for_item(self, item_id: str) -> List[RetentionHold]:
         """Get active holds for item."""
-        return [
-            hold for hold in self.holds.values()
-            if hold.active and item_id in hold.items
-        ]
+        return [hold for hold in self.holds.values() if hold.active and item_id in hold.items]
 
 
 class RetentionEngine:
@@ -409,7 +379,7 @@ class RetentionEngine:
         retention_period: timedelta,
         trigger_event: str,
         applies_to: Dict[str, Any],
-        **kwargs
+        **kwargs,
     ) -> RetentionPolicy:
         """Create retention policy."""
         return await self.policy_engine.create_policy(
@@ -421,7 +391,7 @@ class RetentionEngine:
         item_id: str,
         item_data: Dict[str, Any],
         policy_id: Optional[str] = None,
-        trigger_date: Optional[datetime] = None
+        trigger_date: Optional[datetime] = None,
     ) -> AppliedRetention:
         """Apply retention policy to item."""
         await asyncio.sleep(0.05)
@@ -454,7 +424,7 @@ class RetentionEngine:
             item_id=item_id,
             policy_id=policy.policy_id,
             trigger_date=trigger_date,
-            disposition_date=disposition_date
+            disposition_date=disposition_date,
         )
 
         self.applied_retentions[retention.retention_id] = retention
@@ -466,17 +436,10 @@ class RetentionEngine:
         return retention
 
     async def place_hold(
-        self,
-        hold_type: str,
-        reason: str,
-        placed_by: str,
-        items: Optional[List[str]] = None,
-        **kwargs
+        self, hold_type: str, reason: str, placed_by: str, items: Optional[List[str]] = None, **kwargs
     ) -> RetentionHold:
         """Place retention hold on items."""
-        hold = await self.hold_manager.place_hold(
-            hold_type, reason, placed_by, items, **kwargs
-        )
+        hold = await self.hold_manager.place_hold(hold_type, reason, placed_by, items, **kwargs)
 
         # Update affected retentions
         for item_id in hold.items:
@@ -518,7 +481,7 @@ class RetentionEngine:
         reason: str,
         requested_by: str,
         new_disposition_date: Optional[datetime] = None,
-        permanent: bool = False
+        permanent: bool = False,
     ) -> RetentionException:
         """Request exception to retention policy."""
         await asyncio.sleep(0.05)
@@ -530,7 +493,7 @@ class RetentionEngine:
             reason=reason,
             requested_by=requested_by,
             new_disposition_date=new_disposition_date,
-            permanent_exception=permanent
+            permanent_exception=permanent,
         )
 
         self.exceptions[exception.exception_id] = exception
@@ -538,11 +501,7 @@ class RetentionEngine:
         logger.info(f"Requested retention exception for {item_id}")
         return exception
 
-    async def approve_exception(
-        self,
-        exception_id: str,
-        approved_by: str
-    ) -> bool:
+    async def approve_exception(self, exception_id: str, approved_by: str) -> bool:
         """Approve retention exception."""
         await asyncio.sleep(0.05)
 
@@ -563,9 +522,7 @@ class RetentionEngine:
         return True
 
     async def get_disposition_queue(
-        self,
-        days_ahead: int = 30,
-        requires_approval: Optional[bool] = None
+        self, days_ahead: int = 30, requires_approval: Optional[bool] = None
     ) -> List[DispositionQueueItem]:
         """Get disposition queue."""
         items = await self.disposition_queue.get_due_items(days_ahead)
@@ -575,27 +532,15 @@ class RetentionEngine:
 
         return items
 
-    async def approve_disposition(
-        self,
-        disposition_id: str,
-        approver: str,
-        notes: Optional[str] = None
-    ) -> bool:
+    async def approve_disposition(self, disposition_id: str, approver: str, notes: Optional[str] = None) -> bool:
         """Approve disposition."""
         return await self.disposition_queue.approve(disposition_id, approver, notes)
 
-    async def execute_disposition(
-        self,
-        disposition_id: str,
-        executor: str
-    ) -> bool:
+    async def execute_disposition(self, disposition_id: str, executor: str) -> bool:
         """Execute disposition."""
         return await self.disposition_queue.execute(disposition_id, executor)
 
-    async def process_queue(
-        self,
-        auto_approve_simple: bool = False
-    ) -> Dict[str, Any]:
+    async def process_queue(self, auto_approve_simple: bool = False) -> Dict[str, Any]:
         """Process disposition queue."""
         await asyncio.sleep(0.2)
 
@@ -635,7 +580,7 @@ class RetentionEngine:
             "disposition_queue": queue_stats,
             "active_holds": sum(1 for h in self.hold_manager.holds.values() if h.active),
             "pending_exceptions": sum(1 for e in self.exceptions.values() if not e.approved_by),
-            "generated_at": datetime.now().isoformat()
+            "generated_at": datetime.now().isoformat(),
         }
 
 

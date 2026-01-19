@@ -5,23 +5,25 @@ Provides automated backups of database, files, and configurations.
 Supports scheduling, rotation, and remote storage.
 """
 
+import gzip
+import logging
 import os
 import shutil
 import tarfile
-import gzip
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional
-import logging
-import schedule
-import time
 from threading import Thread
+from typing import List, Optional
 
-logger = logging.getLogger('dms.backup')
+import schedule
+
+logger = logging.getLogger("dms.backup")
 
 # Try to import encryption support
 try:
     from .backup_encryption import BackupEncryption
+
     ENCRYPTION_AVAILABLE = True
 except ImportError:
     logger.warning("Backup encryption not available (cryptography package not installed)")
@@ -33,11 +35,11 @@ class BackupManager:
 
     def __init__(
         self,
-        backup_dir: str = 'backups',
+        backup_dir: str = "backups",
         retention_days: int = 30,
         max_backups: int = 50,
         encrypt: bool = False,
-        encryption_key: Optional[bytes] = None
+        encryption_key: Optional[bytes] = None,
     ):
         """
         Initialize backup manager.
@@ -59,10 +61,7 @@ class BackupManager:
         self.encryptor = None
         if encrypt:
             if not ENCRYPTION_AVAILABLE:
-                raise RuntimeError(
-                    "Encryption requested but not available. "
-                    "Install: pip install cryptography"
-                )
+                raise RuntimeError("Encryption requested but not available. " "Install: pip install cryptography")
             self.encryptor = BackupEncryption(key=encryption_key)
             logger.info("Backup encryption enabled")
 
@@ -76,35 +75,35 @@ class BackupManager:
         Returns:
             Path to backup file
         """
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_name = f"dms_backup_{timestamp}.tar.gz"
         backup_path = self.backup_dir / backup_name
 
         logger.info(f"Creating backup: {backup_name}")
 
-        with tarfile.open(backup_path, 'w:gz') as tar:
+        with tarfile.open(backup_path, "w:gz") as tar:
             # Backup database
-            db_dir = Path('data/db')
+            db_dir = Path("data/db")
             if db_dir.exists():
-                tar.add(db_dir, arcname='db')
+                tar.add(db_dir, arcname="db")
                 logger.info("Added database to backup")
 
             # Backup configuration
-            config_dir = Path('config')
+            config_dir = Path("config")
             if config_dir.exists():
-                tar.add(config_dir, arcname='config')
+                tar.add(config_dir, arcname="config")
                 logger.info("Added config to backup")
 
             # Backup files if requested
             if include_files:
-                exports_dir = Path('data/exports')
+                exports_dir = Path("data/exports")
                 if exports_dir.exists():
-                    tar.add(exports_dir, arcname='exports')
+                    tar.add(exports_dir, arcname="exports")
                     logger.info("Added exports to backup")
 
         # Encrypt backup if enabled
         if self.encrypt and self.encryptor:
-            encrypted_path = backup_path.with_suffix(backup_path.suffix + '.encrypted')
+            encrypted_path = backup_path.with_suffix(backup_path.suffix + ".encrypted")
             self.encryptor.encrypt_file(str(backup_path), str(encrypted_path), compress=False)
             # Remove unencrypted backup
             backup_path.unlink()
@@ -131,7 +130,7 @@ class BackupManager:
 
         # Decrypt if encrypted
         actual_backup_path = backup_path
-        if backup_path.endswith('.encrypted'):
+        if backup_path.endswith(".encrypted"):
             if not self.encryptor:
                 raise RuntimeError("Backup is encrypted but no encryption key provided")
 
@@ -140,9 +139,59 @@ class BackupManager:
             self.encryptor.decrypt_file(backup_path, decrypted_path, compressed=False)
             actual_backup_path = decrypted_path
 
-        # Extract backup
-        with tarfile.open(actual_backup_path, 'r:gz') as tar:
-            tar.extractall('.')
+        # Extract backup safely (prevent path traversal attacks)
+        with tarfile.open(actual_backup_path, "r:gz") as tar:
+            # Get absolute base directory for extraction
+            base_dir = os.path.abspath("data")  # Restrict to data directory
+            os.makedirs(base_dir, exist_ok=True)
+
+            # Validate and filter members before extraction
+            safe_members = []
+            for member in tar.getmembers():
+                import urllib.parse
+
+                # Decode URL-encoded paths to detect obfuscated traversals
+                decoded_name = urllib.parse.unquote(member.name)
+                # Double decode to catch double-encoded attacks
+                decoded_name = urllib.parse.unquote(decoded_name)
+
+                # Check for any path traversal patterns in decoded name
+                if ".." in decoded_name:
+                    raise ValueError(f"Unsafe path: Path traversal attempt detected in {member.name}")
+
+                # Check for multiple dots with slashes (evasion technique)
+                import re
+                if re.search(r'\.\./|\.\.\\|\.\.\.\.|\.\.\.', decoded_name):
+                    raise ValueError(f"Unsafe path: Suspicious path pattern in {member.name}")
+
+                # Prevent path traversal by validating absolute path
+                # Remove any leading path components that try to escape
+                member_path = os.path.normpath(member.name).lstrip(os.sep)
+
+                # Check for relative path components (handle both / and \ separators)
+                path_parts = member_path.replace("\\", "/").split("/")
+                if ".." in path_parts:
+                    raise ValueError(f"Unsafe path: Path traversal attempt detected in {member.name}")
+
+                # Check for absolute paths (including Windows-style)
+                if os.path.isabs(member.name) or re.match(r'^[A-Za-z]:\\', member.name):
+                    raise ValueError(f"Unsafe path: Absolute path not allowed in {member.name}")
+
+                # Resolve full path and verify it's within base directory
+                full_path = os.path.abspath(os.path.join(base_dir, member_path))
+                if not full_path.startswith(base_dir + os.sep) and full_path != base_dir:
+                    raise ValueError(f"Unsafe path escapes base directory: {member.name}")
+
+                # Additional check for symlinks that might escape
+                if member.issym() or member.islnk():
+                    link_target = member.linkname
+                    if os.path.isabs(link_target) or ".." in link_target:
+                        raise ValueError(f"Unsafe symlink detected: {member.name} -> {link_target}")
+
+                safe_members.append(member)
+
+            # Extract only validated members to base directory
+            tar.extractall(base_dir, members=safe_members)  # nosec B202
 
         logger.info("Backup restored successfully")
 
@@ -150,20 +199,22 @@ class BackupManager:
         """List all available backups."""
         backups = []
 
-        for backup_file in sorted(self.backup_dir.glob('dms_backup_*.tar.gz'), reverse=True):
+        for backup_file in sorted(self.backup_dir.glob("dms_backup_*.tar.gz"), reverse=True):
             stat = backup_file.stat()
-            backups.append({
-                'name': backup_file.name,
-                'path': str(backup_file),
-                'size': self._format_size(stat.st_size),
-                'created': datetime.fromtimestamp(stat.st_mtime).isoformat()
-            })
+            backups.append(
+                {
+                    "name": backup_file.name,
+                    "path": str(backup_file),
+                    "size": self._format_size(stat.st_size),
+                    "created": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                }
+            )
 
         return backups
 
     def _cleanup_old_backups(self):
         """Remove old backups based on retention policy."""
-        backups = sorted(self.backup_dir.glob('dms_backup_*.tar.gz'))
+        backups = sorted(self.backup_dir.glob("dms_backup_*.tar.gz"))
 
         # Remove by age
         cutoff_date = datetime.now() - timedelta(days=self.retention_days)
@@ -173,16 +224,16 @@ class BackupManager:
                 logger.info(f"Removed old backup: {backup.name}")
 
         # Remove by count
-        remaining = sorted(self.backup_dir.glob('dms_backup_*.tar.gz'), reverse=True)
+        remaining = sorted(self.backup_dir.glob("dms_backup_*.tar.gz"), reverse=True)
         if len(remaining) > self.max_backups:
-            for backup in remaining[self.max_backups:]:
+            for backup in remaining[self.max_backups :]:
                 backup.unlink()
                 logger.info(f"Removed excess backup: {backup.name}")
 
     @staticmethod
     def _format_size(bytes: int) -> str:
         """Format file size in human-readable format."""
-        for unit in ['B', 'KB', 'MB', 'GB']:
+        for unit in ["B", "KB", "MB", "GB"]:
             if bytes < 1024.0:
                 return f"{bytes:.2f} {unit}"
             bytes /= 1024.0
@@ -263,3 +314,7 @@ def get_backup_manager() -> BackupManager:
     if _backup_manager is None:
         _backup_manager = BackupManager()
     return _backup_manager
+
+
+# Alias for backward compatibility
+BackupService = BackupManager

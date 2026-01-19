@@ -4,21 +4,25 @@ Database Migration System
 Manages database schema versions and migrations for safe upgrades.
 """
 
-import sqlite3
 import logging
-from typing import List, Callable, Dict
+import sqlite3
 from datetime import datetime
 from pathlib import Path
+from typing import Callable, Dict, List
 
-logger = logging.getLogger('dms.migrations')
+logger = logging.getLogger("dms.migrations")
 
 
 class Migration:
     """Single database migration."""
 
-    def __init__(self, version: int, description: str,
-                 up: Callable[[sqlite3.Connection], None],
-                 down: Callable[[sqlite3.Connection], None] = None):
+    def __init__(
+        self,
+        version: int,
+        description: str,
+        up: Callable[[sqlite3.Connection], None],
+        down: Callable[[sqlite3.Connection], None] = None,
+    ):
         """
         Initialize migration.
 
@@ -67,14 +71,16 @@ class MigrationManager:
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS schema_migrations (
                     version INTEGER PRIMARY KEY,
                     description TEXT NOT NULL,
                     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     execution_time_ms INTEGER
                 )
-            ''')
+            """
+            )
             conn.commit()
             logger.debug("Migrations table ensured")
 
@@ -98,7 +104,7 @@ class MigrationManager:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT MAX(version) FROM schema_migrations')
+            cursor.execute("SELECT MAX(version) FROM schema_migrations")
             result = cursor.fetchone()[0]
             return result if result is not None else 0
 
@@ -132,17 +138,17 @@ class MigrationManager:
                 # Record migration
                 execution_time = int((datetime.now() - start_time).total_seconds() * 1000)
                 cursor = conn.cursor()
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO schema_migrations (version, description, execution_time_ms)
                     VALUES (?, ?, ?)
-                ''', (migration.version, migration.description, execution_time))
+                """,
+                    (migration.version, migration.description, execution_time),
+                )
 
                 conn.commit()
 
-            logger.info(
-                f"Migration {migration.version} applied successfully "
-                f"({execution_time}ms)"
-            )
+            logger.info(f"Migration {migration.version} applied successfully " f"({execution_time}ms)")
             return True
 
         except Exception as e:
@@ -189,10 +195,7 @@ class MigrationManager:
             return True
 
         # Find migrations to rollback (in reverse order)
-        to_rollback = [
-            m for m in reversed(self.migrations)
-            if target_version < m.version <= current_version
-        ]
+        to_rollback = [m for m in reversed(self.migrations) if target_version < m.version <= current_version]
 
         logger.info(f"Rolling back {len(to_rollback)} migrations")
 
@@ -203,10 +206,7 @@ class MigrationManager:
 
                     # Remove from migrations table
                     cursor = conn.cursor()
-                    cursor.execute(
-                        'DELETE FROM schema_migrations WHERE version = ?',
-                        (migration.version,)
-                    )
+                    cursor.execute("DELETE FROM schema_migrations WHERE version = ?", (migration.version,))
                     conn.commit()
 
                 logger.info(f"Rolled back migration {migration.version}")
@@ -228,11 +228,13 @@ class MigrationManager:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT version, description, applied_at, execution_time_ms
                 FROM schema_migrations
                 ORDER BY version
-            ''')
+            """
+            )
             return [dict(row) for row in cursor.fetchall()]
 
     def print_status(self):
@@ -240,9 +242,9 @@ class MigrationManager:
         current_version = self.get_current_version()
         pending = self.get_pending_migrations()
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("DATABASE MIGRATION STATUS")
-        print("="*60)
+        print("=" * 60)
         print(f"\nCurrent Version: {current_version}")
         print(f"Latest Version:  {max((m.version for m in self.migrations), default=0)}")
         print(f"Pending:         {len(pending)} migrations")
@@ -261,10 +263,11 @@ class MigrationManager:
         else:
             print("  No migrations applied yet")
 
-        print("="*60 + "\n")
+        print("=" * 60 + "\n")
 
 
 # ==================== MIGRATION DEFINITIONS ====================
+
 
 def register_all_migrations(manager: MigrationManager):
     """Register all application migrations."""
@@ -275,7 +278,8 @@ def register_all_migrations(manager: MigrationManager):
         cursor = conn.cursor()
 
         # Services table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS services (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
@@ -287,10 +291,12 @@ def register_all_migrations(manager: MigrationManager):
                 version INTEGER DEFAULT 1,
                 config_json TEXT NOT NULL
             )
-        ''')
+        """
+        )
 
         # Financial data table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS financial_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 service_id INTEGER NOT NULL,
@@ -300,10 +306,12 @@ def register_all_migrations(manager: MigrationManager):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
             )
-        ''')
+        """
+        )
 
         # Versions table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS versions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 service_id INTEGER NOT NULL,
@@ -314,25 +322,23 @@ def register_all_migrations(manager: MigrationManager):
                 change_notes TEXT,
                 FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
             )
-        ''')
+        """
+        )
 
         # Create indexes
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_services_name ON services(name)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_services_region ON services(region)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_financial_service ON financial_data(service_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_versions_service ON versions(service_id)')
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_services_name ON services(name)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_services_region ON services(region)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_financial_service ON financial_data(service_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_versions_service ON versions(service_id)")
 
-    manager.register_migration(Migration(
-        version=1,
-        description="Initial database schema",
-        up=migration_1_up
-    ))
+    manager.register_migration(Migration(version=1, description="Initial database schema", up=migration_1_up))
 
     # Migration 2: Add subscriptions table
     def migration_2_up(conn: sqlite3.Connection):
         """Add subscriptions table for BI dashboard."""
         cursor = conn.cursor()
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS subscriptions (
                 id TEXT PRIMARY KEY,
                 tenant_id TEXT NOT NULL,
@@ -345,49 +351,48 @@ def register_all_migrations(manager: MigrationManager):
                 canceled_at TIMESTAMP NULL,
                 metadata_json TEXT DEFAULT '{}'
             )
-        ''')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_tenant ON subscriptions(tenant_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_created ON subscriptions(created_at)')
+        """
+        )
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_subscriptions_tenant ON subscriptions(tenant_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_subscriptions_created ON subscriptions(created_at)")
 
     def migration_2_down(conn: sqlite3.Connection):
         """Remove subscriptions table."""
         cursor = conn.cursor()
-        cursor.execute('DROP TABLE IF EXISTS subscriptions')
+        cursor.execute("DROP TABLE IF EXISTS subscriptions")
 
-    manager.register_migration(Migration(
-        version=2,
-        description="Add subscriptions table",
-        up=migration_2_up,
-        down=migration_2_down
-    ))
+    manager.register_migration(
+        Migration(version=2, description="Add subscriptions table", up=migration_2_up, down=migration_2_down)
+    )
 
     # Migration 3: Add full-text search
     def migration_3_up(conn: sqlite3.Connection):
         """Add full-text search capability."""
         cursor = conn.cursor()
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE VIRTUAL TABLE IF NOT EXISTS services_fts
             USING fts5(name, target_group, content='services', content_rowid='id')
-        ''')
+        """
+        )
 
         # Populate FTS table
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO services_fts(rowid, name, target_group)
             SELECT id, name, target_group FROM services
-        ''')
+        """
+        )
 
     def migration_3_down(conn: sqlite3.Connection):
         """Remove full-text search."""
         cursor = conn.cursor()
-        cursor.execute('DROP TABLE IF EXISTS services_fts')
+        cursor.execute("DROP TABLE IF EXISTS services_fts")
 
-    manager.register_migration(Migration(
-        version=3,
-        description="Add full-text search",
-        up=migration_3_up,
-        down=migration_3_down
-    ))
+    manager.register_migration(
+        Migration(version=3, description="Add full-text search", up=migration_3_up, down=migration_3_down)
+    )
 
     logger.info(f"Registered {len(manager.migrations)} migrations")
 
@@ -397,30 +402,26 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Database migration manager")
-    parser.add_argument('--db', default='data/dms.db', help='Database path')
-    parser.add_argument('command', choices=['status', 'migrate', 'rollback'],
-                       help='Migration command')
-    parser.add_argument('--version', type=int, help='Target version for rollback')
+    parser.add_argument("--db", default="data/dms.db", help="Database path")
+    parser.add_argument("command", choices=["status", "migrate", "rollback"], help="Migration command")
+    parser.add_argument("--version", type=int, help="Target version for rollback")
 
     args = parser.parse_args()
 
     # Setup logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # Create manager and register migrations
     manager = MigrationManager(args.db)
     register_all_migrations(manager)
 
     # Execute command
-    if args.command == 'status':
+    if args.command == "status":
         manager.print_status()
-    elif args.command == 'migrate':
+    elif args.command == "migrate":
         success = manager.migrate_to_latest()
         exit(0 if success else 1)
-    elif args.command == 'rollback':
+    elif args.command == "rollback":
         if args.version is None:
             print("Error: --version required for rollback")
             exit(1)

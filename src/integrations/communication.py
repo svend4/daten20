@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class Platform(Enum):
     """Communication platforms."""
+
     SLACK = "slack"
     TEAMS = "teams"
     DISCORD = "discord"
@@ -29,6 +30,7 @@ class Platform(Enum):
 @dataclass
 class Channel:
     """Communication channel."""
+
     channel_id: str
     name: str
     platform: Platform
@@ -41,6 +43,7 @@ class Channel:
 @dataclass
 class Message:
     """Chat message."""
+
     message_id: str
     channel_id: str
     text: str
@@ -54,6 +57,7 @@ class Message:
 @dataclass
 class User:
     """Platform user."""
+
     user_id: str
     username: str
     email: Optional[str] = None
@@ -74,22 +78,12 @@ class BaseCommunicationClient(ABC):
         pass
 
     @abstractmethod
-    async def send_message(
-        self,
-        channel: str,
-        text: str,
-        **kwargs
-    ) -> Message:
+    async def send_message(self, channel: str, text: str, **kwargs) -> Message:
         """Send message to channel."""
         pass
 
     @abstractmethod
-    async def create_channel(
-        self,
-        name: str,
-        members: Optional[List[str]] = None,
-        private: bool = False
-    ) -> Channel:
+    async def create_channel(self, name: str, members: Optional[List[str]] = None, private: bool = False) -> Channel:
         """Create channel."""
         pass
 
@@ -99,12 +93,7 @@ class BaseCommunicationClient(ABC):
         pass
 
     @abstractmethod
-    async def upload_file(
-        self,
-        channel: str,
-        file_path: str,
-        comment: Optional[str] = None
-    ) -> bool:
+    async def upload_file(self, channel: str, file_path: str, comment: Optional[str] = None) -> bool:
         """Upload file to channel."""
         pass
 
@@ -121,12 +110,7 @@ class SlackClient(BaseCommunicationClient):
         logger.info("Connected to Slack")
         return True
 
-    async def send_message(
-        self,
-        channel: str,
-        text: str,
-        **kwargs
-    ) -> Message:
+    async def send_message(self, channel: str, text: str, **kwargs) -> Message:
         """Send Slack message."""
         if not self.connected:
             raise RuntimeError("Not connected to Slack")
@@ -141,18 +125,13 @@ class SlackClient(BaseCommunicationClient):
             channel_id=channel,
             text=text,
             sender="bot",
-            attachments=kwargs.get('attachments', [])
+            attachments=kwargs.get("attachments", []),
         )
 
         logger.info(f"Sent Slack message to {channel}")
         return message
 
-    async def create_channel(
-        self,
-        name: str,
-        members: Optional[List[str]] = None,
-        private: bool = False
-    ) -> Channel:
+    async def create_channel(self, name: str, members: Optional[List[str]] = None, private: bool = False) -> Channel:
         """Create Slack channel."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -163,11 +142,7 @@ class SlackClient(BaseCommunicationClient):
         await asyncio.sleep(0.1)
 
         channel = Channel(
-            channel_id=channel_id,
-            name=name,
-            platform=Platform.SLACK,
-            is_private=private,
-            members=members or []
+            channel_id=channel_id, name=name, platform=Platform.SLACK, is_private=private, members=members or []
         )
 
         logger.info(f"Created Slack channel: {name}")
@@ -179,20 +154,9 @@ class SlackClient(BaseCommunicationClient):
             return []
 
         # Mock channels
-        return [
-            Channel(
-                channel_id="C12345",
-                name="general",
-                platform=Platform.SLACK
-            )
-        ]
+        return [Channel(channel_id="C12345", name="general", platform=Platform.SLACK)]
 
-    async def upload_file(
-        self,
-        channel: str,
-        file_path: str,
-        comment: Optional[str] = None
-    ) -> bool:
+    async def upload_file(self, channel: str, file_path: str, comment: Optional[str] = None) -> bool:
         """Upload file to Slack."""
         if not self.connected:
             return False
@@ -203,11 +167,7 @@ class SlackClient(BaseCommunicationClient):
         logger.info(f"Uploaded file to Slack channel {channel}")
         return True
 
-    async def add_reaction(
-        self,
-        message_id: str,
-        emoji: str
-    ) -> bool:
+    async def add_reaction(self, message_id: str, emoji: str) -> bool:
         """Add reaction to message."""
         if not self.connected:
             return False
@@ -231,12 +191,7 @@ class TeamsClient(BaseCommunicationClient):
         logger.info("Connected to Teams")
         return True
 
-    async def send_message(
-        self,
-        channel: str,
-        text: str,
-        **kwargs
-    ) -> Message:
+    async def send_message(self, channel: str, text: str, **kwargs) -> Message:
         """Send Teams message."""
         if not self.connected:
             raise RuntimeError("Not connected to Teams")
@@ -246,22 +201,12 @@ class TeamsClient(BaseCommunicationClient):
         # Mock message send
         await asyncio.sleep(0.1)
 
-        message = Message(
-            message_id=message_id,
-            channel_id=channel,
-            text=text,
-            sender="bot"
-        )
+        message = Message(message_id=message_id, channel_id=channel, text=text, sender="bot")
 
         logger.info(f"Sent Teams message to {channel}")
         return message
 
-    async def create_channel(
-        self,
-        name: str,
-        members: Optional[List[str]] = None,
-        private: bool = False
-    ) -> Channel:
+    async def create_channel(self, name: str, members: Optional[List[str]] = None, private: bool = False) -> Channel:
         """Create Teams channel."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -272,11 +217,7 @@ class TeamsClient(BaseCommunicationClient):
         await asyncio.sleep(0.1)
 
         channel = Channel(
-            channel_id=channel_id,
-            name=name,
-            platform=Platform.TEAMS,
-            is_private=private,
-            members=members or []
+            channel_id=channel_id, name=name, platform=Platform.TEAMS, is_private=private, members=members or []
         )
 
         logger.info(f"Created Teams channel: {name}")
@@ -289,12 +230,7 @@ class TeamsClient(BaseCommunicationClient):
 
         return []
 
-    async def upload_file(
-        self,
-        channel: str,
-        file_path: str,
-        comment: Optional[str] = None
-    ) -> bool:
+    async def upload_file(self, channel: str, file_path: str, comment: Optional[str] = None) -> bool:
         """Upload file to Teams."""
         if not self.connected:
             return False
@@ -318,12 +254,7 @@ class DiscordClient(BaseCommunicationClient):
         logger.info("Connected to Discord")
         return True
 
-    async def send_message(
-        self,
-        channel: str,
-        text: str,
-        **kwargs
-    ) -> Message:
+    async def send_message(self, channel: str, text: str, **kwargs) -> Message:
         """Send Discord message."""
         if not self.connected:
             raise RuntimeError("Not connected to Discord")
@@ -333,22 +264,12 @@ class DiscordClient(BaseCommunicationClient):
         # Mock message send
         await asyncio.sleep(0.1)
 
-        message = Message(
-            message_id=message_id,
-            channel_id=channel,
-            text=text,
-            sender="bot"
-        )
+        message = Message(message_id=message_id, channel_id=channel, text=text, sender="bot")
 
         logger.info(f"Sent Discord message")
         return message
 
-    async def create_channel(
-        self,
-        name: str,
-        members: Optional[List[str]] = None,
-        private: bool = False
-    ) -> Channel:
+    async def create_channel(self, name: str, members: Optional[List[str]] = None, private: bool = False) -> Channel:
         """Create Discord channel."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -358,12 +279,7 @@ class DiscordClient(BaseCommunicationClient):
         # Mock channel creation
         await asyncio.sleep(0.1)
 
-        channel = Channel(
-            channel_id=channel_id,
-            name=name,
-            platform=Platform.DISCORD,
-            is_private=private
-        )
+        channel = Channel(channel_id=channel_id, name=name, platform=Platform.DISCORD, is_private=private)
 
         logger.info(f"Created Discord channel: {name}")
         return channel
@@ -375,12 +291,7 @@ class DiscordClient(BaseCommunicationClient):
 
         return []
 
-    async def upload_file(
-        self,
-        channel: str,
-        file_path: str,
-        comment: Optional[str] = None
-    ) -> bool:
+    async def upload_file(self, channel: str, file_path: str, comment: Optional[str] = None) -> bool:
         """Upload file to Discord."""
         if not self.connected:
             return False
@@ -432,20 +343,12 @@ class WebhookManager:
     def __init__(self):
         self.webhooks: Dict[str, str] = {}
 
-    def register_webhook(
-        self,
-        webhook_id: str,
-        url: str
-    ):
+    def register_webhook(self, webhook_id: str, url: str):
         """Register webhook."""
         self.webhooks[webhook_id] = url
         logger.info(f"Registered webhook: {webhook_id}")
 
-    async def send_webhook(
-        self,
-        webhook_id: str,
-        payload: Dict[str, Any]
-    ) -> bool:
+    async def send_webhook(self, webhook_id: str, payload: Dict[str, Any]) -> bool:
         """Send webhook."""
         url = self.webhooks.get(webhook_id)
 
@@ -467,11 +370,7 @@ class CommunicationManager:
         self.clients: Dict[Platform, BaseCommunicationClient] = {}
         self.webhook_manager = WebhookManager()
 
-    def register_platform(
-        self,
-        platform: Platform,
-        token: str
-    ):
+    def register_platform(self, platform: Platform, token: str):
         """Register communication platform."""
         if platform == Platform.SLACK:
             self.clients[platform] = SlackClient(token)
@@ -493,13 +392,7 @@ class CommunicationManager:
 
         return await self.clients[platform_enum].connect()
 
-    async def send_message(
-        self,
-        platform: str,
-        channel: str,
-        text: str,
-        **kwargs
-    ) -> Message:
+    async def send_message(self, platform: str, channel: str, text: str, **kwargs) -> Message:
         """Send message."""
         platform_enum = Platform(platform)
 
@@ -513,12 +406,7 @@ class CommunicationManager:
 
         return await client.send_message(channel, text, **kwargs)
 
-    async def create_channel(
-        self,
-        platform: str,
-        name: str,
-        **kwargs
-    ) -> Channel:
+    async def create_channel(self, platform: str, name: str, **kwargs) -> Channel:
         """Create channel."""
         platform_enum = Platform(platform)
 
@@ -532,13 +420,7 @@ class CommunicationManager:
 
         return await client.create_channel(name, **kwargs)
 
-    async def upload_file(
-        self,
-        platform: str,
-        channel: str,
-        file_path: str,
-        **kwargs
-    ) -> bool:
+    async def upload_file(self, platform: str, channel: str, file_path: str, **kwargs) -> bool:
         """Upload file."""
         platform_enum = Platform(platform)
 

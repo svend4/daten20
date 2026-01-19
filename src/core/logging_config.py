@@ -9,13 +9,13 @@ Provides structured logging with:
 - Integration with monitoring systems
 """
 
+import json
 import logging
 import logging.handlers
-import json
 import sys
-from pathlib import Path
-from typing import Optional, Dict, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 class JSONFormatter(logging.Formatter):
@@ -96,10 +96,7 @@ class LoggingConfig:
         if enable_console:
             console_handler = logging.StreamHandler(sys.stdout)
             console_handler.setLevel(log_level)
-            console_formatter = logging.Formatter(
-                cls.DEFAULT_FORMAT,
-                datefmt="%Y-%m-%d %H:%M:%S"
-            )
+            console_formatter = logging.Formatter(cls.DEFAULT_FORMAT, datefmt="%Y-%m-%d %H:%M:%S")
             console_handler.setFormatter(console_formatter)
             logger.addHandler(console_handler)
 
@@ -107,20 +104,14 @@ class LoggingConfig:
         if enable_file:
             log_file = log_dir / f"{logger_name or 'daten20'}.log"
             file_handler = logging.handlers.RotatingFileHandler(
-                log_file,
-                maxBytes=rotation_size,
-                backupCount=backup_count,
-                encoding="utf-8"
+                log_file, maxBytes=rotation_size, backupCount=backup_count, encoding="utf-8"
             )
             file_handler.setLevel(log_level)
 
             if enable_json:
                 file_formatter = JSONFormatter()
             else:
-                file_formatter = logging.Formatter(
-                    cls.DEFAULT_FORMAT,
-                    datefmt="%Y-%m-%d %H:%M:%S"
-                )
+                file_formatter = logging.Formatter(cls.DEFAULT_FORMAT, datefmt="%Y-%m-%d %H:%M:%S")
 
             file_handler.setFormatter(file_formatter)
             logger.addHandler(file_handler)
@@ -129,20 +120,14 @@ class LoggingConfig:
         if enable_file:
             error_log_file = log_dir / f"{logger_name or 'daten20'}_errors.log"
             error_handler = logging.handlers.RotatingFileHandler(
-                error_log_file,
-                maxBytes=rotation_size,
-                backupCount=backup_count,
-                encoding="utf-8"
+                error_log_file, maxBytes=rotation_size, backupCount=backup_count, encoding="utf-8"
             )
             error_handler.setLevel(logging.ERROR)
 
             if enable_json:
                 error_formatter = JSONFormatter()
             else:
-                error_formatter = logging.Formatter(
-                    cls.DEFAULT_FORMAT,
-                    datefmt="%Y-%m-%d %H:%M:%S"
-                )
+                error_formatter = logging.Formatter(cls.DEFAULT_FORMAT, datefmt="%Y-%m-%d %H:%M:%S")
 
             error_handler.setFormatter(error_formatter)
             logger.addHandler(error_handler)
@@ -152,11 +137,7 @@ class LoggingConfig:
         return logger
 
     @classmethod
-    def get_logger(
-        cls,
-        name: str,
-        log_level: Optional[int] = None
-    ) -> logging.Logger:
+    def get_logger(cls, name: str, log_level: Optional[int] = None) -> logging.Logger:
         """
         Get a logger with the specified name
 
@@ -178,13 +159,7 @@ class LoggingConfig:
         return logger
 
     @classmethod
-    def log_with_context(
-        cls,
-        logger: logging.Logger,
-        level: int,
-        message: str,
-        **context: Any
-    ) -> None:
+    def log_with_context(cls, logger: logging.Logger, level: int, message: str, **context: Any) -> None:
         """
         Log message with additional context
 
@@ -199,11 +174,7 @@ class LoggingConfig:
 
 
 # Convenience functions
-def setup_logger(
-    name: Optional[str] = None,
-    log_level: int = logging.INFO,
-    **kwargs
-) -> logging.Logger:
+def setup_logger(name: Optional[str] = None, log_level: int = logging.INFO, **kwargs) -> logging.Logger:
     """Setup and return a configured logger"""
     return LoggingConfig.setup(logger_name=name, log_level=log_level, **kwargs)
 

@@ -16,22 +16,24 @@ Version: 4.2.0
 
 import asyncio
 import math
-import numpy as np
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from enum import Enum
-from typing import Dict, List, Optional, Any, Tuple, Callable
 import threading
 import uuid
 from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import numpy as np
 
 # ============================================================================
 # 6G NETWORK MANAGER
 # ============================================================================
 
+
 class SliceType(Enum):
     """Network slice types for different use cases"""
+
     EMBB = "enhanced_mobile_broadband"  # High throughput
     URLLC = "ultra_reliable_low_latency"  # Low latency, high reliability
     MMTC = "massive_machine_type"  # Massive IoT
@@ -43,6 +45,7 @@ class SliceType(Enum):
 @dataclass
 class QoSProfile:
     """Quality of Service profile"""
+
     max_latency_ms: float = 10.0  # Maximum latency in milliseconds
     min_bandwidth_gbps: float = 1.0  # Minimum bandwidth in Gbps
     reliability: float = 0.999  # 99.9% reliability
@@ -53,6 +56,7 @@ class QoSProfile:
 @dataclass
 class NetworkSlice:
     """Network slice instance"""
+
     id: str
     slice_type: SliceType
     qos: QoSProfile
@@ -68,12 +72,7 @@ class ResourceAllocator:
     """Dynamic resource allocation engine"""
 
     def __init__(self):
-        self._resources = {
-            'cpu_cores': 1000,
-            'memory_gb': 10000,
-            'spectrum_mhz': 50000,
-            'storage_tb': 1000
-        }
+        self._resources = {"cpu_cores": 1000, "memory_gb": 10000, "spectrum_mhz": 50000, "storage_tb": 1000}
         self._allocated = defaultdict(float)
         self._lock = threading.Lock()
 
@@ -85,19 +84,15 @@ class ResourceAllocator:
                 available = self._resources.get(resource, 0) - self._allocated.get(resource, 0)
                 if amount > available:
                     return {
-                        'success': False,
-                        'reason': f'Insufficient {resource}: requested {amount}, available {available}'
+                        "success": False,
+                        "reason": f"Insufficient {resource}: requested {amount}, available {available}",
                     }
 
             # Allocate resources
             for resource, amount in resources.items():
                 self._allocated[f"{slice_id}_{resource}"] = amount
 
-            return {
-                'success': True,
-                'allocated': resources,
-                'slice_id': slice_id
-            }
+            return {"success": True, "allocated": resources, "slice_id": slice_id}
 
     async def deallocate(self, slice_id: str):
         """Deallocate resources from a slice"""
@@ -130,10 +125,10 @@ class NetworkDigitalTwin:
 
         with self._lock:
             self._network_state[twin_id] = {
-                'network_id': network_id,
-                'topology': topology,
-                'created_at': datetime.now(),
-                'status': 'active'
+                "network_id": network_id,
+                "topology": topology,
+                "created_at": datetime.now(),
+                "status": "active",
             }
 
         return twin_id
@@ -144,16 +139,16 @@ class NetworkDigitalTwin:
         await asyncio.sleep(0.1)  # Simulate computation time
 
         results = {
-            'twin_id': twin_id,
-            'scenario': scenario,
-            'predicted_latency_ms': np.random.uniform(0.5, 5.0),
-            'predicted_throughput_gbps': np.random.uniform(50, 500),
-            'predicted_reliability': np.random.uniform(0.999, 0.999999),
-            'resource_usage': {
-                'cpu': np.random.uniform(30, 80),
-                'memory': np.random.uniform(40, 70),
-                'bandwidth': np.random.uniform(50, 90)
-            }
+            "twin_id": twin_id,
+            "scenario": scenario,
+            "predicted_latency_ms": np.random.uniform(0.5, 5.0),
+            "predicted_throughput_gbps": np.random.uniform(50, 500),
+            "predicted_reliability": np.random.uniform(0.999, 0.999999),
+            "resource_usage": {
+                "cpu": np.random.uniform(30, 80),
+                "memory": np.random.uniform(40, 70),
+                "bandwidth": np.random.uniform(50, 90),
+            },
         }
 
         with self._lock:
@@ -172,8 +167,7 @@ class NetworkManager:
         self._lock = threading.Lock()
         self._metrics_history = defaultdict(list)
 
-    async def create_slice(self, slice_type: SliceType, qos: QoSProfile,
-                          resources: Dict[str, Any]) -> NetworkSlice:
+    async def create_slice(self, slice_type: SliceType, qos: QoSProfile, resources: Dict[str, Any]) -> NetworkSlice:
         """
         Create a new network slice
 
@@ -186,16 +180,11 @@ class NetworkManager:
 
         # Allocate resources
         allocation = await self._allocator.allocate(slice_id, resources)
-        if not allocation['success']:
+        if not allocation["success"]:
             raise RuntimeError(f"Resource allocation failed: {allocation['reason']}")
 
         # Create slice
-        network_slice = NetworkSlice(
-            id=slice_id,
-            slice_type=slice_type,
-            qos=qos,
-            resources=resources
-        )
+        network_slice = NetworkSlice(id=slice_id, slice_type=slice_type, qos=qos, resources=resources)
 
         with self._lock:
             self._slices[slice_id] = network_slice
@@ -216,9 +205,9 @@ class NetworkManager:
                 raise ValueError(f"Slice not found: {slice_id}")
 
         # Calculate required resources
-        num_users = demand.get('users', 0)
-        num_devices = demand.get('devices', 0)
-        peak_traffic_gbps = demand.get('peak_traffic_gbps', 0)
+        num_users = demand.get("users", 0)
+        num_devices = demand.get("devices", 0)
+        peak_traffic_gbps = demand.get("peak_traffic_gbps", 0)
 
         # Resource calculation (simplified)
         cpu_cores = math.ceil((num_users + num_devices) / 1000)
@@ -226,12 +215,12 @@ class NetworkManager:
         spectrum_mhz = math.ceil(peak_traffic_gbps * 10)
 
         allocation = {
-            'cpu_cores': cpu_cores,
-            'memory_gb': memory_gb,
-            'spectrum_mhz': spectrum_mhz,
-            'users': num_users,
-            'devices': num_devices,
-            'peak_traffic_gbps': peak_traffic_gbps
+            "cpu_cores": cpu_cores,
+            "memory_gb": memory_gb,
+            "spectrum_mhz": spectrum_mhz,
+            "users": num_users,
+            "devices": num_devices,
+            "peak_traffic_gbps": peak_traffic_gbps,
         }
 
         return allocation
@@ -261,16 +250,16 @@ class NetworkManager:
             reliability = np.random.uniform(0.99, 0.999)
 
         metrics = {
-            'slice_id': slice_id,
-            'slice_type': slice_obj.slice_type.value,
-            'avg_latency_ms': latency,
-            'latency_p99_ms': latency * 1.5,
-            'throughput_gbps': throughput,
-            'reliability_percent': reliability * 100,
-            'active_users': slice_obj.users,
-            'jitter_ms': np.random.uniform(0.1, 1.0),
-            'packet_loss_rate': np.random.uniform(0.0001, 0.001),
-            'timestamp': datetime.now()
+            "slice_id": slice_id,
+            "slice_type": slice_obj.slice_type.value,
+            "avg_latency_ms": latency,
+            "latency_p99_ms": latency * 1.5,
+            "throughput_gbps": throughput,
+            "reliability_percent": reliability * 100,
+            "active_users": slice_obj.users,
+            "jitter_ms": np.random.uniform(0.1, 1.0),
+            "packet_loss_rate": np.random.uniform(0.0001, 0.001),
+            "timestamp": datetime.now(),
         }
 
         # Store metrics history
@@ -315,9 +304,11 @@ def get_network_manager() -> NetworkManager:
 # TERAHERTZ COMMUNICATION
 # ============================================================================
 
+
 @dataclass
 class THzChannel:
     """Terahertz channel model"""
+
     distance_m: float
     frequency_thz: float = 0.3  # 300 GHz
     temperature_c: float = 20.0
@@ -328,14 +319,18 @@ class THzChannel:
         """Calculate path loss in dB"""
         # Free space path loss
         wavelength_m = 3e8 / (self.frequency_thz * 1e12)
-        fspl_db = 20 * math.log10(self.distance_m) + 20 * math.log10(self.frequency_thz * 1e12) + 20 * math.log10(4 * math.pi / 3e8)
+        fspl_db = (
+            20 * math.log10(self.distance_m)
+            + 20 * math.log10(self.frequency_thz * 1e12)
+            + 20 * math.log10(4 * math.pi / 3e8)
+        )
 
         # Atmospheric attenuation (simplified)
         # Oxygen absorption
-        oxygen_db_per_km = 0.1 * (self.frequency_thz ** 2)
+        oxygen_db_per_km = 0.1 * (self.frequency_thz**2)
 
         # Water vapor absorption
-        water_vapor_db_per_km = 0.05 * self.humidity_percent * (self.frequency_thz ** 1.5)
+        water_vapor_db_per_km = 0.05 * self.humidity_percent * (self.frequency_thz**1.5)
 
         # Rain attenuation
         rain_db_per_km = 0.0  # self.rain_rate_mm_h * 0.1 * self.frequency_thz
@@ -349,6 +344,7 @@ class THzChannel:
 @dataclass
 class LinkBudget:
     """THz link budget calculation"""
+
     path_loss_db: float
     snr_db: float
     max_data_rate_gbps: float
@@ -363,8 +359,7 @@ class BeamformingController:
         self._beam_configs = {}
         self._lock = threading.Lock()
 
-    async def optimize_beam(self, target_direction: Tuple[float, float],
-                           users: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def optimize_beam(self, target_direction: Tuple[float, float], users: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Optimize beamforming for multi-user scenario
 
@@ -385,13 +380,13 @@ class BeamformingController:
             weights.append(weight)
 
         beam_config = {
-            'beam_id': beam_id,
-            'weights': weights,
-            'target_direction': target_direction,
-            'num_users': len(users),
-            'beam_width_deg': 360 / self.num_antennas,
-            'gain_dbi': 10 * math.log10(self.num_antennas),
-            'created_at': datetime.now()
+            "beam_id": beam_id,
+            "weights": weights,
+            "target_direction": target_direction,
+            "num_users": len(users),
+            "beam_width_deg": 360 / self.num_antennas,
+            "gain_dbi": 10 * math.log10(self.num_antennas),
+            "created_at": datetime.now(),
         }
 
         with self._lock:
@@ -404,16 +399,19 @@ class AtmosphericModel:
     """Atmospheric channel model for THz"""
 
     @staticmethod
-    def calculate_attenuation(frequency_thz: float, distance_m: float,
-                             temperature_c: float = 20.0,
-                             humidity_percent: float = 50.0,
-                             rain_rate_mm_h: float = 0.0) -> float:
+    def calculate_attenuation(
+        frequency_thz: float,
+        distance_m: float,
+        temperature_c: float = 20.0,
+        humidity_percent: float = 50.0,
+        rain_rate_mm_h: float = 0.0,
+    ) -> float:
         """Calculate atmospheric attenuation"""
         # Oxygen absorption
-        oxygen_db_km = 0.1 * (frequency_thz ** 2)
+        oxygen_db_km = 0.1 * (frequency_thz**2)
 
         # Water vapor absorption
-        water_vapor_db_km = 0.05 * humidity_percent * (frequency_thz ** 1.5)
+        water_vapor_db_km = 0.05 * humidity_percent * (frequency_thz**1.5)
 
         # Rain attenuation (if applicable)
         rain_db_km = rain_rate_mm_h * 0.1 * frequency_thz if rain_rate_mm_h > 0 else 0
@@ -431,8 +429,9 @@ class SpectrumAnalyzer:
         self._spectrum_data = {}
         self._lock = threading.Lock()
 
-    async def analyze_spectrum(self, frequency_range_thz: Tuple[float, float],
-                              resolution_ghz: float = 1.0) -> Dict[str, Any]:
+    async def analyze_spectrum(
+        self, frequency_range_thz: Tuple[float, float], resolution_ghz: float = 1.0
+    ) -> Dict[str, Any]:
         """Analyze THz spectrum"""
         start_thz, end_thz = frequency_range_thz
 
@@ -441,13 +440,13 @@ class SpectrumAnalyzer:
         power_dbm = -80 + np.random.randn(len(frequencies)) * 10  # Noise floor + random variations
 
         analysis = {
-            'frequency_range_thz': frequency_range_thz,
-            'resolution_ghz': resolution_ghz,
-            'num_samples': len(frequencies),
-            'peak_power_dbm': float(np.max(power_dbm)),
-            'avg_power_dbm': float(np.mean(power_dbm)),
-            'occupied_bandwidth_ghz': float((end_thz - start_thz) * 1000),
-            'timestamp': datetime.now()
+            "frequency_range_thz": frequency_range_thz,
+            "resolution_ghz": resolution_ghz,
+            "num_samples": len(frequencies),
+            "peak_power_dbm": float(np.max(power_dbm)),
+            "avg_power_dbm": float(np.mean(power_dbm)),
+            "occupied_bandwidth_ghz": float((end_thz - start_thz) * 1000),
+            "timestamp": datetime.now(),
         }
 
         return analysis
@@ -456,8 +455,13 @@ class SpectrumAnalyzer:
 class THzTransceiver:
     """Terahertz transceiver"""
 
-    def __init__(self, frequency_thz: float = 0.3, bandwidth_ghz: float = 10,
-                 tx_power_dbm: float = 30, antenna_gain_dbi: float = 30):
+    def __init__(
+        self,
+        frequency_thz: float = 0.3,
+        bandwidth_ghz: float = 10,
+        tx_power_dbm: float = 30,
+        antenna_gain_dbi: float = 30,
+    ):
         self.frequency_thz = frequency_thz
         self.bandwidth_ghz = bandwidth_ghz
         self.tx_power_dbm = tx_power_dbm
@@ -488,27 +492,29 @@ class THzTransceiver:
         margin_db = snr_db - required_snr_db
 
         return LinkBudget(
-            path_loss_db=path_loss_db,
-            snr_db=snr_db,
-            max_data_rate_gbps=max_data_rate_gbps,
-            margin_db=margin_db
+            path_loss_db=path_loss_db, snr_db=snr_db, max_data_rate_gbps=max_data_rate_gbps, margin_db=margin_db
         )
 
-    async def transmit(self, data: bytes, beam_config: Optional[Dict[str, Any]] = None,
-                      modulation: str = '256-QAM', coding_rate: float = 0.9) -> Dict[str, Any]:
+    async def transmit(
+        self,
+        data: bytes,
+        beam_config: Optional[Dict[str, Any]] = None,
+        modulation: str = "256-QAM",
+        coding_rate: float = 0.9,
+    ) -> Dict[str, Any]:
         """Transmit data over THz link"""
         # Simulate transmission
         await asyncio.sleep(0.01)  # Transmission delay
 
         transmission = {
-            'data_size_bytes': len(data),
-            'modulation': modulation,
-            'coding_rate': coding_rate,
-            'frequency_thz': self.frequency_thz,
-            'bandwidth_ghz': self.bandwidth_ghz,
-            'transmission_time_ms': (len(data) * 8) / (self.bandwidth_ghz * 1e6),  # Simplified
-            'success': True,
-            'timestamp': datetime.now()
+            "data_size_bytes": len(data),
+            "modulation": modulation,
+            "coding_rate": coding_rate,
+            "frequency_thz": self.frequency_thz,
+            "bandwidth_ghz": self.bandwidth_ghz,
+            "transmission_time_ms": (len(data) * 8) / (self.bandwidth_ghz * 1e6),  # Simplified
+            "success": True,
+            "timestamp": datetime.now(),
         }
 
         return transmission
@@ -533,8 +539,10 @@ def get_thz_transceiver() -> THzTransceiver:
 # INTELLIGENT REFLECTING SURFACES (IRS)
 # ============================================================================
 
+
 class OptimizationMethod(Enum):
     """IRS optimization methods"""
+
     ALTERNATING = "alternating_optimization"
     GRADIENT = "gradient_descent"
     GENETIC = "genetic_algorithm"
@@ -545,6 +553,7 @@ class OptimizationMethod(Enum):
 @dataclass
 class PhaseController:
     """Phase shift controller for IRS elements"""
+
     num_elements: int
     phase_shifts: np.ndarray = field(default_factory=lambda: np.zeros(0))
 
@@ -572,9 +581,12 @@ class ChannelEstimator:
         self._channel_history = defaultdict(list)
         self._lock = threading.Lock()
 
-    async def estimate_channel(self, tx_position: Tuple[float, float, float],
-                              rx_position: Tuple[float, float, float],
-                              irs_position: Tuple[float, float, float]) -> np.ndarray:
+    async def estimate_channel(
+        self,
+        tx_position: Tuple[float, float, float],
+        rx_position: Tuple[float, float, float],
+        irs_position: Tuple[float, float, float],
+    ) -> np.ndarray:
         """Estimate channel between transmitter and receiver via IRS"""
         # Calculate distances
         tx_to_irs = np.linalg.norm(np.array(tx_position) - np.array(irs_position))
@@ -599,9 +611,13 @@ class MultiUserOptimizer:
         self.method = method
         self._optimization_history = []
 
-    async def optimize(self, irs: 'IRSSurface', users: List[Dict[str, Any]],
-                      base_station_position: Tuple[float, float, float],
-                      objective: str = 'sum_rate') -> np.ndarray:
+    async def optimize(
+        self,
+        irs: "IRSSurface",
+        users: List[Dict[str, Any]],
+        base_station_position: Tuple[float, float, float],
+        objective: str = "sum_rate",
+    ) -> np.ndarray:
         """
         Optimize IRS phase shifts for multi-user scenario
 
@@ -624,16 +640,14 @@ class MultiUserOptimizer:
                 for user_idx, user in enumerate(users):
                     # Update phases for this user (simplified)
                     user_phases = np.random.uniform(0, 2 * math.pi, num_elements // len(users))
-                    phases[user_idx * len(user_phases):(user_idx + 1) * len(user_phases)] = user_phases
+                    phases[user_idx * len(user_phases) : (user_idx + 1) * len(user_phases)] = user_phases
 
                 # Calculate objective
                 objective_value = self._calculate_objective(phases, users, objective)
 
-                self._optimization_history.append({
-                    'iteration': iteration,
-                    'objective': objective_value,
-                    'method': self.method.value
-                })
+                self._optimization_history.append(
+                    {"iteration": iteration, "objective": objective_value, "method": self.method.value}
+                )
 
         elif self.method == OptimizationMethod.GRADIENT:
             # Gradient descent optimization
@@ -649,24 +663,21 @@ class MultiUserOptimizer:
 
                 objective_value = self._calculate_objective(phases, users, objective)
 
-                self._optimization_history.append({
-                    'iteration': iteration,
-                    'objective': objective_value,
-                    'method': self.method.value
-                })
+                self._optimization_history.append(
+                    {"iteration": iteration, "objective": objective_value, "method": self.method.value}
+                )
 
         return phases
 
-    def _calculate_objective(self, phases: np.ndarray, users: List[Dict[str, Any]],
-                            objective: str) -> float:
+    def _calculate_objective(self, phases: np.ndarray, users: List[Dict[str, Any]], objective: str) -> float:
         """Calculate optimization objective"""
-        if objective == 'sum_rate':
+        if objective == "sum_rate":
             # Sum of user rates (simplified)
             return float(np.sum(np.abs(phases)) / len(phases) * 100)
-        elif objective == 'min_rate':
+        elif objective == "min_rate":
             # Minimum user rate
             return float(np.min(np.abs(phases)) * 50)
-        elif objective == 'energy_efficiency':
+        elif objective == "energy_efficiency":
             # Energy efficiency
             return float(np.mean(np.abs(phases)) * 75)
         else:
@@ -676,8 +687,13 @@ class MultiUserOptimizer:
 class IRSSurface:
     """Intelligent Reflecting Surface"""
 
-    def __init__(self, num_elements_x: int = 32, num_elements_y: int = 32,
-                 element_spacing_lambda: float = 0.5, frequency_ghz: float = 300):
+    def __init__(
+        self,
+        num_elements_x: int = 32,
+        num_elements_y: int = 32,
+        element_spacing_lambda: float = 0.5,
+        frequency_ghz: float = 300,
+    ):
         self.num_elements_x = num_elements_x
         self.num_elements_y = num_elements_y
         self.element_spacing_lambda = element_spacing_lambda
@@ -697,12 +713,12 @@ class IRSSurface:
         """Get IRS performance metrics"""
         # Simulate metrics
         metrics = {
-            'num_elements': self.num_elements_x * self.num_elements_y,
-            'total_throughput_gbps': np.random.uniform(50, 200),
-            'energy_efficiency_bits_per_joule': np.random.uniform(1e9, 1e10),
-            'coverage_improvement_percent': np.random.uniform(50, 200),
-            'avg_snr_improvement_db': np.random.uniform(10, 30),
-            'timestamp': datetime.now()
+            "num_elements": self.num_elements_x * self.num_elements_y,
+            "total_throughput_gbps": np.random.uniform(50, 200),
+            "energy_efficiency_bits_per_joule": np.random.uniform(1e9, 1e10),
+            "coverage_improvement_percent": np.random.uniform(50, 200),
+            "avg_snr_improvement_db": np.random.uniform(10, 30),
+            "timestamp": datetime.now(),
         }
 
         return metrics
@@ -713,8 +729,18 @@ class IRSSurface:
 
         # Calculate beam pattern (simplified)
         angles = np.linspace(-90, 90, 181)
-        pattern = np.abs(np.sum([beamforming_vector[i] * np.exp(1j * 2 * np.pi * i * np.sin(np.radians(angles)))
-                                 for i in range(len(beamforming_vector))], axis=0)) ** 2
+        pattern = (
+            np.abs(
+                np.sum(
+                    [
+                        beamforming_vector[i] * np.exp(1j * 2 * np.pi * i * np.sin(np.radians(angles)))
+                        for i in range(len(beamforming_vector))
+                    ],
+                    axis=0,
+                )
+            )
+            ** 2
+        )
 
         return pattern
 
@@ -738,8 +764,10 @@ def get_irs_surface() -> IRSSurface:
 # NETWORK SLICING 2.0
 # ============================================================================
 
+
 class SliceTemplate(Enum):
     """Pre-configured slice templates"""
+
     AR_VR = "ar_vr_slice"
     AUTONOMOUS_VEHICLE = "autonomous_vehicle_slice"
     MASSIVE_IOT = "massive_iot_slice"
@@ -751,6 +779,7 @@ class SliceTemplate(Enum):
 @dataclass
 class SLAMonitor:
     """Service Level Agreement monitor"""
+
     slice_id: str
     sla_requirements: Dict[str, float] = field(default_factory=dict)
     violations: List[Dict[str, Any]] = field(default_factory=list)
@@ -761,21 +790,23 @@ class SLAMonitor:
         compliant = np.random.random() > 0.1  # 90% compliance rate
 
         status = {
-            'slice_id': self.slice_id,
-            'compliant': compliant,
-            'latency_compliant': np.random.random() > 0.05,
-            'bandwidth_compliant': np.random.random() > 0.05,
-            'reliability_compliant': np.random.random() > 0.05,
-            'violations_count': len(self.violations),
-            'timestamp': datetime.now()
+            "slice_id": self.slice_id,
+            "compliant": compliant,
+            "latency_compliant": np.random.random() > 0.05,
+            "bandwidth_compliant": np.random.random() > 0.05,
+            "reliability_compliant": np.random.random() > 0.05,
+            "violations_count": len(self.violations),
+            "timestamp": datetime.now(),
         }
 
         if not compliant:
-            self.violations.append({
-                'timestamp': datetime.now(),
-                'violation_type': 'latency' if not status['latency_compliant'] else 'bandwidth',
-                'severity': 'high' if np.random.random() > 0.5 else 'medium'
-            })
+            self.violations.append(
+                {
+                    "timestamp": datetime.now(),
+                    "violation_type": "latency" if not status["latency_compliant"] else "bandwidth",
+                    "severity": "high" if np.random.random() > 0.5 else "medium",
+                }
+            )
 
         return status
 
@@ -787,16 +818,15 @@ class DynamicScaling:
         self._scaling_history = defaultdict(list)
         self._lock = threading.Lock()
 
-    async def scale(self, slice_id: str, scaling_factor: float,
-                   resource_type: str = 'all') -> Dict[str, Any]:
+    async def scale(self, slice_id: str, scaling_factor: float, resource_type: str = "all") -> Dict[str, Any]:
         """Scale slice resources"""
         with self._lock:
             scaling_event = {
-                'slice_id': slice_id,
-                'scaling_factor': scaling_factor,
-                'resource_type': resource_type,
-                'timestamp': datetime.now(),
-                'status': 'completed'
+                "slice_id": slice_id,
+                "scaling_factor": scaling_factor,
+                "resource_type": resource_type,
+                "timestamp": datetime.now(),
+                "status": "completed",
             }
 
             self._scaling_history[slice_id].append(scaling_event)
@@ -811,24 +841,19 @@ class SliceComposer:
         self._composed_slices = {}
         self._lock = threading.Lock()
 
-    async def compose_slice(self, slice_ids: List[str],
-                           composition_policy: str = 'federated') -> Dict[str, Any]:
+    async def compose_slice(self, slice_ids: List[str], composition_policy: str = "federated") -> Dict[str, Any]:
         """Compose multi-domain slice"""
         composed_id = f"composed_{uuid.uuid4().hex[:8]}"
 
         with self._lock:
             self._composed_slices[composed_id] = {
-                'slice_ids': slice_ids,
-                'policy': composition_policy,
-                'created_at': datetime.now(),
-                'status': 'active'
+                "slice_ids": slice_ids,
+                "policy": composition_policy,
+                "created_at": datetime.now(),
+                "status": "active",
             }
 
-        return {
-            'composed_id': composed_id,
-            'num_slices': len(slice_ids),
-            'policy': composition_policy
-        }
+        return {"composed_id": composed_id, "num_slices": len(slice_ids), "policy": composition_policy}
 
 
 class SliceOrchestrator:
@@ -840,47 +865,26 @@ class SliceOrchestrator:
         self._composer = SliceComposer()
         self._lock = threading.Lock()
 
-    async def create_slice(self, template: SliceTemplate,
-                          parameters: Dict[str, Any]) -> NetworkSlice:
+    async def create_slice(self, template: SliceTemplate, parameters: Dict[str, Any]) -> NetworkSlice:
         """Create slice from template"""
         slice_id = f"slice_{template.value}_{uuid.uuid4().hex[:8]}"
 
         # Template-specific QoS
         if template == SliceTemplate.AUTONOMOUS_VEHICLE:
-            qos = QoSProfile(
-                max_latency_ms=0.5,
-                min_bandwidth_gbps=10,
-                reliability=0.999999,
-                jitter_ms=0.1
-            )
+            qos = QoSProfile(max_latency_ms=0.5, min_bandwidth_gbps=10, reliability=0.999999, jitter_ms=0.1)
             slice_type = SliceType.URLLC
         elif template == SliceTemplate.HOLOGRAPHIC:
-            qos = QoSProfile(
-                max_latency_ms=10,
-                min_bandwidth_gbps=100,
-                reliability=0.999,
-                jitter_ms=1.0
-            )
+            qos = QoSProfile(max_latency_ms=10, min_bandwidth_gbps=100, reliability=0.999, jitter_ms=1.0)
             slice_type = SliceType.HCS
         elif template == SliceTemplate.AR_VR:
-            qos = QoSProfile(
-                max_latency_ms=5,
-                min_bandwidth_gbps=1,
-                reliability=0.9999,
-                jitter_ms=0.5
-            )
+            qos = QoSProfile(max_latency_ms=5, min_bandwidth_gbps=1, reliability=0.9999, jitter_ms=0.5)
             slice_type = SliceType.EMBB
         else:
             qos = QoSProfile()
             slice_type = SliceType.EMBB
 
         # Create slice
-        network_slice = NetworkSlice(
-            id=slice_id,
-            slice_type=slice_type,
-            qos=qos,
-            resources=parameters
-        )
+        network_slice = NetworkSlice(id=slice_id, slice_type=slice_type, qos=qos, resources=parameters)
 
         with self._lock:
             self._slices[slice_id] = network_slice
@@ -900,17 +904,17 @@ class SliceOrchestrator:
             slice_obj = self._slices[slice_id]
 
         metrics = {
-            'slice_id': slice_id,
-            'latency_p99_ms': np.random.uniform(0.1, 10),
-            'throughput_gbps': np.random.uniform(10, 500),
-            'reliability_percent': np.random.uniform(99, 99.9999),
-            'active_users': np.random.randint(100, 10000),
-            'resource_utilization': {
-                'cpu': np.random.uniform(30, 80),
-                'memory': np.random.uniform(40, 70),
-                'bandwidth': np.random.uniform(50, 90)
+            "slice_id": slice_id,
+            "latency_p99_ms": np.random.uniform(0.1, 10),
+            "throughput_gbps": np.random.uniform(10, 500),
+            "reliability_percent": np.random.uniform(99, 99.9999),
+            "active_users": np.random.randint(100, 10000),
+            "resource_utilization": {
+                "cpu": np.random.uniform(30, 80),
+                "memory": np.random.uniform(40, 70),
+                "bandwidth": np.random.uniform(50, 90),
             },
-            'timestamp': datetime.now()
+            "timestamp": datetime.now(),
         }
 
         return metrics
@@ -935,9 +939,11 @@ def get_slice_orchestrator() -> SliceOrchestrator:
 # EDGE INTELLIGENCE
 # ============================================================================
 
+
 @dataclass
 class EdgeNode:
     """Edge computing node"""
+
     node_id: str
     location: Tuple[float, float]  # (latitude, longitude)
     resources: Dict[str, Any]
@@ -954,18 +960,17 @@ class EdgeAI:
         self._models = {}
         self._lock = threading.Lock()
 
-    async def deploy_model(self, model_type: str, model_path: str,
-                          optimization: str = 'quantization') -> str:
+    async def deploy_model(self, model_type: str, model_path: str, optimization: str = "quantization") -> str:
         """Deploy AI model to edge node"""
         model_id = f"model_{model_type}_{uuid.uuid4().hex[:8]}"
 
         with self._lock:
             self._models[model_id] = {
-                'model_type': model_type,
-                'model_path': model_path,
-                'optimization': optimization,
-                'deployed_at': datetime.now(),
-                'status': 'active'
+                "model_type": model_type,
+                "model_path": model_path,
+                "optimization": optimization,
+                "deployed_at": datetime.now(),
+                "status": "active",
             }
 
             self.edge_node.deployed_models.append(model_id)
@@ -982,11 +987,11 @@ class EdgeAI:
         await asyncio.sleep(0.01)  # Inference latency
 
         prediction = {
-            'model_id': model_id,
-            'prediction': np.random.randn(10).tolist(),  # Simulated output
-            'confidence': np.random.uniform(0.7, 0.99),
-            'inference_time_ms': 10,
-            'timestamp': datetime.now()
+            "model_id": model_id,
+            "prediction": np.random.randn(10).tolist(),  # Simulated output
+            "confidence": np.random.uniform(0.7, 0.99),
+            "inference_time_ms": 10,
+            "timestamp": datetime.now(),
         }
 
         return prediction
@@ -1000,8 +1005,9 @@ class FederatedLearner:
         self.participants = participant_nodes
         self._training_history = []
 
-    async def train(self, model_type: str, epochs: int = 10,
-                   local_epochs: int = 5, aggregation: str = 'fedavg') -> Dict[str, Any]:
+    async def train(
+        self, model_type: str, epochs: int = 10, local_epochs: int = 5, aggregation: str = "fedavg"
+    ) -> Dict[str, Any]:
         """Train model using federated learning"""
         training_id = f"training_{uuid.uuid4().hex[:8]}"
 
@@ -1012,33 +1018,31 @@ class FederatedLearner:
             for node in self.participants:
                 # Simulate local training
                 await asyncio.sleep(0.05)
-                local_updates.append({
-                    'node_id': node.node_id,
-                    'weights': np.random.randn(100).tolist(),
-                    'loss': np.random.uniform(0.1, 0.5),
-                    'accuracy': np.random.uniform(0.8, 0.95)
-                })
+                local_updates.append(
+                    {
+                        "node_id": node.node_id,
+                        "weights": np.random.randn(100).tolist(),
+                        "loss": np.random.uniform(0.1, 0.5),
+                        "accuracy": np.random.uniform(0.8, 0.95),
+                    }
+                )
 
             # Aggregate updates
-            if aggregation == 'fedavg':
+            if aggregation == "fedavg":
                 # Federated averaging (simplified)
-                avg_loss = np.mean([u['loss'] for u in local_updates])
-                avg_accuracy = np.mean([u['accuracy'] for u in local_updates])
+                avg_loss = np.mean([u["loss"] for u in local_updates])
+                avg_accuracy = np.mean([u["accuracy"] for u in local_updates])
 
-            self._training_history.append({
-                'epoch': epoch,
-                'avg_loss': avg_loss,
-                'avg_accuracy': avg_accuracy
-            })
+            self._training_history.append({"epoch": epoch, "avg_loss": avg_loss, "avg_accuracy": avg_accuracy})
 
         trained_model = {
-            'training_id': training_id,
-            'model_type': model_type,
-            'epochs': epochs,
-            'final_loss': avg_loss,
-            'final_accuracy': avg_accuracy,
-            'num_participants': len(self.participants),
-            'aggregation': aggregation
+            "training_id": training_id,
+            "model_type": model_type,
+            "epochs": epochs,
+            "final_loss": avg_loss,
+            "final_accuracy": avg_accuracy,
+            "num_participants": len(self.participants),
+            "aggregation": aggregation,
         }
 
         return trained_model
@@ -1053,8 +1057,7 @@ class ContentCache:
         self._access_history = defaultdict(list)
         self._lock = threading.Lock()
 
-    async def predict_popular_content(self, time_window_hours: int = 1,
-                                     user_segment: str = 'all') -> List[str]:
+    async def predict_popular_content(self, time_window_hours: int = 1, user_segment: str = "all") -> List[str]:
         """Predict popular content"""
         # Simulate ML-based prediction
         num_items = np.random.randint(5, 20)
@@ -1068,22 +1071,22 @@ class ContentCache:
             for content_id in content_ids:
                 if content_id not in self._cache:
                     self._cache[content_id] = {
-                        'cached_at': datetime.now(),
-                        'size_mb': np.random.uniform(10, 1000),
-                        'access_count': 0
+                        "cached_at": datetime.now(),
+                        "size_mb": np.random.uniform(10, 1000),
+                        "access_count": 0,
                     }
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics"""
         with self._lock:
-            total_size_mb = sum(item['size_mb'] for item in self._cache.values())
+            total_size_mb = sum(item["size_mb"] for item in self._cache.values())
 
             return {
-                'num_items': len(self._cache),
-                'total_size_mb': total_size_mb,
-                'capacity_gb': self.capacity_gb,
-                'utilization_percent': (total_size_mb / (self.capacity_gb * 1024)) * 100,
-                'hit_rate': np.random.uniform(0.7, 0.95)
+                "num_items": len(self._cache),
+                "total_size_mb": total_size_mb,
+                "capacity_gb": self.capacity_gb,
+                "utilization_percent": (total_size_mb / (self.capacity_gb * 1024)) * 100,
+                "hit_rate": np.random.uniform(0.7, 0.95),
             }
 
 
@@ -1094,8 +1097,7 @@ class RoutingOptimizer:
         self._routing_table = {}
         self._traffic_history = deque(maxlen=1000)
 
-    async def optimize_route(self, source: str, destination: str,
-                            traffic_demand_gbps: float) -> Dict[str, Any]:
+    async def optimize_route(self, source: str, destination: str, traffic_demand_gbps: float) -> Dict[str, Any]:
         """Optimize routing path"""
         # Simulate ML-based routing optimization
         route_id = f"route_{uuid.uuid4().hex[:8]}"
@@ -1105,14 +1107,14 @@ class RoutingOptimizer:
         path = [source] + [f"node_{i}" for i in range(num_hops)] + [destination]
 
         route = {
-            'route_id': route_id,
-            'source': source,
-            'destination': destination,
-            'path': path,
-            'num_hops': num_hops,
-            'estimated_latency_ms': num_hops * np.random.uniform(0.1, 1.0),
-            'available_bandwidth_gbps': np.random.uniform(10, 1000),
-            'path_cost': num_hops * np.random.uniform(0.5, 2.0)
+            "route_id": route_id,
+            "source": source,
+            "destination": destination,
+            "path": path,
+            "num_hops": num_hops,
+            "estimated_latency_ms": num_hops * np.random.uniform(0.1, 1.0),
+            "available_bandwidth_gbps": np.random.uniform(10, 1000),
+            "path_cost": num_hops * np.random.uniform(0.5, 2.0),
         }
 
         return route
@@ -1128,10 +1130,7 @@ class ContextManager:
     async def update_context(self, user_id: str, context: Dict[str, Any]):
         """Update user context"""
         with self._lock:
-            self._contexts[user_id] = {
-                **context,
-                'updated_at': datetime.now()
-            }
+            self._contexts[user_id] = {**context, "updated_at": datetime.now()}
 
     async def get_resource_allocation(self, user_id: str) -> Dict[str, Any]:
         """Get context-aware resource allocation"""
@@ -1139,10 +1138,10 @@ class ContextManager:
             context = self._contexts.get(user_id, {})
 
         # Context-aware allocation (simplified)
-        if context.get('app_type') == 'video_streaming':
+        if context.get("app_type") == "video_streaming":
             bandwidth_gbps = 5.0
             latency_ms = 10.0
-        elif context.get('app_type') == 'gaming':
+        elif context.get("app_type") == "gaming":
             bandwidth_gbps = 1.0
             latency_ms = 1.0
         else:
@@ -1150,11 +1149,11 @@ class ContextManager:
             latency_ms = 50.0
 
         return {
-            'user_id': user_id,
-            'bandwidth_gbps': bandwidth_gbps,
-            'latency_ms': latency_ms,
-            'priority': context.get('priority', 'normal'),
-            'edge_node': context.get('nearest_edge', 'edge-01')
+            "user_id": user_id,
+            "bandwidth_gbps": bandwidth_gbps,
+            "latency_ms": latency_ms,
+            "priority": context.get("priority", "normal"),
+            "edge_node": context.get("nearest_edge", "edge-01"),
         }
 
 
@@ -1171,15 +1170,15 @@ def get_edge_intelligence() -> Dict[str, Any]:
             if _edge_intelligence is None:
                 # Create default edge node
                 edge_node = EdgeNode(
-                    node_id='edge-01',
+                    node_id="edge-01",
                     location=(37.7749, -122.4194),
-                    resources={'cpu_cores': 64, 'gpu_count': 4, 'memory_gb': 256}
+                    resources={"cpu_cores": 64, "gpu_count": 4, "memory_gb": 256},
                 )
                 _edge_intelligence = {
-                    'edge_ai': EdgeAI(edge_node),
-                    'content_cache': ContentCache(),
-                    'routing_optimizer': RoutingOptimizer(),
-                    'context_manager': ContextManager()
+                    "edge_ai": EdgeAI(edge_node),
+                    "content_cache": ContentCache(),
+                    "routing_optimizer": RoutingOptimizer(),
+                    "context_manager": ContextManager(),
                 }
     return _edge_intelligence
 
@@ -1188,8 +1187,10 @@ def get_edge_intelligence() -> Dict[str, Any]:
 # HOLOGRAPHIC COMMUNICATIONS
 # ============================================================================
 
+
 class HologramQuality(Enum):
     """Hologram quality levels"""
+
     LOW = "low"  # 2K, 30 fps
     MEDIUM = "medium"  # 4K, 60 fps
     HIGH = "high"  # 8K, 60 fps
@@ -1199,8 +1200,9 @@ class HologramQuality(Enum):
 class HologramEngine:
     """3D hologram processing engine"""
 
-    def __init__(self, resolution: str = '8K', frame_rate: int = 60,
-                 compression_ratio: int = 100, quality: str = 'high'):
+    def __init__(
+        self, resolution: str = "8K", frame_rate: int = 60, compression_ratio: int = 100, quality: str = "high"
+    ):
         self.resolution = resolution
         self.frame_rate = frame_rate
         self.compression_ratio = compression_ratio
@@ -1211,13 +1213,9 @@ class HologramEngine:
     def calculate_bandwidth(self) -> float:
         """Calculate required bandwidth"""
         # Resolution to pixels
-        resolution_map = {
-            '4K': 3840 * 2160,
-            '8K': 7680 * 4320,
-            '16K': 15360 * 8640
-        }
+        resolution_map = {"4K": 3840 * 2160, "8K": 7680 * 4320, "16K": 15360 * 8640}
 
-        pixels = resolution_map.get(self.resolution, resolution_map['8K'])
+        pixels = resolution_map.get(self.resolution, resolution_map["8K"])
 
         # Uncompressed bandwidth (bits per second)
         bits_per_pixel = 24  # RGB
@@ -1228,54 +1226,58 @@ class HologramEngine:
 
         return compressed_bps / 1e9  # Convert to Gbps
 
-    async def start_session(self, session_type: str,
-                           participants: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def start_session(self, session_type: str, participants: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Start holographic session"""
         session_id = f"holo_{uuid.uuid4().hex[:8]}"
 
         with self._lock:
             self._sessions[session_id] = {
-                'session_type': session_type,
-                'participants': participants,
-                'started_at': datetime.now(),
-                'status': 'active',
-                'bandwidth_gbps': self.calculate_bandwidth()
+                "session_type": session_type,
+                "participants": participants,
+                "started_at": datetime.now(),
+                "status": "active",
+                "bandwidth_gbps": self.calculate_bandwidth(),
             }
 
         return {
-            'session_id': session_id,
-            'num_participants': len(participants),
-            'bandwidth_gbps': self.calculate_bandwidth()
+            "session_id": session_id,
+            "num_participants": len(participants),
+            "bandwidth_gbps": self.calculate_bandwidth(),
         }
 
 
 class MultiSensoryStream:
     """Multi-sensory data stream"""
 
-    def __init__(self, visual: HologramEngine, audio_channels: int = 16,
-                 haptic_enabled: bool = True, olfactory_enabled: bool = False):
+    def __init__(
+        self,
+        visual: HologramEngine,
+        audio_channels: int = 16,
+        haptic_enabled: bool = True,
+        olfactory_enabled: bool = False,
+    ):
         self.visual = visual
         self.audio_channels = audio_channels
         self.haptic_enabled = haptic_enabled
         self.olfactory_enabled = olfactory_enabled
 
-    async def start_session(self, session_type: str,
-                           participants: List[Dict[str, Any]]) -> 'HolographicSession':
+    async def start_session(self, session_type: str, participants: List[Dict[str, Any]]) -> "HolographicSession":
         """Start multi-sensory session"""
         visual_session = await self.visual.start_session(session_type, participants)
 
         return HolographicSession(
-            session_id=visual_session['session_id'],
-            visual_bandwidth_gbps=visual_session['bandwidth_gbps'],
+            session_id=visual_session["session_id"],
+            visual_bandwidth_gbps=visual_session["bandwidth_gbps"],
             audio_channels=self.audio_channels,
             haptic_enabled=self.haptic_enabled,
-            olfactory_enabled=self.olfactory_enabled
+            olfactory_enabled=self.olfactory_enabled,
         )
 
 
 @dataclass
 class HolographicSession:
     """Holographic communication session"""
+
     session_id: str
     visual_bandwidth_gbps: float
     audio_channels: int
@@ -1286,13 +1288,13 @@ class HolographicSession:
     async def get_quality_metrics(self) -> Dict[str, Any]:
         """Get session quality metrics"""
         metrics = {
-            'session_id': self.session_id,
-            'visual_quality_mos': np.random.uniform(4.0, 5.0),  # MOS 1-5
-            'audio_quality_mos': np.random.uniform(4.2, 5.0),
-            'haptic_latency_ms': np.random.uniform(0.5, 2.0) if self.haptic_enabled else None,
-            'presence_score': np.random.uniform(7.0, 10.0),  # 1-10
-            'immersion_level': np.random.uniform(0.8, 1.0),  # 0-1
-            'timestamp': datetime.now()
+            "session_id": self.session_id,
+            "visual_quality_mos": np.random.uniform(4.0, 5.0),  # MOS 1-5
+            "audio_quality_mos": np.random.uniform(4.2, 5.0),
+            "haptic_latency_ms": np.random.uniform(0.5, 2.0) if self.haptic_enabled else None,
+            "presence_score": np.random.uniform(7.0, 10.0),  # 1-10
+            "immersion_level": np.random.uniform(0.8, 1.0),  # 0-1
+            "timestamp": datetime.now(),
         }
 
         return metrics
@@ -1301,7 +1303,7 @@ class HolographicSession:
 class HolographicRenderer:
     """Real-time hologram renderer"""
 
-    def __init__(self, resolution: str = '8K'):
+    def __init__(self, resolution: str = "8K"):
         self.resolution = resolution
 
     async def render(self, volumetric_data: np.ndarray) -> Dict[str, Any]:
@@ -1309,11 +1311,7 @@ class HolographicRenderer:
         # Simulate rendering
         await asyncio.sleep(0.005)  # 5ms rendering time
 
-        return {
-            'resolution': self.resolution,
-            'render_time_ms': 5,
-            'frame_ready': True
-        }
+        return {"resolution": self.resolution, "render_time_ms": 5, "frame_ready": True}
 
 
 class TactileInternet:
@@ -1330,10 +1328,10 @@ class TactileInternet:
         await asyncio.sleep(self.max_latency_ms / 1000)
 
         return {
-            'user_id': user_id,
-            'haptic_type': haptic_data['type'],
-            'latency_ms': self.max_latency_ms,
-            'delivered': True
+            "user_id": user_id,
+            "haptic_type": haptic_data["type"],
+            "latency_ms": self.max_latency_ms,
+            "delivered": True,
         }
 
 
@@ -1350,10 +1348,10 @@ class PresenceManager:
 
         with self._lock:
             self._presences[presence_id] = {
-                'user_id': user_id,
-                'avatar_data': avatar_data,
-                'created_at': datetime.now(),
-                'status': 'active'
+                "user_id": user_id,
+                "avatar_data": avatar_data,
+                "created_at": datetime.now(),
+                "status": "active",
             }
 
         return presence_id
@@ -1378,8 +1376,10 @@ def get_hologram_engine() -> HologramEngine:
 # QUANTUM-SECURED 6G
 # ============================================================================
 
+
 class QKDProtocol(Enum):
     """Quantum Key Distribution protocols"""
+
     BB84 = "bb84"  # Polarization-based
     E91 = "e91"  # Entanglement-based
     CV_QKD = "cv_qkd"  # Continuous-variable
@@ -1389,6 +1389,7 @@ class QKDProtocol(Enum):
 @dataclass
 class SecureChannel:
     """Quantum-secured communication channel"""
+
     id: str
     alice: str
     bob: str
@@ -1401,17 +1402,18 @@ class SecureChannel:
 class QuantumKeyDistributor:
     """Quantum key distribution over 6G"""
 
-    def __init__(self, protocol: QKDProtocol = QKDProtocol.BB84,
-                 wavelength_nm: int = 1550,
-                 quantum_bit_error_rate: float = 0.01):
+    def __init__(
+        self, protocol: QKDProtocol = QKDProtocol.BB84, wavelength_nm: int = 1550, quantum_bit_error_rate: float = 0.01
+    ):
         self.protocol = protocol
         self.wavelength_nm = wavelength_nm
         self.quantum_bit_error_rate = quantum_bit_error_rate
         self._channels: Dict[str, SecureChannel] = {}
         self._lock = threading.Lock()
 
-    async def establish_channel(self, alice: str, bob: str,
-                                distance_km: float, key_rate_kbps: float = 100) -> SecureChannel:
+    async def establish_channel(
+        self, alice: str, bob: str, distance_km: float, key_rate_kbps: float = 100
+    ) -> SecureChannel:
         """Establish quantum-secured channel"""
         channel_id = f"qkd_{uuid.uuid4().hex[:8]}"
 
@@ -1425,7 +1427,7 @@ class QuantumKeyDistributor:
             bob=bob,
             protocol=self.protocol,
             key_rate_kbps=key_rate_kbps / (1 + distance_factor),  # Decrease with distance
-            qber=actual_qber
+            qber=actual_qber,
         )
 
         with self._lock:
@@ -1456,12 +1458,12 @@ class QuantumKeyDistributor:
             channel = self._channels[channel_id]
 
         metrics = {
-            'channel_id': channel_id,
-            'qber': channel.qber,
-            'key_rate_kbps': channel.key_rate_kbps,
-            'eavesdropping_detected': channel.qber > 0.11,  # QBER threshold
-            'channel_quality': 'good' if channel.qber < 0.05 else 'degraded',
-            'timestamp': datetime.now()
+            "channel_id": channel_id,
+            "qber": channel.qber,
+            "key_rate_kbps": channel.key_rate_kbps,
+            "eavesdropping_detected": channel.qber > 0.11,  # QBER threshold
+            "channel_quality": "good" if channel.qber < 0.05 else "degraded",
+            "timestamp": datetime.now(),
         }
 
         return metrics
@@ -1470,8 +1472,7 @@ class QuantumKeyDistributor:
 class QuantumAuthenticator:
     """Quantum-safe authentication"""
 
-    async def sign(self, message: bytes, private_key: bytes,
-                   quantum_key: bytes) -> bytes:
+    async def sign(self, message: bytes, private_key: bytes, quantum_key: bytes) -> bytes:
         """Sign message with quantum-enhanced signature"""
         # Simulate quantum signature (simplified)
         await asyncio.sleep(0.001)
@@ -1481,8 +1482,7 @@ class QuantumAuthenticator:
 
         return signature
 
-    async def verify(self, message: bytes, signature: bytes,
-                     public_key: bytes, quantum_key: bytes) -> bool:
+    async def verify(self, message: bytes, signature: bytes, public_key: bytes, quantum_key: bytes) -> bool:
         """Verify quantum signature"""
         # Simulate verification
         await asyncio.sleep(0.001)
@@ -1504,11 +1504,11 @@ class EntanglementManager:
 
         with self._lock:
             self._entangled_pairs[pair_id] = {
-                'node_a': node_a,
-                'node_b': node_b,
-                'created_at': datetime.now(),
-                'fidelity': np.random.uniform(0.95, 0.99),  # Entanglement fidelity
-                'status': 'active'
+                "node_a": node_a,
+                "node_b": node_b,
+                "created_at": datetime.now(),
+                "fidelity": np.random.uniform(0.95, 0.99),  # Entanglement fidelity
+                "status": "active",
             }
 
         return pair_id
@@ -1539,9 +1539,9 @@ def get_quantum_security() -> Dict[str, Any]:
         with _qsec_lock:
             if _quantum_security is None:
                 _quantum_security = {
-                    'qkd': QuantumKeyDistributor(),
-                    'authenticator': QuantumAuthenticator(),
-                    'entanglement': EntanglementManager(),
-                    'rng': QuantumRNG()
+                    "qkd": QuantumKeyDistributor(),
+                    "authenticator": QuantumAuthenticator(),
+                    "entanglement": EntanglementManager(),
+                    "rng": QuantumRNG(),
                 }
     return _quantum_security

@@ -8,14 +8,15 @@ Tests for:
 - Authentication enhancements
 """
 
-import pytest
 import time
-from decimal import Decimal
 from datetime import datetime, timedelta
+from decimal import Decimal
 
-from src.core.rate_limiter import RateLimiter, TokenBucketRateLimiter, RateLimitExceeded
+import pytest
+
+from src.core.auth_enhanced import RefreshTokenManager, TokenBlacklist
 from src.core.input_validation import InputValidator, ValidationError
-from src.core.auth_enhanced import TokenBlacklist, RefreshTokenManager
+from src.core.rate_limiter import RateLimiter, RateLimitExceeded, TokenBucketRateLimiter
 
 
 class TestRateLimiter:
@@ -138,16 +139,16 @@ class TestInputValidator:
         validator = InputValidator()
 
         # Valid decimal
-        result = validator.validate_decimal("123.45", min_value=Decimal('0'))
+        result = validator.validate_decimal("123.45", min_value=Decimal("0"))
         assert result == Decimal("123.45")
 
         # Negative when not allowed
         with pytest.raises(ValidationError):
-            validator.validate_decimal("-10", min_value=Decimal('0'))
+            validator.validate_decimal("-10", min_value=Decimal("0"))
 
         # Too large
         with pytest.raises(ValidationError):
-            validator.validate_decimal("1000000", max_value=Decimal('999'))
+            validator.validate_decimal("1000000", max_value=Decimal("999"))
 
     def test_validate_email(self):
         """Test email validation."""
@@ -184,25 +185,25 @@ class TestInputValidator:
 
         # Disallowed scheme
         with pytest.raises(ValidationError):
-            validator.validate_url("ftp://example.com", allowed_schemes=['http', 'https'])
+            validator.validate_url("ftp://example.com", allowed_schemes=["http", "https"])
 
     def test_validate_enum(self):
         """Test enum validation."""
         validator = InputValidator()
 
-        allowed_values = ['red', 'green', 'blue']
+        allowed_values = ["red", "green", "blue"]
 
         # Valid value
-        result = validator.validate_enum('red', allowed_values)
-        assert result == 'red'
+        result = validator.validate_enum("red", allowed_values)
+        assert result == "red"
 
         # Invalid value
         with pytest.raises(ValidationError):
-            validator.validate_enum('yellow', allowed_values)
+            validator.validate_enum("yellow", allowed_values)
 
         # Case insensitive
-        result = validator.validate_enum('RED', allowed_values, case_sensitive=False)
-        assert result == 'RED'
+        result = validator.validate_enum("RED", allowed_values, case_sensitive=False)
+        assert result == "RED"
 
     def test_sanitize_html(self):
         """Test HTML sanitization."""
@@ -211,18 +212,18 @@ class TestInputValidator:
         # Remove script tags
         dangerous = '<script>alert("XSS")</script>Hello'
         safe = validator.sanitize_html(dangerous)
-        assert '<script>' not in safe
-        assert 'Hello' in safe
+        assert "<script>" not in safe
+        assert "Hello" in safe
 
         # Remove event handlers
         dangerous = '<div onclick="evil()">Click</div>'
         safe = validator.sanitize_html(dangerous)
-        assert 'onclick' not in safe
+        assert "onclick" not in safe
 
         # Remove javascript: URLs
         dangerous = '<a href="javascript:void(0)">Link</a>'
         safe = validator.sanitize_html(dangerous)
-        assert 'javascript:' not in safe
+        assert "javascript:" not in safe
 
     def test_check_sql_injection(self):
         """Test SQL injection detection."""
@@ -274,10 +275,10 @@ class TestInputValidator:
 
         # Invalid JSON
         with pytest.raises(ValidationError):
-            validator.validate_json('{invalid}')
+            validator.validate_json("{invalid}")
 
         # Too deeply nested (DoS prevention)
-        deeply_nested = '{"a":' * 20 + '{}' + '}' * 20
+        deeply_nested = '{"a":' * 20 + "{}" + "}" * 20
         with pytest.raises(ValidationError):
             validator.validate_json(deeply_nested, max_depth=10)
 
@@ -416,6 +417,7 @@ class TestRefreshTokenManager:
 
 
 # Integration Tests
+
 
 class TestSecurityIntegration:
     """Integration tests for security features."""

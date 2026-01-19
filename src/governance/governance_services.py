@@ -14,7 +14,6 @@ from threading import Lock
 from typing import Any, Dict, List, Optional, Set
 from uuid import uuid4
 
-
 # ============================================================================
 # Records Management
 # ============================================================================
@@ -22,6 +21,7 @@ from uuid import uuid4
 
 class RecordClass(Enum):
     """Standard record classifications"""
+
     FINANCIAL = "financial_records"
     LEGAL = "legal_records"
     HR = "hr_records"
@@ -33,6 +33,7 @@ class RecordClass(Enum):
 
 class RecordLifecycleState(Enum):
     """Record lifecycle states"""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     ARCHIVED = "archived"
@@ -43,6 +44,7 @@ class RecordLifecycleState(Enum):
 @dataclass
 class Record:
     """Document record"""
+
     record_id: str
     document_id: str
     record_class: RecordClass
@@ -78,18 +80,10 @@ class RecordsManager:
         self._records: Dict[str, Record] = {}
         self._legal_holds: Dict[str, Set[str]] = defaultdict(set)
         self._lock = Lock()
-        self._stats = {
-            'total_records': 0,
-            'disposed_records': 0,
-            'vital_records': 0
-        }
+        self._stats = {"total_records": 0, "disposed_records": 0, "vital_records": 0}
 
     def declare_record(
-        self,
-        document_id: str,
-        record_class: RecordClass,
-        title: str,
-        metadata: Optional[Dict[str, Any]] = None
+        self, document_id: str, record_class: RecordClass, title: str, metadata: Optional[Dict[str, Any]] = None
     ) -> Record:
         """Declare document as record"""
         record_id = str(uuid4())
@@ -99,20 +93,17 @@ class RecordsManager:
             document_id=document_id,
             record_class=record_class,
             title=title,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         with self._lock:
             self._records[record_id] = record
-            self._stats['total_records'] += 1
+            self._stats["total_records"] += 1
 
         return record
 
     def apply_retention(
-        self,
-        record_id: str,
-        retention_years: int,
-        trigger_event: str = "creation"
+        self, record_id: str, retention_years: int, trigger_event: str = "creation"
     ) -> Optional[Record]:
         """Apply retention schedule to record"""
         record = self._records.get(record_id)
@@ -122,18 +113,11 @@ class RecordsManager:
         with self._lock:
             record.retention_years = retention_years
             record.retention_start = datetime.now()
-            record.disposition_date = (
-                record.retention_start + timedelta(days=365 * retention_years)
-            )
+            record.disposition_date = record.retention_start + timedelta(days=365 * retention_years)
 
         return record
 
-    def place_legal_hold(
-        self,
-        record_id: str,
-        case_id: str,
-        reason: str
-    ) -> bool:
+    def place_legal_hold(self, record_id: str, case_id: str, reason: str) -> bool:
         """Place legal hold on record"""
         record = self._records.get(record_id)
         if not record:
@@ -147,11 +131,7 @@ class RecordsManager:
 
         return True
 
-    def release_legal_hold(
-        self,
-        record_id: str,
-        case_id: str
-    ) -> bool:
+    def release_legal_hold(self, record_id: str, case_id: str) -> bool:
         """Release legal hold on record"""
         record = self._records.get(record_id)
         if not record:
@@ -176,7 +156,7 @@ class RecordsManager:
 
         with self._lock:
             record.is_vital = True
-            self._stats['vital_records'] += 1
+            self._stats["vital_records"] += 1
 
         return True
 
@@ -191,7 +171,7 @@ class RecordsManager:
 
         with self._lock:
             record.lifecycle_state = RecordLifecycleState.DISPOSED
-            self._stats['disposed_records'] += 1
+            self._stats["disposed_records"] += 1
 
         return True
 
@@ -201,9 +181,7 @@ class RecordsManager:
 
         eligible = []
         for record in self._records.values():
-            if (record.disposition_date and
-                record.disposition_date <= cutoff_date and
-                record.can_dispose()):
+            if record.disposition_date and record.disposition_date <= cutoff_date and record.can_dispose():
                 eligible.append(record)
 
         return eligible
@@ -218,12 +196,12 @@ class RecordsManager:
             by_state[record.lifecycle_state.value] += 1
 
         return {
-            'total_records': self._stats['total_records'],
-            'disposed_records': self._stats['disposed_records'],
-            'vital_records': self._stats['vital_records'],
-            'by_class': dict(by_class),
-            'by_state': dict(by_state),
-            'legal_holds_active': len(self._legal_holds)
+            "total_records": self._stats["total_records"],
+            "disposed_records": self._stats["disposed_records"],
+            "vital_records": self._stats["vital_records"],
+            "by_class": dict(by_class),
+            "by_state": dict(by_state),
+            "legal_holds_active": len(self._legal_holds),
         }
 
 
@@ -246,6 +224,7 @@ def get_records_manager() -> RecordsManager:
 
 class ComplianceFramework(Enum):
     """Compliance frameworks"""
+
     ISO_27001 = "iso_27001"
     NIST_CSF = "nist_csf"
     PCI_DSS = "pci_dss"
@@ -256,6 +235,7 @@ class ComplianceFramework(Enum):
 
 class ControlStatus(Enum):
     """Control implementation status"""
+
     NOT_IMPLEMENTED = "not_implemented"
     PARTIALLY_IMPLEMENTED = "partially_implemented"
     IMPLEMENTED = "implemented"
@@ -265,6 +245,7 @@ class ControlStatus(Enum):
 @dataclass
 class Control:
     """Compliance control"""
+
     control_id: str
     framework: ComplianceFramework
     title: str
@@ -293,58 +274,49 @@ class ComplianceManager:
         """Initialize compliance frameworks"""
         return {
             ComplianceFramework.ISO_27001.value: {
-                'name': 'ISO/IEC 27001:2013',
-                'domains': 14,
-                'controls': 114,
-                'description': 'Information Security Management System'
+                "name": "ISO/IEC 27001:2013",
+                "domains": 14,
+                "controls": 114,
+                "description": "Information Security Management System",
             },
             ComplianceFramework.NIST_CSF.value: {
-                'name': 'NIST Cybersecurity Framework',
-                'functions': 5,
-                'controls': 108,
-                'description': 'Identify, Protect, Detect, Respond, Recover'
+                "name": "NIST Cybersecurity Framework",
+                "functions": 5,
+                "controls": 108,
+                "description": "Identify, Protect, Detect, Respond, Recover",
             },
             ComplianceFramework.PCI_DSS.value: {
-                'name': 'PCI DSS v4.0',
-                'requirements': 12,
-                'controls': 200,
-                'description': 'Payment Card Industry Data Security Standard'
+                "name": "PCI DSS v4.0",
+                "requirements": 12,
+                "controls": 200,
+                "description": "Payment Card Industry Data Security Standard",
             },
             ComplianceFramework.GDPR.value: {
-                'name': 'GDPR',
-                'principles': 7,
-                'controls': 99,
-                'description': 'General Data Protection Regulation'
+                "name": "GDPR",
+                "principles": 7,
+                "controls": 99,
+                "description": "General Data Protection Regulation",
             },
             ComplianceFramework.HIPAA.value: {
-                'name': 'HIPAA',
-                'safeguards': 3,
-                'controls': 45,
-                'description': 'Health Insurance Portability and Accountability Act'
+                "name": "HIPAA",
+                "safeguards": 3,
+                "controls": 45,
+                "description": "Health Insurance Portability and Accountability Act",
             },
             ComplianceFramework.SOC_2.value: {
-                'name': 'SOC 2 Type II',
-                'criteria': 5,
-                'controls': 64,
-                'description': 'Trust Services Criteria'
-            }
+                "name": "SOC 2 Type II",
+                "criteria": 5,
+                "controls": 64,
+                "description": "Trust Services Criteria",
+            },
         }
 
     def add_control(
-        self,
-        framework: ComplianceFramework,
-        control_id: str,
-        title: str,
-        description: str,
-        risk_level: str = "medium"
+        self, framework: ComplianceFramework, control_id: str, title: str, description: str, risk_level: str = "medium"
     ) -> Control:
         """Add control to framework"""
         control = Control(
-            control_id=control_id,
-            framework=framework,
-            title=title,
-            description=description,
-            risk_level=risk_level
+            control_id=control_id, framework=framework, title=title, description=description, risk_level=risk_level
         )
 
         with self._lock:
@@ -360,7 +332,7 @@ class ComplianceManager:
         status: ControlStatus,
         evidence: Optional[List[str]] = None,
         notes: Optional[str] = None,
-        assessor: Optional[str] = None
+        assessor: Optional[str] = None,
     ) -> Optional[Control]:
         """Assess control implementation"""
         key = f"{framework.value}:{control_id}"
@@ -379,50 +351,33 @@ class ComplianceManager:
 
         return control
 
-    def get_compliance_score(
-        self,
-        framework: ComplianceFramework
-    ) -> Dict[str, Any]:
+    def get_compliance_score(self, framework: ComplianceFramework) -> Dict[str, Any]:
         """Calculate compliance score for framework"""
-        controls = [
-            c for c in self._controls.values()
-            if c.framework == framework
-        ]
+        controls = [c for c in self._controls.values() if c.framework == framework]
 
         if not controls:
-            return {'score': 0, 'total_controls': 0}
+            return {"score": 0, "total_controls": 0}
 
         total = len(controls)
-        implemented = sum(
-            1 for c in controls
-            if c.status == ControlStatus.IMPLEMENTED
-        )
-        partial = sum(
-            1 for c in controls
-            if c.status == ControlStatus.PARTIALLY_IMPLEMENTED
-        )
+        implemented = sum(1 for c in controls if c.status == ControlStatus.IMPLEMENTED)
+        partial = sum(1 for c in controls if c.status == ControlStatus.PARTIALLY_IMPLEMENTED)
 
         # Calculate weighted score
         score = ((implemented * 1.0) + (partial * 0.5)) / total * 100
 
         return {
-            'framework': framework.value,
-            'score': round(score, 1),
-            'total_controls': total,
-            'implemented': implemented,
-            'partially_implemented': partial,
-            'not_implemented': total - implemented - partial
+            "framework": framework.value,
+            "score": round(score, 1),
+            "total_controls": total,
+            "implemented": implemented,
+            "partially_implemented": partial,
+            "not_implemented": total - implemented - partial,
         }
 
-    def get_gaps(
-        self,
-        framework: ComplianceFramework
-    ) -> List[Control]:
+    def get_gaps(self, framework: ComplianceFramework) -> List[Control]:
         """Get compliance gaps (not implemented controls)"""
         return [
-            c for c in self._controls.values()
-            if c.framework == framework and
-            c.status == ControlStatus.NOT_IMPLEMENTED
+            c for c in self._controls.values() if c.framework == framework and c.status == ControlStatus.NOT_IMPLEMENTED
         ]
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -435,10 +390,10 @@ class ComplianceManager:
             by_status[control.status.value] += 1
 
         return {
-            'total_controls': len(self._controls),
-            'by_framework': dict(by_framework),
-            'by_status': dict(by_status),
-            'frameworks_tracked': len(self._frameworks)
+            "total_controls": len(self._controls),
+            "by_framework": dict(by_framework),
+            "by_status": dict(by_status),
+            "frameworks_tracked": len(self._frameworks),
         }
 
 
@@ -462,6 +417,7 @@ def get_compliance_manager() -> ComplianceManager:
 @dataclass
 class LegalHold:
     """Legal hold"""
+
     hold_id: str
     case_name: str
     case_number: str
@@ -476,6 +432,7 @@ class LegalHold:
 @dataclass
 class SearchResult:
     """eDiscovery search result"""
+
     collection_id: str
     query: str
     total_hits: int
@@ -502,7 +459,7 @@ class eDiscoveryManager:
         case_number: str,
         custodians: List[str],
         keywords: Optional[List[str]] = None,
-        start_date: Optional[datetime] = None
+        start_date: Optional[datetime] = None,
     ) -> LegalHold:
         """Create legal hold"""
         hold_id = str(uuid4())
@@ -513,7 +470,7 @@ class eDiscoveryManager:
             case_number=case_number,
             start_date=start_date or datetime.now(),
             custodians=custodians,
-            keywords=keywords or []
+            keywords=keywords or [],
         )
 
         with self._lock:
@@ -522,11 +479,7 @@ class eDiscoveryManager:
         return hold
 
     def search(
-        self,
-        legal_hold_id: str,
-        query: str,
-        date_range: Optional[tuple] = None,
-        custodians: Optional[List[str]] = None
+        self, legal_hold_id: str, query: str, date_range: Optional[tuple] = None, custodians: Optional[List[str]] = None
     ) -> SearchResult:
         """Search for responsive documents"""
         hold = self._legal_holds.get(legal_hold_id)
@@ -541,7 +494,7 @@ class eDiscoveryManager:
             query=query,
             total_hits=0,  # Would be actual search results
             custodians=custodians or hold.custodians,
-            date_range=date_range
+            date_range=date_range,
         )
 
         with self._lock:
@@ -550,11 +503,7 @@ class eDiscoveryManager:
         return result
 
     def export_collection(
-        self,
-        collection_id: str,
-        format: str = "pst",
-        include_metadata: bool = True,
-        deduplicate: bool = True
+        self, collection_id: str, format: str = "pst", include_metadata: bool = True, deduplicate: bool = True
     ) -> Dict[str, Any]:
         """Export collection for legal review"""
         collection = self._collections.get(collection_id)
@@ -564,32 +513,26 @@ class eDiscoveryManager:
         export_id = str(uuid4())
 
         return {
-            'export_id': export_id,
-            'collection_id': collection_id,
-            'format': format,
-            'total_documents': collection.total_hits,
-            'export_path': f"/exports/{export_id}.{format}",
-            'include_metadata': include_metadata,
-            'deduplicated': deduplicate
+            "export_id": export_id,
+            "collection_id": collection_id,
+            "format": format,
+            "total_documents": collection.total_hits,
+            "export_path": f"/exports/{export_id}.{format}",
+            "include_metadata": include_metadata,
+            "deduplicated": deduplicate,
         }
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get eDiscovery statistics"""
-        active_holds = sum(
-            1 for h in self._legal_holds.values()
-            if h.end_date is None
-        )
+        active_holds = sum(1 for h in self._legal_holds.values() if h.end_date is None)
 
-        total_custodians = len(set(
-            c for h in self._legal_holds.values()
-            for c in h.custodians
-        ))
+        total_custodians = len(set(c for h in self._legal_holds.values() for c in h.custodians))
 
         return {
-            'total_legal_holds': len(self._legal_holds),
-            'active_holds': active_holds,
-            'total_collections': len(self._collections),
-            'total_custodians': total_custodians
+            "total_legal_holds": len(self._legal_holds),
+            "active_holds": active_holds,
+            "total_collections": len(self._collections),
+            "total_custodians": total_custodians,
         }
 
 
@@ -613,6 +556,7 @@ def get_ediscovery_manager() -> eDiscoveryManager:
 @dataclass
 class RetentionPolicy:
     """Data retention policy"""
+
     policy_id: str
     name: str
     description: str
@@ -626,6 +570,7 @@ class RetentionPolicy:
 @dataclass
 class DispositionItem:
     """Item scheduled for disposition"""
+
     disposition_id: str
     record_id: str
     scheduled_date: datetime
@@ -654,7 +599,7 @@ class RetentionEngine:
         retention_period: timedelta,
         trigger_event: str = "creation_date",
         applies_to: Optional[Dict[str, Any]] = None,
-        disposition_action: str = "permanent_delete"
+        disposition_action: str = "permanent_delete",
     ) -> RetentionPolicy:
         """Create retention policy"""
         policy_id = str(uuid4())
@@ -666,7 +611,7 @@ class RetentionEngine:
             retention_period=retention_period,
             trigger_event=trigger_event,
             applies_to=applies_to or {},
-            disposition_action=disposition_action
+            disposition_action=disposition_action,
         )
 
         with self._lock:
@@ -674,20 +619,12 @@ class RetentionEngine:
 
         return policy
 
-    def schedule_disposition(
-        self,
-        record_id: str,
-        policy_id: str,
-        scheduled_date: datetime
-    ) -> DispositionItem:
+    def schedule_disposition(self, record_id: str, policy_id: str, scheduled_date: datetime) -> DispositionItem:
         """Schedule record for disposition"""
         disposition_id = str(uuid4())
 
         item = DispositionItem(
-            disposition_id=disposition_id,
-            record_id=record_id,
-            scheduled_date=scheduled_date,
-            policy_id=policy_id
+            disposition_id=disposition_id, record_id=record_id, scheduled_date=scheduled_date, policy_id=policy_id
         )
 
         with self._lock:
@@ -695,12 +632,7 @@ class RetentionEngine:
 
         return item
 
-    def approve_disposition(
-        self,
-        disposition_id: str,
-        approver: str,
-        notes: Optional[str] = None
-    ) -> bool:
+    def approve_disposition(self, disposition_id: str, approver: str, notes: Optional[str] = None) -> bool:
         """Approve disposition"""
         item = self._disposition_queue.get(disposition_id)
         if not item:
@@ -713,18 +645,11 @@ class RetentionEngine:
 
         return True
 
-    def get_disposition_queue(
-        self,
-        days_ahead: int = 30,
-        requires_approval: bool = False
-    ) -> List[DispositionItem]:
+    def get_disposition_queue(self, days_ahead: int = 30, requires_approval: bool = False) -> List[DispositionItem]:
         """Get disposition queue"""
         cutoff = datetime.now() + timedelta(days=days_ahead)
 
-        items = [
-            item for item in self._disposition_queue.values()
-            if item.scheduled_date <= cutoff
-        ]
+        items = [item for item in self._disposition_queue.values() if item.scheduled_date <= cutoff]
 
         if requires_approval:
             items = [item for item in items if not item.approved]
@@ -737,10 +662,10 @@ class RetentionEngine:
         approved = sum(1 for i in self._disposition_queue.values() if i.approved)
 
         return {
-            'total_policies': len(self._policies),
-            'disposition_queue': len(self._disposition_queue),
-            'pending_approval': pending,
-            'approved': approved
+            "total_policies": len(self._policies),
+            "disposition_queue": len(self._disposition_queue),
+            "pending_approval": pending,
+            "approved": approved,
         }
 
 
@@ -763,6 +688,7 @@ def get_retention_engine() -> RetentionEngine:
 
 class AuditSeverity(Enum):
     """Audit finding severity"""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -773,6 +699,7 @@ class AuditSeverity(Enum):
 @dataclass
 class AuditFinding:
     """Audit finding"""
+
     finding_id: str
     audit_id: str
     title: str
@@ -790,6 +717,7 @@ class AuditFinding:
 @dataclass
 class AuditPlan:
     """Audit plan"""
+
     audit_id: str
     title: str
     audit_type: str
@@ -820,7 +748,7 @@ class AuditManager:
         scope: str,
         start_date: datetime,
         end_date: datetime,
-        auditors: Optional[List[str]] = None
+        auditors: Optional[List[str]] = None,
     ) -> AuditPlan:
         """Create audit plan"""
         audit_id = str(uuid4())
@@ -832,7 +760,7 @@ class AuditManager:
             scope=scope,
             start_date=start_date,
             end_date=end_date,
-            auditors=auditors or []
+            auditors=auditors or [],
         )
 
         with self._lock:
@@ -848,7 +776,7 @@ class AuditManager:
         description: str,
         control_reference: Optional[str] = None,
         assigned_to: Optional[str] = None,
-        due_date: Optional[datetime] = None
+        due_date: Optional[datetime] = None,
     ) -> AuditFinding:
         """Create audit finding"""
         finding_id = str(uuid4())
@@ -861,7 +789,7 @@ class AuditManager:
             description=description,
             control_reference=control_reference,
             assigned_to=assigned_to,
-            due_date=due_date
+            due_date=due_date,
         )
 
         with self._lock:
@@ -875,11 +803,7 @@ class AuditManager:
         return finding
 
     def update_remediation(
-        self,
-        finding_id: str,
-        status: str,
-        progress: int,
-        notes: Optional[str] = None
+        self, finding_id: str, status: str, progress: int, notes: Optional[str] = None
     ) -> Optional[AuditFinding]:
         """Update finding remediation status"""
         finding = self._findings.get(finding_id)
@@ -897,10 +821,7 @@ class AuditManager:
     def get_overdue_findings(self) -> List[AuditFinding]:
         """Get overdue findings"""
         now = datetime.now()
-        return [
-            f for f in self._findings.values()
-            if f.due_date and f.due_date < now and f.status != "closed"
-        ]
+        return [f for f in self._findings.values() if f.due_date and f.due_date < now and f.status != "closed"]
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get audit statistics"""
@@ -912,11 +833,11 @@ class AuditManager:
             by_status[finding.status] += 1
 
         return {
-            'total_audits': len(self._audit_plans),
-            'total_findings': len(self._findings),
-            'by_severity': dict(by_severity),
-            'by_status': dict(by_status),
-            'overdue_findings': len(self.get_overdue_findings())
+            "total_audits": len(self._audit_plans),
+            "total_findings": len(self._findings),
+            "by_severity": dict(by_severity),
+            "by_status": dict(by_status),
+            "overdue_findings": len(self.get_overdue_findings()),
         }
 
 
@@ -940,6 +861,7 @@ def get_audit_manager() -> AuditManager:
 @dataclass
 class PolicyVersion:
     """Policy version"""
+
     version_id: str
     version_number: int
     content: str
@@ -950,6 +872,7 @@ class PolicyVersion:
 @dataclass
 class Acknowledgment:
     """Policy acknowledgment"""
+
     acknowledgment_id: str
     policy_id: str
     user_id: str
@@ -959,6 +882,7 @@ class Acknowledgment:
 @dataclass
 class Policy:
     """Policy document"""
+
     policy_id: str
     title: str
     category: str
@@ -982,30 +906,20 @@ class PolicyManager:
         self._lock = Lock()
 
     def create_policy(
-        self,
-        title: str,
-        category: str,
-        content: str,
-        effective_date: datetime,
-        requires_acknowledgment: bool = False
+        self, title: str, category: str, content: str, effective_date: datetime, requires_acknowledgment: bool = False
     ) -> Policy:
         """Create new policy"""
         policy_id = str(uuid4())
         version_id = str(uuid4())
 
-        version = PolicyVersion(
-            version_id=version_id,
-            version_number=1,
-            content=content,
-            effective_date=effective_date
-        )
+        version = PolicyVersion(version_id=version_id, version_number=1, content=content, effective_date=effective_date)
 
         policy = Policy(
             policy_id=policy_id,
             title=title,
             category=category,
             versions=[version],
-            requires_acknowledgment=requires_acknowledgment
+            requires_acknowledgment=requires_acknowledgment,
         )
 
         with self._lock:
@@ -1013,11 +927,7 @@ class PolicyManager:
 
         return policy
 
-    def acknowledge_policy(
-        self,
-        policy_id: str,
-        user_id: str
-    ) -> Acknowledgment:
+    def acknowledge_policy(self, policy_id: str, user_id: str) -> Acknowledgment:
         """Acknowledge policy"""
         policy = self._policies.get(policy_id)
         if not policy:
@@ -1025,11 +935,7 @@ class PolicyManager:
 
         ack_id = str(uuid4())
 
-        acknowledgment = Acknowledgment(
-            acknowledgment_id=ack_id,
-            policy_id=policy_id,
-            user_id=user_id
-        )
+        acknowledgment = Acknowledgment(acknowledgment_id=ack_id, policy_id=policy_id, user_id=user_id)
 
         with self._lock:
             self._acknowledgments[ack_id] = acknowledgment
@@ -1037,10 +943,7 @@ class PolicyManager:
 
         return acknowledgment
 
-    def get_acknowledgment_status(
-        self,
-        policy_id: str
-    ) -> Dict[str, Any]:
+    def get_acknowledgment_status(self, policy_id: str) -> Dict[str, Any]:
         """Get policy acknowledgment status"""
         policy = self._policies.get(policy_id)
         if not policy:
@@ -1051,11 +954,11 @@ class PolicyManager:
         total_users = 500  # Placeholder
 
         return {
-            'policy_id': policy_id,
-            'total_users': total_users,
-            'acknowledged': total_acks,
-            'pending': total_users - total_acks,
-            'acknowledgment_rate': (total_acks / total_users * 100) if total_users > 0 else 0
+            "policy_id": policy_id,
+            "total_users": total_users,
+            "acknowledged": total_acks,
+            "pending": total_users - total_acks,
+            "acknowledgment_rate": (total_acks / total_users * 100) if total_users > 0 else 0,
         }
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -1069,10 +972,10 @@ class PolicyManager:
                 requires_ack += 1
 
         return {
-            'total_policies': len(self._policies),
-            'by_category': dict(by_category),
-            'requires_acknowledgment': requires_ack,
-            'total_acknowledgments': len(self._acknowledgments)
+            "total_policies": len(self._policies),
+            "by_category": dict(by_category),
+            "requires_acknowledgment": requires_ack,
+            "total_acknowledgments": len(self._acknowledgments),
         }
 
 

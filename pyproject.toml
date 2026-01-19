@@ -52,7 +52,12 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "security: marks tests as security tests",
-    "performance: marks tests as performance tests"
+    "performance: marks tests as performance tests",
+    "benchmark: marks tests as performance benchmarks using pytest-benchmark",
+    "enterprise: marks tests for enterprise features",
+    "smoke: marks tests as smoke tests",
+    "regression: marks tests as regression tests",
+    "e2e: marks tests as end-to-end tests"
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

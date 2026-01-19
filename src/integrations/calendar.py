@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class CalendarProvider(Enum):
     """Calendar providers."""
+
     GOOGLE_CALENDAR = "google_calendar"
     OUTLOOK_CALENDAR = "outlook_calendar"
 
@@ -27,6 +28,7 @@ class CalendarProvider(Enum):
 @dataclass
 class CalendarEvent:
     """Calendar event."""
+
     event_id: str
     title: str
     start_time: datetime
@@ -47,22 +49,12 @@ class BaseCalendarProvider(ABC):
         self.connected = False
 
     @abstractmethod
-    async def create_event(
-        self,
-        title: str,
-        start_time: datetime,
-        end_time: datetime,
-        **kwargs
-    ) -> CalendarEvent:
+    async def create_event(self, title: str, start_time: datetime, end_time: datetime, **kwargs) -> CalendarEvent:
         """Create calendar event."""
         pass
 
     @abstractmethod
-    async def list_events(
-        self,
-        start_date: datetime,
-        end_date: datetime
-    ) -> List[CalendarEvent]:
+    async def list_events(self, start_date: datetime, end_date: datetime) -> List[CalendarEvent]:
         """List events."""
         pass
 
@@ -70,13 +62,7 @@ class BaseCalendarProvider(ABC):
 class GoogleCalendarClient(BaseCalendarProvider):
     """Google Calendar integration."""
 
-    async def create_event(
-        self,
-        title: str,
-        start_time: datetime,
-        end_time: datetime,
-        **kwargs
-    ) -> CalendarEvent:
+    async def create_event(self, title: str, start_time: datetime, end_time: datetime, **kwargs) -> CalendarEvent:
         """Create Google Calendar event."""
         await asyncio.sleep(0.2)
 
@@ -85,10 +71,10 @@ class GoogleCalendarClient(BaseCalendarProvider):
             title=title,
             start_time=start_time,
             end_time=end_time,
-            attendees=kwargs.get('attendees', []),
-            location=kwargs.get('location'),
-            video_conference_link=kwargs.get('video_conference') and "https://meet.google.com/xyz",
-            provider=CalendarProvider.GOOGLE_CALENDAR
+            attendees=kwargs.get("attendees", []),
+            location=kwargs.get("location"),
+            video_conference_link=kwargs.get("video_conference") and "https://meet.google.com/xyz",
+            provider=CalendarProvider.GOOGLE_CALENDAR,
         )
 
         logger.info(f"Created Google Calendar event: {title}")
@@ -103,13 +89,7 @@ class GoogleCalendarClient(BaseCalendarProvider):
 class OutlookCalendarClient(BaseCalendarProvider):
     """Outlook Calendar integration."""
 
-    async def create_event(
-        self,
-        title: str,
-        start_time: datetime,
-        end_time: datetime,
-        **kwargs
-    ) -> CalendarEvent:
+    async def create_event(self, title: str, start_time: datetime, end_time: datetime, **kwargs) -> CalendarEvent:
         """Create Outlook event."""
         await asyncio.sleep(0.2)
 
@@ -118,9 +98,9 @@ class OutlookCalendarClient(BaseCalendarProvider):
             title=title,
             start_time=start_time,
             end_time=end_time,
-            attendees=kwargs.get('attendees', []),
-            location=kwargs.get('location'),
-            provider=CalendarProvider.OUTLOOK_CALENDAR
+            attendees=kwargs.get("attendees", []),
+            location=kwargs.get("location"),
+            provider=CalendarProvider.OUTLOOK_CALENDAR,
         )
 
         logger.info(f"Created Outlook event: {title}")
@@ -146,12 +126,7 @@ class CalendarManager:
             self.providers[provider] = OutlookCalendarClient(credentials)
 
     async def create_event(
-        self,
-        provider: str,
-        title: str,
-        start_time: datetime,
-        end_time: datetime,
-        **kwargs
+        self, provider: str, title: str, start_time: datetime, end_time: datetime, **kwargs
     ) -> CalendarEvent:
         """Create calendar event."""
         provider_enum = CalendarProvider(provider)
@@ -160,6 +135,7 @@ class CalendarManager:
 
 
 _calendar_manager: Optional[CalendarManager] = None
+
 
 def get_calendar_client(provider: str = "google_calendar") -> CalendarManager:
     """Get calendar manager."""

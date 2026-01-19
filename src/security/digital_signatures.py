@@ -21,20 +21,21 @@ Dependencies:
 - PyPDF2 (for PDF signing)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Tuple
-from enum import Enum
-from datetime import datetime, timedelta
 import hashlib
-import logging
 import json
+import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class SignatureAlgorithm(str, Enum):
     """Signature algorithms"""
+
     RSA_SHA256 = "rsa_sha256"
     RSA_SHA512 = "rsa_sha512"
     ECDSA_SHA256 = "ecdsa_sha256"
@@ -44,6 +45,7 @@ class SignatureAlgorithm(str, Enum):
 
 class CertificateFormat(str, Enum):
     """Certificate formats"""
+
     PEM = "pem"
     DER = "der"
     PKCS12 = "pkcs12"
@@ -51,6 +53,7 @@ class CertificateFormat(str, Enum):
 
 class SignatureLevel(str, Enum):
     """Signature compliance levels"""
+
     BASIC = "basic"  # Basic electronic signature
     ADVANCED = "advanced"  # Advanced electronic signature (AdES)
     QUALIFIED = "qualified"  # Qualified electronic signature (QES)
@@ -58,6 +61,7 @@ class SignatureLevel(str, Enum):
 
 class RevocationStatus(str, Enum):
     """Certificate revocation status"""
+
     VALID = "valid"
     REVOKED = "revoked"
     SUSPENDED = "suspended"
@@ -67,6 +71,7 @@ class RevocationStatus(str, Enum):
 @dataclass
 class PrivateKey:
     """Private key information"""
+
     key_type: str  # RSA, ECDSA, Ed25519
     key_size: int
     key_data: bytes
@@ -77,6 +82,7 @@ class PrivateKey:
 @dataclass
 class PublicKey:
     """Public key information"""
+
     key_type: str
     key_size: int
     key_data: bytes
@@ -86,6 +92,7 @@ class PublicKey:
 @dataclass
 class X509Certificate:
     """X.509 certificate"""
+
     subject: Dict[str, str]
     issuer: Dict[str, str]
     serial_number: str
@@ -101,6 +108,7 @@ class X509Certificate:
 @dataclass
 class DigitalSignature:
     """Digital signature"""
+
     signature_id: str
     document_hash: str
     signature_value: bytes
@@ -114,6 +122,7 @@ class DigitalSignature:
 @dataclass
 class TimestampToken:
     """RFC 3161 Timestamp token"""
+
     timestamp: datetime
     hash_algorithm: str
     message_imprint: bytes
@@ -125,6 +134,7 @@ class TimestampToken:
 @dataclass
 class SignatureValidationResult:
     """Signature validation result"""
+
     valid: bool
     signature_id: str
     certificate_valid: bool
@@ -154,46 +164,34 @@ class KeyGenerator:
             Tuple of (private_key, public_key)
         """
         try:
-            from cryptography.hazmat.primitives.asymmetric import rsa
-            from cryptography.hazmat.primitives import serialization
             from cryptography.hazmat.backends import default_backend
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric import rsa
 
             # Generate private key
             private_key_obj = rsa.generate_private_key(
-                public_exponent=65537,
-                key_size=key_size,
-                backend=default_backend()
+                public_exponent=65537, key_size=key_size, backend=default_backend()
             )
 
             # Serialize private key
             private_pem = private_key_obj.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
+                encryption_algorithm=serialization.NoEncryption(),
             )
 
             # Get public key
             public_key_obj = private_key_obj.public_key()
             public_pem = public_key_obj.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
+                encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
 
             # Calculate fingerprint
             fingerprint = hashlib.sha256(public_pem).hexdigest()
 
-            private_key = PrivateKey(
-                key_type="RSA",
-                key_size=key_size,
-                key_data=private_pem
-            )
+            private_key = PrivateKey(key_type="RSA", key_size=key_size, key_data=private_pem)
 
-            public_key = PublicKey(
-                key_type="RSA",
-                key_size=key_size,
-                key_data=public_pem,
-                fingerprint=fingerprint
-            )
+            public_key = PublicKey(key_type="RSA", key_size=key_size, key_data=public_pem, fingerprint=fingerprint)
 
             logger.info(f"Generated RSA-{key_size} key pair")
             return private_key, public_key
@@ -201,16 +199,9 @@ class KeyGenerator:
         except ImportError:
             # Fallback: simulated keys
             logger.warning("cryptography library not available, using simulated keys")
-            private_key = PrivateKey(
-                key_type="RSA",
-                key_size=key_size,
-                key_data=b"simulated_private_key"
-            )
+            private_key = PrivateKey(key_type="RSA", key_size=key_size, key_data=b"simulated_private_key")
             public_key = PublicKey(
-                key_type="RSA",
-                key_size=key_size,
-                key_data=b"simulated_public_key",
-                fingerprint="sim_fingerprint"
+                key_type="RSA", key_size=key_size, key_data=b"simulated_public_key", fingerprint="sim_fingerprint"
             )
             return private_key, public_key
 
@@ -223,43 +214,30 @@ class KeyGenerator:
             Tuple of (private_key, public_key)
         """
         try:
-            from cryptography.hazmat.primitives.asymmetric import ec
-            from cryptography.hazmat.primitives import serialization
             from cryptography.hazmat.backends import default_backend
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric import ec
 
             # Generate private key
-            private_key_obj = ec.generate_private_key(
-                ec.SECP256R1(),  # P-256 curve
-                default_backend()
-            )
+            private_key_obj = ec.generate_private_key(ec.SECP256R1(), default_backend())  # P-256 curve
 
             # Serialize keys
             private_pem = private_key_obj.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
+                encryption_algorithm=serialization.NoEncryption(),
             )
 
             public_key_obj = private_key_obj.public_key()
             public_pem = public_key_obj.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
+                encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
 
             fingerprint = hashlib.sha256(public_pem).hexdigest()
 
-            private_key = PrivateKey(
-                key_type="ECDSA",
-                key_size=256,
-                key_data=private_pem
-            )
+            private_key = PrivateKey(key_type="ECDSA", key_size=256, key_data=private_pem)
 
-            public_key = PublicKey(
-                key_type="ECDSA",
-                key_size=256,
-                key_data=public_pem,
-                fingerprint=fingerprint
-            )
+            public_key = PublicKey(key_type="ECDSA", key_size=256, key_data=public_pem, fingerprint=fingerprint)
 
             logger.info("Generated ECDSA P-256 key pair")
             return private_key, public_key
@@ -294,7 +272,7 @@ class CertificateAuthority:
         subject: Dict[str, str],
         public_key: PublicKey,
         validity_days: int = 365,
-        signature_algorithm: SignatureAlgorithm = SignatureAlgorithm.RSA_SHA256
+        signature_algorithm: SignatureAlgorithm = SignatureAlgorithm.RSA_SHA256,
     ) -> X509Certificate:
         """
         Issue X.509 certificate
@@ -315,11 +293,7 @@ class CertificateAuthority:
 
         certificate = X509Certificate(
             subject=subject,
-            issuer={
-                "CN": self.ca_name,
-                "O": "Document Management System CA",
-                "C": "US"
-            },
+            issuer={"CN": self.ca_name, "O": "Document Management System CA", "C": "US"},
             serial_number=serial_number,
             not_before=now,
             not_after=now + timedelta(days=validity_days),
@@ -329,15 +303,13 @@ class CertificateAuthority:
             fingerprint=hashlib.sha256(f"{serial_number}{subject}".encode()).hexdigest(),
             extensions={
                 "keyUsage": ["digitalSignature", "keyEncipherment"],
-                "extendedKeyUsage": ["clientAuth", "emailProtection"]
-            }
+                "extendedKeyUsage": ["clientAuth", "emailProtection"],
+            },
         )
 
         self._issued_certificates[serial_number] = certificate
 
-        logger.info(
-            f"Issued certificate {serial_number} for {subject.get('CN', 'Unknown')}"
-        )
+        logger.info(f"Issued certificate {serial_number} for {subject.get('CN', 'Unknown')}")
 
         return certificate
 
@@ -403,10 +375,7 @@ class DigitalSigner:
         self.certificate = certificate
 
     def sign_data(
-        self,
-        data: bytes,
-        algorithm: SignatureAlgorithm = SignatureAlgorithm.RSA_SHA256,
-        include_timestamp: bool = True
+        self, data: bytes, algorithm: SignatureAlgorithm = SignatureAlgorithm.RSA_SHA256, include_timestamp: bool = True
     ) -> DigitalSignature:
         """
         Sign data
@@ -425,9 +394,7 @@ class DigitalSigner:
         data_hash = hashlib.sha256(data).hexdigest()
 
         # Create signature (simulated)
-        signature_value = hashlib.sha256(
-            data + self.private_key.key_data
-        ).digest()
+        signature_value = hashlib.sha256(data + self.private_key.key_data).digest()
 
         signature = DigitalSignature(
             signature_id=str(uuid.uuid4()),
@@ -436,10 +403,7 @@ class DigitalSigner:
             algorithm=algorithm,
             certificate=self.certificate,
             timestamp=datetime.now(),
-            metadata={
-                "signer": self.certificate.subject.get("CN", "Unknown"),
-                "key_type": self.private_key.key_type
-            }
+            metadata={"signer": self.certificate.subject.get("CN", "Unknown"), "key_type": self.private_key.key_type},
         )
 
         logger.info(f"Created signature {signature.signature_id}")
@@ -447,9 +411,7 @@ class DigitalSigner:
         return signature
 
     def sign_file(
-        self,
-        file_path: str,
-        algorithm: SignatureAlgorithm = SignatureAlgorithm.RSA_SHA256
+        self, file_path: str, algorithm: SignatureAlgorithm = SignatureAlgorithm.RSA_SHA256
     ) -> DigitalSignature:
         """
         Sign file
@@ -461,7 +423,7 @@ class DigitalSigner:
         Returns:
             Digital signature
         """
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             data = f.read()
 
         return self.sign_data(data, algorithm)
@@ -489,7 +451,7 @@ class PDFSigner:
         output_path: str,
         reason: str = "Document approval",
         location: str = "",
-        contact_info: str = ""
+        contact_info: str = "",
     ) -> DigitalSignature:
         """
         Sign PDF document
@@ -505,24 +467,26 @@ class PDFSigner:
             Digital signature
         """
         # Read PDF
-        with open(pdf_path, 'rb') as f:
+        with open(pdf_path, "rb") as f:
             pdf_data = f.read()
 
         # Create signature
         signature = self.signer.sign_data(pdf_data)
 
         # Add PDF signature metadata
-        signature.metadata.update({
-            "reason": reason,
-            "location": location,
-            "contact_info": contact_info,
-            "format": "PAdES",
-            "pdf_version": "1.7"
-        })
+        signature.metadata.update(
+            {
+                "reason": reason,
+                "location": location,
+                "contact_info": contact_info,
+                "format": "PAdES",
+                "pdf_version": "1.7",
+            }
+        )
 
         # In production: Use PyPDF2 or similar to embed signature
         # For now, copy file to simulate signed PDF
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             f.write(pdf_data)
 
         logger.info(f"Signed PDF: {pdf_path} -> {output_path}")
@@ -546,11 +510,7 @@ class SignatureValidator:
         """
         self.ca = ca
 
-    def validate_signature(
-        self,
-        signature: DigitalSignature,
-        original_data: bytes
-    ) -> SignatureValidationResult:
+    def validate_signature(self, signature: DigitalSignature, original_data: bytes) -> SignatureValidationResult:
         """
         Validate digital signature
 
@@ -573,17 +533,13 @@ class SignatureValidator:
 
         # Check certificate validity
         now = datetime.now()
-        cert_valid = (
-            signature.certificate.not_before <= now <= signature.certificate.not_after
-        )
+        cert_valid = signature.certificate.not_before <= now <= signature.certificate.not_after
 
         if not cert_valid:
             errors.append("Certificate expired or not yet valid")
 
         # Check revocation
-        revocation_status = self.ca.check_revocation(
-            signature.certificate.serial_number
-        )
+        revocation_status = self.ca.check_revocation(signature.certificate.serial_number)
 
         if revocation_status == RevocationStatus.REVOKED:
             errors.append("Certificate has been revoked")
@@ -599,13 +555,10 @@ class SignatureValidator:
             revocation_status=revocation_status,
             validation_time=datetime.now(),
             errors=errors,
-            warnings=warnings
+            warnings=warnings,
         )
 
-        logger.info(
-            f"Validated signature {signature.signature_id}: "
-            f"{'VALID' if result.valid else 'INVALID'}"
-        )
+        logger.info(f"Validated signature {signature.signature_id}: " f"{'VALID' if result.valid else 'INVALID'}")
 
         return result
 
@@ -652,10 +605,7 @@ class MultiSignatureManager:
         return self._signatures.get(document_id, [])
 
     def validate_all_signatures(
-        self,
-        document_id: str,
-        original_data: bytes,
-        validator: SignatureValidator
+        self, document_id: str, original_data: bytes, validator: SignatureValidator
     ) -> Dict[str, SignatureValidationResult]:
         """
         Validate all signatures on document
@@ -693,14 +643,9 @@ if __name__ == "__main__":
     # Create CA and issue certificate
     ca = CertificateAuthority("DMS Root CA")
     certificate = ca.issue_certificate(
-        subject={
-            "CN": "John Doe",
-            "O": "Example Corp",
-            "OU": "IT Department",
-            "C": "US"
-        },
+        subject={"CN": "John Doe", "O": "Example Corp", "OU": "IT Department", "C": "US"},
         public_key=public_key,
-        validity_days=365
+        validity_days=365,
     )
 
     print(f"\nIssued certificate:")

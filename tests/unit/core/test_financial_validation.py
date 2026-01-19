@@ -2,11 +2,12 @@
 Tests for financial validation module.
 """
 
-import pytest
-import tempfile
 import os
+import tempfile
 from decimal import Decimal
 from pathlib import Path
+
+import pytest
 
 from src.core.financial_validation import FinancialValidator
 from src.core.input_validation import ValidationError
@@ -25,6 +26,7 @@ def temp_dir():
     yield tmpdir
     # Cleanup
     import shutil
+
     try:
         shutil.rmtree(tmpdir)
     except:
@@ -64,57 +66,37 @@ class TestDecimalValidation:
     def test_validate_decimal_nan(self, validator):
         """Test NaN raises error."""
         with pytest.raises(ValidationError) as exc:
-            validator.validate_decimal(float('nan'), "test_param")
+            validator.validate_decimal(float("nan"), "test_param")
         assert "must be a finite number" in str(exc.value)
 
     def test_validate_decimal_infinity(self, validator):
         """Test infinity raises error."""
         with pytest.raises(ValidationError) as exc:
-            validator.validate_decimal(float('inf'), "test_param")
+            validator.validate_decimal(float("inf"), "test_param")
         assert "must be a finite number" in str(exc.value)
 
     def test_validate_decimal_min_value(self, validator):
         """Test minimum value validation."""
-        result = validator.validate_decimal(
-            10,
-            "test_param",
-            min_value=Decimal("0")
-        )
+        result = validator.validate_decimal(10, "test_param", min_value=Decimal("0"))
         assert result == Decimal("10")
 
         with pytest.raises(ValidationError) as exc:
-            validator.validate_decimal(
-                -5,
-                "test_param",
-                min_value=Decimal("0")
-            )
+            validator.validate_decimal(-5, "test_param", min_value=Decimal("0"))
         assert "must be at least 0" in str(exc.value)
 
     def test_validate_decimal_max_value(self, validator):
         """Test maximum value validation."""
-        result = validator.validate_decimal(
-            50,
-            "test_param",
-            max_value=Decimal("100")
-        )
+        result = validator.validate_decimal(50, "test_param", max_value=Decimal("100"))
         assert result == Decimal("50")
 
         with pytest.raises(ValidationError) as exc:
-            validator.validate_decimal(
-                150,
-                "test_param",
-                max_value=Decimal("100")
-            )
+            validator.validate_decimal(150, "test_param", max_value=Decimal("100"))
         assert "cannot exceed 100" in str(exc.value)
 
     def test_validate_decimal_zero_not_allowed(self, validator):
         """Test zero not allowed."""
         with pytest.raises(ValidationError) as exc:
-            validator.validate_decimal(
-                0,
-                "test_param",
-                allow_zero=False
-            )
+            validator.validate_decimal(0, "test_param", allow_zero=False)
         assert "cannot be zero" in str(exc.value)
 
 
@@ -218,7 +200,7 @@ class TestSurchargeValidation:
 
     def test_validate_surcharge_all_types(self, validator):
         """Test all surcharge types."""
-        for surcharge_type in ['night', 'weekend', 'holiday', 'urgent']:
+        for surcharge_type in ["night", "weekend", "holiday", "urgent"]:
             result = validator.validate_surcharge(surcharge_type, 25)
             assert result == Decimal("25")
 
@@ -249,7 +231,7 @@ class TestUmlageValidation:
 
     def test_validate_umlage_all_types(self, validator):
         """Test all umlage types."""
-        for umlage_type in ['U1', 'U2', 'U3']:
+        for umlage_type in ["U1", "U2", "U3"]:
             result = validator.validate_umlage(umlage_type, 1.5)
             assert result == Decimal("1.5")
 
@@ -305,6 +287,7 @@ class TestHoursValidation:
     def test_validate_hours_warning_on_high_value(self, validator, caplog):
         """Test warning logged for high hours."""
         import logging
+
         with caplog.at_level(logging.WARNING):
             result = validator.validate_hours(150)
         assert result == Decimal("150")
@@ -317,7 +300,7 @@ class TestConfigFileValidation:
     def test_validate_config_file_yaml_valid(self, validator, temp_dir):
         """Test valid YAML config file."""
         config_file = os.path.join(temp_dir, "config.yaml")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write("brutto_rate: 25.0\n")
 
         result = validator.validate_config_file(config_file)
@@ -326,7 +309,7 @@ class TestConfigFileValidation:
     def test_validate_config_file_json_valid(self, validator, temp_dir):
         """Test valid JSON config file."""
         config_file = os.path.join(temp_dir, "config.json")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write('{"brutto_rate": 25.0}')
 
         result = validator.validate_config_file(config_file)
@@ -341,7 +324,7 @@ class TestConfigFileValidation:
     def test_validate_config_file_invalid_extension(self, validator, temp_dir):
         """Test invalid file extension."""
         config_file = os.path.join(temp_dir, "config.txt")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write("test")
 
         with pytest.raises(ValidationError) as exc:
@@ -351,7 +334,7 @@ class TestConfigFileValidation:
     def test_validate_config_file_invalid_content(self, validator, temp_dir):
         """Test invalid file content."""
         config_file = os.path.join(temp_dir, "config.yaml")
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             f.write("invalid: yaml: content:")
 
         with pytest.raises(ValidationError) as exc:
@@ -364,57 +347,41 @@ class TestCLIArgsValidation:
 
     def test_validate_cli_args_basic(self, validator):
         """Test basic CLI args validation."""
-        args = {
-            'brutto': 25.0,
-            'hours': 40.0,
-            'mode': 'umlages'
-        }
+        args = {"brutto": 25.0, "hours": 40.0, "mode": "umlages"}
 
         result = validator.validate_cli_args(args)
-        assert 'brutto' in result
-        assert result['brutto'] == Decimal("25.0")
-        assert 'hours' in result
-        assert result['hours'] == Decimal("40.0")
+        assert "brutto" in result
+        assert result["brutto"] == Decimal("25.0")
+        assert "hours" in result
+        assert result["hours"] == Decimal("40.0")
 
     def test_validate_cli_args_with_region(self, validator):
         """Test CLI args with region."""
-        args = {
-            'brutto': 25.0,
-            'region': 'Bayern'
-        }
+        args = {"brutto": 25.0, "region": "Bayern"}
 
         result = validator.validate_cli_args(args)
-        assert 'region' in result
-        assert 'coefficient' in result
-        assert result['coefficient'] > Decimal("1.0")
+        assert "region" in result
+        assert "coefficient" in result
+        assert result["coefficient"] > Decimal("1.0")
 
     def test_validate_cli_args_with_coefficient(self, validator):
         """Test CLI args with coefficient."""
-        args = {
-            'brutto': 25.0,
-            'coefficient': 1.5
-        }
+        args = {"brutto": 25.0, "coefficient": 1.5}
 
         result = validator.validate_cli_args(args)
-        assert result['coefficient'] == Decimal("1.5")
+        assert result["coefficient"] == Decimal("1.5")
 
     def test_validate_cli_args_with_surcharges(self, validator):
         """Test CLI args with surcharges."""
-        args = {
-            'brutto': 25.0,
-            'surcharge': ['night', 'weekend']
-        }
+        args = {"brutto": 25.0, "surcharge": ["night", "weekend"]}
 
         result = validator.validate_cli_args(args)
-        assert 'surcharge' in result
-        assert result['surcharge'] == ['night', 'weekend']
+        assert "surcharge" in result
+        assert result["surcharge"] == ["night", "weekend"]
 
     def test_validate_cli_args_invalid_mode(self, validator):
         """Test invalid mode."""
-        args = {
-            'brutto': 25.0,
-            'mode': 'invalid_mode'
-        }
+        args = {"brutto": 25.0, "mode": "invalid_mode"}
 
         with pytest.raises(ValidationError) as exc:
             validator.validate_cli_args(args)
@@ -422,25 +389,18 @@ class TestCLIArgsValidation:
 
     def test_validate_cli_args_invalid_surcharge(self, validator):
         """Test invalid surcharge type."""
-        args = {
-            'brutto': 25.0,
-            'surcharge': ['invalid_surcharge']
-        }
+        args = {"brutto": 25.0, "surcharge": ["invalid_surcharge"]}
 
         with pytest.raises(ValidationError):
             validator.validate_cli_args(args)
 
     def test_validate_cli_args_with_none_values(self, validator):
         """Test args with None values."""
-        args = {
-            'brutto': 25.0,
-            'region': None,
-            'hours': None
-        }
+        args = {"brutto": 25.0, "region": None, "hours": None}
 
         result = validator.validate_cli_args(args)
-        assert 'brutto' in result
-        assert 'region' not in result or result['region'] is None
+        assert "brutto" in result
+        assert "region" not in result or result["region"] is None
 
 
 class TestFinancialParametersValidation:
@@ -461,13 +421,10 @@ class TestFinancialParametersValidation:
         with pytest.raises(ValidationError):
             validator.validate_financial_parameters(params)
 
-    def test_validate_financial_parameters_mutually_exclusive_warning(
-        self,
-        validator,
-        caplog
-    ):
+    def test_validate_financial_parameters_mutually_exclusive_warning(self, validator, caplog):
         """Test warning for mutually exclusive options."""
         import logging
+
         from src.models.financial import FinancialParameters
 
         params = FinancialParameters(brutto_rate=Decimal("25.0"))
@@ -480,5 +437,5 @@ class TestFinancialParametersValidation:
         assert "mutually exclusive" in caplog.text.lower() or "both" in caplog.text.lower()
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

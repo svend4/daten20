@@ -1,16 +1,16 @@
 """Database module for storing services and calculations"""
 
-import sqlite3
 import json
 import logging
-from typing import List, Optional, Dict, Any
+import sqlite3
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from ..models.service import Service
 from ..utils.constants import DATABASE_FILE
+from .connection_pool import ConnectionPool, get_connection_pool
 from .logger import get_logger
-from .connection_pool import get_connection_pool, ConnectionPool
 from .migrations import MigrationManager, register_all_migrations
 
 # Module logger
@@ -75,7 +75,8 @@ class Database:
                 cursor = conn.cursor()
 
                 # Services table
-                cursor.execute('''
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS services (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT NOT NULL,
@@ -87,11 +88,13 @@ class Database:
                         version INTEGER DEFAULT 1,
                         config_json TEXT NOT NULL
                     )
-                ''')
+                """
+                )
                 logger.debug("Services table created/verified")
 
                 # Financial data table
-                cursor.execute('''
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS financial_data (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         service_id INTEGER NOT NULL,
@@ -101,11 +104,13 @@ class Database:
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
                     )
-                ''')
+                """
+                )
                 logger.debug("Financial data table created/verified")
 
                 # Versions table (for version history)
-                cursor.execute('''
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS versions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         service_id INTEGER NOT NULL,
@@ -116,11 +121,13 @@ class Database:
                         change_notes TEXT,
                         FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
                     )
-                ''')
+                """
+                )
                 logger.debug("Versions table created/verified")
 
                 # Subscriptions table (for BI dashboard)
-                cursor.execute('''
+                cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS subscriptions (
                         id TEXT PRIMARY KEY,
                         tenant_id TEXT NOT NULL,
@@ -133,17 +140,18 @@ class Database:
                         canceled_at TIMESTAMP NULL,
                         metadata_json TEXT DEFAULT '{}'
                     )
-                ''')
+                """
+                )
                 logger.debug("Subscriptions table created/verified")
 
                 # Create indexes
-                cursor.execute('CREATE INDEX IF NOT EXISTS idx_services_name ON services(name)')
-                cursor.execute('CREATE INDEX IF NOT EXISTS idx_services_region ON services(region)')
-                cursor.execute('CREATE INDEX IF NOT EXISTS idx_financial_service ON financial_data(service_id)')
-                cursor.execute('CREATE INDEX IF NOT EXISTS idx_versions_service ON versions(service_id)')
-                cursor.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_tenant ON subscriptions(tenant_id)')
-                cursor.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status)')
-                cursor.execute('CREATE INDEX IF NOT EXISTS idx_subscriptions_created ON subscriptions(created_at)')
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_services_name ON services(name)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_services_region ON services(region)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_financial_service ON financial_data(service_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_versions_service ON versions(service_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_subscriptions_tenant ON subscriptions(tenant_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_subscriptions_created ON subscriptions(created_at)")
                 logger.debug("Database indexes created/verified")
 
                 conn.commit()
@@ -173,41 +181,45 @@ class Database:
 
                 config_json = service.to_json()
 
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO services (name, target_group, region, service_type, config_json)
                     VALUES (?, ?, ?, ?, ?)
-                ''', (
-                    service.basic_info.service_name,
-                    service.basic_info.target_group,
-                    service.basic_info.region,
-                    service.system_settings.service_type,
-                    config_json
-                ))
+                """,
+                    (
+                        service.basic_info.service_name,
+                        service.basic_info.target_group,
+                        service.basic_info.region,
+                        service.system_settings.service_type,
+                        config_json,
+                    ),
+                )
 
                 service_id = cursor.lastrowid
                 logger.debug(f"Service created with ID: {service_id}")
 
                 # Save financial data
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO financial_data (service_id, brutto_rate, calculation_json)
                     VALUES (?, ?, ?)
-                ''', (
-                    service_id,
-                    float(service.financial.brutto_rate),
-                    json.dumps({}) if not service.cost_breakdown else service.cost_breakdown.to_dict()
-                ))
+                """,
+                    (
+                        service_id,
+                        float(service.financial.brutto_rate),
+                        json.dumps({}) if not service.cost_breakdown else service.cost_breakdown.to_dict(),
+                    ),
+                )
                 logger.debug(f"Financial data saved for service {service_id}")
 
                 # Create initial version
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO versions (service_id, version_number, config_snapshot, change_notes)
                     VALUES (?, ?, ?, ?)
-                ''', (
-                    service_id,
-                    1,
-                    config_json,
-                    "Initial version"
-                ))
+                """,
+                    (service_id, 1, config_json, "Initial version"),
+                )
                 logger.debug(f"Initial version created for service {service_id}")
 
             service.id = service_id
@@ -234,7 +246,7 @@ class Database:
             with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute('SELECT config_json FROM services WHERE id = ?', (service_id,))
+                cursor.execute("SELECT config_json FROM services WHERE id = ?", (service_id,))
                 row = cursor.fetchone()
 
                 if row:
@@ -267,39 +279,39 @@ class Database:
             service.updated_at = datetime.now()
             service.version += 1
 
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 config_json = service.to_json()
 
-                cursor.execute('''
+                cursor.execute(
+                    """
                     UPDATE services
                     SET name = ?, target_group = ?, region = ?, service_type = ?,
                         updated_at = ?, version = ?, config_json = ?
                     WHERE id = ?
-                ''', (
-                    service.basic_info.service_name,
-                    service.basic_info.target_group,
-                    service.basic_info.region,
-                    service.system_settings.service_type,
-                    service.updated_at,
-                    service.version,
-                    config_json,
-                    service.id
-                ))
+                """,
+                    (
+                        service.basic_info.service_name,
+                        service.basic_info.target_group,
+                        service.basic_info.region,
+                        service.system_settings.service_type,
+                        service.updated_at,
+                        service.version,
+                        config_json,
+                        service.id,
+                    ),
+                )
 
                 # Create version snapshot
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO versions (service_id, version_number, config_snapshot, change_notes)
                     VALUES (?, ?, ?, ?)
-                ''', (
-                    service.id,
-                    service.version,
-                    config_json,
-                    f"Updated to version {service.version}"
-                ))
-
-                conn.commit()
+                """,
+                    (service.id, service.version, config_json, f"Updated to version {service.version}"),
+                )
 
             logger.info(f"Service updated successfully: ID={service.id}, version={service.version}")
             return True
@@ -319,10 +331,10 @@ class Database:
         """
         try:
             logger.info(f"Deleting service: ID={service_id}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
-                cursor.execute('DELETE FROM services WHERE id = ?', (service_id,))
-                conn.commit()
+                cursor.execute("DELETE FROM services WHERE id = ?", (service_id,))
 
                 deleted = cursor.rowcount > 0
                 if deleted:
@@ -336,11 +348,7 @@ class Database:
             raise
 
     def list_services(
-        self,
-        limit: int = 100,
-        offset: int = 0,
-        region: Optional[str] = None,
-        service_type: Optional[str] = None
+        self, limit: int = 100, offset: int = 0, region: Optional[str] = None, service_type: Optional[str] = None
     ) -> List[Service]:
         """
         List services with optional filters
@@ -364,21 +372,22 @@ class Database:
             filter_str = ", ".join(filters) if filters else "no filters"
             logger.debug(f"Listing services: limit={limit}, offset={offset}, {filter_str}")
 
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
-                query = 'SELECT config_json FROM services WHERE 1=1'
+                query = "SELECT config_json FROM services WHERE 1=1"
                 params = []
 
                 if region:
-                    query += ' AND region = ?'
+                    query += " AND region = ?"
                     params.append(region)
 
                 if service_type:
-                    query += ' AND service_type = ?'
+                    query += " AND service_type = ?"
                     params.append(service_type)
 
-                query += ' ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+                query += " ORDER BY updated_at DESC LIMIT ? OFFSET ?"
                 params.extend([limit, offset])
 
                 cursor.execute(query, params)
@@ -393,6 +402,43 @@ class Database:
             logger.error(f"Error listing services: {e}", exc_info=True)
             raise
 
+    def count_services(self, region: Optional[str] = None, service_type: Optional[str] = None) -> int:
+        """
+        Count total services with optional filters
+
+        Args:
+            region: Filter by region
+            service_type: Filter by service type
+
+        Returns:
+            Total count of services matching filters
+        """
+        try:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
+                cursor = conn.cursor()
+
+                query = "SELECT COUNT(*) FROM services WHERE 1=1"
+                params = []
+
+                if region:
+                    query += " AND region = ?"
+                    params.append(region)
+
+                if service_type:
+                    query += " AND service_type = ?"
+                    params.append(service_type)
+
+                cursor.execute(query, params)
+                count = cursor.fetchone()[0]
+
+            logger.debug(f"Counted {count} services")
+            return count
+
+        except Exception as e:
+            logger.error(f"Failed to count services: {e}")
+            return 0
+
     def search_services(self, query: str) -> List[Service]:
         """
         Search services by name or target group
@@ -405,14 +451,18 @@ class Database:
         """
         try:
             logger.debug(f"Searching services with query: '{query}'")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute('''
+                cursor.execute(
+                    """
                     SELECT config_json FROM services
                     WHERE name LIKE ? OR target_group LIKE ?
                     ORDER BY updated_at DESC
-                ''', (f'%{query}%', f'%{query}%'))
+                """,
+                    (f"%{query}%", f"%{query}%"),
+                )
 
                 services = []
                 for row in cursor.fetchall():
@@ -436,23 +486,23 @@ class Database:
         """
         try:
             logger.debug(f"Retrieving version history for service: ID={service_id}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute('''
+                cursor.execute(
+                    """
                     SELECT version_number, created_at, change_notes
                     FROM versions
                     WHERE service_id = ?
                     ORDER BY version_number DESC
-                ''', (service_id,))
+                """,
+                    (service_id,),
+                )
 
                 versions = []
                 for row in cursor.fetchall():
-                    versions.append({
-                        'version': row[0],
-                        'created_at': row[1],
-                        'notes': row[2]
-                    })
+                    versions.append({"version": row[0], "created_at": row[1], "notes": row[2]})
 
             logger.info(f"Retrieved {len(versions)} versions for service: ID={service_id}")
             return versions
@@ -469,30 +519,31 @@ class Database:
         """
         try:
             logger.debug("Retrieving database statistics")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
                 # Total services
-                cursor.execute('SELECT COUNT(*) FROM services')
+                cursor.execute("SELECT COUNT(*) FROM services")
                 total_services = cursor.fetchone()[0]
 
                 # Services by region
-                cursor.execute('SELECT region, COUNT(*) FROM services GROUP BY region')
+                cursor.execute("SELECT region, COUNT(*) FROM services GROUP BY region")
                 by_region = dict(cursor.fetchall())
 
                 # Services by type
-                cursor.execute('SELECT service_type, COUNT(*) FROM services GROUP BY service_type')
+                cursor.execute("SELECT service_type, COUNT(*) FROM services GROUP BY service_type")
                 by_type = dict(cursor.fetchall())
 
                 # Average brutto rate
-                cursor.execute('SELECT AVG(brutto_rate) FROM financial_data')
+                cursor.execute("SELECT AVG(brutto_rate) FROM financial_data")
                 avg_brutto = cursor.fetchone()[0] or 0
 
                 stats = {
-                    'total_services': total_services,
-                    'by_region': by_region,
-                    'by_type': by_type,
-                    'avg_brutto_rate': round(avg_brutto, 2)
+                    "total_services": total_services,
+                    "by_region": by_region,
+                    "by_type": by_type,
+                    "avg_brutto_rate": round(avg_brutto, 2),
                 }
 
             logger.info(f"Statistics retrieved: {total_services} total services")
@@ -507,9 +558,9 @@ class Database:
         tenant_id: str,
         billing_cycle: str,
         amount: float,
-        status: str = 'active',
-        currency: str = 'EUR',
-        metadata: Optional[Dict[str, Any]] = None
+        status: str = "active",
+        currency: str = "EUR",
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
         Create new subscription record
@@ -528,24 +579,18 @@ class Database:
         """
         try:
             logger.info(f"Creating subscription: {subscription_id} for tenant {tenant_id}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO subscriptions
                     (id, tenant_id, status, billing_cycle, amount, currency, metadata_json)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    subscription_id,
-                    tenant_id,
-                    status,
-                    billing_cycle,
-                    amount,
-                    currency,
-                    json.dumps(metadata or {})
-                ))
-
-                conn.commit()
+                """,
+                    (subscription_id, tenant_id, status, billing_cycle, amount, currency, json.dumps(metadata or {})),
+                )
 
             logger.info(f"Subscription created successfully: {subscription_id}")
             return True
@@ -557,10 +602,7 @@ class Database:
             raise
 
     def get_subscriptions(
-        self,
-        tenant_id: Optional[str] = None,
-        status: Optional[str] = None,
-        as_of_date: Optional[datetime] = None
+        self, tenant_id: Optional[str] = None, status: Optional[str] = None, as_of_date: Optional[datetime] = None
     ) -> List[Dict[str, Any]]:
         """
         Get subscriptions with optional filters
@@ -585,40 +627,43 @@ class Database:
             filter_str = ", ".join(filters_log) if filters_log else "no filters"
             logger.debug(f"Fetching subscriptions: {filter_str}")
 
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
-                query = 'SELECT id, tenant_id, status, billing_cycle, amount, currency, created_at, metadata_json FROM subscriptions WHERE 1=1'
+                query = "SELECT id, tenant_id, status, billing_cycle, amount, currency, created_at, metadata_json FROM subscriptions WHERE 1=1"
                 params = []
 
                 if tenant_id:
-                    query += ' AND tenant_id = ?'
+                    query += " AND tenant_id = ?"
                     params.append(tenant_id)
 
                 if status:
-                    query += ' AND status = ?'
+                    query += " AND status = ?"
                     params.append(status)
 
                 if as_of_date:
-                    query += ' AND created_at <= ?'
+                    query += " AND created_at <= ?"
                     params.append(as_of_date.isoformat())
 
-                query += ' ORDER BY created_at DESC'
+                query += " ORDER BY created_at DESC"
 
                 cursor.execute(query, params)
 
                 subscriptions = []
                 for row in cursor.fetchall():
-                    subscriptions.append({
-                        'id': row[0],
-                        'tenant_id': row[1],
-                        'status': row[2],
-                        'billing_cycle': row[3],
-                        'amount': row[4],
-                        'currency': row[5],
-                        'created_at': row[6],
-                        'metadata': json.loads(row[7]) if row[7] else {}
-                    })
+                    subscriptions.append(
+                        {
+                            "id": row[0],
+                            "tenant_id": row[1],
+                            "status": row[2],
+                            "billing_cycle": row[3],
+                            "amount": row[4],
+                            "currency": row[5],
+                            "created_at": row[6],
+                            "metadata": json.loads(row[7]) if row[7] else {},
+                        }
+                    )
 
             logger.info(f"Retrieved {len(subscriptions)} subscriptions")
             return subscriptions
@@ -626,11 +671,7 @@ class Database:
             logger.error(f"Error fetching subscriptions: {e}", exc_info=True)
             raise
 
-    def update_subscription_status(
-        self,
-        subscription_id: str,
-        status: str
-    ) -> bool:
+    def update_subscription_status(self, subscription_id: str, status: str) -> bool:
         """
         Update subscription status
 
@@ -643,16 +684,19 @@ class Database:
         """
         try:
             logger.info(f"Updating subscription {subscription_id} status to: {status}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute('''
+                cursor.execute(
+                    """
                     UPDATE subscriptions
                     SET status = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                ''', (status, subscription_id))
+                """,
+                    (status, subscription_id),
+                )
 
-                conn.commit()
                 updated = cursor.rowcount > 0
 
                 if updated:
@@ -677,10 +721,10 @@ class Database:
         """
         try:
             logger.info(f"Deleting subscription: {subscription_id}")
-            with sqlite3.connect(self.db_path) as conn:
+            # Use connection pool
+            with self.pool.get_connection_context() as conn:
                 cursor = conn.cursor()
-                cursor.execute('DELETE FROM subscriptions WHERE id = ?', (subscription_id,))
-                conn.commit()
+                cursor.execute("DELETE FROM subscriptions WHERE id = ?", (subscription_id,))
 
                 deleted = cursor.rowcount > 0
                 if deleted:
@@ -707,39 +751,39 @@ class Database:
 
         sample_data = [
             {
-                'id': f'sub_{tenant_id}_monthly_1',
-                'billing_cycle': 'monthly',
-                'amount': 99.00,
-                'status': 'active',
-                'metadata': {'plan': 'professional', 'users': 5}
+                "id": f"sub_{tenant_id}_monthly_1",
+                "billing_cycle": "monthly",
+                "amount": 99.00,
+                "status": "active",
+                "metadata": {"plan": "professional", "users": 5},
             },
             {
-                'id': f'sub_{tenant_id}_monthly_2',
-                'billing_cycle': 'monthly',
-                'amount': 49.00,
-                'status': 'active',
-                'metadata': {'plan': 'basic', 'users': 2}
+                "id": f"sub_{tenant_id}_monthly_2",
+                "billing_cycle": "monthly",
+                "amount": 49.00,
+                "status": "active",
+                "metadata": {"plan": "basic", "users": 2},
             },
             {
-                'id': f'sub_{tenant_id}_yearly_1',
-                'billing_cycle': 'yearly',
-                'amount': 990.00,
-                'status': 'active',
-                'metadata': {'plan': 'professional', 'users': 5, 'discount': '15%'}
+                "id": f"sub_{tenant_id}_yearly_1",
+                "billing_cycle": "yearly",
+                "amount": 990.00,
+                "status": "active",
+                "metadata": {"plan": "professional", "users": 5, "discount": "15%"},
             },
             {
-                'id': f'sub_{tenant_id}_yearly_2',
-                'billing_cycle': 'yearly',
-                'amount': 490.00,
-                'status': 'active',
-                'metadata': {'plan': 'basic', 'users': 2, 'discount': '15%'}
+                "id": f"sub_{tenant_id}_yearly_2",
+                "billing_cycle": "yearly",
+                "amount": 490.00,
+                "status": "active",
+                "metadata": {"plan": "basic", "users": 2, "discount": "15%"},
             },
             {
-                'id': f'sub_{tenant_id}_monthly_canceled',
-                'billing_cycle': 'monthly',
-                'amount': 199.00,
-                'status': 'canceled',
-                'metadata': {'plan': 'enterprise', 'users': 20}
+                "id": f"sub_{tenant_id}_monthly_canceled",
+                "billing_cycle": "monthly",
+                "amount": 199.00,
+                "status": "canceled",
+                "metadata": {"plan": "enterprise", "users": 20},
             },
         ]
 
@@ -747,12 +791,12 @@ class Database:
         for sub in sample_data:
             try:
                 success = self.create_subscription(
-                    subscription_id=sub['id'],
+                    subscription_id=sub["id"],
                     tenant_id=tenant_id,
-                    billing_cycle=sub['billing_cycle'],
-                    amount=sub['amount'],
-                    status=sub['status'],
-                    metadata=sub['metadata']
+                    billing_cycle=sub["billing_cycle"],
+                    amount=sub["amount"],
+                    status=sub["status"],
+                    metadata=sub["metadata"],
                 )
                 if success:
                     created_count += 1

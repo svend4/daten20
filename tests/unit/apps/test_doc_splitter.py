@@ -11,27 +11,26 @@ Tests all major functionality of DocumentSplitter:
 - Preview mode
 """
 
-import pytest
-import sys
 import os
-from pathlib import Path
-import tempfile
 import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the splitter module
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("doc_splitter", "doc-splitter.py")
 doc_splitter = importlib.util.module_from_spec(spec)
-sys.modules['doc_splitter'] = doc_splitter
+sys.modules["doc_splitter"] = doc_splitter
 spec.loader.exec_module(doc_splitter)
 
-from doc_splitter import (
-    DocumentSplitter, SplitMode, SizeUnit,
-    SplitConfig, SplitResult, DocumentPart
-)
+from doc_splitter import DocumentPart, DocumentSplitter, SizeUnit, SplitConfig, SplitMode, SplitResult
 
 
 # Fixtures
@@ -130,11 +129,7 @@ class TestDocumentSplitter:
 
     def test_splitter_custom_config(self):
         """Test splitter with custom configuration"""
-        config = SplitConfig(
-            mode=SplitMode.CHAPTER,
-            prefix="chapter",
-            create_index=True
-        )
+        config = SplitConfig(mode=SplitMode.CHAPTER, prefix="chapter", create_index=True)
         splitter = DocumentSplitter(config)
         assert splitter.config.mode == SplitMode.CHAPTER
         assert splitter.config.prefix == "chapter"
@@ -142,18 +137,18 @@ class TestDocumentSplitter:
 
     def test_split_modes_enum(self):
         """Test that all split modes are available"""
-        assert hasattr(SplitMode, 'SIZE')
-        assert hasattr(SplitMode, 'DELIMITER')
-        assert hasattr(SplitMode, 'CHAPTER')
-        assert hasattr(SplitMode, 'SECTION')
-        assert hasattr(SplitMode, 'PAGE')
-        assert hasattr(SplitMode, 'SMART')
+        assert hasattr(SplitMode, "SIZE")
+        assert hasattr(SplitMode, "DELIMITER")
+        assert hasattr(SplitMode, "CHAPTER")
+        assert hasattr(SplitMode, "SECTION")
+        assert hasattr(SplitMode, "PAGE")
+        assert hasattr(SplitMode, "SMART")
 
     def test_size_units_enum(self):
         """Test that all size units are available"""
-        assert hasattr(SizeUnit, 'LINES')
-        assert hasattr(SizeUnit, 'WORDS')
-        assert hasattr(SizeUnit, 'CHARS')
+        assert hasattr(SizeUnit, "LINES")
+        assert hasattr(SizeUnit, "WORDS")
+        assert hasattr(SizeUnit, "CHARS")
 
     def test_read_document(self, splitter, sample_document):
         """Test reading document"""
@@ -164,11 +159,7 @@ class TestDocumentSplitter:
 
     def test_split_by_size_lines(self, large_document, output_dir):
         """Test splitting by number of lines"""
-        config = SplitConfig(
-            mode=SplitMode.SIZE,
-            size_unit=SizeUnit.LINES,
-            size_value=20
-        )
+        config = SplitConfig(mode=SplitMode.SIZE, size_unit=SizeUnit.LINES, size_value=20)
         splitter = DocumentSplitter(config)
 
         result = splitter.split(large_document, output_dir)
@@ -183,11 +174,7 @@ class TestDocumentSplitter:
 
     def test_split_by_size_words(self, large_document, output_dir):
         """Test splitting by number of words"""
-        config = SplitConfig(
-            mode=SplitMode.SIZE,
-            size_unit=SizeUnit.WORDS,
-            size_value=100
-        )
+        config = SplitConfig(mode=SplitMode.SIZE, size_unit=SizeUnit.WORDS, size_value=100)
         splitter = DocumentSplitter(config)
 
         result = splitter.split(large_document, output_dir)
@@ -197,11 +184,7 @@ class TestDocumentSplitter:
 
     def test_split_by_size_chars(self, large_document, output_dir):
         """Test splitting by number of characters"""
-        config = SplitConfig(
-            mode=SplitMode.SIZE,
-            size_unit=SizeUnit.CHARS,
-            size_value=500
-        )
+        config = SplitConfig(mode=SplitMode.SIZE, size_unit=SizeUnit.CHARS, size_value=500)
         splitter = DocumentSplitter(config)
 
         result = splitter.split(large_document, output_dir)
@@ -211,10 +194,7 @@ class TestDocumentSplitter:
 
     def test_split_by_delimiter(self, delimited_document, output_dir):
         """Test splitting by delimiter"""
-        config = SplitConfig(
-            mode=SplitMode.DELIMITER,
-            delimiter="---"
-        )
+        config = SplitConfig(mode=SplitMode.DELIMITER, delimiter="---")
         splitter = DocumentSplitter(config)
 
         result = splitter.split(delimited_document, output_dir)
@@ -228,10 +208,7 @@ class TestDocumentSplitter:
 
     def test_split_by_chapter(self, sample_document, output_dir):
         """Test splitting by chapters"""
-        config = SplitConfig(
-            mode=SplitMode.CHAPTER,
-            prefix="chapter"
-        )
+        config = SplitConfig(mode=SplitMode.CHAPTER, prefix="chapter")
         splitter = DocumentSplitter(config)
 
         result = splitter.split(sample_document, output_dir)
@@ -245,9 +222,7 @@ class TestDocumentSplitter:
 
     def test_split_by_section(self, sample_document, output_dir):
         """Test splitting by sections"""
-        config = SplitConfig(
-            mode=SplitMode.SECTION
-        )
+        config = SplitConfig(mode=SplitMode.SECTION)
         splitter = DocumentSplitter(config)
 
         result = splitter.split(sample_document, output_dir)
@@ -271,9 +246,7 @@ Final content
 """
         doc.write_text(content)
 
-        config = SplitConfig(
-            mode=SplitMode.PAGE
-        )
+        config = SplitConfig(mode=SplitMode.PAGE)
         splitter = DocumentSplitter(config)
 
         result = splitter.split(str(doc), output_dir)
@@ -283,11 +256,7 @@ Final content
 
     def test_split_smart_mode(self, sample_document, output_dir):
         """Test smart splitting with context preservation"""
-        config = SplitConfig(
-            mode=SplitMode.SMART,
-            size_value=100,  # Max chars per part
-            preserve_context=True
-        )
+        config = SplitConfig(mode=SplitMode.SMART, size_value=100, preserve_context=True)  # Max chars per part
         splitter = DocumentSplitter(config)
 
         result = splitter.split(sample_document, output_dir)
@@ -301,11 +270,7 @@ Final content
 
     def test_preview_mode(self, large_document, output_dir):
         """Test preview mode (no files written)"""
-        config = SplitConfig(
-            mode=SplitMode.SIZE,
-            size_unit=SizeUnit.LINES,
-            size_value=20
-        )
+        config = SplitConfig(mode=SplitMode.SIZE, size_unit=SizeUnit.LINES, size_value=20)
         splitter = DocumentSplitter(config)
 
         result = splitter.split(large_document, output_dir, preview=True)
@@ -325,16 +290,16 @@ Final content
 
         part = result.parts[0]
         assert isinstance(part, DocumentPart)
-        assert hasattr(part, 'part_number')
-        assert hasattr(part, 'content')
-        assert hasattr(part, 'line_count')
-        assert hasattr(part, 'word_count')
-        assert hasattr(part, 'char_count')
-        assert hasattr(part, 'start_line')
-        assert hasattr(part, 'end_line')
-        assert hasattr(part, 'file_name')
-        assert hasattr(part, 'checksum')
-        assert hasattr(part, 'metadata')
+        assert hasattr(part, "part_number")
+        assert hasattr(part, "content")
+        assert hasattr(part, "line_count")
+        assert hasattr(part, "word_count")
+        assert hasattr(part, "char_count")
+        assert hasattr(part, "start_line")
+        assert hasattr(part, "end_line")
+        assert hasattr(part, "file_name")
+        assert hasattr(part, "checksum")
+        assert hasattr(part, "metadata")
 
     def test_split_result_structure(self, sample_document, output_dir):
         """Test that SplitResult has all expected fields"""
@@ -342,22 +307,18 @@ Final content
         result = splitter.split(sample_document, output_dir)
 
         assert isinstance(result, SplitResult)
-        assert hasattr(result, 'input_file')
-        assert hasattr(result, 'output_dir')
-        assert hasattr(result, 'split_mode')
-        assert hasattr(result, 'total_parts')
-        assert hasattr(result, 'parts')
-        assert hasattr(result, 'execution_time')
-        assert hasattr(result, 'metadata')
+        assert hasattr(result, "input_file")
+        assert hasattr(result, "output_dir")
+        assert hasattr(result, "split_mode")
+        assert hasattr(result, "total_parts")
+        assert hasattr(result, "parts")
+        assert hasattr(result, "execution_time")
+        assert hasattr(result, "metadata")
 
     def test_numbered_output(self, large_document, output_dir):
         """Test that output files are numbered correctly"""
         config = SplitConfig(
-            mode=SplitMode.SIZE,
-            size_unit=SizeUnit.LINES,
-            size_value=20,
-            numbered_output=True,
-            prefix="part"
+            mode=SplitMode.SIZE, size_unit=SizeUnit.LINES, size_value=20, numbered_output=True, prefix="part"
         )
         splitter = DocumentSplitter(config)
 
@@ -373,11 +334,7 @@ Final content
 
     def test_custom_prefix_and_extension(self, sample_document, output_dir):
         """Test custom prefix and extension"""
-        config = SplitConfig(
-            mode=SplitMode.CHAPTER,
-            prefix="chapter",
-            extension=".md"
-        )
+        config = SplitConfig(mode=SplitMode.CHAPTER, prefix="chapter", extension=".md")
         splitter = DocumentSplitter(config)
 
         result = splitter.split(sample_document, output_dir)
@@ -388,10 +345,7 @@ Final content
 
     def test_create_index(self, sample_document, output_dir):
         """Test index file creation"""
-        config = SplitConfig(
-            mode=SplitMode.CHAPTER,
-            create_index=True
-        )
+        config = SplitConfig(mode=SplitMode.CHAPTER, create_index=True)
         splitter = DocumentSplitter(config)
 
         result = splitter.split(sample_document, output_dir)
@@ -415,7 +369,7 @@ Final content
         splitter = DocumentSplitter()
         result = splitter.split(sample_document, output_dir)
 
-        assert 'metadata' in result.metadata or len(result.metadata) >= 0
+        assert "metadata" in result.metadata or len(result.metadata) >= 0
 
     def test_line_counting(self, sample_document, output_dir):
         """Test that line counts are accurate"""
@@ -423,7 +377,7 @@ Final content
         result = splitter.split(sample_document, output_dir)
 
         for part in result.parts:
-            actual_lines = len(part.content.split('\n'))
+            actual_lines = len(part.content.split("\n"))
             # Allow for off-by-one due to trailing newlines
             assert abs(part.line_count - actual_lines) <= 1
 
@@ -471,11 +425,7 @@ Final content
         single_line = temp_dir / "single.txt"
         single_line.write_text("This is a single line.")
 
-        config = SplitConfig(
-            mode=SplitMode.SIZE,
-            size_unit=SizeUnit.LINES,
-            size_value=10
-        )
+        config = SplitConfig(mode=SplitMode.SIZE, size_unit=SizeUnit.LINES, size_value=10)
         splitter = DocumentSplitter(config)
 
         result = splitter.split(str(single_line), output_dir)
@@ -496,10 +446,7 @@ Content C
 """
         doc.write_text(content)
 
-        config = SplitConfig(
-            mode=SplitMode.DELIMITER,
-            pattern=r"==="
-        )
+        config = SplitConfig(mode=SplitMode.DELIMITER, pattern=r"===")
         splitter = DocumentSplitter(config)
 
         result = splitter.split(str(doc), output_dir)
@@ -561,11 +508,7 @@ class TestDocumentSplitterIntegration:
         output_dir = temp_dir / "output"
         output_dir.mkdir()
 
-        config = SplitConfig(
-            mode=SplitMode.SIZE,
-            size_unit=SizeUnit.LINES,
-            size_value=25
-        )
+        config = SplitConfig(mode=SplitMode.SIZE, size_unit=SizeUnit.LINES, size_value=25)
         splitter = DocumentSplitter(config)
         result = splitter.split(str(doc), str(output_dir))
 
@@ -594,11 +537,7 @@ Content of chapter 3.
         output_dir = temp_dir / "chapters"
         output_dir.mkdir()
 
-        config = SplitConfig(
-            mode=SplitMode.CHAPTER,
-            prefix="chapter",
-            create_index=True
-        )
+        config = SplitConfig(mode=SplitMode.CHAPTER, prefix="chapter", create_index=True)
         splitter = DocumentSplitter(config)
         result = splitter.split(str(doc), str(output_dir))
 
@@ -623,11 +562,7 @@ Line 5
         parts_dir = temp_dir / "parts"
         parts_dir.mkdir()
 
-        config = SplitConfig(
-            mode=SplitMode.SIZE,
-            size_unit=SizeUnit.LINES,
-            size_value=2
-        )
+        config = SplitConfig(mode=SplitMode.SIZE, size_unit=SizeUnit.LINES, size_value=2)
         splitter = DocumentSplitter(config)
         result = splitter.split(str(original), str(parts_dir))
 

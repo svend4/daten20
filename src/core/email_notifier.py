@@ -1,20 +1,26 @@
 """Email notification system for Document Management System"""
 
+import os
 import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
-from typing import List, Optional
 from datetime import datetime
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import List, Optional
 
 
 class EmailNotifier:
     """Email notification system"""
 
-    def __init__(self, smtp_host: str = 'localhost', smtp_port: int = 587,
-                 smtp_user: str = '', smtp_password: str = '',
-                 from_email: str = 'noreply@dms.local'):
+    def __init__(
+        self,
+        smtp_host: str = "localhost",
+        smtp_port: int = 587,
+        smtp_user: str = "",
+        smtp_password: str = "",
+        from_email: str = "noreply@dms.local",
+    ):
         """
         Initialize email notifier
 
@@ -32,8 +38,9 @@ class EmailNotifier:
         self.from_email = from_email
         self.enabled = bool(smtp_user and smtp_password)
 
-    def send_email(self, to_emails: List[str], subject: str, body: str,
-                   html: bool = False, attachments: Optional[List[str]] = None) -> bool:
+    def send_email(
+        self, to_emails: List[str], subject: str, body: str, html: bool = False, attachments: Optional[List[str]] = None
+    ) -> bool:
         """
         Send email
 
@@ -54,27 +61,26 @@ class EmailNotifier:
         try:
             # Create message
             msg = MIMEMultipart()
-            msg['From'] = self.from_email
-            msg['To'] = ', '.join(to_emails)
-            msg['Subject'] = subject
-            msg['Date'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S %z')
+            msg["From"] = self.from_email
+            msg["To"] = ", ".join(to_emails)
+            msg["Subject"] = subject
+            msg["Date"] = datetime.now().strftime("%a, %d %b %Y %H:%M:%S %z")
 
             # Add body
             if html:
-                msg.attach(MIMEText(body, 'html'))
+                msg.attach(MIMEText(body, "html"))
             else:
-                msg.attach(MIMEText(body, 'plain'))
+                msg.attach(MIMEText(body, "plain"))
 
             # Add attachments
             if attachments:
                 for filepath in attachments:
                     try:
-                        with open(filepath, 'rb') as f:
-                            part = MIMEBase('application', 'octet-stream')
+                        with open(filepath, "rb") as f:
+                            part = MIMEBase("application", "octet-stream")
                             part.set_payload(f.read())
                             encoders.encode_base64(part)
-                            part.add_header('Content-Disposition',
-                                          f'attachment; filename={os.path.basename(filepath)}')
+                            part.add_header("Content-Disposition", f"attachment; filename={os.path.basename(filepath)}")
                             msg.attach(part)
                     except Exception as e:
                         print(f"Failed to attach {filepath}: {e}")
@@ -122,8 +128,9 @@ Document Management System
 
         return self.send_email(to_emails, subject, body)
 
-    def send_document_generated_notification(self, service_name: str, format: str,
-                                            to_emails: List[str], attachment: Optional[str] = None) -> bool:
+    def send_document_generated_notification(
+        self, service_name: str, format: str, to_emails: List[str], attachment: Optional[str] = None
+    ) -> bool:
         """
         Send notification when document is generated
 
@@ -157,8 +164,9 @@ Document Management System
         attachments = [attachment] if attachment else None
         return self.send_email(to_emails, subject, body, attachments=attachments)
 
-    def send_calculation_report(self, service_name: str, hourly_rate: float,
-                               to_emails: List[str], report_file: Optional[str] = None) -> bool:
+    def send_calculation_report(
+        self, service_name: str, hourly_rate: float, to_emails: List[str], report_file: Optional[str] = None
+    ) -> bool:
         """
         Send financial calculation report
 
@@ -219,8 +227,8 @@ Document Management System
 УСЛУГИ ПО РЕГИОНАМ:
 """
 
-        if 'by_region' in stats:
-            for region, count in stats['by_region'].items():
+        if "by_region" in stats:
+            for region, count in stats["by_region"].items():
                 body += f"- {region or 'Не указан'}: {count}\n"
 
         body += f"""
@@ -278,18 +286,18 @@ def get_notifier() -> EmailNotifier:
         # Load from environment or config
         import os
 
-        smtp_host = os.getenv('SMTP_HOST', 'localhost')
-        smtp_port = int(os.getenv('SMTP_PORT', '587'))
-        smtp_user = os.getenv('SMTP_USER', '')
-        smtp_password = os.getenv('SMTP_PASSWORD', '')
-        from_email = os.getenv('FROM_EMAIL', 'noreply@dms.local')
+        smtp_host = os.getenv("SMTP_HOST", "localhost")
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        smtp_user = os.getenv("SMTP_USER", "")
+        smtp_password = os.getenv("SMTP_PASSWORD", "")
+        from_email = os.getenv("FROM_EMAIL", "noreply@dms.local")
 
         _notifier_instance = EmailNotifier(
             smtp_host=smtp_host,
             smtp_port=smtp_port,
             smtp_user=smtp_user,
             smtp_password=smtp_password,
-            from_email=from_email
+            from_email=from_email,
         )
 
     return _notifier_instance

@@ -9,19 +9,20 @@ Part of v3.5 AI/ML Services implementation.
 
 import logging
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
-from collections import Counter
 
-from .llm_integration import get_llm_client, PROMPT_TEMPLATES, LLMProvider
+from .llm_integration import PROMPT_TEMPLATES, LLMProvider, get_llm_client
 
 logger = logging.getLogger(__name__)
 
 
 class SummaryType(Enum):
     """Types of summarization."""
+
     EXTRACTIVE = "extractive"  # Extract key sentences
     ABSTRACTIVE = "abstractive"  # Generate new summary with LLM
     BULLET_POINTS = "bullet_points"  # Bullet point format
@@ -30,6 +31,7 @@ class SummaryType(Enum):
 
 class ClassificationType(Enum):
     """Document classification types."""
+
     TOPIC = "topic"  # Subject matter
     SENTIMENT = "sentiment"  # Positive/negative/neutral
     INTENT = "intent"  # Purpose/goal
@@ -40,6 +42,7 @@ class ClassificationType(Enum):
 @dataclass
 class Entity:
     """Named entity."""
+
     text: str
     type: str  # PERSON, ORG, LOC, DATE, etc.
     start: int
@@ -50,6 +53,7 @@ class Entity:
 @dataclass
 class KeyPoint:
     """Key point from document."""
+
     text: str
     importance: float
     sentence_index: int
@@ -59,6 +63,7 @@ class KeyPoint:
 @dataclass
 class DocumentSummary:
     """Document summary."""
+
     summary: str
     summary_type: SummaryType
     key_points: List[KeyPoint]
@@ -70,6 +75,7 @@ class DocumentSummary:
 @dataclass
 class DocumentClassification:
     """Classification result."""
+
     category: str
     confidence: float
     classification_type: ClassificationType
@@ -79,6 +85,7 @@ class DocumentClassification:
 @dataclass
 class DocumentMetadata:
     """Extracted document metadata."""
+
     title: Optional[str] = None
     author: Optional[str] = None
     date: Optional[datetime] = None
@@ -94,6 +101,7 @@ class DocumentMetadata:
 @dataclass
 class DocumentAnalysis:
     """Complete document analysis."""
+
     summary: Optional[DocumentSummary] = None
     classification: Optional[DocumentClassification] = None
     metadata: Optional[DocumentMetadata] = None
@@ -110,28 +118,28 @@ class TextPreprocessor:
     def clean_text(text: str) -> str:
         """Clean and normalize text."""
         # Remove extra whitespace
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
         # Remove special characters but keep punctuation
-        text = re.sub(r'[^\w\s.,!?;:\-\']', '', text)
+        text = re.sub(r"[^\w\s.,!?;:\-\']", "", text)
         return text.strip()
 
     @staticmethod
     def split_sentences(text: str) -> List[str]:
         """Split text into sentences."""
         # Simple sentence splitting
-        sentences = re.split(r'[.!?]+', text)
+        sentences = re.split(r"[.!?]+", text)
         return [s.strip() for s in sentences if s.strip()]
 
     @staticmethod
     def split_paragraphs(text: str) -> List[str]:
         """Split text into paragraphs."""
-        paragraphs = re.split(r'\n\s*\n', text)
+        paragraphs = re.split(r"\n\s*\n", text)
         return [p.strip() for p in paragraphs if p.strip()]
 
     @staticmethod
     def extract_words(text: str) -> List[str]:
         """Extract words from text."""
-        words = re.findall(r'\b\w+\b', text.lower())
+        words = re.findall(r"\b\w+\b", text.lower())
         return words
 
 
@@ -153,26 +161,17 @@ class ExtractiveSummarizer:
             scored_sentences = self._score_sentences(text, sentences)
 
             # Select top sentences
-            top_sentences = sorted(
-                scored_sentences,
-                key=lambda x: x[1],
-                reverse=True
-            )[:self.num_sentences]
+            top_sentences = sorted(scored_sentences, key=lambda x: x[1], reverse=True)[: self.num_sentences]
 
             # Sort by original order
             top_sentences = sorted(top_sentences, key=lambda x: x[2])
 
             key_sentences = [s[0] for s in top_sentences]
-            summary_text = '. '.join(key_sentences) + '.'
+            summary_text = ". ".join(key_sentences) + "."
 
         # Create key points
         key_points = [
-            KeyPoint(
-                text=sent,
-                importance=1.0 / (i + 1),
-                sentence_index=i,
-                keywords=self._extract_keywords(sent)
-            )
+            KeyPoint(text=sent, importance=1.0 / (i + 1), sentence_index=i, keywords=self._extract_keywords(sent))
             for i, sent in enumerate(key_sentences)
         ]
 
@@ -185,7 +184,7 @@ class ExtractiveSummarizer:
             key_points=key_points,
             word_count_original=words_original,
             word_count_summary=words_summary,
-            compression_ratio=words_summary / max(words_original, 1)
+            compression_ratio=words_summary / max(words_original, 1),
         )
 
     def _score_sentences(self, text: str, sentences: List[str]) -> List[Tuple[str, float, int]]:
@@ -195,7 +194,7 @@ class ExtractiveSummarizer:
         word_freq = Counter(all_words)
 
         # Remove common words (simple stopwords)
-        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'}
+        stopwords = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"}
         for word in stopwords:
             word_freq.pop(word, None)
 
@@ -214,7 +213,7 @@ class ExtractiveSummarizer:
         word_freq = Counter(words)
 
         # Remove stopwords
-        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'}
+        stopwords = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"}
         for word in stopwords:
             word_freq.pop(word, None)
 
@@ -243,12 +242,7 @@ class AbstractiveSummarizer:
             bullet_points = self._parse_bullet_points(summary_text)
 
             key_points = [
-                KeyPoint(
-                    text=point,
-                    importance=1.0 / (i + 1),
-                    sentence_index=i,
-                    keywords=self._extract_keywords(point)
-                )
+                KeyPoint(text=point, importance=1.0 / (i + 1), sentence_index=i, keywords=self._extract_keywords(point))
                 for i, point in enumerate(bullet_points)
             ]
 
@@ -261,7 +255,7 @@ class AbstractiveSummarizer:
                 key_points=key_points,
                 word_count_original=words_original,
                 word_count_summary=words_summary,
-                compression_ratio=words_summary / max(words_original, 1)
+                compression_ratio=words_summary / max(words_original, 1),
             )
 
         except Exception as e:
@@ -272,14 +266,14 @@ class AbstractiveSummarizer:
 
     def _parse_bullet_points(self, text: str) -> List[str]:
         """Parse bullet points from text."""
-        lines = text.split('\n')
+        lines = text.split("\n")
         points = []
 
         for line in lines:
             line = line.strip()
             # Remove bullet markers
-            line = re.sub(r'^[-*•]\s*', '', line)
-            line = re.sub(r'^\d+\.\s*', '', line)
+            line = re.sub(r"^[-*•]\s*", "", line)
+            line = re.sub(r"^\d+\.\s*", "", line)
 
             if line:
                 points.append(line)
@@ -291,7 +285,7 @@ class AbstractiveSummarizer:
         words = TextPreprocessor.extract_words(text)
         word_freq = Counter(words)
 
-        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'}
+        stopwords = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"}
         for word in stopwords:
             word_freq.pop(word, None)
 
@@ -303,10 +297,10 @@ class EntityExtractor:
 
     # Entity patterns (simplified - in production would use spaCy)
     ENTITY_PATTERNS = {
-        'EMAIL': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-        'URL': r'https?://[^\s]+',
-        'PHONE': r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b',
-        'DATE': r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b',
+        "EMAIL": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+        "URL": r"https?://[^\s]+",
+        "PHONE": r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b",
+        "DATE": r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b",
     }
 
     async def extract(self, text: str, use_llm: bool = True) -> List[Entity]:
@@ -317,13 +311,9 @@ class EntityExtractor:
         for entity_type, pattern in self.ENTITY_PATTERNS.items():
             matches = re.finditer(pattern, text)
             for match in matches:
-                entities.append(Entity(
-                    text=match.group(),
-                    type=entity_type,
-                    start=match.start(),
-                    end=match.end(),
-                    confidence=1.0
-                ))
+                entities.append(
+                    Entity(text=match.group(), type=entity_type, start=match.start(), end=match.end(), confidence=1.0)
+                )
 
         # LLM-based extraction for more complex entities
         if use_llm:
@@ -346,25 +336,27 @@ class EntityExtractor:
 
             # Parse entities from response (simplified)
             entities = []
-            lines = response.content.split('\n')
+            lines = response.content.split("\n")
 
             for line in lines:
                 # Look for patterns like "John Doe (PERSON)" or "- Google (ORG)"
-                match = re.search(r'([^(]+)\s*\((\w+)\)', line)
+                match = re.search(r"([^(]+)\s*\((\w+)\)", line)
                 if match:
-                    entity_text = match.group(1).strip('-• ').strip()
+                    entity_text = match.group(1).strip("-• ").strip()
                     entity_type = match.group(2).upper()
 
                     # Find position in original text
                     pos = text.find(entity_text)
                     if pos >= 0:
-                        entities.append(Entity(
-                            text=entity_text,
-                            type=entity_type,
-                            start=pos,
-                            end=pos + len(entity_text),
-                            confidence=0.8
-                        ))
+                        entities.append(
+                            Entity(
+                                text=entity_text,
+                                type=entity_type,
+                                start=pos,
+                                end=pos + len(entity_text),
+                                confidence=0.8,
+                            )
+                        )
 
             return entities
 
@@ -377,16 +369,16 @@ class DocumentClassifier:
     """Document classification."""
 
     DEFAULT_CATEGORIES = {
-        'topic': ['business', 'technology', 'science', 'health', 'politics', 'sports', 'entertainment'],
-        'sentiment': ['positive', 'negative', 'neutral'],
-        'urgency': ['high', 'medium', 'low'],
+        "topic": ["business", "technology", "science", "health", "politics", "sports", "entertainment"],
+        "sentiment": ["positive", "negative", "neutral"],
+        "urgency": ["high", "medium", "low"],
     }
 
     async def classify(
         self,
         text: str,
         classification_type: ClassificationType = ClassificationType.TOPIC,
-        categories: Optional[List[str]] = None
+        categories: Optional[List[str]] = None,
     ) -> DocumentClassification:
         """Classify document."""
         if categories is None:
@@ -396,8 +388,7 @@ class DocumentClassifier:
         client = get_llm_client()
 
         prompt = PROMPT_TEMPLATES["classify"].render(
-            text=text[:1000],  # Truncate for efficiency
-            categories=', '.join(categories)
+            text=text[:1000], categories=", ".join(categories)  # Truncate for efficiency
         )
 
         try:
@@ -410,7 +401,7 @@ class DocumentClassifier:
                 category=category,
                 confidence=0.85,
                 classification_type=classification_type,
-                all_categories={category: 0.85}
+                all_categories={category: 0.85},
             )
 
         except Exception as e:
@@ -419,7 +410,7 @@ class DocumentClassifier:
             return DocumentClassification(
                 category=categories[0] if categories else "unknown",
                 confidence=0.5,
-                classification_type=classification_type
+                classification_type=classification_type,
             )
 
     def _parse_category(self, response: str, categories: List[str]) -> str:
@@ -472,23 +463,19 @@ class DocumentComparison:
         unique_to_doc2 = words2 - words1
 
         return {
-            'similarity': jaccard_similarity,
-            'common_words': len(intersection),
-            'unique_to_doc1': len(unique_to_doc1),
-            'unique_to_doc2': len(unique_to_doc2),
-            'top_unique_doc1': list(unique_to_doc1)[:10],
-            'top_unique_doc2': list(unique_to_doc2)[:10]
+            "similarity": jaccard_similarity,
+            "common_words": len(intersection),
+            "unique_to_doc1": len(unique_to_doc1),
+            "unique_to_doc2": len(unique_to_doc2),
+            "top_unique_doc1": list(unique_to_doc1)[:10],
+            "top_unique_doc2": list(unique_to_doc2)[:10],
         }
 
 
 class DocumentIntelligence:
     """Main document intelligence service."""
 
-    def __init__(
-        self,
-        llm_provider: str = "openai",
-        model: str = "gpt-3.5-turbo"
-    ):
+    def __init__(self, llm_provider: str = "openai", model: str = "gpt-3.5-turbo"):
         self.llm_provider = llm_provider
         self.model = model
         self.entity_extractor = EntityExtractor()
@@ -496,11 +483,7 @@ class DocumentIntelligence:
         self.qa = QuestionAnswering()
         self.comparison = DocumentComparison()
 
-    async def analyze(
-        self,
-        text: str,
-        operations: Optional[List[str]] = None
-    ) -> DocumentAnalysis:
+    async def analyze(self, text: str, operations: Optional[List[str]] = None) -> DocumentAnalysis:
         """Perform comprehensive document analysis."""
         if operations is None:
             operations = ["summarize", "extract_entities", "classify", "metadata"]
@@ -543,7 +526,7 @@ class DocumentIntelligence:
 
         # Extract keywords (most common words)
         word_freq = Counter(words)
-        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with'}
+        stopwords = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with"}
         for word in stopwords:
             word_freq.pop(word, None)
 
@@ -554,7 +537,7 @@ class DocumentIntelligence:
             sentence_count=len(sentences),
             paragraph_count=len(paragraphs),
             keywords=keywords,
-            entities=entities
+            entities=entities,
         )
 
     async def _analyze_sentiment(self, text: str) -> Dict[str, float]:
@@ -586,7 +569,7 @@ class DocumentIntelligence:
         words = TextPreprocessor.extract_words(text)
         word_freq = Counter(words)
 
-        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with'}
+        stopwords = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with"}
         for word in stopwords:
             word_freq.pop(word, None)
 
@@ -598,10 +581,7 @@ class DocumentIntelligence:
 _doc_intelligence: Optional[DocumentIntelligence] = None
 
 
-def get_document_intelligence(
-    llm_provider: str = "openai",
-    model: str = "gpt-3.5-turbo"
-) -> DocumentIntelligence:
+def get_document_intelligence(llm_provider: str = "openai", model: str = "gpt-3.5-turbo") -> DocumentIntelligence:
     """Get or create document intelligence service."""
     global _doc_intelligence
 

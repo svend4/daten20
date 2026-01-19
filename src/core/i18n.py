@@ -4,14 +4,15 @@ Internationalization (i18n) Support
 Provides multi-language support for the application.
 """
 
-from typing import Dict, Optional, Any
-from pathlib import Path
 import json
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 class Language(str, Enum):
     """Supported languages"""
+
     RU = "ru"  # Russian
     DE = "de"  # German
     EN = "en"  # English
@@ -44,7 +45,7 @@ class I18nManager:
         for lang in Language:
             lang_file = self.locales_dir / f"{lang.value}.json"
             if lang_file.exists():
-                with open(lang_file, 'r', encoding='utf-8') as f:
+                with open(lang_file, "r", encoding="utf-8") as f:
                     self.translations[lang.value] = json.load(f)
 
     def _create_default_translations(self):
@@ -57,7 +58,7 @@ class I18nManager:
                 "welcome": "Добро пожаловать",
                 "logout": "Выход",
                 "login": "Вход",
-                "settings": "Настройки"
+                "settings": "Настройки",
             },
             "nav": {
                 "dashboard": "Панель управления",
@@ -67,7 +68,7 @@ class I18nManager:
                 "analytics": "Аналитика",
                 "search": "Поиск",
                 "import_export": "Импорт/Экспорт",
-                "templates": "Шаблоны"
+                "templates": "Шаблоны",
             },
             "common": {
                 "save": "Сохранить",
@@ -91,7 +92,7 @@ class I18nManager:
                 "error": "Ошибка",
                 "success": "Успешно",
                 "warning": "Предупреждение",
-                "info": "Информация"
+                "info": "Информация",
             },
             "services": {
                 "title": "Услуги",
@@ -104,7 +105,7 @@ class I18nManager:
                 "delete_service": "Удалить услугу",
                 "no_services": "Нет услуг",
                 "total_services": "Всего услуг",
-                "active_services": "Активные услуги"
+                "active_services": "Активные услуги",
             },
             "calculator": {
                 "title": "Калькулятор",
@@ -114,7 +115,7 @@ class I18nManager:
                 "netto_rate": "Нетто ставка",
                 "insurance": "Страхование",
                 "taxes": "Налоги",
-                "total_cost": "Общая стоимость"
+                "total_cost": "Общая стоимость",
             },
             "auth": {
                 "username": "Имя пользователя",
@@ -125,7 +126,7 @@ class I18nManager:
                 "register": "Регистрация",
                 "forgot_password": "Забыли пароль?",
                 "reset_password": "Сбросить пароль",
-                "change_password": "Изменить пароль"
+                "change_password": "Изменить пароль",
             },
             "errors": {
                 "404": "Страница не найдена",
@@ -134,7 +135,7 @@ class I18nManager:
                 "required_field": "Обязательное поле",
                 "access_denied": "Доступ запрещен",
                 "not_found": "Не найдено",
-                "already_exists": "Уже существует"
+                "already_exists": "Уже существует",
             },
             "validation": {
                 "required": "Это поле обязательно",
@@ -143,8 +144,8 @@ class I18nManager:
                 "invalid_email": "Неверный email",
                 "invalid_number": "Неверное число",
                 "min_value": "Минимальное значение: {min}",
-                "max_value": "Максимальное значение: {max}"
-            }
+                "max_value": "Максимальное значение: {max}",
+            },
         }
 
         # German translations
@@ -155,7 +156,7 @@ class I18nManager:
                 "welcome": "Willkommen",
                 "logout": "Abmelden",
                 "login": "Anmelden",
-                "settings": "Einstellungen"
+                "settings": "Einstellungen",
             },
             "nav": {
                 "dashboard": "Dashboard",
@@ -165,7 +166,7 @@ class I18nManager:
                 "analytics": "Analytik",
                 "search": "Suche",
                 "import_export": "Import/Export",
-                "templates": "Vorlagen"
+                "templates": "Vorlagen",
             },
             "common": {
                 "save": "Speichern",
@@ -189,7 +190,7 @@ class I18nManager:
                 "error": "Fehler",
                 "success": "Erfolg",
                 "warning": "Warnung",
-                "info": "Information"
+                "info": "Information",
             },
             "services": {
                 "title": "Dienstleistungen",
@@ -202,7 +203,7 @@ class I18nManager:
                 "delete_service": "Dienstleistung löschen",
                 "no_services": "Keine Dienstleistungen",
                 "total_services": "Gesamt Dienstleistungen",
-                "active_services": "Aktive Dienstleistungen"
+                "active_services": "Aktive Dienstleistungen",
             },
             "calculator": {
                 "title": "Rechner",
@@ -212,7 +213,7 @@ class I18nManager:
                 "netto_rate": "Nettorate",
                 "insurance": "Versicherung",
                 "taxes": "Steuern",
-                "total_cost": "Gesamtkosten"
+                "total_cost": "Gesamtkosten",
             },
             "auth": {
                 "username": "Benutzername",
@@ -223,7 +224,7 @@ class I18nManager:
                 "register": "Registrieren",
                 "forgot_password": "Passwort vergessen?",
                 "reset_password": "Passwort zurücksetzen",
-                "change_password": "Passwort ändern"
+                "change_password": "Passwort ändern",
             },
             "errors": {
                 "404": "Seite nicht gefunden",
@@ -232,7 +233,7 @@ class I18nManager:
                 "required_field": "Pflichtfeld",
                 "access_denied": "Zugriff verweigert",
                 "not_found": "Nicht gefunden",
-                "already_exists": "Bereits vorhanden"
+                "already_exists": "Bereits vorhanden",
             },
             "validation": {
                 "required": "Dieses Feld ist erforderlich",
@@ -241,8 +242,8 @@ class I18nManager:
                 "invalid_email": "Ungültige E-Mail",
                 "invalid_number": "Ungültige Nummer",
                 "min_value": "Mindestwert: {min}",
-                "max_value": "Maximalwert: {max}"
-            }
+                "max_value": "Maximalwert: {max}",
+            },
         }
 
         # English translations
@@ -253,7 +254,7 @@ class I18nManager:
                 "welcome": "Welcome",
                 "logout": "Logout",
                 "login": "Login",
-                "settings": "Settings"
+                "settings": "Settings",
             },
             "nav": {
                 "dashboard": "Dashboard",
@@ -263,7 +264,7 @@ class I18nManager:
                 "analytics": "Analytics",
                 "search": "Search",
                 "import_export": "Import/Export",
-                "templates": "Templates"
+                "templates": "Templates",
             },
             "common": {
                 "save": "Save",
@@ -287,7 +288,7 @@ class I18nManager:
                 "error": "Error",
                 "success": "Success",
                 "warning": "Warning",
-                "info": "Information"
+                "info": "Information",
             },
             "services": {
                 "title": "Services",
@@ -300,7 +301,7 @@ class I18nManager:
                 "delete_service": "Delete Service",
                 "no_services": "No Services",
                 "total_services": "Total Services",
-                "active_services": "Active Services"
+                "active_services": "Active Services",
             },
             "calculator": {
                 "title": "Calculator",
@@ -310,7 +311,7 @@ class I18nManager:
                 "netto_rate": "Net Rate",
                 "insurance": "Insurance",
                 "taxes": "Taxes",
-                "total_cost": "Total Cost"
+                "total_cost": "Total Cost",
             },
             "auth": {
                 "username": "Username",
@@ -321,7 +322,7 @@ class I18nManager:
                 "register": "Register",
                 "forgot_password": "Forgot Password?",
                 "reset_password": "Reset Password",
-                "change_password": "Change Password"
+                "change_password": "Change Password",
             },
             "errors": {
                 "404": "Page Not Found",
@@ -330,7 +331,7 @@ class I18nManager:
                 "required_field": "Required Field",
                 "access_denied": "Access Denied",
                 "not_found": "Not Found",
-                "already_exists": "Already Exists"
+                "already_exists": "Already Exists",
             },
             "validation": {
                 "required": "This field is required",
@@ -339,8 +340,8 @@ class I18nManager:
                 "invalid_email": "Invalid email",
                 "invalid_number": "Invalid number",
                 "min_value": "Minimum value: {min}",
-                "max_value": "Maximum value: {max}"
-            }
+                "max_value": "Maximum value: {max}",
+            },
         }
 
         # Save translations
@@ -354,7 +355,7 @@ class I18nManager:
     def _save_translation(self, language: Language, translations: Dict):
         """Save translation file"""
         lang_file = self.locales_dir / f"{language.value}.json"
-        with open(lang_file, 'w', encoding='utf-8') as f:
+        with open(lang_file, "w", encoding="utf-8") as f:
             json.dump(translations, f, ensure_ascii=False, indent=2)
 
     def set_language(self, language: Language):
@@ -367,7 +368,7 @@ class I18nManager:
     def get(self, key: str, **kwargs) -> str:
         """Get translation for key"""
         # Split key by dots for nested access
-        keys = key.split('.')
+        keys = key.split(".")
 
         # Get translation from current language
         translation = self.translations.get(self.current_language.value, {})
@@ -411,7 +412,7 @@ class I18nManager:
             Language.EN.value: "English",
             Language.UK.value: "Українська",
             Language.PL.value: "Polski",
-            Language.FR.value: "Français"
+            Language.FR.value: "Français",
         }
 
     def get_current_language(self) -> Language:
@@ -420,7 +421,8 @@ class I18nManager:
 
     def get_translation_keys(self) -> list:
         """Get all translation keys"""
-        def extract_keys(d, prefix=''):
+
+        def extract_keys(d, prefix=""):
             keys = []
             for k, v in d.items():
                 full_key = f"{prefix}.{k}" if prefix else k

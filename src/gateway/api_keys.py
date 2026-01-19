@@ -4,17 +4,18 @@ API Key Management
 Provides API key generation, validation, rotation, and scope-based access control.
 """
 
-from typing import Optional, Dict, Any, List, Set
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime, timedelta
-import secrets
 import hashlib
 import json
+import secrets
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 class APIKeyStatus(str, Enum):
     """API key status"""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     REVOKED = "revoked"
@@ -23,6 +24,7 @@ class APIKeyStatus(str, Enum):
 
 class APIKeyScope(str, Enum):
     """API key permission scopes"""
+
     READ = "read"
     WRITE = "write"
     DELETE = "delete"
@@ -40,6 +42,7 @@ class APIKeyScope(str, Enum):
 @dataclass
 class APIKeyMetadata:
     """API key metadata"""
+
     name: str
     description: Optional[str] = None
     owner_id: str = ""
@@ -53,6 +56,7 @@ class APIKeyMetadata:
 @dataclass
 class APIKeyUsage:
     """API key usage statistics"""
+
     total_requests: int = 0
     successful_requests: int = 0
     failed_requests: int = 0
@@ -64,6 +68,7 @@ class APIKeyUsage:
 @dataclass
 class APIKey:
     """API key object"""
+
     key_id: str
     key_hash: str  # Hashed API key (never store plain key)
     prefix: str  # First 8 chars for identification
@@ -138,7 +143,7 @@ class APIKeyManager:
         description: Optional[str] = None,
         expires_in_days: Optional[int] = None,
         ip_whitelist: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Tuple[str, APIKey]:
         """
         Generate new API key
@@ -186,9 +191,9 @@ class APIKeyManager:
                 description=description,
                 owner_id=owner_id,
                 ip_whitelist=ip_whitelist or [],
-                custom_data=metadata or {}
+                custom_data=metadata or {},
             ),
-            expires_at=expires_at
+            expires_at=expires_at,
         )
 
         # Store key
@@ -210,7 +215,7 @@ class APIKeyManager:
         key: str,
         required_scope: Optional[APIKeyScope] = None,
         ip: Optional[str] = None,
-        origin: Optional[str] = None
+        origin: Optional[str] = None,
     ) -> Tuple[bool, Optional[APIKey], Optional[str]]:
         """
         Validate API key
@@ -263,12 +268,7 @@ class APIKeyManager:
 
         return True, api_key, None
 
-    def revoke_key(
-        self,
-        key_id: str,
-        revoked_by: str,
-        reason: Optional[str] = None
-    ) -> bool:
+    def revoke_key(self, key_id: str, revoked_by: str, reason: Optional[str] = None) -> bool:
         """
         Revoke API key
 
@@ -291,10 +291,7 @@ class APIKeyManager:
 
         return True
 
-    def rotate_key(
-        self,
-        key_id: str
-    ) -> Tuple[Optional[str], Optional[APIKey]]:
+    def rotate_key(self, key_id: str) -> Tuple[Optional[str], Optional[APIKey]]:
         """
         Rotate API key (generate new key with same permissions)
 
@@ -316,7 +313,7 @@ class APIKeyManager:
             description=old_key.metadata.description,
             expires_in_days=None,  # Calculate from old key
             ip_whitelist=old_key.metadata.ip_whitelist,
-            metadata=old_key.metadata.custom_data
+            metadata=old_key.metadata.custom_data,
         )
 
         # Copy expiration from old key
@@ -332,11 +329,7 @@ class APIKeyManager:
 
         return new_plain_key, new_api_key
 
-    def update_key_scopes(
-        self,
-        key_id: str,
-        scopes: Set[APIKeyScope]
-    ) -> bool:
+    def update_key_scopes(self, key_id: str, scopes: Set[APIKeyScope]) -> bool:
         """
         Update API key scopes
 
@@ -358,11 +351,7 @@ class APIKeyManager:
         """Get API key by ID"""
         return self.keys.get(key_id)
 
-    def list_keys(
-        self,
-        owner_id: Optional[str] = None,
-        status: Optional[APIKeyStatus] = None
-    ) -> List[APIKey]:
+    def list_keys(self, owner_id: Optional[str] = None, status: Optional[APIKeyStatus] = None) -> List[APIKey]:
         """
         List API keys
 
@@ -383,12 +372,7 @@ class APIKeyManager:
 
         return keys
 
-    def record_usage(
-        self,
-        key_id: str,
-        success: bool,
-        endpoint: Optional[str] = None
-    ):
+    def record_usage(self, key_id: str, success: bool, endpoint: Optional[str] = None):
         """
         Record API key usage
 
@@ -433,12 +417,7 @@ def get_api_key_manager() -> APIKeyManager:
     return _api_key_manager
 
 
-def create_api_key(
-    name: str,
-    owner_id: str,
-    scopes: List[str],
-    **kwargs
-) -> Tuple[str, APIKey]:
+def create_api_key(name: str, owner_id: str, scopes: List[str], **kwargs) -> Tuple[str, APIKey]:
     """
     Create new API key
 
@@ -456,18 +435,11 @@ def create_api_key(
     # Convert scope strings to enums
     scope_set = {APIKeyScope(s) for s in scopes}
 
-    return manager.generate_key(
-        name=name,
-        owner_id=owner_id,
-        scopes=scope_set,
-        **kwargs
-    )
+    return manager.generate_key(name=name, owner_id=owner_id, scopes=scope_set, **kwargs)
 
 
 def validate_api_key(
-    key: str,
-    required_scope: Optional[str] = None,
-    **kwargs
+    key: str, required_scope: Optional[str] = None, **kwargs
 ) -> Tuple[bool, Optional[APIKey], Optional[str]]:
     """
     Validate API key

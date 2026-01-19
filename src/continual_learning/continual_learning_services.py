@@ -16,20 +16,22 @@ This module provides 7 core systems:
 """
 
 import asyncio
-import numpy as np
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional, Any, Tuple, Set
 from enum import Enum
-from collections import deque
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+import numpy as np
 
 # ============================================================================
 # Enums
 # ============================================================================
 
+
 class ContinualLearningMethod(Enum):
     """Continual learning approach"""
+
     EWC = "ewc"  # Elastic Weight Consolidation
     SI = "si"  # Synaptic Intelligence
     REPLAY = "replay"  # Experience Replay
@@ -39,6 +41,7 @@ class ContinualLearningMethod(Enum):
 
 class MemoryType(Enum):
     """Type of lifelong memory"""
+
     EPISODIC = "episodic"  # Specific experiences
     SEMANTIC = "semantic"  # General knowledge
     PROCEDURAL = "procedural"  # Skills and procedures
@@ -47,6 +50,7 @@ class MemoryType(Enum):
 
 class TransferType(Enum):
     """Type of knowledge transfer"""
+
     ZERO_SHOT = "zero_shot"  # No examples of new task
     FEW_SHOT = "few_shot"  # Few examples (1-10)
     FINE_TUNE = "fine_tune"  # Full training on new task
@@ -55,6 +59,7 @@ class TransferType(Enum):
 
 class CurriculumStrategy(Enum):
     """Curriculum learning strategy"""
+
     PREDEFINED = "predefined"  # Expert-designed sequence
     SELF_PACED = "self_paced"  # Learner chooses
     TEACHER = "teacher"  # Teacher model selects
@@ -63,6 +68,7 @@ class CurriculumStrategy(Enum):
 
 class ReplayPriority(Enum):
     """Prioritization for experience replay"""
+
     UNIFORM = "uniform"  # Sample uniformly
     TD_ERROR = "td_error"  # Temporal difference error
     IMPORTANCE = "importance"  # Task importance
@@ -74,9 +80,11 @@ class ReplayPriority(Enum):
 # Data Classes
 # ============================================================================
 
+
 @dataclass
 class Task:
     """Represents a learning task"""
+
     task_id: str
     name: str
     description: str
@@ -91,6 +99,7 @@ class Task:
 @dataclass
 class Experience:
     """Single experience/example"""
+
     experience_id: str
     task_id: str
     input_data: Any
@@ -104,6 +113,7 @@ class Experience:
 @dataclass
 class Memory:
     """Memory entry in lifelong memory system"""
+
     memory_id: str
     memory_type: MemoryType
     content: Any
@@ -118,6 +128,7 @@ class Memory:
 @dataclass
 class Skill:
     """Learned skill/capability"""
+
     skill_id: str
     name: str
     description: str
@@ -132,6 +143,7 @@ class Skill:
 @dataclass
 class MetaLearningState:
     """State of meta-learning system"""
+
     num_tasks_seen: int
     adaptation_speed: float  # How quickly adapts to new tasks
     sample_efficiency: float  # Performance per example
@@ -143,6 +155,7 @@ class MetaLearningState:
 @dataclass
 class Curriculum:
     """Learning curriculum"""
+
     curriculum_id: str
     tasks: List[str]  # Ordered task IDs
     strategy: CurriculumStrategy
@@ -154,6 +167,7 @@ class Curriculum:
 @dataclass
 class CapabilityAssessment:
     """Self-assessment of capabilities"""
+
     capability: str
     predicted_performance: float
     actual_performance: Optional[float]
@@ -166,6 +180,7 @@ class CapabilityAssessment:
 # ============================================================================
 # 1. Continual Learning Algorithms
 # ============================================================================
+
 
 class ContinualLearningAlgorithms:
     """
@@ -185,10 +200,7 @@ class ContinualLearningAlgorithms:
         self.importance_weights: Dict[str, np.ndarray] = {}
 
     async def learn_task(
-        self,
-        task: Task,
-        method: ContinualLearningMethod = ContinualLearningMethod.EWC,
-        lambda_ewc: float = 1000.0
+        self, task: Task, method: ContinualLearningMethod = ContinualLearningMethod.EWC, lambda_ewc: float = 1000.0
     ) -> float:
         """
         Learn new task while preserving performance on old tasks.
@@ -296,11 +308,7 @@ class ContinualLearningAlgorithms:
 
         return forgetting
 
-    async def compute_transfer(
-        self,
-        source_task_id: str,
-        target_task_id: str
-    ) -> float:
+    async def compute_transfer(self, source_task_id: str, target_task_id: str) -> float:
         """
         Compute knowledge transfer between tasks.
 
@@ -324,6 +332,7 @@ class ContinualLearningAlgorithms:
 # 2. Lifelong Memory Systems
 # ============================================================================
 
+
 class LifelongMemorySystems:
     """
     Implements lifelong memory that grows and consolidates over time.
@@ -342,12 +351,7 @@ class LifelongMemorySystems:
         self.procedural_memory: Dict[str, Memory] = {}
         self.working_memory: deque = deque(maxlen=100)  # Limited capacity
 
-    async def encode_memory(
-        self,
-        content: Any,
-        memory_type: MemoryType,
-        importance: float = 1.0
-    ) -> Memory:
+    async def encode_memory(self, content: Any, memory_type: MemoryType, importance: float = 1.0) -> Memory:
         """
         Encode new experience into memory.
 
@@ -372,7 +376,7 @@ class LifelongMemorySystems:
             content=content,
             embedding=embedding,
             timestamp=datetime.now(),
-            importance=importance
+            importance=importance,
         )
 
         # Store in appropriate memory system
@@ -388,10 +392,7 @@ class LifelongMemorySystems:
         return memory
 
     async def retrieve_memory(
-        self,
-        query_embedding: np.ndarray,
-        memory_type: MemoryType,
-        top_k: int = 5
+        self, query_embedding: np.ndarray, memory_type: MemoryType, top_k: int = 5
     ) -> List[Tuple[Memory, float]]:
         """
         Retrieve relevant memories.
@@ -438,10 +439,7 @@ class LifelongMemorySystems:
 
         return results[:top_k]
 
-    async def consolidate_memories(
-        self,
-        time_budget_s: float = 3600.0
-    ) -> Dict[str, int]:
+    async def consolidate_memories(self, time_budget_s: float = 3600.0) -> Dict[str, int]:
         """
         Consolidate memories (strengthen important, prune unimportant).
 
@@ -459,9 +457,11 @@ class LifelongMemorySystems:
         abstracted = 0
 
         # Strengthen frequently accessed/important memories
-        all_memories = list(self.episodic_memory.values()) + \
-                      list(self.semantic_memory.values()) + \
-                      list(self.procedural_memory.values())
+        all_memories = (
+            list(self.episodic_memory.values())
+            + list(self.semantic_memory.values())
+            + list(self.procedural_memory.values())
+        )
 
         for memory in all_memories:
             if memory.importance > 0.7 or memory.access_count > 10:
@@ -481,7 +481,7 @@ class LifelongMemorySystems:
             "strengthened": strengthened,
             "pruned": pruned,
             "abstracted": abstracted,
-            "total_memories": len(all_memories)
+            "total_memories": len(all_memories),
         }
 
         return stats
@@ -492,13 +492,14 @@ class LifelongMemorySystems:
             "episodic": len(self.episodic_memory),
             "semantic": len(self.semantic_memory),
             "procedural": len(self.procedural_memory),
-            "working": len(self.working_memory)
+            "working": len(self.working_memory),
         }
 
 
 # ============================================================================
 # 3. Knowledge Accumulation & Transfer
 # ============================================================================
+
 
 class KnowledgeAccumulationTransfer:
     """
@@ -516,12 +517,7 @@ class KnowledgeAccumulationTransfer:
         self.task_embeddings: Dict[str, np.ndarray] = {}
         self.transfer_matrix: Dict[Tuple[str, str], float] = {}
 
-    async def accumulate_knowledge(
-        self,
-        task_id: str,
-        task_data: Any,
-        task_performance: float
-    ):
+    async def accumulate_knowledge(self, task_id: str, task_data: Any, task_performance: float):
         """
         Accumulate knowledge from task experience.
 
@@ -531,11 +527,7 @@ class KnowledgeAccumulationTransfer:
             task_performance: Performance achieved
         """
         # Store knowledge
-        self.knowledge_base[task_id] = {
-            "data": task_data,
-            "performance": task_performance,
-            "timestamp": datetime.now()
-        }
+        self.knowledge_base[task_id] = {"data": task_data, "performance": task_performance, "timestamp": datetime.now()}
 
         # Create task embedding
         embedding = np.random.randn(256).astype(np.float32)
@@ -543,11 +535,7 @@ class KnowledgeAccumulationTransfer:
         self.task_embeddings[task_id] = embedding
 
     async def transfer_learn(
-        self,
-        source_task_id: str,
-        target_task_id: str,
-        transfer_type: TransferType,
-        num_examples: int = 5
+        self, source_task_id: str, target_task_id: str, transfer_type: TransferType, num_examples: int = 5
     ) -> float:
         """
         Transfer knowledge from source to target task.
@@ -594,11 +582,7 @@ class KnowledgeAccumulationTransfer:
 
         return performance
 
-    async def distill_knowledge(
-        self,
-        teacher_task_id: str,
-        compression_ratio: float = 0.9
-    ) -> float:
+    async def distill_knowledge(self, teacher_task_id: str, compression_ratio: float = 0.9) -> float:
         """
         Distill knowledge into compressed form.
 
@@ -620,11 +604,7 @@ class KnowledgeAccumulationTransfer:
 
         return student_perf
 
-    async def compute_transfer_potential(
-        self,
-        source_task_id: str,
-        target_task_id: str
-    ) -> float:
+    async def compute_transfer_potential(self, source_task_id: str, target_task_id: str) -> float:
         """
         Estimate transfer potential between tasks.
 
@@ -636,12 +616,8 @@ class KnowledgeAccumulationTransfer:
             Transfer potential (0-1, higher = more transfer)
         """
         # Compute task similarity
-        if source_task_id in self.task_embeddings and \
-           target_task_id in self.task_embeddings:
-            similarity = np.dot(
-                self.task_embeddings[source_task_id],
-                self.task_embeddings[target_task_id]
-            )
+        if source_task_id in self.task_embeddings and target_task_id in self.task_embeddings:
+            similarity = np.dot(self.task_embeddings[source_task_id], self.task_embeddings[target_task_id])
             transfer_potential = (similarity + 1.0) / 2.0  # Normalize to 0-1
         else:
             transfer_potential = 0.5
@@ -652,6 +628,7 @@ class KnowledgeAccumulationTransfer:
 # ============================================================================
 # 4. Meta-Learning & Learning to Learn
 # ============================================================================
+
 
 class MetaLearning:
     """
@@ -671,15 +648,10 @@ class MetaLearning:
             sample_efficiency=0.5,
             optimal_learning_rate=0.001,
             task_embeddings={},
-            learning_curves=[]
+            learning_curves=[],
         )
 
-    async def meta_train(
-        self,
-        tasks: List[Task],
-        inner_steps: int = 5,
-        meta_lr: float = 0.001
-    ) -> MetaLearningState:
+    async def meta_train(self, tasks: List[Task], inner_steps: int = 5, meta_lr: float = 0.001) -> MetaLearningState:
         """
         Meta-train on multiple tasks to learn to learn.
 
@@ -710,12 +682,7 @@ class MetaLearning:
 
         return self.meta_state
 
-    async def few_shot_adapt(
-        self,
-        task: Task,
-        num_examples: int = 5,
-        adaptation_steps: int = 3
-    ) -> float:
+    async def few_shot_adapt(self, task: Task, num_examples: int = 5, adaptation_steps: int = 3) -> float:
         """
         Quickly adapt to new task with few examples.
 
@@ -746,11 +713,7 @@ class MetaLearning:
 
         return performance
 
-    async def optimize_learning_dynamics(
-        self,
-        task: Task,
-        training_history: List[float]
-    ) -> Dict[str, float]:
+    async def optimize_learning_dynamics(self, task: Task, training_history: List[float]) -> Dict[str, float]:
         """
         Optimize learning dynamics (learning rate, batch size, etc.).
 
@@ -775,11 +738,7 @@ class MetaLearning:
         else:
             learning_rate = self.meta_state.optimal_learning_rate
 
-        hyperparams = {
-            "learning_rate": learning_rate,
-            "batch_size": 32,
-            "momentum": 0.9
-        }
+        hyperparams = {"learning_rate": learning_rate, "batch_size": 32, "momentum": 0.9}
 
         return hyperparams
 
@@ -789,13 +748,14 @@ class MetaLearning:
             "tasks_seen": self.meta_state.num_tasks_seen,
             "adaptation_speedup": self.meta_state.adaptation_speed,
             "sample_efficiency": self.meta_state.sample_efficiency,
-            "optimal_lr": self.meta_state.optimal_learning_rate
+            "optimal_lr": self.meta_state.optimal_learning_rate,
         }
 
 
 # ============================================================================
 # 5. Curriculum Learning & Progressive Skill Building
 # ============================================================================
+
 
 class CurriculumLearning:
     """
@@ -813,9 +773,7 @@ class CurriculumLearning:
         self.skill_tree: Dict[str, List[str]] = {}  # skill -> prerequisites
 
     async def create_curriculum(
-        self,
-        tasks: List[Task],
-        strategy: CurriculumStrategy = CurriculumStrategy.PREDEFINED
+        self, tasks: List[Task], strategy: CurriculumStrategy = CurriculumStrategy.PREDEFINED
     ) -> Curriculum:
         """
         Create learning curriculum from tasks.
@@ -854,18 +812,14 @@ class CurriculumLearning:
             curriculum_id=f"curr_{datetime.now().timestamp()}",
             tasks=task_order,
             strategy=strategy,
-            current_task_index=0
+            current_task_index=0,
         )
 
         self.curricula[curriculum.curriculum_id] = curriculum
 
         return curriculum
 
-    async def get_next_task(
-        self,
-        curriculum_id: str,
-        current_performance: Optional[float] = None
-    ) -> Optional[str]:
+    async def get_next_task(self, curriculum_id: str, current_performance: Optional[float] = None) -> Optional[str]:
         """
         Get next task in curriculum.
 
@@ -894,10 +848,7 @@ class CurriculumLearning:
         else:
             return None  # Curriculum complete
 
-    async def build_skill_tree(
-        self,
-        tasks: List[Task]
-    ) -> Dict[str, List[str]]:
+    async def build_skill_tree(self, tasks: List[Task]) -> Dict[str, List[str]]:
         """
         Build skill tree showing prerequisites.
 
@@ -914,10 +865,7 @@ class CurriculumLearning:
 
         return self.skill_tree
 
-    async def estimate_curriculum_benefit(
-        self,
-        curriculum_id: str
-    ) -> float:
+    async def estimate_curriculum_benefit(self, curriculum_id: str) -> float:
         """
         Estimate learning speedup from curriculum.
 
@@ -936,6 +884,7 @@ class CurriculumLearning:
 # 6. Experience Replay & Memory Consolidation
 # ============================================================================
 
+
 class ExperienceReplayConsolidation:
     """
     Implements experience replay and memory consolidation.
@@ -952,10 +901,7 @@ class ExperienceReplayConsolidation:
         self.experience_buffer: deque = deque(maxlen=buffer_size)
         self.task_buffers: Dict[str, List[Experience]] = {}
 
-    async def store_experience(
-        self,
-        experience: Experience
-    ):
+    async def store_experience(self, experience: Experience):
         """
         Store experience in replay buffer.
 
@@ -971,10 +917,7 @@ class ExperienceReplayConsolidation:
         self.task_buffers[experience.task_id].append(experience)
 
     async def sample_experiences(
-        self,
-        batch_size: int = 32,
-        priority: ReplayPriority = ReplayPriority.UNIFORM,
-        task_id: Optional[str] = None
+        self, batch_size: int = 32, priority: ReplayPriority = ReplayPriority.UNIFORM, task_id: Optional[str] = None
     ) -> List[Experience]:
         """
         Sample experiences for replay.
@@ -1023,10 +966,7 @@ class ExperienceReplayConsolidation:
 
         return samples
 
-    async def consolidate_offline(
-        self,
-        num_replay_iterations: int = 100
-    ) -> Dict[str, Any]:
+    async def consolidate_offline(self, num_replay_iterations: int = 100) -> Dict[str, Any]:
         """
         Perform offline consolidation (sleep/idle processing).
 
@@ -1042,10 +982,7 @@ class ExperienceReplayConsolidation:
         replayed = 0
         for _ in range(num_replay_iterations):
             # Sample and replay experiences
-            batch = await self.sample_experiences(
-                batch_size=32,
-                priority=ReplayPriority.IMPORTANCE
-            )
+            batch = await self.sample_experiences(batch_size=32, priority=ReplayPriority.IMPORTANCE)
             replayed += len(batch)
 
         # Estimate knowledge preserved
@@ -1054,16 +991,12 @@ class ExperienceReplayConsolidation:
         stats = {
             "num_iterations": num_replay_iterations,
             "experiences_replayed": replayed,
-            "preservation_rate": preservation_rate
+            "preservation_rate": preservation_rate,
         }
 
         return stats
 
-    async def generate_synthetic_replay(
-        self,
-        task_id: str,
-        num_samples: int = 100
-    ) -> List[Experience]:
+    async def generate_synthetic_replay(self, task_id: str, num_samples: int = 100) -> List[Experience]:
         """
         Generate synthetic experiences for replay.
 
@@ -1085,7 +1018,7 @@ class ExperienceReplayConsolidation:
                 input_data=f"synthetic_input_{i}",
                 target_output=f"synthetic_output_{i}",
                 timestamp=datetime.now(),
-                importance=0.8  # Slightly less important than real data
+                importance=0.8,  # Slightly less important than real data
             )
             synthetic.append(exp)
 
@@ -1096,13 +1029,14 @@ class ExperienceReplayConsolidation:
         return {
             "total_experiences": len(self.experience_buffer),
             "num_tasks": len(self.task_buffers),
-            "buffer_utilization": len(self.experience_buffer) / self.buffer_size
+            "buffer_utilization": len(self.experience_buffer) / self.buffer_size,
         }
 
 
 # ============================================================================
 # 7. Self-Assessment & Capability Tracking
 # ============================================================================
+
 
 class SelfAssessmentCapabilityTracking:
     """
@@ -1120,11 +1054,7 @@ class SelfAssessmentCapabilityTracking:
         self.assessments: List[CapabilityAssessment] = []
         self.performance_history: Dict[str, List[float]] = {}
 
-    async def assess_capability(
-        self,
-        capability: str,
-        validation_data: Optional[Any] = None
-    ) -> CapabilityAssessment:
+    async def assess_capability(self, capability: str, validation_data: Optional[Any] = None) -> CapabilityAssessment:
         """
         Self-assess performance on a capability.
 
@@ -1169,18 +1099,14 @@ class SelfAssessmentCapabilityTracking:
             confidence=confidence,
             uncertainty=uncertainty,
             timestamp=datetime.now(),
-            calibration_error=calibration_error
+            calibration_error=calibration_error,
         )
 
         self.assessments.append(assessment)
 
         return assessment
 
-    async def track_performance(
-        self,
-        capability: str,
-        performance: float
-    ):
+    async def track_performance(self, capability: str, performance: float):
         """
         Track performance on a capability over time.
 
@@ -1193,10 +1119,7 @@ class SelfAssessmentCapabilityTracking:
 
         self.performance_history[capability].append(performance)
 
-    async def detect_skill_decay(
-        self,
-        skill_id: str
-    ) -> float:
+    async def detect_skill_decay(self, skill_id: str) -> float:
         """
         Detect if skill is decaying from lack of use.
 
@@ -1223,11 +1146,7 @@ class SelfAssessmentCapabilityTracking:
 
         return decay
 
-    async def quantify_uncertainty(
-        self,
-        capability: str,
-        method: str = "bootstrap"
-    ) -> Tuple[float, float]:
+    async def quantify_uncertainty(self, capability: str, method: str = "bootstrap") -> Tuple[float, float]:
         """
         Quantify uncertainty in capability assessment.
 
@@ -1260,10 +1179,7 @@ class SelfAssessmentCapabilityTracking:
 
         return mean_perf, uncertainty
 
-    async def suggest_training_needs(
-        self,
-        performance_threshold: float = 0.75
-    ) -> List[str]:
+    async def suggest_training_needs(self, performance_threshold: float = 0.75) -> List[str]:
         """
         Suggest capabilities that need training.
 
@@ -1286,11 +1202,7 @@ class SelfAssessmentCapabilityTracking:
     async def get_calibration_metrics(self) -> Dict[str, float]:
         """Get overall calibration metrics"""
         if len(self.assessments) == 0:
-            return {
-                "accuracy_correlation": 0.8,
-                "calibration_gap": 0.1,
-                "confidence_coverage": 0.9
-            }
+            return {"accuracy_correlation": 0.8, "calibration_gap": 0.1, "confidence_coverage": 0.9}
 
         # Calculate calibration from assessments
         errors = [a.calibration_error for a in self.assessments if a.actual_performance is not None]
@@ -1305,7 +1217,7 @@ class SelfAssessmentCapabilityTracking:
         return {
             "accuracy_correlation": accuracy_correlation,
             "calibration_gap": calibration_gap,
-            "confidence_coverage": 0.9
+            "confidence_coverage": 0.9,
         }
 
 

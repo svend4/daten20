@@ -11,16 +11,17 @@ Implements SOC 2 (Service Organization Control 2) Trust Services Criteria (TSC):
 Based on AICPA Trust Services Criteria framework.
 """
 
-from typing import Optional, List, Dict, Any, Set
+import json
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-import uuid
-import json
+from typing import Any, Dict, List, Optional, Set
 
 
 class TrustServiceCategory(str, Enum):
     """Trust Services Categories"""
+
     SECURITY = "security"  # CC - Common Criteria
     AVAILABILITY = "availability"
     PROCESSING_INTEGRITY = "processing_integrity"
@@ -30,6 +31,7 @@ class TrustServiceCategory(str, Enum):
 
 class ControlStatus(str, Enum):
     """Control implementation status"""
+
     NOT_IMPLEMENTED = "not_implemented"
     PARTIALLY_IMPLEMENTED = "partially_implemented"
     IMPLEMENTED = "implemented"
@@ -39,6 +41,7 @@ class ControlStatus(str, Enum):
 
 class IncidentSeverity(str, Enum):
     """Incident severity levels"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -47,6 +50,7 @@ class IncidentSeverity(str, Enum):
 
 class ChangeRiskLevel(str, Enum):
     """Change risk assessment levels"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -55,6 +59,7 @@ class ChangeRiskLevel(str, Enum):
 @dataclass
 class Control:
     """SOC 2 Control"""
+
     id: str
     category: TrustServiceCategory
     title: str
@@ -73,6 +78,7 @@ class Control:
 @dataclass
 class Evidence:
     """Evidence for control testing"""
+
     id: str
     control_id: str
     collected_date: datetime
@@ -86,6 +92,7 @@ class Evidence:
 @dataclass
 class Incident:
     """Security/operational incident"""
+
     id: str
     title: str
     description: str
@@ -103,6 +110,7 @@ class Incident:
 @dataclass
 class ChangeRequest:
     """Change management request"""
+
     id: str
     title: str
     description: str
@@ -122,6 +130,7 @@ class ChangeRequest:
 @dataclass
 class Vendor:
     """Third-party vendor"""
+
     id: str
     name: str
     services_provided: List[str]
@@ -137,6 +146,7 @@ class Vendor:
 @dataclass
 class AuditLog:
     """Audit log entry"""
+
     id: str
     timestamp: datetime
     user: str
@@ -166,7 +176,7 @@ class SecurityControls:
                 control_activity="Code of conduct reviewed and signed annually by all employees",
                 frequency="annually",
                 owner="Management",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="CC1.2",
@@ -176,9 +186,8 @@ class SecurityControls:
                 control_activity="Quarterly board meetings with security updates",
                 frequency="quarterly",
                 owner="Board",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
-
             # CC2: Communication and Information
             Control(
                 id="CC2.1",
@@ -188,9 +197,8 @@ class SecurityControls:
                 control_activity="Monthly security awareness training and communications",
                 frequency="monthly",
                 owner="Security Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
-
             # CC3: Risk Assessment
             Control(
                 id="CC3.1",
@@ -200,7 +208,7 @@ class SecurityControls:
                 control_activity="Annual risk assessment conducted",
                 frequency="annually",
                 owner="Risk Manager",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="CC3.2",
@@ -210,9 +218,8 @@ class SecurityControls:
                 control_activity="Risk scoring and prioritization",
                 frequency="annually",
                 owner="Risk Manager",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
-
             # CC4: Monitoring Activities
             Control(
                 id="CC4.1",
@@ -222,9 +229,8 @@ class SecurityControls:
                 control_activity="SIEM monitoring and alerting 24/7",
                 frequency="daily",
                 owner="SOC Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
+                status=ControlStatus.OPERATING_EFFECTIVELY,
             ),
-
             # CC5: Control Activities
             Control(
                 id="CC5.1",
@@ -234,7 +240,7 @@ class SecurityControls:
                 control_activity="Role-based access control (RBAC) implemented",
                 frequency="daily",
                 owner="Security Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
+                status=ControlStatus.OPERATING_EFFECTIVELY,
             ),
             Control(
                 id="CC5.2",
@@ -244,9 +250,8 @@ class SecurityControls:
                 control_activity="MFA enforced for all admin accounts",
                 frequency="daily",
                 owner="Security Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
+                status=ControlStatus.OPERATING_EFFECTIVELY,
             ),
-
             # CC6: Logical and Physical Access
             Control(
                 id="CC6.1",
@@ -256,7 +261,7 @@ class SecurityControls:
                 control_activity="Quarterly access reviews conducted",
                 frequency="quarterly",
                 owner="Security Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="CC6.2",
@@ -266,9 +271,8 @@ class SecurityControls:
                 control_activity="Password complexity and rotation enforced",
                 frequency="daily",
                 owner="IT Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
+                status=ControlStatus.OPERATING_EFFECTIVELY,
             ),
-
             # CC7: System Operations
             Control(
                 id="CC7.1",
@@ -278,7 +282,7 @@ class SecurityControls:
                 control_activity="Monthly vulnerability scans conducted",
                 frequency="monthly",
                 owner="Security Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="CC7.2",
@@ -288,9 +292,8 @@ class SecurityControls:
                 control_activity="Critical patches applied within 30 days",
                 frequency="monthly",
                 owner="IT Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
-
             # CC8: Change Management
             Control(
                 id="CC8.1",
@@ -300,7 +303,7 @@ class SecurityControls:
                 control_activity="CAB approval required for production changes",
                 frequency="daily",
                 owner="Change Manager",
-                status=ControlStatus.OPERATING_EFFECTIVELY
+                status=ControlStatus.OPERATING_EFFECTIVELY,
             ),
             Control(
                 id="CC8.2",
@@ -310,9 +313,8 @@ class SecurityControls:
                 control_activity="Test environment validation required",
                 frequency="daily",
                 owner="Development Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
-
             # CC9: Risk Mitigation
             Control(
                 id="CC9.1",
@@ -322,7 +324,7 @@ class SecurityControls:
                 control_activity="TLS 1.2+ and AES-256 encryption enforced",
                 frequency="daily",
                 owner="Security Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
+                status=ControlStatus.OPERATING_EFFECTIVELY,
             ),
             Control(
                 id="CC9.2",
@@ -332,8 +334,8 @@ class SecurityControls:
                 control_activity="Daily backups with quarterly restoration tests",
                 frequency="daily",
                 owner="IT Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
-            )
+                status=ControlStatus.OPERATING_EFFECTIVELY,
+            ),
         ]
 
         for control in controls:
@@ -358,7 +360,7 @@ class AvailabilityControls:
                 control_activity="24/7 uptime monitoring with alerts",
                 frequency="daily",
                 owner="Operations Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
+                status=ControlStatus.OPERATING_EFFECTIVELY,
             ),
             Control(
                 id="A1.2",
@@ -368,7 +370,7 @@ class AvailabilityControls:
                 control_activity="Quarterly capacity reviews and projections",
                 frequency="quarterly",
                 owner="Infrastructure Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="A1.3",
@@ -378,8 +380,8 @@ class AvailabilityControls:
                 control_activity="Incident response procedures with SLAs",
                 frequency="daily",
                 owner="Operations Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
-            )
+                status=ControlStatus.OPERATING_EFFECTIVELY,
+            ),
         ]
 
         for control in controls:
@@ -404,7 +406,7 @@ class ProcessingIntegrityControls:
                 control_activity="Input validation rules implemented in application",
                 frequency="daily",
                 owner="Development Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
+                status=ControlStatus.OPERATING_EFFECTIVELY,
             ),
             Control(
                 id="PI1.2",
@@ -414,7 +416,7 @@ class ProcessingIntegrityControls:
                 control_activity="Automated testing and reconciliation",
                 frequency="daily",
                 owner="QA Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="PI1.3",
@@ -424,8 +426,8 @@ class ProcessingIntegrityControls:
                 control_activity="Error logging and alerting system",
                 frequency="daily",
                 owner="Development Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
-            )
+                status=ControlStatus.OPERATING_EFFECTIVELY,
+            ),
         ]
 
         for control in controls:
@@ -450,7 +452,7 @@ class ConfidentialityControls:
                 control_activity="Data classification policy and procedures",
                 frequency="annually",
                 owner="Security Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="C1.2",
@@ -460,7 +462,7 @@ class ConfidentialityControls:
                 control_activity="NDAs signed by all employees and contractors",
                 frequency="annually",
                 owner="HR Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="C1.3",
@@ -470,8 +472,8 @@ class ConfidentialityControls:
                 control_activity="Secure deletion and shredding procedures",
                 frequency="daily",
                 owner="IT Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
-            )
+                status=ControlStatus.OPERATING_EFFECTIVELY,
+            ),
         ]
 
         for control in controls:
@@ -496,7 +498,7 @@ class PrivacyControls:
                 control_activity="Privacy policy published and accessible",
                 frequency="annually",
                 owner="Privacy Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="P2.1",
@@ -506,7 +508,7 @@ class PrivacyControls:
                 control_activity="Consent management system implemented",
                 frequency="daily",
                 owner="Privacy Team",
-                status=ControlStatus.OPERATING_EFFECTIVELY
+                status=ControlStatus.OPERATING_EFFECTIVELY,
             ),
             Control(
                 id="P3.1",
@@ -516,7 +518,7 @@ class PrivacyControls:
                 control_activity="DSR portal and procedures",
                 frequency="daily",
                 owner="Privacy Team",
-                status=ControlStatus.IMPLEMENTED
+                status=ControlStatus.IMPLEMENTED,
             ),
             Control(
                 id="P4.1",
@@ -526,8 +528,8 @@ class PrivacyControls:
                 control_activity="Data retention schedules and automated deletion",
                 frequency="monthly",
                 owner="Privacy Team",
-                status=ControlStatus.IMPLEMENTED
-            )
+                status=ControlStatus.IMPLEMENTED,
+            ),
         ]
 
         for control in controls:
@@ -547,7 +549,7 @@ class IncidentManager:
         category: TrustServiceCategory,
         severity: IncidentSeverity,
         detected_by: str,
-        affected_systems: List[str]
+        affected_systems: List[str],
     ) -> str:
         """Create new incident"""
         incident_id = str(uuid.uuid4())
@@ -560,19 +562,13 @@ class IncidentManager:
             severity=severity,
             detected_at=datetime.now(),
             detected_by=detected_by,
-            affected_systems=affected_systems
+            affected_systems=affected_systems,
         )
 
         self.incidents[incident_id] = incident
         return incident_id
 
-    def resolve_incident(
-        self,
-        incident_id: str,
-        root_cause: str,
-        resolution: str,
-        lessons_learned: List[str]
-    ) -> bool:
+    def resolve_incident(self, incident_id: str, root_cause: str, resolution: str, lessons_learned: List[str]) -> bool:
         """Resolve incident"""
         if incident_id not in self.incidents:
             return False
@@ -604,7 +600,7 @@ class ChangeManager:
         risk_level: ChangeRiskLevel,
         affected_systems: List[str],
         rollback_plan: str,
-        testing_plan: str
+        testing_plan: str,
     ) -> str:
         """Create change request"""
         change_id = str(uuid.uuid4())
@@ -618,7 +614,7 @@ class ChangeManager:
             risk_level=risk_level,
             affected_systems=affected_systems,
             rollback_plan=rollback_plan,
-            testing_plan=testing_plan
+            testing_plan=testing_plan,
         )
 
         self.changes[change_id] = change
@@ -687,12 +683,7 @@ class SOC2ComplianceEngine:
         return all_controls
 
     def collect_evidence(
-        self,
-        control_id: str,
-        evidence_type: str,
-        description: str,
-        collected_by: str,
-        file_path: Optional[str] = None
+        self, control_id: str, evidence_type: str, description: str, collected_by: str, file_path: Optional[str] = None
     ) -> str:
         """Collect evidence for control"""
         evidence_id = str(uuid.uuid4())
@@ -704,18 +695,13 @@ class SOC2ComplianceEngine:
             collected_by=collected_by,
             evidence_type=evidence_type,
             description=description,
-            file_path=file_path
+            file_path=file_path,
         )
 
         self.evidence.append(evidence)
         return evidence_id
 
-    def test_control(
-        self,
-        control_id: str,
-        tester: str,
-        results: str
-    ) -> bool:
+    def test_control(self, control_id: str, tester: str, results: str) -> bool:
         """Test control effectiveness"""
         controls = self.get_all_controls()
 
@@ -736,13 +722,7 @@ class SOC2ComplianceEngine:
 
         return True
 
-    def register_vendor(
-        self,
-        name: str,
-        services: List[str],
-        criticality: str,
-        data_access: bool
-    ) -> str:
+    def register_vendor(self, name: str, services: List[str], criticality: str, data_access: bool) -> str:
         """Register third-party vendor"""
         vendor_id = str(uuid.uuid4())
 
@@ -752,7 +732,7 @@ class SOC2ComplianceEngine:
             services_provided=services,
             criticality=criticality,
             data_access=data_access,
-            soc2_report=False
+            soc2_report=False,
         )
 
         self.vendors[vendor_id] = vendor
@@ -765,7 +745,7 @@ class SOC2ComplianceEngine:
         resource: str,
         ip_address: str,
         result: str,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ):
         """Log audit event"""
         log = AuditLog(
@@ -776,7 +756,7 @@ class SOC2ComplianceEngine:
             resource=resource,
             ip_address=ip_address,
             result=result,
-            details=details or {}
+            details=details or {},
         )
 
         self.audit_logs.append(log)
@@ -807,15 +787,15 @@ class SOC2ComplianceEngine:
         compliance_score = (operating_effectively / total_controls * 100) if total_controls > 0 else 0
 
         return {
-            'total_controls': total_controls,
-            'compliance_score': f"{compliance_score:.1f}%",
-            'controls_by_status': status_counts,
-            'controls_by_category': category_counts,
-            'evidence_collected': len(self.evidence),
-            'open_incidents': len(self.incident_manager.get_open_incidents()),
-            'pending_changes': len([c for c in self.change_manager.changes.values() if not c.implemented]),
-            'vendors_managed': len(self.vendors),
-            'audit_logs': len(self.audit_logs)
+            "total_controls": total_controls,
+            "compliance_score": f"{compliance_score:.1f}%",
+            "controls_by_status": status_counts,
+            "controls_by_category": category_counts,
+            "evidence_collected": len(self.evidence),
+            "open_incidents": len(self.incident_manager.get_open_incidents()),
+            "pending_changes": len([c for c in self.change_manager.changes.values() if not c.implemented]),
+            "vendors_managed": len(self.vendors),
+            "audit_logs": len(self.audit_logs),
         }
 
 

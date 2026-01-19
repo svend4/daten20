@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingModel(Enum):
     """Embedding model types."""
+
     OPENAI_SMALL = "text-embedding-3-small"
     OPENAI_LARGE = "text-embedding-3-large"
     OPENAI_ADA = "text-embedding-ada-002"
@@ -31,6 +32,7 @@ class EmbeddingModel(Enum):
 @dataclass
 class Embedding:
     """Vector embedding."""
+
     vector: List[float]
     model: str
     dimension: int
@@ -40,6 +42,7 @@ class Embedding:
 @dataclass
 class Document:
     """Document for embedding."""
+
     doc_id: str
     text: str
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -48,6 +51,7 @@ class Document:
 @dataclass
 class SearchResult:
     """Search result with similarity score."""
+
     doc_id: str
     score: float
     document: Optional[Document] = None
@@ -57,6 +61,7 @@ class SearchResult:
 @dataclass
 class ClusterResult:
     """Clustering result."""
+
     cluster_id: int
     documents: List[str]
     centroid: List[float]
@@ -160,11 +165,7 @@ class EmbeddingGenerator:
         # Mock implementation - in production would use actual models
         vector = self._generate_mock_embedding(text)
 
-        return Embedding(
-            vector=vector,
-            model=self.model.value,
-            dimension=self.dimension
-        )
+        return Embedding(vector=vector, model=self.model.value, dimension=self.dimension)
 
     async def embed_batch(self, texts: List[str]) -> List[Embedding]:
         """Generate embeddings for multiple texts."""
@@ -228,10 +229,7 @@ class VectorIndex:
             self.add(doc_id, vectors[i], doc)
 
     def search(
-        self,
-        query_vector: List[float],
-        top_k: int = 10,
-        filter_fn: Optional[callable] = None
+        self, query_vector: List[float], top_k: int = 10, filter_fn: Optional[callable] = None
     ) -> List[SearchResult]:
         """Search for similar vectors."""
         if len(query_vector) != self.dimension:
@@ -248,12 +246,9 @@ class VectorIndex:
             similarity = VectorMath.cosine_similarity(query_vector, vector)
             distance = VectorMath.euclidean_distance(query_vector, vector)
 
-            results.append(SearchResult(
-                doc_id=doc_id,
-                score=similarity,
-                document=self.documents.get(doc_id),
-                distance=distance
-            ))
+            results.append(
+                SearchResult(doc_id=doc_id, score=similarity, document=self.documents.get(doc_id), distance=distance)
+            )
 
         # Sort by similarity (descending)
         results.sort(key=lambda x: x.score, reverse=True)
@@ -273,26 +268,26 @@ class VectorIndex:
     def save(self, filepath: str):
         """Save index to file."""
         data = {
-            'dimension': self.dimension,
-            'vectors': self.vectors,
-            'documents': self.documents,
-            'metadata': self.metadata
+            "dimension": self.dimension,
+            "vectors": self.vectors,
+            "documents": self.documents,
+            "metadata": self.metadata,
         }
 
-        with open(filepath, 'wb') as f:
+        with open(filepath, "wb") as f:
             pickle.dump(data, f)
 
         logger.info(f"Index saved to {filepath}")
 
     def load(self, filepath: str):
         """Load index from file."""
-        with open(filepath, 'rb') as f:
+        with open(filepath, "rb") as f:
             data = pickle.load(f)
 
-        self.dimension = data['dimension']
-        self.vectors = data['vectors']
-        self.documents = data['documents']
-        self.metadata = data['metadata']
+        self.dimension = data["dimension"]
+        self.vectors = data["vectors"]
+        self.documents = data["documents"]
+        self.metadata = data["metadata"]
 
         logger.info(f"Index loaded from {filepath} with {self.size()} vectors")
 
@@ -300,10 +295,7 @@ class VectorIndex:
 class SemanticSearch:
     """Semantic search using vector embeddings."""
 
-    def __init__(
-        self,
-        embedding_model: EmbeddingModel = EmbeddingModel.SENTENCE_TRANSFORMERS
-    ):
+    def __init__(self, embedding_model: EmbeddingModel = EmbeddingModel.SENTENCE_TRANSFORMERS):
         self.embedding_generator = EmbeddingGenerator(embedding_model)
         self.index = VectorIndex(self.embedding_generator.dimension)
 
@@ -324,10 +316,7 @@ class SemanticSearch:
         logger.info(f"Indexed {len(documents)} documents")
 
     async def search(
-        self,
-        query: str,
-        top_k: int = 10,
-        filter_metadata: Optional[Dict[str, Any]] = None
+        self, query: str, top_k: int = 10, filter_metadata: Optional[Dict[str, Any]] = None
     ) -> List[SearchResult]:
         """Search for documents similar to query."""
         # Generate query embedding
@@ -336,11 +325,9 @@ class SemanticSearch:
         # Define filter function
         filter_fn = None
         if filter_metadata:
+
             def filter_fn(metadata):
-                return all(
-                    metadata.get(key) == value
-                    for key, value in filter_metadata.items()
-                )
+                return all(metadata.get(key) == value for key, value in filter_metadata.items())
 
         # Search index
         results = self.index.search(query_embedding.vector, top_k=top_k, filter_fn=filter_fn)
@@ -374,10 +361,7 @@ class DocumentSimilarity:
         return similarity
 
     async def find_similar_documents(
-        self,
-        target_text: str,
-        candidate_texts: List[str],
-        top_k: int = 5
+        self, target_text: str, candidate_texts: List[str], top_k: int = 5
     ) -> List[Tuple[int, float]]:
         """Find most similar documents from candidates."""
         # Generate embeddings
@@ -414,6 +398,7 @@ class KMeansClustering:
 
         # Initialize centroids randomly
         import random
+
         self.centroids = random.sample(vectors, self.n_clusters)
 
         # Iterate
@@ -421,10 +406,7 @@ class KMeansClustering:
             # Assign points to nearest centroid
             new_labels = []
             for vector in vectors:
-                distances = [
-                    VectorMath.euclidean_distance(vector, centroid)
-                    for centroid in self.centroids
-                ]
+                distances = [VectorMath.euclidean_distance(vector, centroid) for centroid in self.centroids]
                 nearest_cluster = distances.index(min(distances))
                 new_labels.append(nearest_cluster)
 
@@ -438,16 +420,12 @@ class KMeansClustering:
             # Update centroids
             new_centroids = []
             for cluster_id in range(self.n_clusters):
-                cluster_vectors = [
-                    vectors[i] for i, label in enumerate(self.labels)
-                    if label == cluster_id
-                ]
+                cluster_vectors = [vectors[i] for i, label in enumerate(self.labels) if label == cluster_id]
 
                 if cluster_vectors:
                     # Calculate mean
                     centroid = [
-                        sum(vec[dim] for vec in cluster_vectors) / len(cluster_vectors)
-                        for dim in range(dimension)
+                        sum(vec[dim] for vec in cluster_vectors) / len(cluster_vectors) for dim in range(dimension)
                     ]
                     new_centroids.append(centroid)
                 else:
@@ -459,17 +437,13 @@ class KMeansClustering:
         # Create cluster results
         results = []
         for cluster_id in range(self.n_clusters):
-            doc_ids = [
-                str(i) for i, label in enumerate(self.labels)
-                if label == cluster_id
-            ]
+            doc_ids = [str(i) for i, label in enumerate(self.labels) if label == cluster_id]
 
-            results.append(ClusterResult(
-                cluster_id=cluster_id,
-                documents=doc_ids,
-                centroid=self.centroids[cluster_id],
-                size=len(doc_ids)
-            ))
+            results.append(
+                ClusterResult(
+                    cluster_id=cluster_id, documents=doc_ids, centroid=self.centroids[cluster_id], size=len(doc_ids)
+                )
+            )
 
         return results
 
@@ -478,10 +452,7 @@ class KMeansClustering:
         if not self.centroids:
             raise ValueError("Model not trained yet")
 
-        distances = [
-            VectorMath.euclidean_distance(vector, centroid)
-            for centroid in self.centroids
-        ]
+        distances = [VectorMath.euclidean_distance(vector, centroid) for centroid in self.centroids]
 
         return distances.index(min(distances))
 
@@ -489,19 +460,12 @@ class KMeansClustering:
 class DocumentClustering:
     """Cluster documents by semantic similarity."""
 
-    def __init__(
-        self,
-        n_clusters: int = 5,
-        embedding_model: EmbeddingModel = EmbeddingModel.SENTENCE_TRANSFORMERS
-    ):
+    def __init__(self, n_clusters: int = 5, embedding_model: EmbeddingModel = EmbeddingModel.SENTENCE_TRANSFORMERS):
         self.n_clusters = n_clusters
         self.embedding_generator = EmbeddingGenerator(embedding_model)
         self.clusterer = KMeansClustering(n_clusters)
 
-    async def cluster_documents(
-        self,
-        documents: List[Document]
-    ) -> Dict[int, List[Document]]:
+    async def cluster_documents(self, documents: List[Document]) -> Dict[int, List[Document]]:
         """Cluster documents by content similarity."""
         logger.info(f"Clustering {len(documents)} documents into {self.n_clusters} clusters...")
 
@@ -532,10 +496,7 @@ class DocumentClustering:
 class EmbeddingService:
     """Main embedding service."""
 
-    def __init__(
-        self,
-        embedding_model: EmbeddingModel = EmbeddingModel.SENTENCE_TRANSFORMERS
-    ):
+    def __init__(self, embedding_model: EmbeddingModel = EmbeddingModel.SENTENCE_TRANSFORMERS):
         self.embedding_model = embedding_model
         self.embedding_generator = EmbeddingGenerator(embedding_model)
         self.semantic_search = SemanticSearch(embedding_model)
@@ -549,12 +510,7 @@ class EmbeddingService:
         """Generate embeddings for multiple texts."""
         return await self.embedding_generator.embed_batch(texts)
 
-    async def search_similar(
-        self,
-        query: str,
-        documents: List[Document],
-        top_k: int = 10
-    ) -> List[SearchResult]:
+    async def search_similar(self, query: str, documents: List[Document], top_k: int = 10) -> List[SearchResult]:
         """Search for similar documents."""
         # Index documents if not already indexed
         if self.semantic_search.index.size() == 0:
@@ -566,11 +522,7 @@ class EmbeddingService:
         """Calculate similarity between texts."""
         return await self.similarity.calculate_similarity(text1, text2)
 
-    async def cluster_documents(
-        self,
-        documents: List[Document],
-        n_clusters: int = 5
-    ) -> Dict[int, List[Document]]:
+    async def cluster_documents(self, documents: List[Document], n_clusters: int = 5) -> Dict[int, List[Document]]:
         """Cluster documents by similarity."""
         clusterer = DocumentClustering(n_clusters, self.embedding_model)
         return await clusterer.cluster_documents(documents)
@@ -580,9 +532,7 @@ class EmbeddingService:
 _embedding_service: Optional[EmbeddingService] = None
 
 
-def get_embedding_service(
-    embedding_model: EmbeddingModel = EmbeddingModel.SENTENCE_TRANSFORMERS
-) -> EmbeddingService:
+def get_embedding_service(embedding_model: EmbeddingModel = EmbeddingModel.SENTENCE_TRANSFORMERS) -> EmbeddingService:
     """Get or create embedding service."""
     global _embedding_service
 

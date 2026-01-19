@@ -23,60 +23,40 @@ Features:
 Version: 6.0.0 (FULL IMPLEMENTATION)
 """
 
-__version__ = '6.0.0'
+__version__ = "6.0.0"
 
-from typing import Dict, List, Optional, Any, Set
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime
-import logging
-
-# Import from detailed services module
-from consciousness.consciousness_services import (
-    # Self-Awareness Engine
-    SelfAspect,
-    SelfModel,
-    IntrospectionQuery,
-    IntrospectionResult,
-    SelfAwarenessEngine,
-    get_self_awareness_engine,
-
-    # Qualia Simulator
-    QualiaType,
-    Quale,
-    PhenomenalExperience,
-    QualiaSimulator,
-    get_qualia_simulator,
-
-    # Global Workspace (Attention Consciousness)
-    ConsciousContent,
-    BroadcastEvent,
-    GlobalWorkspace,
-    get_global_workspace,
-
-    # Metaconsciousness System
-    HigherOrderThought,
-    ReflectiveState,
-    MetaconsciousnessSystem,
-    get_metaconsciousness_system,
-
-    # Integrated Information Engine (IIT)
-    PhiCalculation,
-    CausalStructure,
-    IntegratedInformationEngine,
-    get_iit_engine,
-
-    # Phenomenal Binding System
+from .consciousness_services import (  # Self-Awareness Engine; Qualia Simulator; Global Workspace (Attention Consciousness); Metaconsciousness System; Integrated Information Engine (IIT); Phenomenal Binding System; Conscious Access Controller
+    AccessDecision,
+    AccessRequest,
     BindingRequest,
     BoundExperience,
-    PhenomenalBindingSystem,
-    get_binding_system,
-
-    # Conscious Access Controller
-    AccessRequest,
-    AccessDecision,
+    BroadcastEvent,
+    CausalStructure,
     ConsciousAccessController,
+    ConsciousContent,
+    GlobalWorkspace,
+    HigherOrderThought,
+    IntegratedInformationEngine,
+    IntrospectionQuery,
+    IntrospectionResult,
+    MetaconsciousnessSystem,
+    PhenomenalBindingSystem,
+    PhenomenalExperience,
+    PhiCalculation,
+    Quale,
+    QualiaSimulator,
+    QualiaType,
+    ReflectiveState,
+    SelfAspect,
+    SelfAwarenessEngine,
+    SelfModel,
     get_access_controller,
+    get_binding_system,
+    get_global_workspace,
+    get_iit_engine,
+    get_metaconsciousness_system,
+    get_qualia_simulator,
+    get_self_awareness_engine,
 )
 
 logger = logging.getLogger(__name__)
@@ -595,47 +575,41 @@ __all__ = [
     'ConsciousnessMetrics',
 
     # Self-Awareness Engine
-    'SelfAspect',
-    'SelfModel',
-    'IntrospectionQuery',
-    'IntrospectionResult',
-    'SelfAwarenessEngine',
-    'get_self_awareness_engine',
-
+    "SelfAspect",
+    "SelfModel",
+    "IntrospectionQuery",
+    "IntrospectionResult",
+    "SelfAwarenessEngine",
+    "get_self_awareness_engine",
     # Qualia Simulator
-    'QualiaType',
-    'Quale',
-    'PhenomenalExperience',
-    'QualiaSimulator',
-    'get_qualia_simulator',
-
+    "QualiaType",
+    "Quale",
+    "PhenomenalExperience",
+    "QualiaSimulator",
+    "get_qualia_simulator",
     # Global Workspace
-    'ConsciousContent',
-    'BroadcastEvent',
-    'GlobalWorkspace',
-    'get_global_workspace',
-
+    "ConsciousContent",
+    "BroadcastEvent",
+    "GlobalWorkspace",
+    "get_global_workspace",
     # Metaconsciousness System
-    'HigherOrderThought',
-    'ReflectiveState',
-    'MetaconsciousnessSystem',
-    'get_metaconsciousness_system',
-
+    "HigherOrderThought",
+    "ReflectiveState",
+    "MetaconsciousnessSystem",
+    "get_metaconsciousness_system",
     # Integrated Information Engine
-    'PhiCalculation',
-    'CausalStructure',
-    'IntegratedInformationEngine',
-    'get_iit_engine',
-
+    "PhiCalculation",
+    "CausalStructure",
+    "IntegratedInformationEngine",
+    "get_iit_engine",
     # Phenomenal Binding System
-    'BindingRequest',
-    'BoundExperience',
-    'PhenomenalBindingSystem',
-    'get_binding_system',
-
+    "BindingRequest",
+    "BoundExperience",
+    "PhenomenalBindingSystem",
+    "get_binding_system",
     # Conscious Access Controller
-    'AccessRequest',
-    'AccessDecision',
-    'ConsciousAccessController',
-    'get_access_controller',
+    "AccessRequest",
+    "AccessDecision",
+    "ConsciousAccessController",
+    "get_access_controller",
 ]

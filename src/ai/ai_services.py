@@ -16,24 +16,26 @@ Dependencies:
 - Optional: openai, anthropic for LLM providers
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, AsyncIterator, Tuple
-from enum import Enum
-from datetime import datetime
-import threading
-import logging
-import re
 import hashlib
-from collections import Counter, defaultdict
+import logging
 import math
+import re
+import threading
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 # ==================== LLM Integration ====================
 
+
 class LLMProvider(str, Enum):
     """LLM provider types"""
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     LOCAL = "local"
@@ -43,6 +45,7 @@ class LLMProvider(str, Enum):
 @dataclass
 class LLMResponse:
     """LLM response"""
+
     content: str
     model: str
     provider: LLMProvider
@@ -81,10 +84,7 @@ class LLMClient:
     """
 
     def __init__(
-        self,
-        provider: LLMProvider = LLMProvider.MOCK,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None
+        self, provider: LLMProvider = LLMProvider.MOCK, api_key: Optional[str] = None, model: Optional[str] = None
     ):
         self.provider = provider
         self.api_key = api_key
@@ -98,7 +98,7 @@ class LLMClient:
             LLMProvider.OPENAI: "gpt-3.5-turbo",
             LLMProvider.ANTHROPIC: "claude-3-haiku",
             LLMProvider.LOCAL: "llama-2-7b",
-            LLMProvider.MOCK: "mock-model"
+            LLMProvider.MOCK: "mock-model",
         }
         return defaults.get(self.provider, "gpt-3.5-turbo")
 
@@ -108,7 +108,7 @@ class LLMClient:
         model: Optional[str] = None,
         max_tokens: int = 500,
         temperature: float = 0.7,
-        use_cache: bool = True
+        use_cache: bool = True,
     ) -> LLMResponse:
         """
         Generate completion
@@ -163,16 +163,10 @@ class LLMClient:
             model=model,
             provider=self.provider,
             tokens_used=len(prompt.split()) + len(content.split()),
-            cost=0.0
+            cost=0.0,
         )
 
-    async def _api_complete(
-        self,
-        prompt: str,
-        model: str,
-        max_tokens: int,
-        temperature: float
-    ) -> LLMResponse:
+    async def _api_complete(self, prompt: str, model: str, max_tokens: int, temperature: float) -> LLMResponse:
         """Call actual LLM API (simplified, requires actual implementation)"""
         # In production, this would call OpenAI/Anthropic APIs
         # For now, return mock response
@@ -221,8 +215,10 @@ class LLMClient:
 
 # ==================== Document Intelligence ====================
 
+
 class EntityType(str, Enum):
     """Named entity types"""
+
     PERSON = "person"
     ORGANIZATION = "organization"
     LOCATION = "location"
@@ -234,6 +230,7 @@ class EntityType(str, Enum):
 @dataclass
 class Entity:
     """Named entity"""
+
     text: str
     entity_type: EntityType
     confidence: float = 1.0
@@ -242,6 +239,7 @@ class Entity:
 @dataclass
 class DocumentAnalysis:
     """Complete document analysis result"""
+
     summary: Optional[str] = None
     entities: List[Entity] = field(default_factory=list)
     category: Optional[str] = None
@@ -263,11 +261,7 @@ class DocumentIntelligence:
     def __init__(self, llm_client: Optional[LLMClient] = None):
         self.llm = llm_client or LLMClient()
 
-    async def analyze(
-        self,
-        text: str,
-        operations: List[str] = None
-    ) -> DocumentAnalysis:
+    async def analyze(self, text: str, operations: List[str] = None) -> DocumentAnalysis:
         """
         Comprehensive document analysis
 
@@ -304,12 +298,7 @@ class DocumentIntelligence:
 
         return analysis
 
-    async def summarize(
-        self,
-        text: str,
-        sentences: int = 3,
-        method: str = "llm"
-    ) -> str:
+    async def summarize(self, text: str, sentences: int = 3, method: str = "llm") -> str:
         """
         Summarize document
 
@@ -332,31 +321,31 @@ class DocumentIntelligence:
     def _extractive_summary(self, text: str, sentences: int) -> str:
         """Simple extractive summarization"""
         # Split into sentences
-        sents = re.split(r'[.!?]+', text)
+        sents = re.split(r"[.!?]+", text)
         sents = [s.strip() for s in sents if len(s.strip()) > 20]
 
         if len(sents) <= sentences:
             return text
 
         # Score sentences by word frequency
-        words = re.findall(r'\w+', text.lower())
+        words = re.findall(r"\w+", text.lower())
         word_freq = Counter(words)
 
         # Remove common words
-        common = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for'}
+        common = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"}
         for word in common:
             word_freq.pop(word, None)
 
         # Score sentences
         sent_scores = []
         for sent in sents:
-            score = sum(word_freq.get(w.lower(), 0) for w in re.findall(r'\w+', sent))
+            score = sum(word_freq.get(w.lower(), 0) for w in re.findall(r"\w+", sent))
             sent_scores.append((score, sent))
 
         # Return top N sentences
         sent_scores.sort(reverse=True)
         summary_sents = [sent for _, sent in sent_scores[:sentences]]
-        return '. '.join(summary_sents) + '.'
+        return ". ".join(summary_sents) + "."
 
     async def extract_entities(self, text: str) -> List[Entity]:
         """Extract named entities"""
@@ -365,36 +354,24 @@ class DocumentIntelligence:
 
         # Dates
         date_patterns = [
-            r'\d{4}-\d{2}-\d{2}',
-            r'\d{1,2}/\d{1,2}/\d{4}',
-            r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}'
+            r"\d{4}-\d{2}-\d{2}",
+            r"\d{1,2}/\d{1,2}/\d{4}",
+            r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}",
         ]
         for pattern in date_patterns:
             matches = re.finditer(pattern, text)
             for match in matches:
-                entities.append(Entity(
-                    text=match.group(0),
-                    entity_type=EntityType.DATE,
-                    confidence=0.9
-                ))
+                entities.append(Entity(text=match.group(0), entity_type=EntityType.DATE, confidence=0.9))
 
         # Money
-        money_pattern = r'\$\d+(?:,\d{3})*(?:\.\d{2})?'
+        money_pattern = r"\$\d+(?:,\d{3})*(?:\.\d{2})?"
         for match in re.finditer(money_pattern, text):
-            entities.append(Entity(
-                text=match.group(0),
-                entity_type=EntityType.MONEY,
-                confidence=0.95
-            ))
+            entities.append(Entity(text=match.group(0), entity_type=EntityType.MONEY, confidence=0.95))
 
         # Capitalized names (simple heuristic for persons/organizations)
-        name_pattern = r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b'
+        name_pattern = r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b"
         for match in re.finditer(name_pattern, text):
-            entities.append(Entity(
-                text=match.group(0),
-                entity_type=EntityType.PERSON,
-                confidence=0.7
-            ))
+            entities.append(Entity(text=match.group(0), entity_type=EntityType.PERSON, confidence=0.7))
 
         return entities
 
@@ -406,12 +383,35 @@ class DocumentIntelligence:
             Tuple of (sentiment_label, score)
         """
         # Simple lexicon-based sentiment
-        positive_words = {'good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic',
-                         'positive', 'happy', 'love', 'best', 'perfect', 'beautiful'}
-        negative_words = {'bad', 'terrible', 'awful', 'horrible', 'worst', 'hate',
-                         'negative', 'sad', 'poor', 'disappointing', 'wrong'}
+        positive_words = {
+            "good",
+            "great",
+            "excellent",
+            "amazing",
+            "wonderful",
+            "fantastic",
+            "positive",
+            "happy",
+            "love",
+            "best",
+            "perfect",
+            "beautiful",
+        }
+        negative_words = {
+            "bad",
+            "terrible",
+            "awful",
+            "horrible",
+            "worst",
+            "hate",
+            "negative",
+            "sad",
+            "poor",
+            "disappointing",
+            "wrong",
+        }
 
-        words = re.findall(r'\w+', text.lower())
+        words = re.findall(r"\w+", text.lower())
 
         pos_count = sum(1 for w in words if w in positive_words)
         neg_count = sum(1 for w in words if w in negative_words)
@@ -432,11 +432,31 @@ class DocumentIntelligence:
     def extract_keywords(self, text: str, top_k: int = 10) -> List[str]:
         """Extract top keywords using TF-IDF-like scoring"""
         # Tokenize and count
-        words = re.findall(r'\w+', text.lower())
+        words = re.findall(r"\w+", text.lower())
 
         # Remove common words
-        stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to',
-                    'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were'}
+        stopwords = {
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "from",
+            "as",
+            "is",
+            "was",
+            "are",
+            "were",
+        }
         words = [w for w in words if w not in stopwords and len(w) > 2]
 
         # Count frequencies
@@ -445,11 +465,7 @@ class DocumentIntelligence:
         # Return top K
         return [word for word, _ in word_freq.most_common(top_k)]
 
-    async def classify(
-        self,
-        text: str,
-        categories: List[str] = None
-    ) -> str:
+    async def classify(self, text: str, categories: List[str] = None) -> str:
         """Classify document into category"""
         if not categories:
             categories = ["business", "technical", "personal", "administrative", "legal"]
@@ -460,10 +476,10 @@ class DocumentIntelligence:
             "technical": ["system", "software", "code", "database", "api"],
             "personal": ["family", "friend", "hobby", "personal", "private"],
             "administrative": ["meeting", "schedule", "budget", "report", "policy"],
-            "legal": ["contract", "agreement", "law", "clause", "liability"]
+            "legal": ["contract", "agreement", "law", "clause", "liability"],
         }
 
-        words = set(re.findall(r'\w+', text.lower()))
+        words = set(re.findall(r"\w+", text.lower()))
 
         scores = {}
         for category in categories:
@@ -484,9 +500,9 @@ class DocumentIntelligence:
         Returns:
             Score from 0-100 (higher = easier to read)
         """
-        sentences = len(re.split(r'[.!?]+', text))
-        words = len(re.findall(r'\w+', text))
-        syllables = sum(self._count_syllables(word) for word in re.findall(r'\w+', text))
+        sentences = len(re.split(r"[.!?]+", text))
+        words = len(re.findall(r"\w+", text))
+        syllables = sum(self._count_syllables(word) for word in re.findall(r"\w+", text))
 
         if sentences == 0 or words == 0:
             return 0.0
@@ -509,7 +525,7 @@ class DocumentIntelligence:
             previous_was_vowel = is_vowel
 
         # Adjust for silent e
-        if word.endswith('e'):
+        if word.endswith("e"):
             syllable_count -= 1
 
         return max(1, syllable_count)
@@ -517,9 +533,11 @@ class DocumentIntelligence:
 
 # ==================== Smart Recommendations ====================
 
+
 @dataclass
 class Recommendation:
     """Recommendation item"""
+
     item_id: str
     score: float
     reason: str
@@ -548,12 +566,7 @@ class RecommendationEngine:
         with self._lock:
             self._item_features[item_id] = features
 
-    def recommend(
-        self,
-        user_id: str,
-        n: int = 10,
-        method: str = "hybrid"
-    ) -> List[Recommendation]:
+    def recommend(self, user_id: str, n: int = 10, method: str = "hybrid") -> List[Recommendation]:
         """
         Generate recommendations
 
@@ -581,10 +594,7 @@ class RecommendationEngine:
                 return []
 
             # Get features of user's items
-            user_features = [
-                self._item_features.get(item_id, {})
-                for item_id in user_items
-            ]
+            user_features = [self._item_features.get(item_id, {}) for item_id in user_items]
 
             # Find similar items
             recommendations = []
@@ -595,11 +605,7 @@ class RecommendationEngine:
                 # Calculate similarity
                 similarity = self._calculate_similarity(user_features, features)
 
-                recommendations.append(Recommendation(
-                    item_id=item_id,
-                    score=similarity,
-                    reason="content_similarity"
-                ))
+                recommendations.append(Recommendation(item_id=item_id, score=similarity, reason="content_similarity"))
 
             # Sort by score
             recommendations.sort(key=lambda x: x.score, reverse=True)
@@ -635,11 +641,7 @@ class RecommendationEngine:
 
             # Convert to recommendations
             recommendations = [
-                Recommendation(
-                    item_id=item_id,
-                    score=score,
-                    reason="collaborative_filtering"
-                )
+                Recommendation(item_id=item_id, score=score, reason="collaborative_filtering")
                 for item_id, score in item_scores.items()
             ]
 
@@ -661,12 +663,7 @@ class RecommendationEngine:
 
         # Convert back to recommendations
         recommendations = [
-            Recommendation(
-                item_id=item_id,
-                score=score,
-                reason="hybrid"
-            )
-            for item_id, score in combined.items()
+            Recommendation(item_id=item_id, score=score, reason="hybrid") for item_id, score in combined.items()
         ]
 
         recommendations.sort(key=lambda x: x.score, reverse=True)

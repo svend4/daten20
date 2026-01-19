@@ -1,93 +1,78 @@
 """
-# SIMPLE VERSION - Neurosymbolic AI Module - v14.0
+Neuro-Symbolic AI Platform Module (v14.0)
 
-Hybrid neural-symbolic reasoning combining deep learning and logic.
-Version: 14.0.0 (SIMPLE)
+This module provides comprehensive neuro-symbolic AI capabilities combining
+neural learning with symbolic reasoning.
+
+Core Systems:
+- Logic Tensor Network: Differentiable first-order logic
+- Neural Module Network: Compositional visual reasoning
+- Program Synthesis Engine: Inducing programs from examples
+- Semantic Parser: NL to logical forms
+- Differentiable Reasoner: Neural-symbolic inference
+- Knowledge Graph Embedder: KG representations
+- Hybrid Learning System: Joint neural-symbolic optimization
+
+Example Usage:
+    from neurosymbolic import get_logic_tensor_network
+
+    ltn = get_logic_tensor_network()
+    # Train with logical constraints
+    await ltn.add_predicate("is_red", neural_network)
+    await ltn.add_rule("forall x: is_red(x) -> is_colored(x)")
 """
 
-__version__ = '14.0.0'
+from .neurosymbolic_services import (  # Enums; Data Classes; Service Classes; Singleton Getters
+    DifferentiableReasoner,
+    HybridLearningSystem,
+    KnowledgeGraphEmbedder,
+    LogicalForm,
+    LogicOperator,
+    LogicRule,
+    LogicTensorNetwork,
+    Module,
+    ModuleType,
+    NeuralModuleNetwork,
+    Predicate,
+    Program,
+    ProgramSynthesisEngine,
+    ReasoningMode,
+    SemanticParser,
+    SynthesisAlgorithm,
+    Triple,
+    get_differentiable_reasoner,
+    get_hybrid_learning_system,
+    get_knowledge_graph_embedder,
+    get_logic_tensor_network,
+    get_neural_module_network,
+    get_program_synthesis_engine,
+    get_semantic_parser,
+)
 
-from enum import Enum
-from dataclasses import dataclass
-from typing import Dict, Any, Optional, List
-import logging
-
-logger = logging.getLogger(__name__)
-
-
-class ReasoningMode(Enum):
-    """Neurosymbolic reasoning modes"""
-    NEURAL_ONLY = "neural_only"
-    SYMBOLIC_ONLY = "symbolic_only"
-    HYBRID = "hybrid"
-    ITERATIVE = "iterative"
-
-
-@dataclass
-class NeurosymbolicConfig:
-    """Neurosymbolic AI configuration"""
-    enable_logic_rules: bool = True
-    enable_neural_perception: bool = True
-    reasoning_depth: int = 5
-
-
-class NeurosymbolicEngine:
-    """
-    # SIMPLE VERSION
-    Neurosymbolic Engine - Placeholder for neurosymbolic AI
-
-    Can be expanded with:
-    - Neural-symbolic integration architectures
-    - Logic Tensor Networks (LTN)
-    - Neural Theorem Provers (NTP)
-    - Differentiable reasoning (∂ILP)
-    - Program synthesis from examples
-    - Inductive Logic Programming (ILP)
-    - Knowledge graph embedding + reasoning
-    - Semantic parsing (text to logical form)
-    - Visual reasoning (CLEVR, VQA with logic)
-    - Probabilistic logic programming
-    - Answer Set Programming (ASP) integration
-    - First-order logic reasoning
-    - Rule learning from neural networks
-    - Hybrid planners (neural perception + symbolic planning)
-    - Commonsense reasoning
-    """
-
-    def __init__(self, config: Optional[NeurosymbolicConfig] = None):
-        self.config = config or NeurosymbolicConfig()
-        self.knowledge_base = {}
-        self.rules = []
-        logger.info("Neurosymbolic Engine initialized (SIMPLE VERSION)")
-
-    def add_rule(self, rule: str) -> bool:
-        """Add logical rule to knowledge base (simulated)"""
-        self.rules.append(rule)
-        return True
-
-    def reason(self, query: str, mode: ReasoningMode) -> Dict[str, Any]:
-        """Perform neurosymbolic reasoning (simulated)"""
-        return {
-            "query": query,
-            "mode": mode.value,
-            "result": "Simulated reasoning result",
-            "confidence": 0.0,
-            "status": "placeholder"
-        }
-
-    def synthesize_program(self, examples: List[Dict[str, Any]]) -> str:
-        """Synthesize program from examples (simulated)"""
-        return "def synthesized_program(): pass"
-
-
-_engine = None
-
-def get_neurosymbolic_engine(config: Optional[NeurosymbolicConfig] = None) -> NeurosymbolicEngine:
-    """Get singleton Neurosymbolic Engine"""
-    global _engine
-    if _engine is None:
-        _engine = NeurosymbolicEngine(config)
-    return _engine
-
-
-__all__ = ['NeurosymbolicEngine', 'NeurosymbolicConfig', 'ReasoningMode', 'get_neurosymbolic_engine']
+__version__ = "14.0.0"
+__all__ = [
+    "LogicOperator",
+    "ModuleType",
+    "SynthesisAlgorithm",
+    "ReasoningMode",
+    "Predicate",
+    "LogicRule",
+    "Module",
+    "Program",
+    "LogicalForm",
+    "Triple",
+    "LogicTensorNetwork",
+    "NeuralModuleNetwork",
+    "ProgramSynthesisEngine",
+    "SemanticParser",
+    "DifferentiableReasoner",
+    "KnowledgeGraphEmbedder",
+    "HybridLearningSystem",
+    "get_logic_tensor_network",
+    "get_neural_module_network",
+    "get_program_synthesis_engine",
+    "get_semantic_parser",
+    "get_differentiable_reasoner",
+    "get_knowledge_graph_embedder",
+    "get_hybrid_learning_system",
+]

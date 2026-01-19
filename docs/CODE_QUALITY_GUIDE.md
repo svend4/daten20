@@ -12,7 +12,21 @@ Comprehensive code quality system with automated checks, formatters, and linters
 
 ## 🎯 Quick Start
 
-### Option 1: Using Makefile (Recommended)
+### Option 1: Using New Quality Scripts (Recommended) ⭐
+
+```bash
+# Quick check (recommended before committing)
+./scripts/code_quality_check.sh
+
+# Auto-fix all issues
+./scripts/fix_code_quality.sh
+```
+
+**What they do:**
+- `code_quality_check.sh`: Runs Black, isort, Flake8, MyPy, and Bandit checks
+- `fix_code_quality.sh`: Auto-fixes formatting with Black and isort
+
+### Option 2: Using Makefile
 
 ```bash
 # Run all quality checks
@@ -25,7 +39,7 @@ make lint-fast
 make lint-fix
 ```
 
-### Option 2: Using Script Directly
+### Option 3: Using Original Script
 
 ```bash
 # Run all checks
@@ -52,6 +66,61 @@ pre-commit run --all-files
 
 # Runs automatically on git commit
 git commit -m "Your message"
+```
+
+---
+
+## 🚀 Running Quality Checks
+
+### Quick Check
+Run this before committing to verify code quality:
+```bash
+./scripts/code_quality_check.sh
+```
+
+**What it checks:**
+1. ✅ Black formatting (mandatory)
+2. ✅ Import sorting with isort (mandatory)
+3. ✅ Flake8 critical errors (mandatory)
+4. ⚠️ Flake8 all issues (informational)
+5. ⚠️ MyPy type checking (informational)
+6. ⚠️ Bandit security scan (informational)
+7. 📊 Code metrics (TODO count, print statements, etc.)
+
+**Exit codes:**
+- `0` - All mandatory checks passed ✅
+- `1` - Some mandatory checks failed ❌
+
+### Auto-fix Issues
+Automatically fix formatting and import issues:
+```bash
+./scripts/fix_code_quality.sh
+```
+
+**What it fixes:**
+1. 🔧 Code formatting with Black
+2. 🔧 Import sorting with isort
+3. 🔧 Trailing whitespace removal
+
+**After running:**
+- Run `./scripts/code_quality_check.sh` to verify
+- Review remaining flake8 issues manually
+- Commit with: `git commit -m 'style: auto-fix code quality'`
+
+### Manual Checks
+Run individual tools:
+```bash
+# Format code
+black src/ tests/
+
+# Sort imports
+isort src/ tests/
+
+# Check linting
+flake8 src/ tests/
+
+# Type checking
+mypy src/ --ignore-missing-imports
 ```
 
 ---

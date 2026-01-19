@@ -1,21 +1,27 @@
-Document Sample 2
-==================
+Document Management Platform
+=============================
 
-This is the second sample document for testing purposes.
-It contains multiple paragraphs and entities with some changes.
+A different sample document with some overlapping content.
 
-Name: John Doe
-Email: john.doe@example.com
-Phone: +49 987 654321
-Location: Munich, Germany
-Date: 20.03.2025
+Overview
+--------
+This document management platform offers various features for handling documents in organizational settings. The system enables efficient document workflows and collaboration.
 
-This document discusses various topics including:
-- Natural Language Processing
-- Deep Learning
-- Document Management Systems
-- Text Analytics
+Main Capabilities:
+- Text analysis and extraction
+- Search functionality
+- Quality metrics
+- Data protection compliance
+- Entity extraction
+- Version control
 
-The content is structured with clear sections and formatting.
-Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-Additional content added in version 2.
+Architecture
+------------
+Built with modern Python technologies and incorporates AI/ML components for intelligent document processing.
+
+Contact Details:
+- Email: contact@example.org
+- Phone: +49 987 654321
+- Location: Different Street 456, 54321 Munich
+
+Modified: 20.02.2025

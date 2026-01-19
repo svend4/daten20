@@ -20,21 +20,22 @@ Dependencies:
 - numpy for numerical operations
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable, Tuple
-from enum import Enum
-from datetime import datetime, timedelta
-from collections import deque, defaultdict
+import logging
 import threading
 import time
-import logging
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from decimal import Decimal
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class WindowType(str, Enum):
     """Window types for stream processing"""
+
     TUMBLING = "tumbling"  # Fixed, non-overlapping windows
     SLIDING = "sliding"  # Overlapping windows
     SESSION = "session"  # Dynamic windows based on inactivity
@@ -42,6 +43,7 @@ class WindowType(str, Enum):
 
 class AggregationType(str, Enum):
     """Aggregation functions"""
+
     SUM = "sum"
     AVG = "avg"
     COUNT = "count"
@@ -53,6 +55,7 @@ class AggregationType(str, Enum):
 
 class EventType(str, Enum):
     """Complex event types"""
+
     PATTERN_MATCHED = "pattern_matched"
     THRESHOLD_EXCEEDED = "threshold_exceeded"
     ANOMALY_DETECTED = "anomaly_detected"
@@ -62,6 +65,7 @@ class EventType(str, Enum):
 @dataclass
 class StreamEvent:
     """Stream event with metadata"""
+
     event_id: str
     event_type: str
     timestamp: datetime
@@ -81,6 +85,7 @@ class StreamEvent:
 @dataclass
 class Window:
     """Time window for aggregation"""
+
     window_id: str
     start_time: datetime
     end_time: datetime
@@ -103,6 +108,7 @@ class Window:
 @dataclass
 class StreamMetrics:
     """Real-time stream metrics"""
+
     total_events: int = 0
     events_per_second: float = 0.0
     average_latency_ms: float = 0.0
@@ -123,7 +129,7 @@ class WindowManager:
         window_type: WindowType,
         window_size: timedelta,
         slide: Optional[timedelta] = None,
-        session_gap: Optional[timedelta] = None
+        session_gap: Optional[timedelta] = None,
     ):
         self.window_type = window_type
         self.window_size = window_size
@@ -159,11 +165,7 @@ class WindowManager:
         window_id = f"tumbling_{window_start.timestamp()}"
 
         if window_id not in self._windows:
-            self._windows[window_id] = Window(
-                window_id=window_id,
-                start_time=window_start,
-                end_time=window_end
-            )
+            self._windows[window_id] = Window(window_id=window_id, start_time=window_start, end_time=window_end)
 
         window = self._windows[window_id]
         if window.add_event(event):
@@ -187,11 +189,7 @@ class WindowManager:
                 window_id = f"sliding_{ws.timestamp()}"
 
                 if window_id not in self._windows:
-                    self._windows[window_id] = Window(
-                        window_id=window_id,
-                        start_time=ws,
-                        end_time=we
-                    )
+                    self._windows[window_id] = Window(window_id=window_id, start_time=ws, end_time=we)
 
                 window = self._windows[window_id]
                 if window.add_event(event):
@@ -225,7 +223,7 @@ class WindowManager:
                 window_id=window_id,
                 start_time=event.event_time,
                 end_time=event.event_time + self.session_gap,
-                events=[event]
+                events=[event],
             )
             return [window_id]
 
@@ -257,10 +255,7 @@ class WindowManager:
         cutoff = datetime.now() - retention
 
         with self._lock:
-            to_remove = [
-                wid for wid, window in self._windows.items()
-                if window.closed and window.end_time < cutoff
-            ]
+            to_remove = [wid for wid, window in self._windows.items() if window.closed and window.end_time < cutoff]
 
             for wid in to_remove:
                 del self._windows[wid]
@@ -284,12 +279,7 @@ class StreamAggregator:
             AggregationType.LAST: self._last,
         }
 
-    def aggregate_window(
-        self,
-        window: Window,
-        field: str,
-        agg_type: AggregationType
-    ) -> Any:
+    def aggregate_window(self, window: Window, field: str, agg_type: AggregationType) -> Any:
         """
         Aggregate field in window
 
@@ -358,7 +348,7 @@ class ComplexEventProcessor:
         pattern_name: str,
         event_sequence: List[str],
         within_time: timedelta,
-        condition: Optional[Callable[[List[StreamEvent]], bool]] = None
+        condition: Optional[Callable[[List[StreamEvent]], bool]] = None,
     ):
         """
         Register event pattern
@@ -373,7 +363,7 @@ class ComplexEventProcessor:
             self._patterns[pattern_name] = {
                 "sequence": event_sequence,
                 "within_time": within_time,
-                "condition": condition or (lambda events: True)
+                "condition": condition or (lambda events: True),
             }
 
     def process_event(self, event: StreamEvent) -> List[Tuple[str, List[StreamEvent]]]:
@@ -444,7 +434,7 @@ class StreamProcessor:
         self,
         window_type: WindowType = WindowType.TUMBLING,
         window_size: timedelta = timedelta(minutes=5),
-        slide: Optional[timedelta] = None
+        slide: Optional[timedelta] = None,
     ):
         self.window_manager = WindowManager(window_type, window_size, slide)
         self.aggregator = StreamAggregator()
@@ -485,9 +475,8 @@ class StreamProcessor:
         self._metrics.total_events += 1
         latency = (datetime.now() - event.timestamp).total_seconds() * 1000
         self._metrics.average_latency_ms = (
-            (self._metrics.average_latency_ms * (self._metrics.total_events - 1) + latency)
-            / self._metrics.total_events
-        )
+            self._metrics.average_latency_ms * (self._metrics.total_events - 1) + latency
+        ) / self._metrics.total_events
 
         # Assign to windows
         window_ids = self.window_manager.assign_to_windows(event)
@@ -603,9 +592,7 @@ if __name__ == "__main__":
 
     # Register pattern
     processor.cep.register_pattern(
-        "high_value_sequence",
-        ["transaction", "transaction", "transaction"],
-        within_time=timedelta(minutes=1)
+        "high_value_sequence", ["transaction", "transaction", "transaction"], within_time=timedelta(minutes=1)
     )
 
     def on_high_value_pattern(events: List[StreamEvent]):
@@ -624,7 +611,7 @@ if __name__ == "__main__":
             timestamp=datetime.now(),
             event_time=datetime.now(),
             data={"amount": 100 + i * 10, "user_id": f"user-{i % 3}"},
-            source="payment-api"
+            source="payment-api",
         )
         processor.process_event(event)
         time.sleep(0.1)

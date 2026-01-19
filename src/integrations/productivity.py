@@ -21,12 +21,14 @@ logger = logging.getLogger(__name__)
 
 class ProductivitySuite(Enum):
     """Productivity suite providers."""
+
     GOOGLE_WORKSPACE = "google_workspace"
     MICROSOFT_365 = "microsoft_365"
 
 
 class DocumentFormat(Enum):
     """Document export formats."""
+
     DOCX = "docx"
     PDF = "pdf"
     HTML = "html"
@@ -37,6 +39,7 @@ class DocumentFormat(Enum):
 @dataclass
 class Document:
     """Productivity document."""
+
     doc_id: str
     title: str
     content: str
@@ -52,6 +55,7 @@ class Document:
 @dataclass
 class Spreadsheet:
     """Spreadsheet document."""
+
     sheet_id: str
     title: str
     sheets: List[str] = field(default_factory=list)
@@ -65,6 +69,7 @@ class Spreadsheet:
 @dataclass
 class Email:
     """Email message."""
+
     message_id: str
     subject: str
     body: str
@@ -80,6 +85,7 @@ class Email:
 @dataclass
 class Contact:
     """Contact information."""
+
     contact_id: str
     name: str
     email: str
@@ -101,41 +107,23 @@ class BaseProductivityClient(ABC):
         pass
 
     @abstractmethod
-    async def create_document(
-        self,
-        title: str,
-        content: str,
-        share_with: Optional[List[str]] = None
-    ) -> Document:
+    async def create_document(self, title: str, content: str, share_with: Optional[List[str]] = None) -> Document:
         """Create new document."""
         pass
 
     @abstractmethod
-    async def edit_document(
-        self,
-        doc_id: str,
-        content: str
-    ) -> bool:
+    async def edit_document(self, doc_id: str, content: str) -> bool:
         """Edit existing document."""
         pass
 
     @abstractmethod
-    async def create_spreadsheet(
-        self,
-        title: str,
-        data: List[List[Any]],
-        sheet_name: str = "Sheet1"
-    ) -> Spreadsheet:
+    async def create_spreadsheet(self, title: str, data: List[List[Any]], sheet_name: str = "Sheet1") -> Spreadsheet:
         """Create new spreadsheet."""
         pass
 
     @abstractmethod
     async def send_email(
-        self,
-        to: List[str],
-        subject: str,
-        body: str,
-        attachments: Optional[List[str]] = None
+        self, to: List[str], subject: str, body: str, attachments: Optional[List[str]] = None
     ) -> Email:
         """Send email."""
         pass
@@ -160,12 +148,7 @@ class GoogleWorkspaceClient(BaseProductivityClient):
         logger.info("Connected to Google Workspace")
         return True
 
-    async def create_document(
-        self,
-        title: str,
-        content: str,
-        share_with: Optional[List[str]] = None
-    ) -> Document:
+    async def create_document(self, title: str, content: str, share_with: Optional[List[str]] = None) -> Document:
         """Create Google Doc."""
         if not self.connected:
             raise RuntimeError("Not connected to Google Workspace")
@@ -180,11 +163,11 @@ class GoogleWorkspaceClient(BaseProductivityClient):
             title=title,
             content=content,
             format=DocumentFormat.HTML,
-            owner=self.credentials.get('email', 'unknown'),
+            owner=self.credentials.get("email", "unknown"),
             created_at=datetime.now(),
             modified_at=datetime.now(),
             shared_with=share_with or [],
-            url=f"https://docs.google.com/document/d/{doc_id}/edit"
+            url=f"https://docs.google.com/document/d/{doc_id}/edit",
         )
 
         logger.info(f"Created Google Doc: {title}")
@@ -207,12 +190,7 @@ class GoogleWorkspaceClient(BaseProductivityClient):
         logger.info(f"Edited Google Doc {doc_id}")
         return True
 
-    async def create_spreadsheet(
-        self,
-        title: str,
-        data: List[List[Any]],
-        sheet_name: str = "Sheet1"
-    ) -> Spreadsheet:
+    async def create_spreadsheet(self, title: str, data: List[List[Any]], sheet_name: str = "Sheet1") -> Spreadsheet:
         """Create Google Sheet."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -226,21 +204,17 @@ class GoogleWorkspaceClient(BaseProductivityClient):
             sheet_id=sheet_id,
             title=title,
             sheets=[sheet_name],
-            owner=self.credentials.get('email', 'unknown'),
+            owner=self.credentials.get("email", "unknown"),
             created_at=datetime.now(),
             modified_at=datetime.now(),
-            url=f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit"
+            url=f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit",
         )
 
         logger.info(f"Created Google Sheet: {title}")
         return spreadsheet
 
     async def send_email(
-        self,
-        to: List[str],
-        subject: str,
-        body: str,
-        attachments: Optional[List[str]] = None
+        self, to: List[str], subject: str, body: str, attachments: Optional[List[str]] = None
     ) -> Email:
         """Send email via Gmail."""
         if not self.connected:
@@ -255,10 +229,10 @@ class GoogleWorkspaceClient(BaseProductivityClient):
             message_id=message_id,
             subject=subject,
             body=body,
-            from_addr=self.credentials.get('email', 'unknown'),
+            from_addr=self.credentials.get("email", "unknown"),
             to_addrs=to,
             attachments=attachments or [],
-            sent_at=datetime.now()
+            sent_at=datetime.now(),
         )
 
         logger.info(f"Sent email via Gmail: {subject}")
@@ -270,22 +244,11 @@ class GoogleWorkspaceClient(BaseProductivityClient):
             return []
 
         # Mock contacts
-        contacts = [
-            Contact(
-                contact_id=str(uuid4()),
-                name="John Doe",
-                email="john@example.com",
-                phone="+1234567890"
-            )
-        ]
+        contacts = [Contact(contact_id=str(uuid4()), name="John Doe", email="john@example.com", phone="+1234567890")]
 
         return contacts
 
-    async def export_document(
-        self,
-        doc_id: str,
-        format: DocumentFormat = DocumentFormat.PDF
-    ) -> bytes:
+    async def export_document(self, doc_id: str, format: DocumentFormat = DocumentFormat.PDF) -> bytes:
         """Export Google Doc to different format."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -296,23 +259,13 @@ class GoogleWorkspaceClient(BaseProductivityClient):
         logger.info(f"Exported document {doc_id} as {format.value}")
         return b"mock document content"
 
-    async def get_drive_files(
-        self,
-        folder_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    async def get_drive_files(self, folder_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """List files in Google Drive."""
         if not self.connected:
             return []
 
         # Mock file list
-        return [
-            {
-                'id': str(uuid4()),
-                'name': 'Document.pdf',
-                'type': 'application/pdf',
-                'size': 1024
-            }
-        ]
+        return [{"id": str(uuid4()), "name": "Document.pdf", "type": "application/pdf", "size": 1024}]
 
 
 class Microsoft365Client(BaseProductivityClient):
@@ -329,12 +282,7 @@ class Microsoft365Client(BaseProductivityClient):
         logger.info("Connected to Microsoft 365")
         return True
 
-    async def create_document(
-        self,
-        title: str,
-        content: str,
-        share_with: Optional[List[str]] = None
-    ) -> Document:
+    async def create_document(self, title: str, content: str, share_with: Optional[List[str]] = None) -> Document:
         """Create Word document."""
         if not self.connected:
             raise RuntimeError("Not connected to Microsoft 365")
@@ -349,11 +297,11 @@ class Microsoft365Client(BaseProductivityClient):
             title=title,
             content=content,
             format=DocumentFormat.DOCX,
-            owner=self.credentials.get('email', 'unknown'),
+            owner=self.credentials.get("email", "unknown"),
             created_at=datetime.now(),
             modified_at=datetime.now(),
             shared_with=share_with or [],
-            url=f"https://office.com/document/{doc_id}"
+            url=f"https://office.com/document/{doc_id}",
         )
 
         logger.info(f"Created Word document: {title}")
@@ -370,12 +318,7 @@ class Microsoft365Client(BaseProductivityClient):
         logger.info(f"Edited Word document {doc_id}")
         return True
 
-    async def create_spreadsheet(
-        self,
-        title: str,
-        data: List[List[Any]],
-        sheet_name: str = "Sheet1"
-    ) -> Spreadsheet:
+    async def create_spreadsheet(self, title: str, data: List[List[Any]], sheet_name: str = "Sheet1") -> Spreadsheet:
         """Create Excel spreadsheet."""
         if not self.connected:
             raise RuntimeError("Not connected")
@@ -389,21 +332,17 @@ class Microsoft365Client(BaseProductivityClient):
             sheet_id=sheet_id,
             title=title,
             sheets=[sheet_name],
-            owner=self.credentials.get('email', 'unknown'),
+            owner=self.credentials.get("email", "unknown"),
             created_at=datetime.now(),
             modified_at=datetime.now(),
-            url=f"https://office.com/excel/{sheet_id}"
+            url=f"https://office.com/excel/{sheet_id}",
         )
 
         logger.info(f"Created Excel spreadsheet: {title}")
         return spreadsheet
 
     async def send_email(
-        self,
-        to: List[str],
-        subject: str,
-        body: str,
-        attachments: Optional[List[str]] = None
+        self, to: List[str], subject: str, body: str, attachments: Optional[List[str]] = None
     ) -> Email:
         """Send email via Outlook."""
         if not self.connected:
@@ -418,10 +357,10 @@ class Microsoft365Client(BaseProductivityClient):
             message_id=message_id,
             subject=subject,
             body=body,
-            from_addr=self.credentials.get('email', 'unknown'),
+            from_addr=self.credentials.get("email", "unknown"),
             to_addrs=to,
             attachments=attachments or [],
-            sent_at=datetime.now()
+            sent_at=datetime.now(),
         )
 
         logger.info(f"Sent email via Outlook: {subject}")
@@ -434,20 +373,12 @@ class Microsoft365Client(BaseProductivityClient):
 
         # Mock contacts
         contacts = [
-            Contact(
-                contact_id=str(uuid4()),
-                name="Jane Smith",
-                email="jane@example.com",
-                organization="Acme Corp"
-            )
+            Contact(contact_id=str(uuid4()), name="Jane Smith", email="jane@example.com", organization="Acme Corp")
         ]
 
         return contacts
 
-    async def get_onedrive_files(
-        self,
-        folder_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    async def get_onedrive_files(self, folder_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """List files in OneDrive."""
         if not self.connected:
             return []
@@ -455,12 +386,7 @@ class Microsoft365Client(BaseProductivityClient):
         # Mock file list
         return []
 
-    async def create_teams_message(
-        self,
-        team_id: str,
-        channel_id: str,
-        message: str
-    ) -> bool:
+    async def create_teams_message(self, team_id: str, channel_id: str, message: str) -> bool:
         """Post message to Teams channel."""
         if not self.connected:
             return False
@@ -478,12 +404,7 @@ class DocumentEditor:
     def __init__(self, client: BaseProductivityClient):
         self.client = client
 
-    async def create(
-        self,
-        title: str,
-        content: str,
-        format: DocumentFormat = DocumentFormat.HTML
-    ) -> Document:
+    async def create(self, title: str, content: str, format: DocumentFormat = DocumentFormat.HTML) -> Document:
         """Create new document."""
         return await self.client.create_document(title, content)
 
@@ -497,12 +418,7 @@ class DocumentEditor:
         logger.info(f"Appended content to document {doc_id}")
         return True
 
-    async def format_text(
-        self,
-        doc_id: str,
-        text: str,
-        formatting: Dict[str, Any]
-    ) -> bool:
+    async def format_text(self, doc_id: str, text: str, formatting: Dict[str, Any]) -> bool:
         """Apply formatting to text."""
         # Mock formatting
         logger.info(f"Applied formatting to document {doc_id}")
@@ -515,51 +431,28 @@ class SpreadsheetManager:
     def __init__(self, client: BaseProductivityClient):
         self.client = client
 
-    async def create(
-        self,
-        title: str,
-        data: List[List[Any]]
-    ) -> Spreadsheet:
+    async def create(self, title: str, data: List[List[Any]]) -> Spreadsheet:
         """Create new spreadsheet."""
         return await self.client.create_spreadsheet(title, data)
 
-    async def update_cell(
-        self,
-        sheet_id: str,
-        cell: str,
-        value: Any
-    ) -> bool:
+    async def update_cell(self, sheet_id: str, cell: str, value: Any) -> bool:
         """Update cell value."""
         # Mock update
         logger.info(f"Updated cell {cell} in sheet {sheet_id}")
         return True
 
-    async def update_range(
-        self,
-        sheet_id: str,
-        range_spec: str,
-        values: List[List[Any]]
-    ) -> bool:
+    async def update_range(self, sheet_id: str, range_spec: str, values: List[List[Any]]) -> bool:
         """Update range of cells."""
         # Mock update
         logger.info(f"Updated range {range_spec} in sheet {sheet_id}")
         return True
 
-    async def get_values(
-        self,
-        sheet_id: str,
-        range_spec: str
-    ) -> List[List[Any]]:
+    async def get_values(self, sheet_id: str, range_spec: str) -> List[List[Any]]:
         """Get values from range."""
         # Mock values
-        return [['A1', 'B1'], ['A2', 'B2']]
+        return [["A1", "B1"], ["A2", "B2"]]
 
-    async def add_chart(
-        self,
-        sheet_id: str,
-        chart_type: str,
-        data_range: str
-    ) -> bool:
+    async def add_chart(self, sheet_id: str, chart_type: str, data_range: str) -> bool:
         """Add chart to spreadsheet."""
         # Mock chart
         logger.info(f"Added {chart_type} chart to sheet {sheet_id}")
@@ -572,40 +465,24 @@ class EmailClient:
     def __init__(self, client: BaseProductivityClient):
         self.client = client
 
-    async def send(
-        self,
-        to: List[str],
-        subject: str,
-        body: str,
-        **kwargs
-    ) -> Email:
+    async def send(self, to: List[str], subject: str, body: str, **kwargs) -> Email:
         """Send email."""
-        return await self.client.send_email(to, subject, body, kwargs.get('attachments'))
+        return await self.client.send_email(to, subject, body, kwargs.get("attachments"))
 
-    async def send_bulk(
-        self,
-        recipients: List[Dict[str, Any]],
-        template: str
-    ) -> List[Email]:
+    async def send_bulk(self, recipients: List[Dict[str, Any]], template: str) -> List[Email]:
         """Send bulk emails."""
         emails = []
 
         for recipient in recipients:
             email = await self.send(
-                to=[recipient['email']],
-                subject=template.format(**recipient),
-                body=template.format(**recipient)
+                to=[recipient["email"]], subject=template.format(**recipient), body=template.format(**recipient)
             )
             emails.append(email)
 
         logger.info(f"Sent {len(emails)} bulk emails")
         return emails
 
-    async def list_messages(
-        self,
-        folder: str = "inbox",
-        limit: int = 10
-    ) -> List[Email]:
+    async def list_messages(self, folder: str = "inbox", limit: int = 10) -> List[Email]:
         """List email messages."""
         # Mock messages
         return []
@@ -617,11 +494,7 @@ class ProductivityManager:
     def __init__(self):
         self.clients: Dict[ProductivitySuite, BaseProductivityClient] = {}
 
-    def register_suite(
-        self,
-        suite: ProductivitySuite,
-        credentials: Dict[str, str]
-    ):
+    def register_suite(self, suite: ProductivitySuite, credentials: Dict[str, str]):
         """Register productivity suite."""
         if suite == ProductivitySuite.GOOGLE_WORKSPACE:
             self.clients[suite] = GoogleWorkspaceClient(credentials)
@@ -668,13 +541,7 @@ class ProductivityManager:
 
         return EmailClient(self.clients[suite_enum])
 
-    async def create_document(
-        self,
-        suite: str,
-        title: str,
-        content: str,
-        **kwargs
-    ) -> Document:
+    async def create_document(self, suite: str, title: str, content: str, **kwargs) -> Document:
         """Create document."""
         suite_enum = ProductivitySuite(suite)
 
@@ -686,7 +553,7 @@ class ProductivityManager:
         if not client.connected:
             await client.connect()
 
-        return await client.create_document(title, content, kwargs.get('share_with'))
+        return await client.create_document(title, content, kwargs.get("share_with"))
 
 
 # Singleton instance

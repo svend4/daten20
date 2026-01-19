@@ -11,15 +11,16 @@ Provides white-labeling capabilities:
 - Widget embedding
 """
 
-from typing import Optional, List, Dict, Any
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import json
+from typing import Any, Dict, List, Optional
 
 
 class ThemeMode(str, Enum):
     """Theme modes"""
+
     LIGHT = "light"
     DARK = "dark"
     AUTO = "auto"
@@ -27,6 +28,7 @@ class ThemeMode(str, Enum):
 
 class BrandingElement(str, Enum):
     """Branding elements"""
+
     PRIMARY_LOGO = "primary_logo"
     SECONDARY_LOGO = "secondary_logo"
     FAVICON = "favicon"
@@ -38,6 +40,7 @@ class BrandingElement(str, Enum):
 @dataclass
 class ColorScheme:
     """Color scheme configuration"""
+
     primary: str = "#1976d2"
     secondary: str = "#dc004e"
     success: str = "#4caf50"
@@ -53,6 +56,7 @@ class ColorScheme:
 @dataclass
 class Typography:
     """Typography configuration"""
+
     font_family: str = "Roboto, sans-serif"
     font_size_base: int = 14
     font_size_h1: int = 32
@@ -68,6 +72,7 @@ class Typography:
 @dataclass
 class BrandAssets:
     """Brand assets"""
+
     primary_logo_url: Optional[str] = None
     secondary_logo_url: Optional[str] = None
     favicon_url: Optional[str] = None
@@ -81,6 +86,7 @@ class BrandAssets:
 @dataclass
 class EmailTemplate:
     """Email template"""
+
     id: str
     name: str
     subject: str
@@ -93,6 +99,7 @@ class EmailTemplate:
 @dataclass
 class UICustomization:
     """UI customization settings"""
+
     hide_powered_by: bool = False
     custom_footer_text: Optional[str] = None
     custom_menu_items: List[Dict[str, str]] = field(default_factory=list)
@@ -106,6 +113,7 @@ class UICustomization:
 @dataclass
 class WhiteLabelConfig:
     """White-label configuration"""
+
     tenant_id: str
     company_name: str
     domain: Optional[str] = None
@@ -143,13 +151,7 @@ class BrandingManager:
     def __init__(self):
         self.assets_cache: Dict[str, BrandAssets] = {}
 
-    def upload_asset(
-        self,
-        tenant_id: str,
-        asset_type: BrandingElement,
-        file_data: bytes,
-        filename: str
-    ) -> str:
+    def upload_asset(self, tenant_id: str, asset_type: BrandingElement, file_data: bytes, filename: str) -> str:
         """Upload branding asset"""
         # In production, upload to cloud storage (S3, GCS, Azure Blob)
         asset_url = f"https://cdn.example.com/{tenant_id}/{asset_type.value}/{filename}"
@@ -169,12 +171,7 @@ class BrandingManager:
 class ThemeEngine:
     """Generates CSS themes from configuration"""
 
-    def generate_css(
-        self,
-        color_scheme: ColorScheme,
-        typography: Typography,
-        theme_mode: ThemeMode
-    ) -> str:
+    def generate_css(self, color_scheme: ColorScheme, typography: Typography, theme_mode: ThemeMode) -> str:
         """Generate CSS from theme configuration"""
         css = f"""
 /* Auto-generated theme CSS */
@@ -235,10 +232,16 @@ h6 {{ font-size: var(--font-size-h6); }}
     def generate_theme_bundle(self, config: WhiteLabelConfig) -> Dict[str, str]:
         """Generate complete theme bundle"""
         return {
-            'light_css': self.generate_css(config.color_scheme_light, config.typography, ThemeMode.LIGHT),
-            'dark_css': self.generate_css(config.color_scheme_dark or config.color_scheme_light, config.typography, ThemeMode.DARK) if config.color_scheme_dark else None,
-            'custom_css': config.custom_css,
-            'custom_js': config.custom_js
+            "light_css": self.generate_css(config.color_scheme_light, config.typography, ThemeMode.LIGHT),
+            "dark_css": (
+                self.generate_css(
+                    config.color_scheme_dark or config.color_scheme_light, config.typography, ThemeMode.DARK
+                )
+                if config.color_scheme_dark
+                else None
+            ),
+            "custom_css": config.custom_css,
+            "custom_js": config.custom_js,
         }
 
 
@@ -251,11 +254,11 @@ class EmailTemplateEngine:
 
     def _load_default_templates(self):
         """Load default email templates"""
-        self.templates['welcome'] = EmailTemplate(
-            id='welcome',
-            name='Welcome Email',
-            subject='Welcome to {{company_name}}',
-            html_body='''
+        self.templates["welcome"] = EmailTemplate(
+            id="welcome",
+            name="Welcome Email",
+            subject="Welcome to {{company_name}}",
+            html_body="""
                 <html>
                 <head><style>body { font-family: Arial, sans-serif; }</style></head>
                 <body>
@@ -267,16 +270,16 @@ class EmailTemplateEngine:
                     <p>Best regards,<br/>The {{company_name}} Team</p>
                 </body>
                 </html>
-            ''',
-            text_body='Welcome to {{company_name}}! Visit {{login_url}} to get started.',
-            variables=['company_name', 'user_name', 'login_url', 'logo_url', 'primary_color']
+            """,
+            text_body="Welcome to {{company_name}}! Visit {{login_url}} to get started.",
+            variables=["company_name", "user_name", "login_url", "logo_url", "primary_color"],
         )
 
-        self.templates['password_reset'] = EmailTemplate(
-            id='password_reset',
-            name='Password Reset',
-            subject='Reset your password',
-            html_body='''
+        self.templates["password_reset"] = EmailTemplate(
+            id="password_reset",
+            name="Password Reset",
+            subject="Reset your password",
+            html_body="""
                 <html>
                 <body>
                     <h1>Password Reset</h1>
@@ -286,16 +289,16 @@ class EmailTemplateEngine:
                     <p>This link expires in 24 hours.</p>
                 </body>
                 </html>
-            ''',
-            text_body='Reset your password: {{reset_url}}',
-            variables=['user_name', 'reset_url']
+            """,
+            text_body="Reset your password: {{reset_url}}",
+            variables=["user_name", "reset_url"],
         )
 
-        self.templates['invoice'] = EmailTemplate(
-            id='invoice',
-            name='Invoice',
-            subject='Invoice #{{invoice_number}}',
-            html_body='''
+        self.templates["invoice"] = EmailTemplate(
+            id="invoice",
+            name="Invoice",
+            subject="Invoice #{{invoice_number}}",
+            html_body="""
                 <html>
                 <body>
                     <h1>Invoice #{{invoice_number}}</h1>
@@ -304,17 +307,12 @@ class EmailTemplateEngine:
                     <p><a href="{{invoice_url}}">View Invoice</a></p>
                 </body>
                 </html>
-            ''',
-            text_body='Invoice #{{invoice_number}}: {{amount}} due {{due_date}}',
-            variables=['invoice_number', 'amount', 'due_date', 'invoice_url']
+            """,
+            text_body="Invoice #{{invoice_number}}: {{amount}} due {{due_date}}",
+            variables=["invoice_number", "amount", "due_date", "invoice_url"],
         )
 
-    def customize_template(
-        self,
-        tenant_id: str,
-        template_id: str,
-        customizations: Dict[str, str]
-    ) -> EmailTemplate:
+    def customize_template(self, tenant_id: str, template_id: str, customizations: Dict[str, str]) -> EmailTemplate:
         """Customize email template for tenant"""
         base_template = self.templates.get(template_id)
 
@@ -324,20 +322,16 @@ class EmailTemplateEngine:
         # Create customized copy
         custom_template = EmailTemplate(
             id=f"{tenant_id}_{template_id}",
-            name=customizations.get('name', base_template.name),
-            subject=customizations.get('subject', base_template.subject),
-            html_body=customizations.get('html_body', base_template.html_body),
-            text_body=customizations.get('text_body', base_template.text_body),
-            variables=base_template.variables
+            name=customizations.get("name", base_template.name),
+            subject=customizations.get("subject", base_template.subject),
+            html_body=customizations.get("html_body", base_template.html_body),
+            text_body=customizations.get("text_body", base_template.text_body),
+            variables=base_template.variables,
         )
 
         return custom_template
 
-    def render_template(
-        self,
-        template: EmailTemplate,
-        variables: Dict[str, Any]
-    ) -> Dict[str, str]:
+    def render_template(self, template: EmailTemplate, variables: Dict[str, Any]) -> Dict[str, str]:
         """Render email template with variables"""
         html_body = template.html_body
         text_body = template.text_body
@@ -350,11 +344,7 @@ class EmailTemplateEngine:
             text_body = text_body.replace(placeholder, str(var_value))
             subject = subject.replace(placeholder, str(var_value))
 
-        return {
-            'subject': subject,
-            'html_body': html_body,
-            'text_body': text_body
-        }
+        return {"subject": subject, "html_body": html_body, "text_body": text_body}
 
 
 class LocalizationManager:
@@ -366,40 +356,40 @@ class LocalizationManager:
 
     def _load_default_translations(self):
         """Load default translations"""
-        self.translations['en'] = {
-            'app.title': 'Document Management System',
-            'app.welcome': 'Welcome',
-            'login.title': 'Sign In',
-            'login.email': 'Email',
-            'login.password': 'Password',
-            'login.submit': 'Sign In',
-            'dashboard.title': 'Dashboard',
-            'documents.title': 'Documents',
-            'upload.title': 'Upload Document'
+        self.translations["en"] = {
+            "app.title": "Document Management System",
+            "app.welcome": "Welcome",
+            "login.title": "Sign In",
+            "login.email": "Email",
+            "login.password": "Password",
+            "login.submit": "Sign In",
+            "dashboard.title": "Dashboard",
+            "documents.title": "Documents",
+            "upload.title": "Upload Document",
         }
 
-        self.translations['de'] = {
-            'app.title': 'Dokumentenverwaltungssystem',
-            'app.welcome': 'Willkommen',
-            'login.title': 'Anmelden',
-            'login.email': 'E-Mail',
-            'login.password': 'Passwort',
-            'login.submit': 'Anmelden',
-            'dashboard.title': 'Dashboard',
-            'documents.title': 'Dokumente',
-            'upload.title': 'Dokument hochladen'
+        self.translations["de"] = {
+            "app.title": "Dokumentenverwaltungssystem",
+            "app.welcome": "Willkommen",
+            "login.title": "Anmelden",
+            "login.email": "E-Mail",
+            "login.password": "Passwort",
+            "login.submit": "Anmelden",
+            "dashboard.title": "Dashboard",
+            "documents.title": "Dokumente",
+            "upload.title": "Dokument hochladen",
         }
 
-        self.translations['fr'] = {
-            'app.title': 'Système de gestion documentaire',
-            'app.welcome': 'Bienvenue',
-            'login.title': 'Se connecter',
-            'login.email': 'E-mail',
-            'login.password': 'Mot de passe',
-            'login.submit': 'Se connecter',
-            'dashboard.title': 'Tableau de bord',
-            'documents.title': 'Documents',
-            'upload.title': 'Télécharger un document'
+        self.translations["fr"] = {
+            "app.title": "Système de gestion documentaire",
+            "app.welcome": "Bienvenue",
+            "login.title": "Se connecter",
+            "login.email": "E-mail",
+            "login.password": "Mot de passe",
+            "login.submit": "Se connecter",
+            "dashboard.title": "Tableau de bord",
+            "documents.title": "Documents",
+            "upload.title": "Télécharger un document",
         }
 
     def add_translation(self, language: str, key: str, value: str):
@@ -471,18 +461,9 @@ class WhiteLabelManager:
         self.localization_manager = LocalizationManager()
         self.domain_manager = DomainManager()
 
-    def create_config(
-        self,
-        tenant_id: str,
-        company_name: str,
-        domain: Optional[str] = None
-    ) -> WhiteLabelConfig:
+    def create_config(self, tenant_id: str, company_name: str, domain: Optional[str] = None) -> WhiteLabelConfig:
         """Create white-label configuration"""
-        config = WhiteLabelConfig(
-            tenant_id=tenant_id,
-            company_name=company_name,
-            domain=domain
-        )
+        config = WhiteLabelConfig(tenant_id=tenant_id, company_name=company_name, domain=domain)
 
         self.configs[tenant_id] = config
 
@@ -494,7 +475,7 @@ class WhiteLabelManager:
         tenant_id: str,
         color_scheme: Optional[ColorScheme] = None,
         typography: Optional[Typography] = None,
-        theme_mode: Optional[ThemeMode] = None
+        theme_mode: Optional[ThemeMode] = None,
     ) -> bool:
         """Update branding configuration"""
         config = self.configs.get(tenant_id)
@@ -514,16 +495,10 @@ class WhiteLabelManager:
         return True
 
     def upload_branding_asset(
-        self,
-        tenant_id: str,
-        asset_type: BrandingElement,
-        file_data: bytes,
-        filename: str
+        self, tenant_id: str, asset_type: BrandingElement, file_data: bytes, filename: str
     ) -> str:
         """Upload branding asset"""
-        asset_url = self.branding_manager.upload_asset(
-            tenant_id, asset_type, file_data, filename
-        )
+        asset_url = self.branding_manager.upload_asset(tenant_id, asset_type, file_data, filename)
 
         config = self.configs.get(tenant_id)
         if config:
@@ -537,15 +512,10 @@ class WhiteLabelManager:
         return asset_url
 
     def customize_email_template(
-        self,
-        tenant_id: str,
-        template_id: str,
-        customizations: Dict[str, str]
+        self, tenant_id: str, template_id: str, customizations: Dict[str, str]
     ) -> EmailTemplate:
         """Customize email template"""
-        template = self.email_engine.customize_template(
-            tenant_id, template_id, customizations
-        )
+        template = self.email_engine.customize_template(tenant_id, template_id, customizations)
 
         config = self.configs.get(tenant_id)
         if config:
@@ -576,32 +546,26 @@ class WhiteLabelManager:
 
         return self.theme_engine.generate_theme_bundle(config)
 
-    def render_email(
-        self,
-        tenant_id: str,
-        template_id: str,
-        variables: Dict[str, Any]
-    ) -> Dict[str, str]:
+    def render_email(self, tenant_id: str, template_id: str, variables: Dict[str, Any]) -> Dict[str, str]:
         """Render email with tenant branding"""
         config = self.configs.get(tenant_id)
         if not config:
             return {}
 
         # Get template (custom or default)
-        template = config.email_templates.get(
-            template_id,
-            self.email_engine.templates.get(template_id)
-        )
+        template = config.email_templates.get(template_id, self.email_engine.templates.get(template_id))
 
         if not template:
             return {}
 
         # Add branding variables
-        variables.update({
-            'company_name': config.company_name,
-            'logo_url': config.brand_assets.primary_logo_url or '',
-            'primary_color': config.color_scheme_light.primary
-        })
+        variables.update(
+            {
+                "company_name": config.company_name,
+                "logo_url": config.brand_assets.primary_logo_url or "",
+                "primary_color": config.color_scheme_light.primary,
+            }
+        )
 
         return self.email_engine.render_template(template, variables)
 

@@ -22,7 +22,7 @@ Components:
 Version: 3.6.0 (Complete)
 """
 
-__version__ = '3.6.0'
+__version__ = "3.6.0"
 
 # Unified IoT & Edge API
 from .iot_edge_api import (
@@ -38,89 +38,91 @@ from .iot_edge_api import (
 # Device Manager
 from .device_manager import (
     Device,
-    DeviceStatus,
-    DeviceType,
-    DeviceShadow,
-    Location,
-    FirmwareVersion,
     DeviceGroup,
     DeviceManager,
+    DeviceShadow,
+    DeviceStatus,
+    DeviceType,
+    FirmwareVersion,
+    Location,
     get_device_manager,
-)
-
-# MQTT Broker
-from .mqtt_broker import (
-    MQTTBroker,
-    MQTTClient,
-    MQTTMessage,
-    QoSLevel,
-    ClientSession,
-    Subscription,
-    get_mqtt_broker,
-    create_mqtt_client,
-)
-
-# Edge Platform
-from .edge_platform import (
-    EdgePlatform,
-    EdgeNode,
-    EdgeFunction,
-    EdgeNodeStatus,
-    FunctionStatus,
-    EdgeResources,
-    get_edge_platform,
-)
-
-# Telemetry Pipeline
-from .telemetry_pipeline import (
-    TelemetryPipeline,
-    TelemetryPoint,
-    AggregatedData,
-    AlertRule,
-    Alert,
-    TelemetryType,
-    AggregationType,
-    AlertSeverity,
-    get_telemetry_pipeline,
 )
 
 # Device Protocols
 from .device_protocols import (
-    DeviceConnector,
-    ProtocolType,
-    ProtocolMessage,
     ConnectionConfig,
+    DeviceConnector,
     MessageFormat,
+    ProtocolMessage,
+    ProtocolType,
     get_device_connector,
+)
+
+# Edge Platform
+from .edge_platform import (
+    EdgeFunction,
+    EdgeNode,
+    EdgeNodeStatus,
+    EdgePlatform,
+    EdgeResources,
+    FunctionStatus,
+    get_edge_platform,
 )
 
 # IoT Security
 from .iot_security import (
-    IoTSecurity,
-    Certificate,
-    PreSharedKey,
     AccessControlEntry,
-    AuthMethod,
     AccessLevel,
+    AuthMethod,
+    Certificate,
+    IoTSecurity,
+    PreSharedKey,
     get_iot_security,
 )
 
 # Legacy (backward compatibility)
+from .iot_services import Device as LegacyDevice
+from .iot_services import DeviceManager as LegacyDeviceManager
+from .iot_services import DeviceShadow as LegacyDeviceShadow
+from .iot_services import DeviceStatus as LegacyDeviceStatus
+from .iot_services import DeviceType as LegacyDeviceType
+from .iot_services import EdgeFunction as LegacyEdgeFunction
+from .iot_services import EdgeNode as LegacyEdgeNode
+from .iot_services import EdgePlatform as LegacyEdgePlatform
+from .iot_services import MQTTBroker as LegacyMQTTBroker
+from .iot_services import MQTTMessage as LegacyMQTTMessage
 from .iot_services import (
-    Device as LegacyDevice,
-    DeviceStatus as LegacyDeviceStatus,
-    DeviceType as LegacyDeviceType,
-    DeviceShadow as LegacyDeviceShadow,
-    DeviceManager as LegacyDeviceManager,
-    MQTTBroker as LegacyMQTTBroker,
-    MQTTMessage as LegacyMQTTMessage,
     MQTTTopic,
-    QoSLevel as LegacyQoSLevel,
-    EdgeNode as LegacyEdgeNode,
-    EdgeFunction as LegacyEdgeFunction,
-    EdgePlatform as LegacyEdgePlatform,
+)
+from .iot_services import QoSLevel as LegacyQoSLevel
+from .iot_services import (
     Telemetry,
-    TelemetryPipeline as LegacyTelemetryPipeline,
+)
+from .iot_services import TelemetryPipeline as LegacyTelemetryPipeline
+
+# MQTT Broker
+from .mqtt_broker import (
+    ClientSession,
+    MQTTBroker,
+    MQTTClient,
+    MQTTMessage,
+    QoSLevel,
+    Subscription,
+    create_mqtt_client,
+    get_mqtt_broker,
+)
+
+# Telemetry Pipeline
+from .telemetry_pipeline import (
+    AggregatedData,
+    AggregationType,
+    Alert,
+    AlertRule,
+    AlertSeverity,
+    TelemetryPipeline,
+    TelemetryPoint,
+    TelemetryType,
+    get_telemetry_pipeline,
 )
 
 __all__ = [
@@ -134,76 +136,70 @@ __all__ = [
     'deploy_function',
 
     # Device Manager
-    'Device',
-    'DeviceStatus',
-    'DeviceType',
-    'DeviceShadow',
-    'Location',
-    'FirmwareVersion',
-    'DeviceGroup',
-    'DeviceManager',
-    'get_device_manager',
-
+    "Device",
+    "DeviceStatus",
+    "DeviceType",
+    "DeviceShadow",
+    "Location",
+    "FirmwareVersion",
+    "DeviceGroup",
+    "DeviceManager",
+    "get_device_manager",
     # MQTT Broker
-    'MQTTBroker',
-    'MQTTClient',
-    'MQTTMessage',
-    'QoSLevel',
-    'ClientSession',
-    'Subscription',
-    'get_mqtt_broker',
-    'create_mqtt_client',
-
+    "MQTTBroker",
+    "MQTTClient",
+    "MQTTMessage",
+    "QoSLevel",
+    "ClientSession",
+    "Subscription",
+    "get_mqtt_broker",
+    "create_mqtt_client",
     # Edge Platform
-    'EdgePlatform',
-    'EdgeNode',
-    'EdgeFunction',
-    'EdgeNodeStatus',
-    'FunctionStatus',
-    'EdgeResources',
-    'get_edge_platform',
-
+    "EdgePlatform",
+    "EdgeNode",
+    "EdgeFunction",
+    "EdgeNodeStatus",
+    "FunctionStatus",
+    "EdgeResources",
+    "get_edge_platform",
     # Telemetry Pipeline
-    'TelemetryPipeline',
-    'TelemetryPoint',
-    'AggregatedData',
-    'AlertRule',
-    'Alert',
-    'TelemetryType',
-    'AggregationType',
-    'AlertSeverity',
-    'get_telemetry_pipeline',
-
+    "TelemetryPipeline",
+    "TelemetryPoint",
+    "AggregatedData",
+    "AlertRule",
+    "Alert",
+    "TelemetryType",
+    "AggregationType",
+    "AlertSeverity",
+    "get_telemetry_pipeline",
     # Device Protocols
-    'DeviceConnector',
-    'ProtocolType',
-    'ProtocolMessage',
-    'ConnectionConfig',
-    'MessageFormat',
-    'get_device_connector',
-
+    "DeviceConnector",
+    "ProtocolType",
+    "ProtocolMessage",
+    "ConnectionConfig",
+    "MessageFormat",
+    "get_device_connector",
     # IoT Security
-    'IoTSecurity',
-    'Certificate',
-    'PreSharedKey',
-    'AccessControlEntry',
-    'AuthMethod',
-    'AccessLevel',
-    'get_iot_security',
-
+    "IoTSecurity",
+    "Certificate",
+    "PreSharedKey",
+    "AccessControlEntry",
+    "AuthMethod",
+    "AccessLevel",
+    "get_iot_security",
     # Legacy (backward compatibility)
-    'LegacyDevice',
-    'LegacyDeviceStatus',
-    'LegacyDeviceType',
-    'LegacyDeviceShadow',
-    'LegacyDeviceManager',
-    'LegacyMQTTBroker',
-    'LegacyMQTTMessage',
-    'MQTTTopic',
-    'LegacyQoSLevel',
-    'LegacyEdgeNode',
-    'LegacyEdgeFunction',
-    'LegacyEdgePlatform',
-    'Telemetry',
-    'LegacyTelemetryPipeline',
+    "LegacyDevice",
+    "LegacyDeviceStatus",
+    "LegacyDeviceType",
+    "LegacyDeviceShadow",
+    "LegacyDeviceManager",
+    "LegacyMQTTBroker",
+    "LegacyMQTTMessage",
+    "MQTTTopic",
+    "LegacyQoSLevel",
+    "LegacyEdgeNode",
+    "LegacyEdgeFunction",
+    "LegacyEdgePlatform",
+    "Telemetry",
+    "LegacyTelemetryPipeline",
 ]

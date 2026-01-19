@@ -16,7 +16,6 @@ from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Set
 from uuid import uuid4
 
-
 # ============================================================================
 # SDK Generator
 # ============================================================================
@@ -24,6 +23,7 @@ from uuid import uuid4
 
 class SupportedLanguage(Enum):
     """Supported SDK languages"""
+
     PYTHON = "python"
     JAVASCRIPT = "javascript"
     TYPESCRIPT = "typescript"
@@ -37,6 +37,7 @@ class SupportedLanguage(Enum):
 @dataclass
 class SDKConfig:
     """SDK generation configuration"""
+
     language: SupportedLanguage
     package_name: str
     version: str
@@ -50,6 +51,7 @@ class SDKConfig:
 @dataclass
 class GeneratedSDK:
     """Generated SDK package"""
+
     sdk_id: str
     language: SupportedLanguage
     package_name: str
@@ -76,7 +78,7 @@ class SDKGenerator:
         """Initialize language templates"""
         return {
             SupportedLanguage.PYTHON.value: {
-                'client': '''
+                "client": '''
 class {ClassName}:
     """API Client for {ServiceName}"""
 
@@ -89,7 +91,7 @@ class {ClassName}:
         # Implementation
         pass
 ''',
-                'readme': '''# {PackageName}
+                "readme": """# {PackageName}
 
 {Description}
 
@@ -107,10 +109,10 @@ from {package_name} import Client
 client = Client(api_key="YOUR_API_KEY")
 result = await client.get("/endpoint")
 ```
-'''
+""",
             },
             SupportedLanguage.JAVASCRIPT.value: {
-                'client': '''
+                "client": """
 class {ClassName} {{
   constructor(apiKey, baseUrl = "{BaseURL}") {{
     this.apiKey = apiKey;
@@ -123,8 +125,8 @@ class {ClassName} {{
 }}
 
 module.exports = {ClassName};
-''',
-                'readme': '''# {PackageName}
+""",
+                "readme": """# {PackageName}
 
 {Description}
 
@@ -142,15 +144,12 @@ const {{ {ClassName} }} = require('{package_name}');
 const client = new {ClassName}('YOUR_API_KEY');
 const result = await client.get('/endpoint');
 ```
-'''
-            }
+""",
+            },
         }
 
     async def generate_sdk(
-        self,
-        language: SupportedLanguage,
-        api_spec: Dict[str, Any],
-        config: SDKConfig
+        self, language: SupportedLanguage, api_spec: Dict[str, Any], config: SDKConfig
     ) -> GeneratedSDK:
         """Generate SDK for specified language"""
         sdk_id = str(uuid4())
@@ -162,25 +161,25 @@ const result = await client.get('/endpoint');
         files = {}
 
         # Generate client file
-        if 'client' in templates:
+        if "client" in templates:
             class_name = self._to_class_name(config.package_name)
-            client_code = templates['client'].format(
+            client_code = templates["client"].format(
                 ClassName=class_name,
-                ServiceName=api_spec.get('info', {}).get('title', 'API'),
-                BaseURL=api_spec.get('servers', [{}])[0].get('url', 'https://api.example.com'),
-                PackageName=config.package_name
+                ServiceName=api_spec.get("info", {}).get("title", "API"),
+                BaseURL=api_spec.get("servers", [{}])[0].get("url", "https://api.example.com"),
+                PackageName=config.package_name,
             )
-            files['client'] = client_code
+            files["client"] = client_code
 
         # Generate README
-        if 'readme' in templates:
-            readme = templates['readme'].format(
-                PackageName=config.package_name.replace('_', '-').title(),
+        if "readme" in templates:
+            readme = templates["readme"].format(
+                PackageName=config.package_name.replace("_", "-").title(),
                 package_name=config.package_name,
                 ClassName=self._to_class_name(config.package_name),
-                Description=api_spec.get('info', {}).get('description', 'API Client SDK')
+                Description=api_spec.get("info", {}).get("description", "API Client SDK"),
             )
-            files['README.md'] = readme
+            files["README.md"] = readme
 
         # Generate examples
         examples = []
@@ -195,7 +194,7 @@ const result = await client.get('/endpoint');
             version=config.version,
             files=files,
             examples=examples,
-            documentation=readme if config.include_docs else None
+            documentation=readme if config.include_docs else None,
         )
 
         with self._lock:
@@ -205,13 +204,9 @@ const result = await client.get('/endpoint');
 
     def _to_class_name(self, package_name: str) -> str:
         """Convert package name to class name"""
-        return ''.join(word.capitalize() for word in package_name.split('_'))
+        return "".join(word.capitalize() for word in package_name.split("_"))
 
-    def _generate_examples(
-        self,
-        language: SupportedLanguage,
-        config: SDKConfig
-    ) -> List[str]:
+    def _generate_examples(self, language: SupportedLanguage, config: SDKConfig) -> List[str]:
         """Generate usage examples"""
         if language == SupportedLanguage.PYTHON:
             return [
@@ -234,9 +229,9 @@ const result = await client.get('/endpoint');
             by_language[sdk.language.value] += 1
 
         return {
-            'total_sdks': len(self._generated_sdks),
-            'by_language': dict(by_language),
-            'supported_languages': len(SupportedLanguage)
+            "total_sdks": len(self._generated_sdks),
+            "by_language": dict(by_language),
+            "supported_languages": len(SupportedLanguage),
         }
 
 
@@ -260,6 +255,7 @@ def get_sdk_generator() -> SDKGenerator:
 @dataclass
 class PluginManifest:
     """Plugin manifest"""
+
     name: str
     version: str
     author: str
@@ -313,11 +309,7 @@ class PluginManager:
         self._hooks: Dict[str, List[str]] = defaultdict(list)
         self._lock = Lock()
 
-    async def install_plugin(
-        self,
-        plugin_path: str,
-        manifest: PluginManifest
-    ) -> str:
+    async def install_plugin(self, plugin_path: str, manifest: PluginManifest) -> str:
         """Install plugin"""
         plugin_id = str(uuid4())
 
@@ -330,11 +322,7 @@ class PluginManager:
 
         return plugin_id
 
-    async def load_plugin(
-        self,
-        plugin_id: str,
-        plugin_instance: Plugin
-    ):
+    async def load_plugin(self, plugin_id: str, plugin_instance: Plugin):
         """Load plugin instance"""
         with self._lock:
             self._plugins[plugin_id] = plugin_instance
@@ -359,12 +347,7 @@ class PluginManager:
         await plugin.on_disable()
         return True
 
-    async def execute_hook(
-        self,
-        hook_name: str,
-        *args,
-        **kwargs
-    ):
+    async def execute_hook(self, hook_name: str, *args, **kwargs):
         """Execute hook on all registered plugins"""
         plugin_ids = self._hooks.get(hook_name, [])
 
@@ -383,10 +366,10 @@ class PluginManager:
         enabled = sum(1 for p in self._plugins.values() if p.enabled)
 
         return {
-            'total_plugins': len(self._plugins),
-            'enabled_plugins': enabled,
-            'disabled_plugins': len(self._plugins) - enabled,
-            'registered_hooks': len(self._hooks)
+            "total_plugins": len(self._plugins),
+            "enabled_plugins": enabled,
+            "disabled_plugins": len(self._plugins) - enabled,
+            "registered_hooks": len(self._hooks),
         }
 
 
@@ -410,6 +393,7 @@ def get_plugin_manager() -> PluginManager:
 @dataclass
 class GraphQLSchema:
     """GraphQL schema definition"""
+
     schema_id: str
     type_defs: str
     resolvers: Dict[str, Callable] = field(default_factory=dict)
@@ -419,6 +403,7 @@ class GraphQLSchema:
 @dataclass
 class GraphQLQuery:
     """GraphQL query"""
+
     query_id: str
     query: str
     variables: Dict[str, Any] = field(default_factory=dict)
@@ -439,38 +424,22 @@ class GraphQLServer:
         self._subscriptions: Dict[str, Set[Callable]] = defaultdict(set)
         self._lock = Lock()
 
-    def add_schema(
-        self,
-        type_defs: str,
-        resolvers: Optional[Dict[str, Callable]] = None
-    ) -> GraphQLSchema:
+    def add_schema(self, type_defs: str, resolvers: Optional[Dict[str, Callable]] = None) -> GraphQLSchema:
         """Add GraphQL schema"""
         schema_id = str(uuid4())
 
-        schema = GraphQLSchema(
-            schema_id=schema_id,
-            type_defs=type_defs,
-            resolvers=resolvers or {}
-        )
+        schema = GraphQLSchema(schema_id=schema_id, type_defs=type_defs, resolvers=resolvers or {})
 
         with self._lock:
             self._schemas[schema_id] = schema
 
         return schema
 
-    async def execute_query(
-        self,
-        query: str,
-        variables: Optional[Dict[str, Any]] = None
-    ) -> GraphQLQuery:
+    async def execute_query(self, query: str, variables: Optional[Dict[str, Any]] = None) -> GraphQLQuery:
         """Execute GraphQL query"""
         query_id = str(uuid4())
 
-        gql_query = GraphQLQuery(
-            query_id=query_id,
-            query=query,
-            variables=variables or {}
-        )
+        gql_query = GraphQLQuery(query_id=query_id, query=query, variables=variables or {})
 
         # In real implementation, parse and execute query
         # For now, return mock result
@@ -482,11 +451,7 @@ class GraphQLServer:
 
         return gql_query
 
-    async def subscribe(
-        self,
-        subscription: str,
-        callback: Callable
-    ) -> str:
+    async def subscribe(self, subscription: str, callback: Callable) -> str:
         """Subscribe to GraphQL subscription"""
         subscription_id = str(uuid4())
 
@@ -495,11 +460,7 @@ class GraphQLServer:
 
         return subscription_id
 
-    async def publish(
-        self,
-        subscription: str,
-        data: Any
-    ):
+    async def publish(self, subscription: str, data: Any):
         """Publish to subscription"""
         callbacks = self._subscriptions.get(subscription, set())
 
@@ -512,9 +473,9 @@ class GraphQLServer:
     def get_statistics(self) -> Dict[str, Any]:
         """Get GraphQL statistics"""
         return {
-            'total_schemas': len(self._schemas),
-            'total_queries': len(self._queries),
-            'active_subscriptions': sum(len(subs) for subs in self._subscriptions.values())
+            "total_schemas": len(self._schemas),
+            "total_queries": len(self._queries),
+            "active_subscriptions": sum(len(subs) for subs in self._subscriptions.values()),
         }
 
 
@@ -537,6 +498,7 @@ def get_graphql_server() -> GraphQLServer:
 
 class WorkflowNodeType(Enum):
     """Workflow node types"""
+
     TRIGGER = "trigger"
     ACTION = "action"
     CONDITION = "condition"
@@ -547,6 +509,7 @@ class WorkflowNodeType(Enum):
 @dataclass
 class WorkflowNode:
     """Workflow node"""
+
     node_id: str
     node_type: WorkflowNodeType
     name: str
@@ -557,6 +520,7 @@ class WorkflowNode:
 @dataclass
 class Workflow:
     """Workflow definition"""
+
     workflow_id: str
     name: str
     description: str
@@ -569,6 +533,7 @@ class Workflow:
 @dataclass
 class WorkflowExecution:
     """Workflow execution"""
+
     execution_id: str
     workflow_id: str
     status: str = "running"
@@ -590,19 +555,11 @@ class WorkflowEngine:
         self._executions: Dict[str, WorkflowExecution] = {}
         self._lock = Lock()
 
-    def create_workflow(
-        self,
-        name: str,
-        description: str = ""
-    ) -> Workflow:
+    def create_workflow(self, name: str, description: str = "") -> Workflow:
         """Create new workflow"""
         workflow_id = str(uuid4())
 
-        workflow = Workflow(
-            workflow_id=workflow_id,
-            name=name,
-            description=description
-        )
+        workflow = Workflow(workflow_id=workflow_id, name=name, description=description)
 
         with self._lock:
             self._workflows[workflow_id] = workflow
@@ -610,11 +567,7 @@ class WorkflowEngine:
         return workflow
 
     def add_node(
-        self,
-        workflow_id: str,
-        node_type: WorkflowNodeType,
-        name: str,
-        config: Optional[Dict[str, Any]] = None
+        self, workflow_id: str, node_type: WorkflowNodeType, name: str, config: Optional[Dict[str, Any]] = None
     ) -> WorkflowNode:
         """Add node to workflow"""
         workflow = self._workflows.get(workflow_id)
@@ -623,12 +576,7 @@ class WorkflowEngine:
 
         node_id = str(uuid4())
 
-        node = WorkflowNode(
-            node_id=node_id,
-            node_type=node_type,
-            name=name,
-            config=config or {}
-        )
+        node = WorkflowNode(node_id=node_id, node_type=node_type, name=name, config=config or {})
 
         with self._lock:
             workflow.nodes.append(node)
@@ -639,12 +587,7 @@ class WorkflowEngine:
 
         return node
 
-    def connect_nodes(
-        self,
-        workflow_id: str,
-        from_node_id: str,
-        to_node_id: str
-    ) -> bool:
+    def connect_nodes(self, workflow_id: str, from_node_id: str, to_node_id: str) -> bool:
         """Connect two nodes"""
         workflow = self._workflows.get(workflow_id)
         if not workflow:
@@ -667,9 +610,7 @@ class WorkflowEngine:
         return True
 
     async def execute_workflow(
-        self,
-        workflow_id: str,
-        trigger_data: Optional[Dict[str, Any]] = None
+        self, workflow_id: str, trigger_data: Optional[Dict[str, Any]] = None
     ) -> WorkflowExecution:
         """Execute workflow"""
         workflow = self._workflows.get(workflow_id)
@@ -678,10 +619,7 @@ class WorkflowEngine:
 
         execution_id = str(uuid4())
 
-        execution = WorkflowExecution(
-            execution_id=execution_id,
-            workflow_id=workflow_id
-        )
+        execution = WorkflowExecution(execution_id=execution_id, workflow_id=workflow_id)
 
         with self._lock:
             self._executions[execution_id] = execution
@@ -699,11 +637,7 @@ class WorkflowEngine:
 
         return execution
 
-    async def _execute_nodes(
-        self,
-        workflow: Workflow,
-        data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _execute_nodes(self, workflow: Workflow, data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute workflow nodes"""
         # In real implementation, execute nodes in order
         # For now, return success
@@ -718,10 +652,10 @@ class WorkflowEngine:
             by_status[execution.status] += 1
 
         return {
-            'total_workflows': len(self._workflows),
-            'enabled_workflows': enabled,
-            'total_executions': len(self._executions),
-            'by_status': dict(by_status)
+            "total_workflows": len(self._workflows),
+            "enabled_workflows": enabled,
+            "total_executions": len(self._executions),
+            "by_status": dict(by_status),
         }
 
 
@@ -745,6 +679,7 @@ def get_workflow_engine() -> WorkflowEngine:
 @dataclass
 class APIDocumentation:
     """API documentation"""
+
     doc_id: str
     title: str
     version: str
@@ -756,6 +691,7 @@ class APIDocumentation:
 @dataclass
 class CodeExample:
     """Code example"""
+
     example_id: str
     title: str
     language: SupportedLanguage
@@ -777,21 +713,13 @@ class DeveloperPortal:
         self._lock = Lock()
 
     def add_api_docs(
-        self,
-        title: str,
-        version: str,
-        description: str,
-        endpoints: Optional[List[Dict[str, Any]]] = None
+        self, title: str, version: str, description: str, endpoints: Optional[List[Dict[str, Any]]] = None
     ) -> APIDocumentation:
         """Add API documentation"""
         doc_id = str(uuid4())
 
         doc = APIDocumentation(
-            doc_id=doc_id,
-            title=title,
-            version=version,
-            description=description,
-            endpoints=endpoints or []
+            doc_id=doc_id, title=title, version=version, description=description, endpoints=endpoints or []
         )
 
         with self._lock:
@@ -800,43 +728,28 @@ class DeveloperPortal:
         return doc
 
     def add_example(
-        self,
-        title: str,
-        language: SupportedLanguage,
-        code: str,
-        description: Optional[str] = None
+        self, title: str, language: SupportedLanguage, code: str, description: Optional[str] = None
     ) -> CodeExample:
         """Add code example"""
         example_id = str(uuid4())
 
-        example = CodeExample(
-            example_id=example_id,
-            title=title,
-            language=language,
-            code=code,
-            description=description
-        )
+        example = CodeExample(example_id=example_id, title=title, language=language, code=code, description=description)
 
         with self._lock:
             self._examples[example_id] = example
 
         return example
 
-    def add_tutorial(
-        self,
-        title: str,
-        steps: List[Dict[str, Any]],
-        difficulty: str = "beginner"
-    ) -> str:
+    def add_tutorial(self, title: str, steps: List[Dict[str, Any]], difficulty: str = "beginner") -> str:
         """Add tutorial"""
         tutorial_id = str(uuid4())
 
         tutorial = {
-            'tutorial_id': tutorial_id,
-            'title': title,
-            'steps': steps,
-            'difficulty': difficulty,
-            'created_at': datetime.now()
+            "tutorial_id": tutorial_id,
+            "title": title,
+            "steps": steps,
+            "difficulty": difficulty,
+            "created_at": datetime.now(),
         }
 
         with self._lock:
@@ -883,10 +796,10 @@ print(f"Found {len(documents)} documents")
             examples_by_lang[example.language.value] += 1
 
         return {
-            'total_documentation': len(self._documentation),
-            'total_examples': len(self._examples),
-            'examples_by_language': dict(examples_by_lang),
-            'total_tutorials': len(self._tutorials)
+            "total_documentation": len(self._documentation),
+            "total_examples": len(self._examples),
+            "examples_by_language": dict(examples_by_lang),
+            "total_tutorials": len(self._tutorials),
         }
 
 
@@ -910,6 +823,7 @@ def get_developer_portal() -> DeveloperPortal:
 @dataclass
 class Route:
     """API route"""
+
     route_id: str
     path: str
     method: str
@@ -937,7 +851,7 @@ class APIGateway:
         method: str,
         upstream: str,
         rate_limit: Optional[Dict[str, int]] = None,
-        transformations: Optional[List[str]] = None
+        transformations: Optional[List[str]] = None,
     ) -> Route:
         """Add route"""
         route_id = str(uuid4())
@@ -948,7 +862,7 @@ class APIGateway:
             method=method,
             upstream=upstream,
             rate_limit=rate_limit,
-            transformations=transformations or []
+            transformations=transformations or [],
         )
 
         with self._lock:
@@ -956,21 +870,12 @@ class APIGateway:
 
         return route
 
-    def add_middleware(
-        self,
-        phase: str,
-        handler: Callable
-    ):
+    def add_middleware(self, phase: str, handler: Callable):
         """Add middleware"""
         with self._lock:
             self._middleware[phase].append(handler)
 
-    async def handle_request(
-        self,
-        path: str,
-        method: str,
-        body: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def handle_request(self, path: str, method: str, body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Handle API request"""
         # Find matching route
         route = self._find_route(path, method)
@@ -987,8 +892,8 @@ class APIGateway:
             self._request_count[route.route_id] += 1
 
         # Execute middleware
-        for handler in self._middleware.get('pre_request', []):
-            await handler({'path': path, 'method': method, 'body': body})
+        for handler in self._middleware.get("pre_request", []):
+            await handler({"path": path, "method": method, "body": body})
 
         # In real implementation, forward to upstream
         result = {"status": 200, "data": {}}
@@ -1013,9 +918,9 @@ class APIGateway:
         total_requests = sum(self._request_count.values())
 
         return {
-            'total_routes': len(self._routes),
-            'total_requests': total_requests,
-            'middleware_count': sum(len(m) for m in self._middleware.values())
+            "total_routes": len(self._routes),
+            "total_requests": total_requests,
+            "middleware_count": sum(len(m) for m in self._middleware.values()),
         }
 
 

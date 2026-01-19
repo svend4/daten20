@@ -7,8 +7,8 @@ Core data models for the document management system:
 - Template definitions
 """
 
-from .service import Service, BasicInfo, Funding, SystemSettings, ServiceConfig
 from .financial import FinancialParameters
+from .service import BasicInfo, Funding, Service, ServiceConfig, SystemSettings
 
 __all__ = [
     # Service Models

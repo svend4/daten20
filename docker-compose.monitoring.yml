@@ -1,0 +1,331 @@
+# Docker Compose for DMS Monitoring Stack
+# Prometheus + Grafana + Exporters
+# Version: 1.0
+# Date: 2026-01-16
+
+version: '3.8'
+
+services:
+  # ==================== PROMETHEUS ====================
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: dms-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus-rules.yml:/etc/prometheus/rules/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - dms-monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.dms.monitoring=prometheus"
+      - "com.dms.description=Time series database and monitoring"
+
+  # ==================== GRAFANA ====================
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: dms-grafana
+    restart: unless-stopped
+    environment:
+      # Admin credentials (CHANGE IN PRODUCTION!)
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+
+      # Server settings
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+
+      # Analytics (disable for privacy)
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=true
+
+      # Auth settings
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_BASIC_ENABLED=true
+
+      # Datasource settings
+      - GF_DATASOURCE_DEFAULT_TYPE=prometheus
+
+      # Install plugins
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - dms-monitoring
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.dms.monitoring=grafana"
+      - "com.dms.description=Metrics visualization and dashboards"
+
+  # ==================== ALERTMANAGER ====================
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: dms-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/config.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "9093:9093"
+    networks:
+      - dms-monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.dms.monitoring=alertmanager"
+      - "com.dms.description=Alert routing and management"
+
+  # ==================== NODE EXPORTER ====================
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: dms-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"
+    networks:
+      - dms-monitoring
+    pid: host
+    labels:
+      - "com.dms.monitoring=node-exporter"
+      - "com.dms.description=System metrics exporter"
+
+  # ==================== POSTGRES EXPORTER ====================
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: dms-postgres-exporter
+    restart: unless-stopped
+    environment:
+      - DATA_SOURCE_NAME=postgresql://dms_user:password@postgres:5432/dms?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - dms-monitoring
+      - dms-backend
+    depends_on:
+      - postgres
+    labels:
+      - "com.dms.monitoring=postgres-exporter"
+      - "com.dms.description=PostgreSQL metrics exporter"
+
+  # ==================== REDIS EXPORTER ====================
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.55.0
+    container_name: dms-redis-exporter
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=your_redis_password
+    ports:
+      - "9121:9121"
+    networks:
+      - dms-monitoring
+      - dms-backend
+    depends_on:
+      - redis
+    labels:
+      - "com.dms.monitoring=redis-exporter"
+      - "com.dms.description=Redis metrics exporter"
+
+  # ==================== CADVISOR ====================
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: dms-cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - dms-monitoring
+    labels:
+      - "com.dms.monitoring=cadvisor"
+      - "com.dms.description=Container metrics exporter"
+
+  # ==================== SUPPORTING SERVICES ====================
+
+  # ==================== JAEGER (Distributed Tracing) ====================
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: dms-jaeger
+    restart: unless-stopped
+    environment:
+      # Collector settings
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+
+      # Storage settings (memory for development, badger for production)
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+
+      # Query settings
+      - QUERY_BASE_PATH=/jaeger
+
+      # Sampling settings
+      - SAMPLING_STRATEGIES_FILE=/etc/jaeger/sampling.json
+    volumes:
+      - jaeger_data:/badger
+      - ./config/jaeger-sampling.json:/etc/jaeger/sampling.json:ro
+    ports:
+      # Jaeger UI
+      - "16686:16686"
+      # Jaeger Collector HTTP
+      - "14268:14268"
+      # Jaeger Collector gRPC
+      - "14250:14250"
+      # Jaeger Agent (Thrift compact)
+      - "6831:6831/udp"
+      # Jaeger Agent (Thrift binary)
+      - "6832:6832/udp"
+      # Zipkin compatible endpoint
+      - "9411:9411"
+      # OTLP gRPC
+      - "4317:4317"
+      # OTLP HTTP
+      - "4318:4318"
+    networks:
+      - dms-monitoring
+      - dms-backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:14269/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.dms.monitoring=jaeger"
+      - "com.dms.description=Distributed tracing and monitoring"
+
+  # PostgreSQL (if not already running)
+  postgres:
+    image: postgres:15-alpine
+    container_name: dms-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=dms_user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=dms
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - dms-backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dms_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (if not already running)
+  redis:
+    image: redis:7-alpine
+    container_name: dms-redis
+    restart: unless-stopped
+    command: redis-server --requirepass your_redis_password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - dms-backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ==================== NETWORKS ====================
+
+networks:
+  dms-monitoring:
+    name: dms-monitoring
+    driver: bridge
+
+  dms-backend:
+    name: dms-backend
+    driver: bridge
+
+# ==================== VOLUMES ====================
+
+volumes:
+  prometheus_data:
+    name: dms-prometheus-data
+    driver: local
+
+  grafana_data:
+    name: dms-grafana-data
+    driver: local
+
+  alertmanager_data:
+    name: dms-alertmanager-data
+    driver: local
+
+  postgres_data:
+    name: dms-postgres-data
+    driver: local
+
+  redis_data:
+    name: dms-redis-data
+    driver: local
+
+  jaeger_data:
+    name: dms-jaeger-data
+    driver: local

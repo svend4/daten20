@@ -2,11 +2,11 @@
 
 import csv
 import json
-from typing import List, Dict, Any
 from decimal import Decimal
+from typing import Any, Dict, List
 
-from ..models.service import Service, BasicInfo, Funding, SystemSettings
 from ..models.financial import FinancialParameters
+from ..models.service import BasicInfo, Funding, Service, SystemSettings
 from ..utils.helpers import parse_number
 
 
@@ -30,7 +30,7 @@ class DataImporter:
         services = []
 
         try:
-            with open(csv_path, 'r', encoding='utf-8-sig') as csvfile:
+            with open(csv_path, "r", encoding="utf-8-sig") as csvfile:
                 reader = csv.DictReader(csvfile)
 
                 for row in reader:
@@ -60,54 +60,47 @@ class DataImporter:
 
         # Basic info
         service.basic_info = BasicInfo(
-            service_name=row.get('Название', ''),
-            target_group=row.get('Целевая группа', ''),
-            region=row.get('Регион', ''),
-            provider_type=row.get('Тип исполнителя', ''),
-            document_date=row.get('Дата документа', ''),
-            document_version=row.get('Версия документа', '1.0'),
-            responsible_person=row.get('Ответственный', '')
+            service_name=row.get("Название", ""),
+            target_group=row.get("Целевая группа", ""),
+            region=row.get("Регион", ""),
+            provider_type=row.get("Тип исполнителя", ""),
+            document_date=row.get("Дата документа", ""),
+            document_version=row.get("Версия документа", "1.0"),
+            responsible_person=row.get("Ответственный", ""),
         )
 
         # Financial
         service.financial = FinancialParameters(
-            brutto_rate=Decimal(str(parse_number(row.get('Ставка брутто', '0')) or 0))
+            brutto_rate=Decimal(str(parse_number(row.get("Ставка брутто", "0")) or 0))
         )
 
-        if 'Региональный коэффициент' in row:
+        if "Региональный коэффициент" in row:
             service.financial.region_coefficient = Decimal(
-                str(parse_number(row.get('Региональный коэффициент', '1')) or 1)
+                str(parse_number(row.get("Региональный коэффициент", "1")) or 1)
             )
 
-        if 'Материалы/месяц' in row:
-            service.financial.materials_per_month = Decimal(
-                str(parse_number(row.get('Материалы/месяц', '0')) or 0)
-            )
+        if "Материалы/месяц" in row:
+            service.financial.materials_per_month = Decimal(str(parse_number(row.get("Материалы/месяц", "0")) or 0))
 
-        if 'Админ %' in row:
-            service.financial.admin_percent = Decimal(
-                str(parse_number(row.get('Админ %', '5')) or 5)
-            )
+        if "Админ %" in row:
+            service.financial.admin_percent = Decimal(str(parse_number(row.get("Админ %", "5")) or 5))
 
         # System settings
         service.system_settings = SystemSettings()
 
-        if 'Режим расчета' in row:
-            mode = row.get('Режим расчета', '').lower()
-            service.system_settings.use_umlages = 'умлаг' in mode or 'umlage' in mode
+        if "Режим расчета" in row:
+            mode = row.get("Режим расчета", "").lower()
+            service.system_settings.use_umlages = "умлаг" in mode or "umlage" in mode
             service.system_settings.use_vacation_reserve = not service.system_settings.use_umlages
 
-        if 'Тип услуги' in row:
-            service.system_settings.service_type = row.get('Тип услуги', 'social')
+        if "Тип услуги" in row:
+            service.system_settings.service_type = row.get("Тип услуги", "social")
 
         service.financial.use_umlages = service.system_settings.use_umlages
         service.financial.use_vacation_reserve = service.system_settings.use_vacation_reserve
 
         # Funding
-        service.funding = Funding(
-            payer=row.get('Плательщик', ''),
-            documents=[]
-        )
+        service.funding = Funding(payer=row.get("Плательщик", ""), documents=[])
 
         return service
 
@@ -124,7 +117,7 @@ class DataImporter:
         services = []
 
         try:
-            with open(json_path, 'r', encoding='utf-8') as f:
+            with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
                 # Handle both single service and array of services
@@ -161,6 +154,7 @@ class DataImporter:
             # Try openpyxl first (for .xlsx)
             try:
                 import openpyxl
+
                 workbook = openpyxl.load_workbook(excel_path, read_only=True)
                 sheet = workbook.active
 
@@ -182,6 +176,7 @@ class DataImporter:
             except ImportError:
                 # Fall back to xlrd for .xls
                 import xlrd
+
                 workbook = xlrd.open_workbook(excel_path)
                 sheet = workbook.sheet_by_index(0)
 
@@ -220,26 +215,23 @@ class DataImporter:
         from ..core.validator import TemplateValidator
 
         validator = TemplateValidator()
-        report = {
-            'total': len(services),
-            'valid': 0,
-            'invalid': 0,
-            'errors': []
-        }
+        report = {"total": len(services), "valid": 0, "invalid": 0, "errors": []}
 
         for i, service in enumerate(services):
             validation = validator.validate_config(service.to_dict())
 
             if validation.is_valid:
-                report['valid'] += 1
+                report["valid"] += 1
             else:
-                report['invalid'] += 1
-                report['errors'].append({
-                    'row': i + 1,
-                    'service_name': service.basic_info.service_name,
-                    'errors': validation.errors,
-                    'missing': validation.missing_required
-                })
+                report["invalid"] += 1
+                report["errors"].append(
+                    {
+                        "row": i + 1,
+                        "service_name": service.basic_info.service_name,
+                        "errors": validation.errors,
+                        "missing": validation.missing_required,
+                    }
+                )
 
         return report
 
@@ -254,35 +246,46 @@ class DataImporter:
             True if successful
         """
         try:
-            with open(output_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
+            with open(output_path, "w", newline="", encoding="utf-8-sig") as csvfile:
                 fieldnames = [
-                    'Название', 'Целевая группа', 'Регион', 'Тип исполнителя',
-                    'Дата документа', 'Версия документа', 'Ответственный',
-                    'Ставка брутто', 'Региональный коэффициент',
-                    'Материалы/месяц', 'Админ %', 'Режим расчета', 'Тип услуги',
-                    'Плательщик'
+                    "Название",
+                    "Целевая группа",
+                    "Регион",
+                    "Тип исполнителя",
+                    "Дата документа",
+                    "Версия документа",
+                    "Ответственный",
+                    "Ставка брутто",
+                    "Региональный коэффициент",
+                    "Материалы/месяц",
+                    "Админ %",
+                    "Режим расчета",
+                    "Тип услуги",
+                    "Плательщик",
                 ]
 
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
 
                 # Add example row
-                writer.writerow({
-                    'Название': 'Пример услуги',
-                    'Целевая группа': 'Пример целевой группы',
-                    'Регион': 'Berlin',
-                    'Тип исполнителя': 'Квалифицированный специалист',
-                    'Дата документа': '01.01.2026',
-                    'Версия документа': '1.0',
-                    'Ответственный': 'Иван Иванов',
-                    'Ставка брутто': '25.50',
-                    'Региональный коэффициент': '1.20',
-                    'Материалы/месяц': '50.00',
-                    'Админ %': '5.0',
-                    'Режим расчета': 'Умлаги',
-                    'Тип услуги': 'social',
-                    'Плательщик': 'Eingliederungshilfe'
-                })
+                writer.writerow(
+                    {
+                        "Название": "Пример услуги",
+                        "Целевая группа": "Пример целевой группы",
+                        "Регион": "Berlin",
+                        "Тип исполнителя": "Квалифицированный специалист",
+                        "Дата документа": "01.01.2026",
+                        "Версия документа": "1.0",
+                        "Ответственный": "Иван Иванов",
+                        "Ставка брутто": "25.50",
+                        "Региональный коэффициент": "1.20",
+                        "Материалы/месяц": "50.00",
+                        "Админ %": "5.0",
+                        "Режим расчета": "Умлаги",
+                        "Тип услуги": "social",
+                        "Плательщик": "Eingliederungshilfe",
+                    }
+                )
 
             return True
 
@@ -303,11 +306,11 @@ def import_services_from_file(file_path: str) -> List[Service]:
     """
     importer = DataImporter()
 
-    if file_path.endswith('.csv'):
+    if file_path.endswith(".csv"):
         return importer.import_from_csv(file_path)
-    elif file_path.endswith('.json'):
+    elif file_path.endswith(".json"):
         return importer.import_from_json(file_path)
-    elif file_path.endswith(('.xlsx', '.xls')):
+    elif file_path.endswith((".xlsx", ".xls")):
         return importer.import_from_excel(file_path)
     else:
         raise ValueError(f"Unsupported file format: {file_path}")

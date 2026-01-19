@@ -5,16 +5,17 @@ Provides real-time analytics and metrics for API usage including
 request metrics, error tracking, latency analysis, and anomaly detection.
 """
 
-from typing import Optional, Dict, Any, List, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime, timedelta
-from collections import defaultdict, deque
 import statistics
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class MetricType(str, Enum):
     """Metric types"""
+
     COUNTER = "counter"
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
@@ -23,6 +24,7 @@ class MetricType(str, Enum):
 
 class TimeWindow(str, Enum):
     """Time window for aggregation"""
+
     MINUTE = "1m"
     FIVE_MINUTES = "5m"
     HOUR = "1h"
@@ -34,6 +36,7 @@ class TimeWindow(str, Enum):
 @dataclass
 class RequestMetrics:
     """Request metrics"""
+
     total_requests: int = 0
     successful_requests: int = 0
     failed_requests: int = 0
@@ -48,6 +51,7 @@ class RequestMetrics:
 @dataclass
 class EndpointMetrics:
     """Metrics for specific endpoint"""
+
     endpoint: str
     method: str
     metrics: RequestMetrics = field(default_factory=RequestMetrics)
@@ -58,6 +62,7 @@ class EndpointMetrics:
 @dataclass
 class ClientMetrics:
     """Metrics for specific client"""
+
     client_id: str
     client_type: str  # "user", "api_key", "ip"
     metrics: RequestMetrics = field(default_factory=RequestMetrics)
@@ -67,6 +72,7 @@ class ClientMetrics:
 @dataclass
 class TimeSeriesPoint:
     """Time series data point"""
+
     timestamp: datetime
     value: float
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -75,6 +81,7 @@ class TimeSeriesPoint:
 @dataclass
 class AnomalyAlert:
     """Anomaly detection alert"""
+
     timestamp: datetime
     metric: str
     current_value: float
@@ -96,11 +103,7 @@ class MetricsCollector:
         self.failed_requests = 0
         self.start_time = datetime.utcnow()
 
-    def record_request(
-        self,
-        status_code: int,
-        response_time_ms: float
-    ):
+    def record_request(self, status_code: int, response_time_ms: float):
         """
         Record a request
 
@@ -130,11 +133,7 @@ class MetricsCollector:
         p99 = self._percentile(response_times_list, 99)
 
         # Calculate error rate
-        error_rate = (
-            self.failed_requests / self.total_requests
-            if self.total_requests > 0
-            else 0.0
-        )
+        error_rate = self.failed_requests / self.total_requests if self.total_requests > 0 else 0.0
 
         # Calculate requests per second
         elapsed = (datetime.utcnow() - self.start_time).total_seconds()
@@ -149,7 +148,7 @@ class MetricsCollector:
             p50_response_time_ms=p50,
             p95_response_time_ms=p95,
             p99_response_time_ms=p99,
-            requests_per_second=rps
+            requests_per_second=rps,
         )
 
     def _percentile(self, data: List[float], percentile: float) -> float:
@@ -204,7 +203,7 @@ class APIAnalytics:
         response_time_ms: float,
         client_id: Optional[str] = None,
         client_type: str = "unknown",
-        country: Optional[str] = None
+        country: Optional[str] = None,
     ):
         """
         Record API request
@@ -239,12 +238,8 @@ class APIAnalytics:
 
         # Record time series
         now = datetime.utcnow()
-        self.time_series["requests"].append(
-            TimeSeriesPoint(timestamp=now, value=1.0)
-        )
-        self.time_series["response_time"].append(
-            TimeSeriesPoint(timestamp=now, value=response_time_ms)
-        )
+        self.time_series["requests"].append(TimeSeriesPoint(timestamp=now, value=1.0))
+        self.time_series["response_time"].append(TimeSeriesPoint(timestamp=now, value=response_time_ms))
 
         # Check for anomalies
         self._check_anomalies(response_time_ms)
@@ -253,10 +248,7 @@ class APIAnalytics:
         """Get global metrics"""
         return self.global_collector.get_metrics()
 
-    def get_endpoint_metrics(
-        self,
-        top_n: int = 10
-    ) -> List[EndpointMetrics]:
+    def get_endpoint_metrics(self, top_n: int = 10) -> List[EndpointMetrics]:
         """
         Get endpoint metrics
 
@@ -272,23 +264,22 @@ class APIAnalytics:
             method, endpoint = endpoint_key.split(":", 1)
             metrics = collector.get_metrics()
 
-            endpoint_metrics.append(EndpointMetrics(
-                endpoint=endpoint,
-                method=method,
-                metrics=metrics,
-                status_codes=dict(collector.status_codes),
-                response_times=list(collector.response_times)
-            ))
+            endpoint_metrics.append(
+                EndpointMetrics(
+                    endpoint=endpoint,
+                    method=method,
+                    metrics=metrics,
+                    status_codes=dict(collector.status_codes),
+                    response_times=list(collector.response_times),
+                )
+            )
 
         # Sort by total requests
         endpoint_metrics.sort(key=lambda x: x.metrics.total_requests, reverse=True)
 
         return endpoint_metrics[:top_n]
 
-    def get_client_metrics(
-        self,
-        top_n: int = 10
-    ) -> List[ClientMetrics]:
+    def get_client_metrics(self, top_n: int = 10) -> List[ClientMetrics]:
         """
         Get client metrics
 
@@ -303,11 +294,9 @@ class APIAnalytics:
         for client_id, collector in self.client_collectors.items():
             metrics = collector.get_metrics()
 
-            client_metrics.append(ClientMetrics(
-                client_id=client_id,
-                client_type="unknown",  # Would need to track this
-                metrics=metrics
-            ))
+            client_metrics.append(
+                ClientMetrics(client_id=client_id, client_type="unknown", metrics=metrics)  # Would need to track this
+            )
 
         # Sort by total requests
         client_metrics.sort(key=lambda x: x.metrics.total_requests, reverse=True)
@@ -319,7 +308,7 @@ class APIAnalytics:
         metric: str,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
-        window: TimeWindow = TimeWindow.MINUTE
+        window: TimeWindow = TimeWindow.MINUTE,
     ) -> List[TimeSeriesPoint]:
         """
         Get time series data
@@ -343,21 +332,14 @@ class APIAnalytics:
             end_time = datetime.utcnow()
 
         # Filter by time range
-        points = [
-            p for p in self.time_series[metric]
-            if start_time <= p.timestamp <= end_time
-        ]
+        points = [p for p in self.time_series[metric] if start_time <= p.timestamp <= end_time]
 
         # Aggregate by window
         aggregated = self._aggregate_time_series(points, window)
 
         return aggregated
 
-    def _aggregate_time_series(
-        self,
-        points: List[TimeSeriesPoint],
-        window: TimeWindow
-    ) -> List[TimeSeriesPoint]:
+    def _aggregate_time_series(self, points: List[TimeSeriesPoint], window: TimeWindow) -> List[TimeSeriesPoint]:
         """Aggregate time series data by window"""
         if not points:
             return []
@@ -377,19 +359,19 @@ class APIAnalytics:
 
         for point in points:
             # Round timestamp to window
-            window_start = datetime.fromtimestamp(
-                (point.timestamp.timestamp() // window_seconds) * window_seconds
-            )
+            window_start = datetime.fromtimestamp((point.timestamp.timestamp() // window_seconds) * window_seconds)
             windows[window_start].append(point.value)
 
         # Aggregate each window
         aggregated = []
         for window_start, values in sorted(windows.items()):
-            aggregated.append(TimeSeriesPoint(
-                timestamp=window_start,
-                value=sum(values),  # Sum for counter metrics
-                metadata={"count": len(values)}
-            ))
+            aggregated.append(
+                TimeSeriesPoint(
+                    timestamp=window_start,
+                    value=sum(values),  # Sum for counter metrics
+                    metadata={"count": len(values)},
+                )
+            )
 
         return aggregated
 
@@ -408,8 +390,7 @@ class APIAnalytics:
             # Exponential moving average
             alpha = 0.1
             self.baseline_metrics["response_time"] = (
-                alpha * response_time_ms +
-                (1 - alpha) * self.baseline_metrics["response_time"]
+                alpha * response_time_ms + (1 - alpha) * self.baseline_metrics["response_time"]
             )
 
         # Check if current value deviates significantly
@@ -427,7 +408,7 @@ class APIAnalytics:
                 expected_value=baseline,
                 deviation=deviation,
                 severity=severity,
-                description=f"Response time ({response_time_ms:.2f}ms) is {deviation*100:.1f}% higher than baseline ({baseline:.2f}ms)"
+                description=f"Response time ({response_time_ms:.2f}ms) is {deviation*100:.1f}% higher than baseline ({baseline:.2f}ms)",
             )
 
             self.anomalies.append(alert)
@@ -436,11 +417,7 @@ class APIAnalytics:
             if len(self.anomalies) > 100:
                 self.anomalies = self.anomalies[-100:]
 
-    def get_anomalies(
-        self,
-        since: Optional[datetime] = None,
-        severity: Optional[str] = None
-    ) -> List[AnomalyAlert]:
+    def get_anomalies(self, since: Optional[datetime] = None, severity: Optional[str] = None) -> List[AnomalyAlert]:
         """
         Get anomaly alerts
 
@@ -474,13 +451,7 @@ def get_api_analytics() -> APIAnalytics:
     return _api_analytics
 
 
-def record_api_request(
-    endpoint: str,
-    method: str,
-    status_code: int,
-    response_time_ms: float,
-    **kwargs
-):
+def record_api_request(endpoint: str, method: str, status_code: int, response_time_ms: float, **kwargs):
     """
     Record API request for analytics
 
@@ -493,9 +464,5 @@ def record_api_request(
     """
     analytics = get_api_analytics()
     analytics.record_request(
-        endpoint=endpoint,
-        method=method,
-        status_code=status_code,
-        response_time_ms=response_time_ms,
-        **kwargs
+        endpoint=endpoint, method=method, status_code=status_code, response_time_ms=response_time_ms, **kwargs
     )

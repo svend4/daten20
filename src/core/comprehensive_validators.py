@@ -10,12 +10,12 @@ Complete set of validators for all data types:
 - Cross-field validators
 """
 
-from typing import Dict, Any, List, Optional, Callable, Union, Tuple
-from decimal import Decimal, InvalidOperation
-from datetime import datetime, date
-import re
-from pathlib import Path
 import mimetypes
+import re
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 
 class ValidationError:
@@ -38,12 +38,7 @@ class ValidationError:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        return {
-            'field': self.field,
-            'message': self.message,
-            'severity': self.severity,
-            'code': self.code
-        }
+        return {"field": self.field, "message": self.message, "severity": self.severity, "code": self.code}
 
     def __str__(self) -> str:
         return f"{self.severity.upper()}: {self.field} - {self.message}"
@@ -100,11 +95,11 @@ class ValidationResult:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
-            'is_valid': self.is_valid,
-            'has_warnings': self.has_warnings,
-            'errors': [e.to_dict() for e in self.errors],
-            'warnings': [w.to_dict() for w in self.warnings],
-            'info': [i.to_dict() for i in self.info]
+            "is_valid": self.is_valid,
+            "has_warnings": self.has_warnings,
+            "errors": [e.to_dict() for e in self.errors],
+            "warnings": [w.to_dict() for w in self.warnings],
+            "info": [i.to_dict() for i in self.info],
         }
 
 
@@ -208,7 +203,9 @@ class FinancialValidator:
     """Validators for financial data."""
 
     @staticmethod
-    def validate_amount(amount: Any, min_value: float = 0, max_value: Optional[float] = None) -> Tuple[bool, Optional[str]]:
+    def validate_amount(
+        amount: Any, min_value: float = 0, max_value: Optional[float] = None
+    ) -> Tuple[bool, Optional[str]]:
         """
         Validate monetary amount.
 
@@ -223,7 +220,7 @@ class FinancialValidator:
         try:
             # Convert to Decimal for precise financial calculations
             if isinstance(amount, str):
-                amount = Decimal(amount.replace(',', ''))
+                amount = Decimal(amount.replace(",", ""))
             elif isinstance(amount, (int, float)):
                 amount = Decimal(str(amount))
             elif isinstance(amount, Decimal):
@@ -245,7 +242,9 @@ class FinancialValidator:
             return False, f"Invalid amount: {str(e)}"
 
     @staticmethod
-    def validate_percentage(percentage: Any, min_value: float = 0, max_value: float = 100) -> Tuple[bool, Optional[str]]:
+    def validate_percentage(
+        percentage: Any, min_value: float = 0, max_value: float = 100
+    ) -> Tuple[bool, Optional[str]]:
         """
         Validate percentage value.
 
@@ -284,9 +283,9 @@ class FinancialValidator:
             return False, "Tax ID is required"
 
         patterns = {
-            'DE': r'^\d{11}$',  # German tax ID (11 digits)
-            'US': r'^\d{3}-\d{2}-\d{4}$',  # US SSN
-            'GB': r'^[A-Z]{2}\d{6}[A-Z]$',  # UK National Insurance
+            "DE": r"^\d{11}$",  # German tax ID (11 digits)
+            "US": r"^\d{3}-\d{2}-\d{4}$",  # US SSN
+            "GB": r"^[A-Z]{2}\d{6}[A-Z]$",  # UK National Insurance
         }
 
         pattern = patterns.get(country)
@@ -313,22 +312,22 @@ class FinancialValidator:
             return False, "IBAN is required"
 
         # Remove spaces and convert to uppercase
-        iban = iban.replace(' ', '').upper()
+        iban = iban.replace(" ", "").upper()
 
         # Check format
-        if not re.match(r'^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$', iban):
+        if not re.match(r"^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$", iban):
             return False, "Invalid IBAN format"
 
         # Move first 4 characters to end
         iban_check = iban[4:] + iban[:4]
 
         # Replace letters with numbers (A=10, B=11, ..., Z=35)
-        iban_num = ''
+        iban_num = ""
         for char in iban_check:
             if char.isdigit():
                 iban_num += char
             else:
-                iban_num += str(ord(char) - ord('A') + 10)
+                iban_num += str(ord(char) - ord("A") + 10)
 
         # Check if valid using modulo 97
         if int(iban_num) % 97 != 1:
@@ -341,8 +340,9 @@ class BusinessLogicValidator:
     """Validators for business logic and rules."""
 
     @staticmethod
-    def validate_date_range(start_date: Union[date, datetime, str],
-                           end_date: Union[date, datetime, str]) -> Tuple[bool, Optional[str]]:
+    def validate_date_range(
+        start_date: Union[date, datetime, str], end_date: Union[date, datetime, str]
+    ) -> Tuple[bool, Optional[str]]:
         """
         Validate date range.
 
@@ -375,8 +375,9 @@ class BusinessLogicValidator:
             return False, f"Error validating date range: {str(e)}"
 
     @staticmethod
-    def validate_working_hours(hours: float, max_hours_per_day: float = 24,
-                              max_hours_per_week: float = 168) -> Tuple[bool, Optional[str]]:
+    def validate_working_hours(
+        hours: float, max_hours_per_day: float = 24, max_hours_per_week: float = 168
+    ) -> Tuple[bool, Optional[str]]:
         """
         Validate working hours.
 
@@ -417,7 +418,7 @@ class DataIntegrityValidator:
         for field in required_fields:
             if field not in data:
                 result.add_error(field, f"Required field '{field}' is missing", "MISSING_FIELD")
-            elif data[field] is None or data[field] == '':
+            elif data[field] is None or data[field] == "":
                 result.add_error(field, f"Required field '{field}' is empty", "EMPTY_FIELD")
 
         return result
@@ -443,8 +444,9 @@ class DataIntegrityValidator:
         return True, None
 
     @staticmethod
-    def validate_enum_value(value: str, allowed_values: List[str],
-                           case_sensitive: bool = False) -> Tuple[bool, Optional[str]]:
+    def validate_enum_value(
+        value: str, allowed_values: List[str], case_sensitive: bool = False
+    ) -> Tuple[bool, Optional[str]]:
         """
         Validate enum value.
 
@@ -495,34 +497,27 @@ class ComprehensiveValidator:
         result = ValidationResult()
 
         # Check required fields
-        required_fields = ['service_name', 'region', 'brutto_rate']
+        required_fields = ["service_name", "region", "brutto_rate"]
         integrity_result = self.integrity.validate_required_fields(service_data, required_fields)
         result.errors.extend(integrity_result.errors)
 
         # Validate financial data
-        if 'brutto_rate' in service_data:
-            is_valid, error = self.financial.validate_amount(
-                service_data['brutto_rate'],
-                min_value=0,
-                max_value=1000
-            )
+        if "brutto_rate" in service_data:
+            is_valid, error = self.financial.validate_amount(service_data["brutto_rate"], min_value=0, max_value=1000)
             if not is_valid:
-                result.add_error('brutto_rate', error, "INVALID_AMOUNT")
+                result.add_error("brutto_rate", error, "INVALID_AMOUNT")
 
-        if 'admin_percent' in service_data:
-            is_valid, error = self.financial.validate_percentage(service_data['admin_percent'])
+        if "admin_percent" in service_data:
+            is_valid, error = self.financial.validate_percentage(service_data["admin_percent"])
             if not is_valid:
-                result.add_error('admin_percent', error, "INVALID_PERCENTAGE")
+                result.add_error("admin_percent", error, "INVALID_PERCENTAGE")
 
         # Validate service type
-        if 'service_type' in service_data:
-            allowed_types = ['Betreuung', 'Beratung', 'Verwaltung', 'Sonstiges']
-            is_valid, error = self.integrity.validate_enum_value(
-                service_data['service_type'],
-                allowed_types
-            )
+        if "service_type" in service_data:
+            allowed_types = ["Betreuung", "Beratung", "Verwaltung", "Sonstiges"]
+            is_valid, error = self.integrity.validate_enum_value(service_data["service_type"], allowed_types)
             if not is_valid:
-                result.add_warning('service_type', error, "INVALID_ENUM")
+                result.add_warning("service_type", error, "INVALID_ENUM")
 
         return result
 
@@ -542,19 +537,19 @@ class ComprehensiveValidator:
         # Check if file exists
         is_valid, error = self.document.validate_file_path(file_path)
         if not is_valid:
-            result.add_error('file_path', error, "INVALID_FILE_PATH")
+            result.add_error("file_path", error, "INVALID_FILE_PATH")
             return result
 
         # Check file type
-        allowed_types = ['.pdf', '.docx', '.txt', '.html', '.md']
+        allowed_types = [".pdf", ".docx", ".txt", ".html", ".md"]
         is_valid, error = self.document.validate_file_type(file_path, allowed_types)
         if not is_valid:
-            result.add_error('file_type', error, "INVALID_FILE_TYPE")
+            result.add_error("file_type", error, "INVALID_FILE_TYPE")
 
         # Check file size
         is_valid, error = self.document.validate_file_size(file_path, max_size_mb)
         if not is_valid:
-            result.add_error('file_size', error, "FILE_TOO_LARGE")
+            result.add_error("file_size", error, "FILE_TOO_LARGE")
 
         return result
 

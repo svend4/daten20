@@ -19,14 +19,14 @@ Dependencies:
 - json for serialization
 """
 
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Any
-from datetime import datetime
-from uuid import uuid4
 import hashlib
 import json
-import threading
 import logging
+import threading
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Transaction:
     """Blockchain transaction"""
+
     tx_id: str = field(default_factory=lambda: str(uuid4()))
     timestamp: datetime = field(default_factory=datetime.now)
     tx_type: str = "audit"  # audit, document, access, config
@@ -51,7 +52,7 @@ class Transaction:
             "sender": self.sender,
             "data": self.data,
             "signature": self.signature,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
     def calculate_hash(self) -> str:
@@ -63,6 +64,7 @@ class Transaction:
 @dataclass
 class Block:
     """Blockchain block"""
+
     index: int
     timestamp: datetime
     transactions: List[Transaction]
@@ -89,7 +91,7 @@ class Block:
             "previous_hash": self.previous_hash,
             "nonce": self.nonce,
             "merkle_root": self.merkle_root,
-            "validator": self.validator
+            "validator": self.validator,
         }
         block_string = json.dumps(block_data, sort_keys=True)
         return hashlib.sha256(block_string.encode()).hexdigest()
@@ -128,7 +130,7 @@ class Block:
             "hash": self.hash,
             "merkle_root": self.merkle_root,
             "validator": self.validator,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
@@ -142,15 +144,11 @@ class GenesisBlock:
             tx_id="genesis",
             tx_type="genesis",
             sender="system",
-            data={"message": "Genesis Block - Daten Blockchain v3.4"}
+            data={"message": "Genesis Block - Daten Blockchain v3.4"},
         )
 
         return Block(
-            index=0,
-            timestamp=datetime.now(),
-            transactions=[genesis_tx],
-            previous_hash="0" * 64,
-            validator="genesis"
+            index=0, timestamp=datetime.now(), transactions=[genesis_tx], previous_hash="0" * 64, validator="genesis"
         )
 
 
@@ -297,7 +295,7 @@ class Blockchain:
                 timestamp=datetime.now(),
                 transactions=self.pending_transactions.copy(),
                 previous_hash=previous_block.hash,
-                validator=validator
+                validator=validator,
             )
 
             # Validate block
@@ -340,10 +338,7 @@ class Blockchain:
         return None
 
     def get_audit_trail(
-        self,
-        entity_id: Optional[str] = None,
-        entity_type: Optional[str] = None,
-        from_block: int = 0
+        self, entity_id: Optional[str] = None, entity_type: Optional[str] = None, from_block: int = 0
     ) -> List[Transaction]:
         """
         Get audit trail for entity
@@ -407,7 +402,7 @@ class Blockchain:
                 "latest_block_hash": self.chain[-1].hash if self.chain else None,
                 "is_valid": self.is_valid(),
                 "genesis_timestamp": self.chain[0].timestamp.isoformat() if self.chain else None,
-                "latest_timestamp": self.chain[-1].timestamp.isoformat() if self.chain else None
+                "latest_timestamp": self.chain[-1].timestamp.isoformat() if self.chain else None,
             }
 
     def export_chain(self, file_path: str):
@@ -415,7 +410,7 @@ class Blockchain:
         with self._lock:
             chain_data = [block.to_dict() for block in self.chain]
 
-            with open(file_path, 'w') as f:
+            with open(file_path, "w") as f:
                 json.dump(chain_data, f, indent=2)
 
             logger.info(f"Blockchain exported to {file_path}")
@@ -423,7 +418,7 @@ class Blockchain:
     def import_chain(self, file_path: str) -> bool:
         """Import blockchain from JSON file"""
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 chain_data = json.load(f)
 
             # Reconstruct chain
@@ -437,7 +432,7 @@ class Blockchain:
                         sender=tx["sender"],
                         data=tx["data"],
                         signature=tx.get("signature"),
-                        metadata=tx.get("metadata", {})
+                        metadata=tx.get("metadata", {}),
                     )
                     for tx in block_data["transactions"]
                 ]
@@ -449,7 +444,7 @@ class Blockchain:
                     previous_hash=block_data["previous_hash"],
                     nonce=block_data["nonce"],
                     validator=block_data["validator"],
-                    metadata=block_data.get("metadata", {})
+                    metadata=block_data.get("metadata", {}),
                 )
 
                 imported_chain.append(block)
@@ -503,23 +498,13 @@ if __name__ == "__main__":
     tx1 = Transaction(
         tx_type="document_created",
         sender="user-123",
-        data={
-            "entity_id": "doc-456",
-            "entity_type": "document",
-            "title": "Sample Document",
-            "action": "created"
-        }
+        data={"entity_id": "doc-456", "entity_type": "document", "title": "Sample Document", "action": "created"},
     )
 
     tx2 = Transaction(
         tx_type="document_updated",
         sender="user-123",
-        data={
-            "entity_id": "doc-456",
-            "entity_type": "document",
-            "title": "Updated Document",
-            "action": "updated"
-        }
+        data={"entity_id": "doc-456", "entity_type": "document", "title": "Updated Document", "action": "updated"},
     )
 
     blockchain.add_transaction(tx1)

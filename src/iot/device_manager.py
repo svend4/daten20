@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class DeviceStatus(Enum):
     """Device connection status."""
+
     ONLINE = "online"
     OFFLINE = "offline"
     ERROR = "error"
@@ -30,6 +31,7 @@ class DeviceStatus(Enum):
 
 class DeviceType(Enum):
     """Device types."""
+
     SENSOR = "sensor"
     ACTUATOR = "actuator"
     GATEWAY = "gateway"
@@ -41,6 +43,7 @@ class DeviceType(Enum):
 
 class FirmwareStatus(Enum):
     """Firmware update status."""
+
     UP_TO_DATE = "up_to_date"
     UPDATE_AVAILABLE = "update_available"
     UPDATING = "updating"
@@ -50,6 +53,7 @@ class FirmwareStatus(Enum):
 @dataclass
 class Location:
     """Physical location of device."""
+
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     room: Optional[str] = None
@@ -62,6 +66,7 @@ class Location:
 @dataclass
 class DeviceShadow:
     """Digital twin - desired vs reported state."""
+
     desired: Dict[str, Any] = field(default_factory=dict)
     reported: Dict[str, Any] = field(default_factory=dict)
     delta: Dict[str, Any] = field(default_factory=dict)
@@ -93,6 +98,7 @@ class DeviceShadow:
 @dataclass
 class FirmwareVersion:
     """Firmware version information."""
+
     version: str
     release_date: datetime
     download_url: str
@@ -105,6 +111,7 @@ class FirmwareVersion:
 @dataclass
 class Device:
     """IoT device representation."""
+
     device_id: str
     device_name: str
     device_type: DeviceType
@@ -136,6 +143,7 @@ class Device:
 @dataclass
 class DeviceGroup:
     """Group of devices."""
+
     group_id: str
     group_name: str
     description: str = ""
@@ -177,7 +185,7 @@ class DeviceRegistry:
         self,
         status: Optional[DeviceStatus] = None,
         device_type: Optional[DeviceType] = None,
-        group: Optional[str] = None
+        group: Optional[str] = None,
     ) -> List[Device]:
         """List devices with optional filters."""
         devices = list(self.devices.values())
@@ -214,11 +222,7 @@ class DeviceRegistry:
         if group_id in self.groups:
             raise ValueError(f"Group {group_id} already exists")
 
-        group = DeviceGroup(
-            group_id=group_id,
-            group_name=group_name,
-            description=description
-        )
+        group = DeviceGroup(group_id=group_id, group_name=group_name, description=description)
         self.groups[group_id] = group
 
         logger.info(f"Created device group {group_id}")
@@ -255,21 +259,10 @@ class DeviceLifecycle:
     def __init__(self, registry: DeviceRegistry):
         self.registry = registry
 
-    async def provision(
-        self,
-        device_id: str,
-        device_name: str,
-        device_type: DeviceType,
-        **kwargs
-    ) -> Device:
+    async def provision(self, device_id: str, device_name: str, device_type: DeviceType, **kwargs) -> Device:
         """Provision new device."""
         # Create device
-        device = Device(
-            device_id=device_id,
-            device_name=device_name,
-            device_type=device_type,
-            **kwargs
-        )
+        device = Device(device_id=device_id, device_name=device_name, device_type=device_type, **kwargs)
 
         # Register
         if not self.registry.register(device):
@@ -329,17 +322,10 @@ class FirmwareUpdater:
         self.update_queue: Dict[str, FirmwareVersion] = {}
         self.update_status: Dict[str, FirmwareStatus] = {}
 
-    def register_firmware(
-        self,
-        device_type: str,
-        version: FirmwareVersion
-    ):
+    def register_firmware(self, device_type: str, version: FirmwareVersion):
         """Register new firmware version."""
         self.firmware_versions[device_type].append(version)
-        self.firmware_versions[device_type].sort(
-            key=lambda v: v.release_date,
-            reverse=True
-        )
+        self.firmware_versions[device_type].sort(key=lambda v: v.release_date, reverse=True)
 
         logger.info(f"Registered firmware {version.version} for {device_type}")
 
@@ -356,11 +342,7 @@ class FirmwareUpdater:
 
         return latest.version != device.firmware_version
 
-    async def schedule_update(
-        self,
-        device_id: str,
-        device: Device
-    ) -> bool:
+    async def schedule_update(self, device_id: str, device: Device) -> bool:
         """Schedule firmware update for device."""
         latest = self.get_latest_version(device.device_type.value)
         if not latest:
@@ -413,10 +395,7 @@ class DeviceGroupManager:
         self.registry = registry
 
     async def create_group(
-        self,
-        group_name: str,
-        device_ids: Optional[List[str]] = None,
-        description: str = ""
+        self, group_name: str, device_ids: Optional[List[str]] = None, description: str = ""
     ) -> DeviceGroup:
         """Create new device group."""
         group_id = str(uuid4())
@@ -429,11 +408,7 @@ class DeviceGroupManager:
 
         return group
 
-    async def batch_update_shadow(
-        self,
-        group_id: str,
-        desired_state: Dict[str, Any]
-    ) -> int:
+    async def batch_update_shadow(self, group_id: str, desired_state: Dict[str, Any]) -> int:
         """Update shadow for all devices in group."""
         group = self.registry.groups.get(group_id)
         if not group:
@@ -449,11 +424,7 @@ class DeviceGroupManager:
         logger.info(f"Updated shadow for {updated_count} devices in group {group_id}")
         return updated_count
 
-    async def batch_firmware_update(
-        self,
-        group_id: str,
-        firmware_updater: FirmwareUpdater
-    ) -> Dict[str, bool]:
+    async def batch_firmware_update(self, group_id: str, firmware_updater: FirmwareUpdater) -> Dict[str, bool]:
         """Schedule firmware updates for all devices in group."""
         group = self.registry.groups.get(group_id)
         if not group:
@@ -489,7 +460,7 @@ class DeviceHealthMonitor:
             "status": device.status.value,
             "is_online": device.is_online(),
             "last_seen": device.last_seen,
-            "issues": []
+            "issues": [],
         }
 
         # Check if device is offline
@@ -519,30 +490,20 @@ class DeviceHealthMonitor:
 
         return results
 
-    def create_alert(
-        self,
-        device_id: str,
-        alert_type: str,
-        message: str,
-        severity: str = "warning"
-    ):
+    def create_alert(self, device_id: str, alert_type: str, message: str, severity: str = "warning"):
         """Create device alert."""
         alert = {
             "device_id": device_id,
             "alert_type": alert_type,
             "message": message,
             "severity": severity,
-            "timestamp": datetime.now()
+            "timestamp": datetime.now(),
         }
 
         self.alerts.append(alert)
         logger.warning(f"Device alert: {alert}")
 
-    def get_alerts(
-        self,
-        device_id: Optional[str] = None,
-        since: Optional[datetime] = None
-    ) -> List[Dict[str, Any]]:
+    def get_alerts(self, device_id: Optional[str] = None, since: Optional[datetime] = None) -> List[Dict[str, Any]]:
         """Get device alerts."""
         alerts = self.alerts
 
@@ -565,19 +526,10 @@ class DeviceManager:
         self.group_manager = DeviceGroupManager(self.registry)
         self.health_monitor = DeviceHealthMonitor(self.registry)
 
-    async def register_device(
-        self,
-        device_id: str,
-        device_name: str,
-        device_type: str,
-        **kwargs
-    ) -> Device:
+    async def register_device(self, device_id: str, device_name: str, device_type: str, **kwargs) -> Device:
         """Register new device."""
         return await self.lifecycle.provision(
-            device_id=device_id,
-            device_name=device_name,
-            device_type=DeviceType(device_type),
-            **kwargs
+            device_id=device_id, device_name=device_name, device_type=DeviceType(device_type), **kwargs
         )
 
     def get_device(self, device_id: str) -> Optional[Device]:
@@ -589,10 +541,7 @@ class DeviceManager:
         return self.registry.list_devices(**filters)
 
     async def update_shadow(
-        self,
-        device_id: str,
-        desired: Optional[Dict[str, Any]] = None,
-        reported: Optional[Dict[str, Any]] = None
+        self, device_id: str, desired: Optional[Dict[str, Any]] = None, reported: Optional[Dict[str, Any]] = None
     ) -> bool:
         """Update device shadow."""
         device = self.registry.get(device_id)

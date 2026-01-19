@@ -14,24 +14,26 @@ References:
 """
 
 import asyncio
-import threading
-import time
+import json
 import math
 import random
-import numpy as np
-from typing import Dict, List, Any, Optional, Tuple, Set, Callable
+import threading
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import json
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
+import numpy as np
 
 # ============================================================================
 # ENUMS
 # ============================================================================
 
+
 class LogicOperator(Enum):
     """Logic operators"""
+
     AND = "and"
     OR = "or"
     NOT = "not"
@@ -42,6 +44,7 @@ class LogicOperator(Enum):
 
 class ModuleType(Enum):
     """Neural module types"""
+
     FIND = "find"
     RELATE = "relate"
     FILTER = "filter"
@@ -54,6 +57,7 @@ class ModuleType(Enum):
 
 class SynthesisAlgorithm(Enum):
     """Program synthesis algorithms"""
+
     ENUMERATIVE = "enumerative"
     NEURAL_GUIDED = "neural_guided"
     SEQ2SEQ = "seq2seq"
@@ -62,6 +66,7 @@ class SynthesisAlgorithm(Enum):
 
 class ReasoningMode(Enum):
     """Reasoning modes"""
+
     FORWARD_CHAINING = "forward"
     BACKWARD_CHAINING = "backward"
     BIDIRECTIONAL = "bidirectional"
@@ -71,9 +76,11 @@ class ReasoningMode(Enum):
 # DATA CLASSES
 # ============================================================================
 
+
 @dataclass
 class Predicate:
     """Predicate in logic"""
+
     name: str
     arity: int
     neural_network: Optional[Any] = None
@@ -83,6 +90,7 @@ class Predicate:
 @dataclass
 class LogicRule:
     """First-order logic rule"""
+
     rule_id: str
     premise: List[str]
     conclusion: str
@@ -93,6 +101,7 @@ class LogicRule:
 @dataclass
 class Module:
     """Neural module"""
+
     module_type: ModuleType
     parameters: Dict[str, Any]
     network: Optional[Any] = None
@@ -101,6 +110,7 @@ class Module:
 @dataclass
 class Program:
     """Synthesized program"""
+
     program_id: str
     code: str
     language: str
@@ -112,6 +122,7 @@ class Program:
 @dataclass
 class LogicalForm:
     """Parsed logical form"""
+
     query: str
     logical_form: str
     type_signature: str
@@ -121,6 +132,7 @@ class LogicalForm:
 @dataclass
 class Triple:
     """Knowledge graph triple"""
+
     head: str
     relation: str
     tail: str
@@ -131,16 +143,17 @@ class Triple:
 # 1. LOGIC TENSOR NETWORK
 # ============================================================================
 
+
 class LogicTensorNetwork:
     """
     Integrate first-order logic with deep learning through differentiable fuzzy logic.
-    
+
     Features:
     - Fuzzy logic operators (T-norms, T-conorms)
     - Predicate learning via neural networks
     - Satisfiability maximization
     - Differentiable quantifiers
-    
+
     Performance: <10ms grounding, <200ms KB satisfaction for 50 rules
     """
 
@@ -150,35 +163,15 @@ class LogicTensorNetwork:
         self.constants: Dict[str, np.ndarray] = {}
         self._lock = threading.Lock()
 
-    async def add_predicate(
-        self,
-        name: str,
-        arity: int,
-        neural_network: Optional[Any] = None
-    ):
+    async def add_predicate(self, name: str, arity: int, neural_network: Optional[Any] = None):
         """Register a predicate with optional neural network."""
         with self._lock:
-            self.predicates[name] = Predicate(
-                name=name,
-                arity=arity,
-                neural_network=neural_network
-            )
+            self.predicates[name] = Predicate(name=name, arity=arity, neural_network=neural_network)
 
-    async def add_rule(
-        self,
-        rule_id: str,
-        premise: List[str],
-        conclusion: str,
-        weight: float = 1.0
-    ):
+    async def add_rule(self, rule_id: str, premise: List[str], conclusion: str, weight: float = 1.0):
         """Add first-order logic rule."""
         with self._lock:
-            self.rules[rule_id] = LogicRule(
-                rule_id=rule_id,
-                premise=premise,
-                conclusion=conclusion,
-                weight=weight
-            )
+            self.rules[rule_id] = LogicRule(rule_id=rule_id, premise=premise, conclusion=conclusion, weight=weight)
 
     async def fuzzy_and(self, a: float, b: float, t_norm: str = "product") -> float:
         """Fuzzy conjunction (T-norm)."""
@@ -199,11 +192,7 @@ class LogicTensorNetwork:
         """Fuzzy negation."""
         return 1.0 - a
 
-    async def ground_predicate(
-        self,
-        predicate_name: str,
-        args: List[Any]
-    ) -> float:
+    async def ground_predicate(self, predicate_name: str, args: List[Any]) -> float:
         """Ground a predicate with arguments, return truth value."""
         pred = self.predicates.get(predicate_name)
         if not pred:
@@ -238,16 +227,17 @@ class LogicTensorNetwork:
 # 2. NEURAL MODULE NETWORK
 # ============================================================================
 
+
 class NeuralModuleNetwork:
     """
     Compositional visual reasoning through dynamic assembly of neural modules.
-    
+
     Features:
     - Question parsing to programs
     - Dynamic network assembly
     - Modular attention mechanisms
     - End-to-end training
-    
+
     Performance: <100ms parsing, <200ms execution, >95% compositional VQA
     """
 
@@ -260,23 +250,16 @@ class NeuralModuleNetwork:
         """Parse question into program structure."""
         # Simplified parsing (real: seq2seq model)
         if "count" in question.lower():
-            return [
-                {"type": "find", "params": {"attribute": "object"}},
-                {"type": "count", "params": {}}
-            ]
+            return [{"type": "find", "params": {"attribute": "object"}}, {"type": "count", "params": {}}]
         elif "color" in question.lower():
             return [
                 {"type": "find", "params": {"attribute": "object"}},
-                {"type": "classify", "params": {"category": "color"}}
+                {"type": "classify", "params": {"category": "color"}},
             ]
         else:
             return [{"type": "find", "params": {"attribute": "object"}}]
 
-    async def assemble_network(
-        self,
-        program: List[Dict[str, Any]],
-        image_features: np.ndarray
-    ) -> Any:
+    async def assemble_network(self, program: List[Dict[str, Any]], image_features: np.ndarray) -> Any:
         """Dynamically assemble network from program."""
         attention_map = np.ones((14, 14))  # Initialize
 
@@ -298,11 +281,7 @@ class NeuralModuleNetwork:
 
         return attention_map
 
-    async def _find_module(
-        self,
-        features: np.ndarray,
-        params: Dict[str, Any]
-    ) -> np.ndarray:
+    async def _find_module(self, features: np.ndarray, params: Dict[str, Any]) -> np.ndarray:
         """Find attention module."""
         # Simplified: random attention map
         return np.random.rand(14, 14)
@@ -311,12 +290,7 @@ class NeuralModuleNetwork:
         """Count module."""
         return int(np.sum(attention_map > 0.5))
 
-    async def _classify_module(
-        self,
-        attention_map: np.ndarray,
-        features: np.ndarray,
-        params: Dict[str, Any]
-    ) -> str:
+    async def _classify_module(self, attention_map: np.ndarray, features: np.ndarray, params: Dict[str, Any]) -> str:
         """Classification module."""
         categories = ["red", "blue", "green", "yellow"]
         return random.choice(categories)
@@ -326,16 +300,17 @@ class NeuralModuleNetwork:
 # 3. PROGRAM SYNTHESIS ENGINE
 # ============================================================================
 
+
 class ProgramSynthesisEngine:
     """
     Automatically generate programs from input-output examples.
-    
+
     Features:
     - Enumerative search
     - Neural-guided search
     - Seq2seq program generation
     - Differentiable programming
-    
+
     Performance: <10s synthesis for simple tasks, >80% string transformations
     """
 
@@ -348,10 +323,10 @@ class ProgramSynthesisEngine:
         self,
         examples: List[Tuple[Any, Any]],
         algorithm: SynthesisAlgorithm = SynthesisAlgorithm.NEURAL_GUIDED,
-        max_size: int = 20
+        max_size: int = 20,
     ) -> Optional[Program]:
         """Synthesize program from input-output examples."""
-        
+
         if algorithm == SynthesisAlgorithm.ENUMERATIVE:
             return await self._enumerative_search(examples, max_size)
         elif algorithm == SynthesisAlgorithm.NEURAL_GUIDED:
@@ -359,53 +334,42 @@ class ProgramSynthesisEngine:
         else:
             return await self._seq2seq_synthesis(examples)
 
-    async def _enumerative_search(
-        self,
-        examples: List[Tuple[Any, Any]],
-        max_size: int
-    ) -> Optional[Program]:
+    async def _enumerative_search(self, examples: List[Tuple[Any, Any]], max_size: int) -> Optional[Program]:
         """Enumerative bottom-up search."""
         # Simplified: generate random program
         program_code = "lambda x: x.upper()"  # Example
-        
+
         program = Program(
             program_id=f"prog_{len(self.programs)}",
             code=program_code,
             language="python",
             examples=examples,
-            correctness=0.8
+            correctness=0.8,
         )
-        
+
         with self._lock:
             self.programs[program.program_id] = program
-        
+
         return program
 
-    async def _neural_guided_search(
-        self,
-        examples: List[Tuple[Any, Any]],
-        max_size: int
-    ) -> Optional[Program]:
+    async def _neural_guided_search(self, examples: List[Tuple[Any, Any]], max_size: int) -> Optional[Program]:
         """Neural-guided enumerative search."""
         # Use neural value function to guide search
         return await self._enumerative_search(examples, max_size)
 
-    async def _seq2seq_synthesis(
-        self,
-        examples: List[Tuple[Any, Any]]
-    ) -> Optional[Program]:
+    async def _seq2seq_synthesis(self, examples: List[Tuple[Any, Any]]) -> Optional[Program]:
         """Seq2seq program generation (RobustFill)."""
         # Simplified: template-based generation
         program_code = "lambda x: x.title()"
-        
+
         program = Program(
             program_id=f"prog_{len(self.programs)}",
             code=program_code,
             language="python",
             examples=examples,
-            correctness=0.85
+            correctness=0.85,
         )
-        
+
         return program
 
 
@@ -413,16 +377,17 @@ class ProgramSynthesisEngine:
 # 4. SEMANTIC PARSER
 # ============================================================================
 
+
 class SemanticParser:
     """
     Translate natural language to formal logical representations.
-    
+
     Features:
     - NL to SQL
     - NL to lambda calculus
     - Grammar-constrained decoding
     - Execution-based learning
-    
+
     Performance: <500ms parsing, >85% WikiSQL, >90% GeoQuery
     """
 
@@ -432,13 +397,9 @@ class SemanticParser:
         self.decoder: Optional[Any] = None
         self._lock = threading.Lock()
 
-    async def parse(
-        self,
-        question: str,
-        target_language: str = "sql"
-    ) -> LogicalForm:
+    async def parse(self, question: str, target_language: str = "sql") -> LogicalForm:
         """Parse natural language to logical form."""
-        
+
         if target_language == "sql":
             logical_form = await self._parse_to_sql(question)
         elif target_language == "lambda":
@@ -446,12 +407,7 @@ class SemanticParser:
         else:
             logical_form = question  # Fallback
 
-        return LogicalForm(
-            query=question,
-            logical_form=logical_form,
-            type_signature=target_language,
-            executable=True
-        )
+        return LogicalForm(query=question, logical_form=logical_form, type_signature=target_language, executable=True)
 
     async def _parse_to_sql(self, question: str) -> str:
         """Parse to SQL."""
@@ -473,47 +429,36 @@ class SemanticParser:
 # 5. DIFFERENTIABLE REASONER
 # ============================================================================
 
+
 class DifferentiableReasoner:
     """
     Perform logical reasoning with gradient-based optimization.
-    
+
     Features:
     - Differentiable backward chaining
     - Soft unification
     - Neural theorem proving
     - Multi-hop reasoning
-    
+
     Performance: <500ms for 3-hop, >80% KB completion
     """
 
     def __init__(self):
-        self.knowledge_base: Dict[str, Any] = {
-            'facts': [],
-            'rules': []
-        }
+        self.knowledge_base: Dict[str, Any] = {"facts": [], "rules": []}
         self._lock = threading.Lock()
 
-    async def backward_chain(
-        self,
-        goal: str,
-        max_depth: int = 5
-    ) -> Tuple[float, List[str]]:
+    async def backward_chain(self, goal: str, max_depth: int = 5) -> Tuple[float, List[str]]:
         """Differentiable backward chaining."""
         return await self._prove_goal(goal, depth=0, max_depth=max_depth)
 
-    async def _prove_goal(
-        self,
-        goal: str,
-        depth: int,
-        max_depth: int
-    ) -> Tuple[float, List[str]]:
+    async def _prove_goal(self, goal: str, depth: int, max_depth: int) -> Tuple[float, List[str]]:
         """Recursively prove goal."""
-        
+
         if depth >= max_depth:
             return 0.0, []
 
         # Check if goal is a fact
-        for fact in self.knowledge_base['facts']:
+        for fact in self.knowledge_base["facts"]:
             similarity = await self._soft_match(goal, fact)
             if similarity > 0.8:
                 return similarity, [fact]
@@ -522,7 +467,7 @@ class DifferentiableReasoner:
         best_score = 0.0
         best_proof = []
 
-        for rule in self.knowledge_base['rules']:
+        for rule in self.knowledge_base["rules"]:
             # Simplified rule matching
             score = random.random()  # Demo
             if score > best_score:
@@ -546,16 +491,17 @@ class DifferentiableReasoner:
 # 6. KNOWLEDGE GRAPH EMBEDDER
 # ============================================================================
 
+
 class KnowledgeGraphEmbedder:
     """
     Learn continuous vector representations of knowledge graphs.
-    
+
     Features:
     - TransE embeddings
     - ComplEx embeddings
     - RotatE embeddings
     - Link prediction
-    
+
     Performance: >30% MRR, >50% Hits@10, >10K predictions/sec
     """
 
@@ -569,10 +515,10 @@ class KnowledgeGraphEmbedder:
     async def add_triple(self, head: str, relation: str, tail: str):
         """Add triple to knowledge graph."""
         triple = Triple(head=head, relation=relation, tail=tail)
-        
+
         with self._lock:
             self.triples.append(triple)
-            
+
             # Initialize embeddings if needed
             if head not in self.entity_embeddings:
                 self.entity_embeddings[head] = np.random.randn(self.embedding_dim)
@@ -581,33 +527,23 @@ class KnowledgeGraphEmbedder:
             if relation not in self.relation_embeddings:
                 self.relation_embeddings[relation] = np.random.randn(self.embedding_dim)
 
-    async def score_triple_transe(
-        self,
-        head: str,
-        relation: str,
-        tail: str
-    ) -> float:
+    async def score_triple_transe(self, head: str, relation: str, tail: str) -> float:
         """Score triple using TransE: -||h + r - t||."""
         h = self.entity_embeddings.get(head, np.zeros(self.embedding_dim))
         r = self.relation_embeddings.get(relation, np.zeros(self.embedding_dim))
         t = self.entity_embeddings.get(tail, np.zeros(self.embedding_dim))
-        
+
         distance = np.linalg.norm(h + r - t)
         return -distance
 
-    async def predict_tail(
-        self,
-        head: str,
-        relation: str,
-        top_k: int = 10
-    ) -> List[Tuple[str, float]]:
+    async def predict_tail(self, head: str, relation: str, top_k: int = 10) -> List[Tuple[str, float]]:
         """Predict tail entities for (head, relation, ?)."""
         scores = []
-        
+
         for entity in self.entity_embeddings.keys():
             score = await self.score_triple_transe(head, relation, entity)
             scores.append((entity, score))
-        
+
         # Sort by score (higher is better after negation)
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[:top_k]
@@ -617,90 +553,67 @@ class KnowledgeGraphEmbedder:
 # 7. HYBRID LEARNING SYSTEM
 # ============================================================================
 
+
 class HybridLearningSystem:
     """
     Jointly train neural and symbolic components.
-    
+
     Features:
     - Semantic loss training
     - Abductive learning
     - Constraint satisfaction
     - Neural-symbolic refinement
-    
+
     Performance: >95% constraint satisfaction, 50% less data needed
     """
 
     def __init__(self):
         self.neural_model: Optional[Any] = None
-        self.symbolic_kb: Dict[str, Any] = {'rules': [], 'constraints': []}
+        self.symbolic_kb: Dict[str, Any] = {"rules": [], "constraints": []}
         self.training_history: List[Dict[str, float]] = []
         self._lock = threading.Lock()
 
-    async def add_constraint(
-        self,
-        constraint_id: str,
-        formula: str,
-        weight: float = 1.0
-    ):
+    async def add_constraint(self, constraint_id: str, formula: str, weight: float = 1.0):
         """Add symbolic constraint to guide learning."""
         with self._lock:
-            self.symbolic_kb['constraints'].append({
-                'id': constraint_id,
-                'formula': formula,
-                'weight': weight
-            })
+            self.symbolic_kb["constraints"].append({"id": constraint_id, "formula": formula, "weight": weight})
 
-    async def compute_semantic_loss(
-        self,
-        predictions: np.ndarray,
-        constraints: List[Dict[str, Any]]
-    ) -> float:
+    async def compute_semantic_loss(self, predictions: np.ndarray, constraints: List[Dict[str, Any]]) -> float:
         """Compute loss from constraint violations."""
         total_violation = 0.0
-        
+
         for constraint in constraints:
             # Simplified: random violation
             violation = random.random() * 0.1
-            total_violation += violation * constraint['weight']
-        
+            total_violation += violation * constraint["weight"]
+
         return total_violation
 
     async def train_hybrid(
-        self,
-        data: List[Tuple[Any, Any]],
-        num_epochs: int = 100,
-        lambda_semantic: float = 0.5
+        self, data: List[Tuple[Any, Any]], num_epochs: int = 100, lambda_semantic: float = 0.5
     ) -> Dict[str, List[float]]:
         """Train with both supervised and semantic losses."""
-        history = {
-            'supervised_loss': [],
-            'semantic_loss': [],
-            'total_loss': []
-        }
-        
+        history = {"supervised_loss": [], "semantic_loss": [], "total_loss": []}
+
         for epoch in range(num_epochs):
             # Supervised loss (simplified)
             supervised_loss = 1.0 / (epoch + 1)  # Decreasing
-            
+
             # Semantic loss
             semantic_loss = await self.compute_semantic_loss(
-                predictions=None,  # Would compute from model
-                constraints=self.symbolic_kb['constraints']
+                predictions=None, constraints=self.symbolic_kb["constraints"]  # Would compute from model
             )
-            
+
             # Total loss
             total_loss = supervised_loss + lambda_semantic * semantic_loss
-            
-            history['supervised_loss'].append(supervised_loss)
-            history['semantic_loss'].append(semantic_loss)
-            history['total_loss'].append(total_loss)
-        
+
+            history["supervised_loss"].append(supervised_loss)
+            history["semantic_loss"].append(semantic_loss)
+            history["total_loss"].append(total_loss)
+
         with self._lock:
-            self.training_history.extend([{
-                'epoch': epoch,
-                'loss': total_loss
-            } for epoch in range(num_epochs)])
-        
+            self.training_history.extend([{"epoch": epoch, "loss": total_loss} for epoch in range(num_epochs)])
+
         return history
 
 

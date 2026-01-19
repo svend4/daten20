@@ -19,20 +19,21 @@ Dependencies:
 - secrets (for random number generation)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Tuple
-from enum import Enum
-from datetime import datetime
 import hashlib
-import secrets
-import logging
 import json
+import logging
+import secrets
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 
 class ProofSystem(str, Enum):
     """Zero-knowledge proof systems"""
+
     ZKSNARK = "zk-snark"
     ZKSTARK = "zk-stark"
     BULLETPROOFS = "bulletproofs"
@@ -41,6 +42,7 @@ class ProofSystem(str, Enum):
 
 class CommitmentScheme(str, Enum):
     """Commitment schemes"""
+
     PEDERSEN = "pedersen"
     HASH = "hash"
     MERKLE = "merkle"
@@ -49,6 +51,7 @@ class CommitmentScheme(str, Enum):
 @dataclass
 class Commitment:
     """Cryptographic commitment"""
+
     commitment_value: str
     blinding_factor: Optional[str] = None
     scheme: CommitmentScheme = CommitmentScheme.HASH
@@ -58,6 +61,7 @@ class Commitment:
 @dataclass
 class Proof:
     """Zero-knowledge proof"""
+
     proof_id: str
     proof_data: Dict[str, Any]
     public_inputs: Dict[str, Any]
@@ -69,6 +73,7 @@ class Proof:
 @dataclass
 class RangeProof:
     """Range proof (prove value is in range)"""
+
     commitment: Commitment
     min_value: int
     max_value: int
@@ -79,6 +84,7 @@ class RangeProof:
 @dataclass
 class SelectiveDisclosure:
     """Selective disclosure proof"""
+
     disclosed_fields: Dict[str, Any]
     hidden_fields: List[str]
     proof: Proof
@@ -88,6 +94,7 @@ class SelectiveDisclosure:
 @dataclass
 class VerifiableCredential:
     """Verifiable credential with ZK proofs"""
+
     credential_id: str
     issuer: str
     subject: str
@@ -124,17 +131,11 @@ class HashCommitment:
         commitment_value = hashlib.sha256(combined.encode()).hexdigest()
 
         return Commitment(
-            commitment_value=commitment_value,
-            blinding_factor=blinding_factor,
-            scheme=CommitmentScheme.HASH
+            commitment_value=commitment_value, blinding_factor=blinding_factor, scheme=CommitmentScheme.HASH
         )
 
     @staticmethod
-    def verify(
-        commitment: Commitment,
-        value: str,
-        blinding_factor: str
-    ) -> bool:
+    def verify(commitment: Commitment, value: str, blinding_factor: str) -> bool:
         """
         Verify commitment
 
@@ -231,14 +232,10 @@ class ZKSNARKProver:
         return {
             "proving_key": secrets.token_hex(64),
             "verification_key": secrets.token_hex(64),
-            "common_reference_string": secrets.token_hex(128)
+            "common_reference_string": secrets.token_hex(128),
         }
 
-    def prove_document_ownership(
-        self,
-        document_hash: str,
-        owner_secret: str
-    ) -> Proof:
+    def prove_document_ownership(self, document_hash: str, owner_secret: str) -> Proof:
         """
         Prove document ownership without revealing owner identity
 
@@ -256,35 +253,26 @@ class ZKSNARKProver:
         public_inputs = {"document_hash": document_hash}
 
         # Private witness: owner secret
-        witness = hashlib.sha256(
-            f"{document_hash}:{owner_secret}".encode()
-        ).hexdigest()
+        witness = hashlib.sha256(f"{document_hash}:{owner_secret}".encode()).hexdigest()
 
         # Create proof
         proof_data = {
             "witness_commitment": witness,
-            "proof_elements": [
-                secrets.token_hex(32) for _ in range(3)
-            ],
-            "proving_key_used": self._setup_parameters["proving_key"][:16]
+            "proof_elements": [secrets.token_hex(32) for _ in range(3)],
+            "proving_key_used": self._setup_parameters["proving_key"][:16],
         }
 
         proof = Proof(
             proof_id=secrets.token_hex(16),
             proof_data=proof_data,
             public_inputs=public_inputs,
-            proof_system=ProofSystem.ZKSNARK
+            proof_system=ProofSystem.ZKSNARK,
         )
 
         logger.info(f"Created zk-SNARK proof {proof.proof_id}")
         return proof
 
-    def prove_property(
-        self,
-        property_name: str,
-        property_value: Any,
-        secret_data: Dict[str, Any]
-    ) -> Proof:
+    def prove_property(self, property_name: str, property_value: Any, secret_data: Dict[str, Any]) -> Proof:
         """
         Prove a property about secret data without revealing the data
 
@@ -296,24 +284,19 @@ class ZKSNARKProver:
         Returns:
             Zero-knowledge proof
         """
-        public_inputs = {
-            "property": property_name,
-            "value": str(property_value)
-        }
+        public_inputs = {"property": property_name, "value": str(property_value)}
 
         # Create proof that property holds
         proof_data = {
-            "property_proof": hashlib.sha256(
-                json.dumps(secret_data, sort_keys=True).encode()
-            ).hexdigest(),
-            "verification_hint": secrets.token_hex(32)
+            "property_proof": hashlib.sha256(json.dumps(secret_data, sort_keys=True).encode()).hexdigest(),
+            "verification_hint": secrets.token_hex(32),
         }
 
         proof = Proof(
             proof_id=secrets.token_hex(16),
             proof_data=proof_data,
             public_inputs=public_inputs,
-            proof_system=ProofSystem.ZKSNARK
+            proof_system=ProofSystem.ZKSNARK,
         )
 
         return proof
@@ -364,10 +347,7 @@ class ZKSNARKVerifier:
 
         proof.verified = verified
 
-        logger.info(
-            f"Verified proof {proof.proof_id}: "
-            f"{'VALID' if verified else 'INVALID'}"
-        )
+        logger.info(f"Verified proof {proof.proof_id}: " f"{'VALID' if verified else 'INVALID'}")
 
         return verified
 
@@ -383,12 +363,7 @@ class RangeProofSystem:
         """Initialize range proof system"""
         self.pedersen = PedersenCommitment()
 
-    def create_range_proof(
-        self,
-        value: int,
-        min_value: int,
-        max_value: int
-    ) -> RangeProof:
+    def create_range_proof(self, value: int, min_value: int, max_value: int) -> RangeProof:
         """
         Create range proof
 
@@ -412,23 +387,19 @@ class RangeProofSystem:
             "commitment": commitment,
             "blinding_factor": blinding,
             "range_check_proof": secrets.token_hex(64),
-            "bit_commitments": [secrets.token_hex(32) for _ in range(32)]
+            "bit_commitments": [secrets.token_hex(32) for _ in range(32)],
         }
 
         range_proof = RangeProof(
             commitment=Commitment(
-                commitment_value=str(commitment),
-                blinding_factor=str(blinding),
-                scheme=CommitmentScheme.PEDERSEN
+                commitment_value=str(commitment), blinding_factor=str(blinding), scheme=CommitmentScheme.PEDERSEN
             ),
             min_value=min_value,
             max_value=max_value,
-            proof_data=proof_data
+            proof_data=proof_data,
         )
 
-        logger.info(
-            f"Created range proof: value in [{min_value}, {max_value}]"
-        )
+        logger.info(f"Created range proof: value in [{min_value}, {max_value}]")
 
         return range_proof
 
@@ -450,9 +421,7 @@ class RangeProofSystem:
 
         range_proof.verified = verified
 
-        logger.info(
-            f"Verified range proof: {'VALID' if verified else 'INVALID'}"
-        )
+        logger.info(f"Verified range proof: {'VALID' if verified else 'INVALID'}")
 
         return verified
 
@@ -469,9 +438,7 @@ class SelectiveDisclosureProver:
         self.zksnark = ZKSNARKProver()
 
     def create_disclosure_proof(
-        self,
-        full_document: Dict[str, Any],
-        fields_to_disclose: List[str]
+        self, full_document: Dict[str, Any], fields_to_disclose: List[str]
     ) -> SelectiveDisclosure:
         """
         Create selective disclosure proof
@@ -490,31 +457,21 @@ class SelectiveDisclosureProver:
         # Create Merkle root of all fields
         all_hashes = []
         for key in sorted(full_document.keys()):
-            field_hash = hashlib.sha256(
-                f"{key}:{full_document[key]}".encode()
-            ).hexdigest()
+            field_hash = hashlib.sha256(f"{key}:{full_document[key]}".encode()).hexdigest()
             all_hashes.append(field_hash)
 
         merkle_root = self._build_merkle_root(all_hashes)
 
         # Create proof that disclosed fields are part of document
         proof = self.zksnark.prove_property(
-            property_name="selective_disclosure",
-            property_value=merkle_root,
-            secret_data=full_document
+            property_name="selective_disclosure", property_value=merkle_root, secret_data=full_document
         )
 
         disclosure = SelectiveDisclosure(
-            disclosed_fields=disclosed,
-            hidden_fields=hidden,
-            proof=proof,
-            merkle_root=merkle_root
+            disclosed_fields=disclosed, hidden_fields=hidden, proof=proof, merkle_root=merkle_root
         )
 
-        logger.info(
-            f"Created selective disclosure: "
-            f"{len(disclosed)} disclosed, {len(hidden)} hidden"
-        )
+        logger.info(f"Created selective disclosure: " f"{len(disclosed)} disclosed, {len(hidden)} hidden")
 
         return disclosure
 
@@ -565,12 +522,7 @@ class VerifiableCredentialIssuer:
         self.issuer_name = issuer_name
         self.zksnark = ZKSNARKProver()
 
-    def issue_credential(
-        self,
-        subject: str,
-        claims: Dict[str, Any],
-        validity_days: int = 365
-    ) -> VerifiableCredential:
+    def issue_credential(self, subject: str, claims: Dict[str, Any], validity_days: int = 365) -> VerifiableCredential:
         """
         Issue verifiable credential
 
@@ -586,11 +538,7 @@ class VerifiableCredentialIssuer:
         proof = self.zksnark.prove_property(
             property_name="credential_issuance",
             property_value=subject,
-            secret_data={
-                "issuer": self.issuer_name,
-                "subject": subject,
-                **claims
-            }
+            secret_data={"issuer": self.issuer_name, "subject": subject, **claims},
         )
 
         credential = VerifiableCredential(
@@ -599,13 +547,10 @@ class VerifiableCredentialIssuer:
             subject=subject,
             claims=claims,
             proof=proof,
-            expires_at=datetime.now() + datetime.timedelta(days=validity_days)
+            expires_at=datetime.now() + datetime.timedelta(days=validity_days),
         )
 
-        logger.info(
-            f"Issued credential {credential.credential_id} "
-            f"to {subject} by {self.issuer_name}"
-        )
+        logger.info(f"Issued credential {credential.credential_id} " f"to {subject} by {self.issuer_name}")
 
         return credential
 
@@ -622,9 +567,7 @@ class PrivateDocumentVerifier:
         self.hash_commitment = HashCommitment()
 
     def create_private_verification(
-        self,
-        document_content: bytes,
-        property_to_prove: str
+        self, document_content: bytes, property_to_prove: str
     ) -> Tuple[Commitment, Dict[str, Any]]:
         """
         Create private verification proof
@@ -646,19 +589,14 @@ class PrivateDocumentVerifier:
         proof_data = {
             "property": property_to_prove,
             "commitment": commitment.commitment_value,
-            "proof_hint": secrets.token_hex(32)
+            "proof_hint": secrets.token_hex(32),
         }
 
         logger.info(f"Created private verification for property: {property_to_prove}")
 
         return commitment, proof_data
 
-    def verify_private_proof(
-        self,
-        commitment: Commitment,
-        blinding_factor: str,
-        document_hash: str
-    ) -> bool:
+    def verify_private_proof(self, commitment: Commitment, blinding_factor: str, document_hash: str) -> bool:
         """
         Verify private proof
 
@@ -715,18 +653,11 @@ if __name__ == "__main__":
 
     # 4. Selective Disclosure
     print("4. Selective Disclosure")
-    full_doc = {
-        "name": "John Doe",
-        "age": 30,
-        "salary": 75000,
-        "ssn": "123-45-6789",
-        "address": "123 Main St"
-    }
+    full_doc = {"name": "John Doe", "age": 30, "salary": 75000, "ssn": "123-45-6789", "address": "123 Main St"}
 
     disclosure_prover = SelectiveDisclosureProver()
     disclosure = disclosure_prover.create_disclosure_proof(
-        full_doc,
-        fields_to_disclose=["name", "age"]  # Hide salary, SSN, address
+        full_doc, fields_to_disclose=["name", "age"]  # Hide salary, SSN, address
     )
 
     print(f"   Disclosed fields: {list(disclosure.disclosed_fields.keys())}")
@@ -738,12 +669,7 @@ if __name__ == "__main__":
     issuer = VerifiableCredentialIssuer("University of Example")
     credential = issuer.issue_credential(
         subject="student@example.com",
-        claims={
-            "degree": "Bachelor of Science",
-            "major": "Computer Science",
-            "graduation_year": 2023,
-            "gpa": 3.8
-        }
+        claims={"degree": "Bachelor of Science", "major": "Computer Science", "graduation_year": 2023, "gpa": 3.8},
     )
 
     print(f"   Credential ID: {credential.credential_id}")

@@ -10,28 +10,31 @@ Tests document comparison functionality including:
 - HTML diff reports
 """
 
-import pytest
-import os
-import tempfile
-from pathlib import Path
 import json
-
+import os
 
 # Import required modules
 import sys
+import tempfile
+from pathlib import Path
+
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import sklearn for vectorization and similarity
 try:
+    import numpy as np
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine_similarity
-    import numpy as np
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
 
 try:
     from src.ml.ner import NERService
+
     NER_AVAILABLE = True
 except ImportError:
     NER_AVAILABLE = False
@@ -67,8 +70,7 @@ class SimpleDocumentEmbeddings:
             if not common:
                 return 0.0
             numerator = sum(vec1[k] * vec2[k] for k in common)
-            denominator = (sum(v**2 for v in vec1.values()) ** 0.5 *
-                         sum(v**2 for v in vec2.values()) ** 0.5)
+            denominator = sum(v**2 for v in vec1.values()) ** 0.5 * sum(v**2 for v in vec2.values()) ** 0.5
             return numerator / denominator if denominator else 0.0
 
         # Use TF-IDF - fit on both texts together
@@ -84,8 +86,7 @@ class SimpleDocumentEmbeddings:
                 if not common:
                     return 0.0
                 numerator = sum(vec1[k] * vec2[k] for k in common)
-                denominator = (sum(v**2 for v in vec1.values()) ** 0.5 *
-                             sum(v**2 for v in vec2.values()) ** 0.5)
+                denominator = sum(v**2 for v in vec1.values()) ** 0.5 * sum(v**2 for v in vec2.values()) ** 0.5
                 return numerator / denominator if denominator else 0.0
 
         # Use sklearn
@@ -116,11 +117,7 @@ class TestDocumentComparator:
         There is no overlap with the previous content.
         """
 
-        return {
-            'similar': (doc1, doc2),
-            'different': (doc1, doc3),
-            'identical': (doc1, doc1)
-        }
+        return {"similar": (doc1, doc2), "different": (doc1, doc3), "identical": (doc1, doc1)}
 
     @pytest.fixture
     def temp_files(self, sample_documents):
@@ -144,7 +141,7 @@ class TestDocumentComparator:
 
     def test_cosine_similarity_similar_docs(self, sample_documents):
         """Test cosine similarity for similar documents"""
-        doc1, doc2 = sample_documents['similar']
+        doc1, doc2 = sample_documents["similar"]
 
         # Calculate cosine similarity
         embeddings = SimpleDocumentEmbeddings()
@@ -157,7 +154,7 @@ class TestDocumentComparator:
 
     def test_cosine_similarity_different_docs(self, sample_documents):
         """Test cosine similarity for different documents"""
-        doc1, doc3 = sample_documents['different']
+        doc1, doc3 = sample_documents["different"]
 
         embeddings = SimpleDocumentEmbeddings()
         similarity = embeddings.compare_texts(doc1, doc3)
@@ -168,7 +165,7 @@ class TestDocumentComparator:
 
     def test_cosine_similarity_identical_docs(self, sample_documents):
         """Test cosine similarity for identical documents"""
-        doc1, doc1_copy = sample_documents['identical']
+        doc1, doc1_copy = sample_documents["identical"]
 
         embeddings = SimpleDocumentEmbeddings()
         similarity = embeddings.compare_texts(doc1, doc1_copy)
@@ -208,6 +205,7 @@ class TestDocumentComparator:
 
     def test_levenshtein_distance(self):
         """Test Levenshtein distance calculation"""
+
         def levenshtein_distance(s1, s2):
             """Calculate Levenshtein distance between two strings"""
             if len(s1) < len(s2):
@@ -238,6 +236,7 @@ class TestDocumentComparator:
 
     def test_levenshtein_similarity(self):
         """Test Levenshtein similarity (normalized distance)"""
+
         def levenshtein_distance(s1, s2):
             if len(s1) < len(s2):
                 return levenshtein_distance(s2, s1)
@@ -281,9 +280,9 @@ class TestDocumentComparator:
         entities = ner.extract_entities(text)
 
         # Should extract PERSON, ORG, GPE, MONEY entities
-        entity_types = {ent['label'] for ent in entities}
+        entity_types = {ent["label"] for ent in entities}
 
-        assert 'PERSON' in entity_types or 'ORG' in entity_types or 'GPE' in entity_types
+        assert "PERSON" in entity_types or "ORG" in entity_types or "GPE" in entity_types
 
     @pytest.mark.skipif(not NER_AVAILABLE, reason="NER service not available")
     def test_entity_comparison(self):
@@ -297,8 +296,8 @@ class TestDocumentComparator:
         entities2 = ner.extract_entities(text2)
 
         # Extract entity texts
-        ent_text1 = {ent['text'].lower() for ent in entities1}
-        ent_text2 = {ent['text'].lower() for ent in entities2}
+        ent_text1 = {ent["text"].lower() for ent in entities1}
+        ent_text2 = {ent["text"].lower() for ent in entities2}
 
         # Calculate entity overlap
         common = ent_text1 & ent_text2
@@ -317,11 +316,7 @@ class TestDocumentComparator:
         text2 = "The quick brown cat jumps over the lazy dog"
 
         # Get diff
-        diff = list(difflib.unified_diff(
-            text1.splitlines(),
-            text2.splitlines(),
-            lineterm=''
-        ))
+        diff = list(difflib.unified_diff(text1.splitlines(), text2.splitlines(), lineterm=""))
 
         # Should detect difference
         assert len(diff) > 0
@@ -335,17 +330,12 @@ class TestDocumentComparator:
 
         # Generate HTML diff
         differ = difflib.HtmlDiff()
-        html = differ.make_file(
-            text1.splitlines(),
-            text2.splitlines(),
-            fromdesc="Original",
-            todesc="Modified"
-        )
+        html = differ.make_file(text1.splitlines(), text2.splitlines(), fromdesc="Original", todesc="Modified")
 
         # Should generate HTML
-        assert '<table' in html
-        assert 'Original' in html
-        assert 'Modified' in html
+        assert "<table" in html
+        assert "Original" in html
+        assert "Modified" in html
 
     def test_threshold_comparison(self):
         """Test threshold-based comparison"""
@@ -424,11 +414,11 @@ class TestDocumentComparator:
         text = "This is a test. This is only a test!"
 
         # Simple tokenization
-        words = set(text.lower().replace('.', '').replace('!', '').split())
+        words = set(text.lower().replace(".", "").replace("!", "").split())
 
         # Should extract unique words
-        assert 'this' in words
-        assert 'test' in words
+        assert "this" in words
+        assert "test" in words
         assert len(words) == 5  # this, is, a, test, only
 
 
@@ -439,24 +429,16 @@ class TestComparatorCLI:
         """Test CLI help message"""
         import subprocess
 
-        result = subprocess.run(
-            ['python', 'doc-comparator.py', '--help'],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["python", "doc-comparator.py", "--help"], capture_output=True, text=True)
 
         assert result.returncode == 0
-        assert 'compare' in result.stdout.lower()
+        assert "compare" in result.stdout.lower()
 
     def test_cli_compare_command(self):
         """Test compare command exists"""
         import subprocess
 
-        result = subprocess.run(
-            ['python', 'doc-comparator.py', 'compare', '--help'],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["python", "doc-comparator.py", "compare", "--help"], capture_output=True, text=True)
 
         assert result.returncode == 0
 
@@ -501,5 +483,5 @@ class TestComparisonEdgeCases:
         assert words1 == words2
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

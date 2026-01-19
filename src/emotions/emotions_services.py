@@ -23,21 +23,23 @@ Date: January 2026
 """
 
 import asyncio
-import numpy as np
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import List, Dict, Optional, Any, Tuple
-from datetime import datetime, timedelta
-from collections import deque
 import threading
+from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 
 # ============================================================================
 # 1. EMOTIONAL AWARENESS ENGINE
 # ============================================================================
 
+
 class EmotionType(Enum):
     """Types of emotions (categorical model)."""
+
     # Basic emotions (Ekman)
     HAPPINESS = "happiness"
     SADNESS = "sadness"
@@ -68,6 +70,7 @@ class EmotionType(Enum):
 @dataclass
 class Emotion:
     """Represents an emotional state."""
+
     type: EmotionType
     intensity: float  # 0-1
     valence: float  # -1 (negative) to +1 (positive)
@@ -82,6 +85,7 @@ class Emotion:
 @dataclass
 class EmotionalState:
     """Current emotional state with multiple emotions."""
+
     primary_emotion: Emotion
     secondary_emotions: List[Emotion] = field(default_factory=list)
     mood: str = "neutral"
@@ -91,6 +95,7 @@ class EmotionalState:
 @dataclass
 class AppraisalResult:
     """Result of emotional appraisal."""
+
     emotion: Emotion
     appraisal_dimensions: Dict[str, float]
     reasoning: str
@@ -105,33 +110,24 @@ class EmotionalAwarenessEngine:
     of situations relative to goals, coping abilities, and norms.
     """
 
-    def __init__(
-        self,
-        emotion_model: str = 'dimensional',
-        sensitivity: float = 0.7
-    ):
+    def __init__(self, emotion_model: str = "dimensional", sensitivity: float = 0.7):
         self.emotion_model = emotion_model  # categorical, dimensional, appraisal
         self.sensitivity = sensitivity
         self.current_state = EmotionalState(
-            primary_emotion=Emotion(
-                EmotionType.HAPPINESS,
-                intensity=0.5,
-                valence=0.0,
-                arousal=0.3
-            )
+            primary_emotion=Emotion(EmotionType.HAPPINESS, intensity=0.5, valence=0.0, arousal=0.3)
         )
         self.emotion_history: deque = deque(maxlen=1000)
 
         # Emotion lexicon (simplified)
         self.emotion_keywords = {
-            'happiness': ['happy', 'joy', 'delighted', 'pleased', 'glad'],
-            'sadness': ['sad', 'unhappy', 'depressed', 'down', 'miserable'],
-            'anger': ['angry', 'mad', 'furious', 'annoyed', 'irritated'],
-            'fear': ['afraid', 'scared', 'frightened', 'worried', 'anxious'],
-            'surprise': ['surprised', 'amazed', 'astonished', 'shocked'],
-            'disgust': ['disgusted', 'revolted', 'repulsed'],
-            'excitement': ['excited', 'thrilled', 'enthusiastic'],
-            'frustration': ['frustrated', 'annoyed', 'exasperated']
+            "happiness": ["happy", "joy", "delighted", "pleased", "glad"],
+            "sadness": ["sad", "unhappy", "depressed", "down", "miserable"],
+            "anger": ["angry", "mad", "furious", "annoyed", "irritated"],
+            "fear": ["afraid", "scared", "frightened", "worried", "anxious"],
+            "surprise": ["surprised", "amazed", "astonished", "shocked"],
+            "disgust": ["disgusted", "revolted", "repulsed"],
+            "excitement": ["excited", "thrilled", "enthusiastic"],
+            "frustration": ["frustrated", "annoyed", "exasperated"],
         }
 
     async def recognize_self_emotion(self) -> Emotion:
@@ -139,11 +135,7 @@ class EmotionalAwarenessEngine:
         await asyncio.sleep(0.1)  # Simulate introspection
         return self.current_state.primary_emotion
 
-    async def detect_emotion(
-        self,
-        text: str,
-        modality: str = 'text'
-    ) -> Emotion:
+    async def detect_emotion(self, text: str, modality: str = "text") -> Emotion:
         """
         Detect emotion in text or other modality.
 
@@ -165,30 +157,30 @@ class EmotionalAwarenessEngine:
             for keyword in keywords:
                 if keyword in text_lower:
                     # Map emotion name to EmotionType
-                    if emotion_name == 'happiness':
+                    if emotion_name == "happiness":
                         emotion_type = EmotionType.HAPPINESS
-                    elif emotion_name == 'sadness':
+                    elif emotion_name == "sadness":
                         emotion_type = EmotionType.SADNESS
-                    elif emotion_name == 'anger':
+                    elif emotion_name == "anger":
                         emotion_type = EmotionType.ANGER
-                    elif emotion_name == 'fear':
+                    elif emotion_name == "fear":
                         emotion_type = EmotionType.FEAR
-                    elif emotion_name == 'surprise':
+                    elif emotion_name == "surprise":
                         emotion_type = EmotionType.SURPRISE
-                    elif emotion_name == 'disgust':
+                    elif emotion_name == "disgust":
                         emotion_type = EmotionType.DISGUST
-                    elif emotion_name == 'excitement':
+                    elif emotion_name == "excitement":
                         emotion_type = EmotionType.EXCITEMENT
-                    elif emotion_name == 'frustration':
+                    elif emotion_name == "frustration":
                         emotion_type = EmotionType.FRUSTRATION
                     else:
                         continue
 
                     # Check for intensifiers
                     intensity = 0.6
-                    if any(intensifier in text_lower for intensifier in ['very', 'so', 'extremely', 'really']):
+                    if any(intensifier in text_lower for intensifier in ["very", "so", "extremely", "really"]):
                         intensity = 0.9
-                    elif '!' in text:
+                    elif "!" in text:
                         intensity = 0.8
 
                     # Determine valence and arousal
@@ -201,7 +193,7 @@ class EmotionalAwarenessEngine:
                         EmotionType.SURPRISE: 0.0,
                         EmotionType.DISGUST: -0.8,
                         EmotionType.EXCITEMENT: 0.7,
-                        EmotionType.FRUSTRATION: -0.5
+                        EmotionType.FRUSTRATION: -0.5,
                     }
 
                     arousal_map = {
@@ -213,16 +205,18 @@ class EmotionalAwarenessEngine:
                         EmotionType.SURPRISE: 0.9,
                         EmotionType.DISGUST: 0.6,
                         EmotionType.EXCITEMENT: 0.9,
-                        EmotionType.FRUSTRATION: 0.7
+                        EmotionType.FRUSTRATION: 0.7,
                     }
 
-                    detected_emotions.append(Emotion(
-                        type=emotion_type,
-                        intensity=intensity,
-                        valence=valence_map.get(emotion_type, 0.0),
-                        arousal=arousal_map.get(emotion_type, 0.5),
-                        confidence=0.8
-                    ))
+                    detected_emotions.append(
+                        Emotion(
+                            type=emotion_type,
+                            intensity=intensity,
+                            valence=valence_map.get(emotion_type, 0.0),
+                            arousal=arousal_map.get(emotion_type, 0.5),
+                            confidence=0.8,
+                        )
+                    )
                     break
 
         # Return strongest emotion or neutral
@@ -230,13 +224,7 @@ class EmotionalAwarenessEngine:
             return max(detected_emotions, key=lambda e: e.intensity * e.confidence)
         else:
             # Neutral emotion
-            return Emotion(
-                type=EmotionType.HAPPINESS,
-                intensity=0.3,
-                valence=0.0,
-                arousal=0.3,
-                confidence=0.5
-            )
+            return Emotion(type=EmotionType.HAPPINESS, intensity=0.3, valence=0.0, arousal=0.3, confidence=0.5)
 
     async def appraise_event(self, event: Dict[str, Any]) -> AppraisalResult:
         """
@@ -255,8 +243,8 @@ class EmotionalAwarenessEngine:
         """
         await asyncio.sleep(0.2)  # Simulate appraisal
 
-        event_type = event.get('type', 'unknown')
-        importance = event.get('importance', 0.5)
+        event_type = event.get("type", "unknown")
+        importance = event.get("importance", 0.5)
 
         # Appraisal dimensions
         goal_relevance = importance
@@ -264,23 +252,23 @@ class EmotionalAwarenessEngine:
         coping_potential = 0.7
 
         # Determine goal congruence and emotion type
-        if event_type == 'goal_achieved':
+        if event_type == "goal_achieved":
             goal_congruence = 1.0
             emotion_type = EmotionType.JOY
             valence = 0.9
             arousal = 0.8
             reasoning = "Goal achievement leads to joy"
 
-        elif event_type == 'goal_blocked':
+        elif event_type == "goal_blocked":
             goal_congruence = -1.0
             emotion_type = EmotionType.FRUSTRATION
             valence = -0.6
             arousal = 0.7
             reasoning = "Goal blockage leads to frustration"
 
-        elif event_type == 'threat':
+        elif event_type == "threat":
             goal_congruence = -0.9
-            coping_potential = event.get('coping_potential', 0.3)
+            coping_potential = event.get("coping_potential", 0.3)
             if coping_potential < 0.5:
                 emotion_type = EmotionType.FEAR
                 valence = -0.8
@@ -292,21 +280,21 @@ class EmotionalAwarenessEngine:
                 arousal = 0.9
                 reasoning = "Threat with coping potential leads to anger"
 
-        elif event_type == 'loss':
+        elif event_type == "loss":
             goal_congruence = -0.8
             emotion_type = EmotionType.SADNESS
             valence = -0.7
             arousal = 0.3
             reasoning = "Loss leads to sadness"
 
-        elif event_type == 'surprise':
+        elif event_type == "surprise":
             goal_congruence = 0.0
             emotion_type = EmotionType.SURPRISE
             valence = 0.0
             arousal = 0.9
             reasoning = "Unexpected event leads to surprise"
 
-        elif event_type == 'user_praise':
+        elif event_type == "user_praise":
             goal_congruence = 0.8
             emotion_type = EmotionType.PRIDE
             valence = 0.8
@@ -325,25 +313,16 @@ class EmotionalAwarenessEngine:
         intensity = goal_relevance * abs(goal_congruence)
         intensity = max(0.0, min(1.0, intensity))
 
-        emotion = Emotion(
-            type=emotion_type,
-            intensity=intensity,
-            valence=valence,
-            arousal=arousal,
-            confidence=0.85
-        )
+        emotion = Emotion(type=emotion_type, intensity=intensity, valence=valence, arousal=arousal, confidence=0.85)
 
         appraisal_dimensions = {
-            'goal_relevance': goal_relevance,
-            'goal_congruence': goal_congruence,
-            'coping_potential': coping_potential
+            "goal_relevance": goal_relevance,
+            "goal_congruence": goal_congruence,
+            "coping_potential": coping_potential,
         }
 
         return AppraisalResult(
-            emotion=emotion,
-            appraisal_dimensions=appraisal_dimensions,
-            reasoning=reasoning,
-            situation=event
+            emotion=emotion, appraisal_dimensions=appraisal_dimensions, reasoning=reasoning, situation=event
         )
 
     async def update_emotional_state(self, emotion: Emotion):
@@ -356,8 +335,10 @@ class EmotionalAwarenessEngine:
 # 2. AFFECTIVE COMPUTING SYSTEM
 # ============================================================================
 
+
 class EmotionRegulationStrategy(Enum):
     """Emotion regulation strategies."""
+
     REAPPRAISAL = "reappraisal"  # Change interpretation
     SUPPRESSION = "suppression"  # Inhibit expression
     DISTRACTION = "distraction"  # Shift attention
@@ -368,6 +349,7 @@ class EmotionRegulationStrategy(Enum):
 @dataclass
 class Mood:
     """Background mood state (longer-lasting than emotions)."""
+
     type: str  # happy, sad, anxious, calm, etc.
     valence: float  # -1 to +1
     intensity: float  # 0-1
@@ -378,6 +360,7 @@ class Mood:
 @dataclass
 class AffectiveResponse:
     """Generated affective response."""
+
     text: str
     emotion: Emotion
     tone: str
@@ -391,19 +374,11 @@ class AffectiveComputingSystem:
     Implements emotion generation, regulation strategies, and mood dynamics.
     """
 
-    def __init__(
-        self,
-        default_mood: str = 'neutral',
-        regulation_enabled: bool = True
-    ):
+    def __init__(self, default_mood: str = "neutral", regulation_enabled: bool = True):
         self.default_mood = default_mood
         self.regulation_enabled = regulation_enabled
 
-        self.current_mood = Mood(
-            type=default_mood,
-            valence=0.0,
-            intensity=0.5
-        )
+        self.current_mood = Mood(type=default_mood, valence=0.0, intensity=0.5)
 
         self.regulation_history: deque = deque(maxlen=500)
         self.lock = threading.Lock()
@@ -420,17 +395,17 @@ class AffectiveComputingSystem:
         """
         await asyncio.sleep(0.05)
 
-        event_type = event.get('type', 'neutral')
-        severity = event.get('severity', 0.5)
+        event_type = event.get("type", "neutral")
+        severity = event.get("severity", 0.5)
 
         # Simple event-to-emotion mapping
         emotion_map = {
-            'user_complaint': (EmotionType.CONCERN, -0.5, 0.6),
-            'success': (EmotionType.JOY, 0.8, 0.7),
-            'error': (EmotionType.FRUSTRATION, -0.6, 0.7),
-            'user_praise': (EmotionType.GRATITUDE, 0.8, 0.5),
-            'uncertainty': (EmotionType.ANXIETY, -0.4, 0.7),
-            'completion': (EmotionType.SATISFACTION, 0.7, 0.4)
+            "user_complaint": (EmotionType.CONCERN, -0.5, 0.6),
+            "success": (EmotionType.JOY, 0.8, 0.7),
+            "error": (EmotionType.FRUSTRATION, -0.6, 0.7),
+            "user_praise": (EmotionType.GRATITUDE, 0.8, 0.5),
+            "uncertainty": (EmotionType.ANXIETY, -0.4, 0.7),
+            "completion": (EmotionType.SATISFACTION, 0.7, 0.4),
         }
 
         if event_type in emotion_map:
@@ -448,18 +423,10 @@ class AffectiveComputingSystem:
             arousal = 0.3
             intensity = 0.3
 
-        return Emotion(
-            type=emotion_type,
-            intensity=intensity,
-            valence=valence,
-            arousal=arousal
-        )
+        return Emotion(type=emotion_type, intensity=intensity, valence=valence, arousal=arousal)
 
     async def regulate_emotion(
-        self,
-        emotion: Emotion,
-        strategy: EmotionRegulationStrategy,
-        target_intensity: Optional[float] = None
+        self, emotion: Emotion, strategy: EmotionRegulationStrategy, target_intensity: Optional[float] = None
     ) -> Emotion:
         """
         Regulate emotion using specified strategy.
@@ -479,10 +446,7 @@ class AffectiveComputingSystem:
 
         with self.lock:
             regulated = Emotion(
-                type=emotion.type,
-                intensity=emotion.intensity,
-                valence=emotion.valence,
-                arousal=emotion.arousal
+                type=emotion.type, intensity=emotion.intensity, valence=emotion.valence, arousal=emotion.arousal
             )
 
             if strategy == EmotionRegulationStrategy.REAPPRAISAL:
@@ -512,12 +476,9 @@ class AffectiveComputingSystem:
             regulated.valence = max(-1.0, min(1.0, regulated.valence))
             regulated.arousal = max(0.0, min(1.0, regulated.arousal))
 
-            self.regulation_history.append({
-                'original': emotion,
-                'regulated': regulated,
-                'strategy': strategy,
-                'timestamp': datetime.now()
-            })
+            self.regulation_history.append(
+                {"original": emotion, "regulated": regulated, "strategy": strategy, "timestamp": datetime.now()}
+            )
 
             return regulated
 
@@ -531,28 +492,23 @@ class AffectiveComputingSystem:
         # Average recent emotional valence
         mood_update_rate = 0.1  # Slow update
 
-        new_valence = (self.current_mood.valence * (1 - mood_update_rate) +
-                      emotion.valence * mood_update_rate)
+        new_valence = self.current_mood.valence * (1 - mood_update_rate) + emotion.valence * mood_update_rate
 
         self.current_mood.valence = new_valence
 
         # Update mood type based on valence
         if new_valence > 0.5:
-            self.current_mood.type = 'happy'
+            self.current_mood.type = "happy"
         elif new_valence > 0.2:
-            self.current_mood.type = 'content'
+            self.current_mood.type = "content"
         elif new_valence > -0.2:
-            self.current_mood.type = 'neutral'
+            self.current_mood.type = "neutral"
         elif new_valence > -0.5:
-            self.current_mood.type = 'melancholic'
+            self.current_mood.type = "melancholic"
         else:
-            self.current_mood.type = 'sad'
+            self.current_mood.type = "sad"
 
-    async def generate_response(
-        self,
-        emotion: Emotion,
-        context: Dict[str, Any]
-    ) -> AffectiveResponse:
+    async def generate_response(self, emotion: Emotion, context: Dict[str, Any]) -> AffectiveResponse:
         """
         Generate emotionally appropriate response.
 
@@ -584,20 +540,17 @@ class AffectiveComputingSystem:
             text = "I'm here to help."
             tone = "neutral"
 
-        return AffectiveResponse(
-            text=text,
-            emotion=emotion,
-            tone=tone,
-            appropriateness=0.85
-        )
+        return AffectiveResponse(text=text, emotion=emotion, tone=tone, appropriateness=0.85)
 
 
 # ============================================================================
 # 3. EMPATHY SIMULATOR
 # ============================================================================
 
+
 class EmpathyType(Enum):
     """Types of empathy."""
+
     COGNITIVE = "cognitive"  # Understanding perspective
     AFFECTIVE = "affective"  # Feeling with others
     COMPASSIONATE = "compassionate"  # Motivated to help
@@ -606,6 +559,7 @@ class EmpathyType(Enum):
 @dataclass
 class PerspectiveTaking:
     """Result of taking another's perspective."""
+
     beliefs: List[str]
     emotions: List[Emotion]
     desires: List[str]
@@ -616,6 +570,7 @@ class PerspectiveTaking:
 @dataclass
 class EmpatheticResponse:
     """Empathetic response to situation."""
+
     text: str
     empathic_emotion: Emotion
     helping_behavior: Optional[str]
@@ -629,22 +584,14 @@ class EmpathySimulator:
     Enables perspective-taking, emotional resonance, and prosocial responses.
     """
 
-    def __init__(
-        self,
-        empathy_level: float = 0.8,
-        cognitive_empathy: bool = True,
-        affective_empathy: bool = True
-    ):
+    def __init__(self, empathy_level: float = 0.8, cognitive_empathy: bool = True, affective_empathy: bool = True):
         self.empathy_level = empathy_level  # 0-1
         self.cognitive_empathy = cognitive_empathy
         self.affective_empathy = affective_empathy
 
         self.empathy_history: deque = deque(maxlen=500)
 
-    async def take_perspective(
-        self,
-        situation: Dict[str, Any]
-    ) -> PerspectiveTaking:
+    async def take_perspective(self, situation: Dict[str, Any]) -> PerspectiveTaking:
         """
         Take another person's perspective (Theory of Mind).
 
@@ -657,24 +604,18 @@ class EmpathySimulator:
         await asyncio.sleep(0.3)
 
         if not self.cognitive_empathy:
-            return PerspectiveTaking(
-                beliefs=[],
-                emotions=[],
-                desires=[],
-                intentions=[],
-                confidence=0.0
-            )
+            return PerspectiveTaking(beliefs=[], emotions=[], desires=[], intentions=[], confidence=0.0)
 
-        context = situation.get('context', '')
-        visible_emotions = situation.get('visible_emotions', [])
+        context = situation.get("context", "")
+        visible_emotions = situation.get("visible_emotions", [])
 
         # Infer mental states (simplified)
-        if 'failure' in context or 'problem' in context:
+        if "failure" in context or "problem" in context:
             beliefs = ["Things didn't go as planned", "I need help"]
             emotions = [Emotion(EmotionType.FRUSTRATION, 0.7, -0.6, 0.7)]
             desires = ["Fix the problem", "Get support"]
             intentions = ["Seek help", "Express frustration"]
-        elif 'success' in context or 'achievement' in context:
+        elif "success" in context or "achievement" in context:
             beliefs = ["I achieved my goal", "Things are going well"]
             emotions = [Emotion(EmotionType.JOY, 0.8, 0.8, 0.7)]
             desires = ["Share success", "Continue progress"]
@@ -686,19 +627,10 @@ class EmpathySimulator:
             intentions = ["Proceed with task"]
 
         return PerspectiveTaking(
-            beliefs=beliefs,
-            emotions=emotions,
-            desires=desires,
-            intentions=intentions,
-            confidence=0.7
+            beliefs=beliefs, emotions=emotions, desires=desires, intentions=intentions, confidence=0.7
         )
 
-    async def feel_empathy(
-        self,
-        other_emotion: str,
-        intensity: float,
-        empathy_type: EmpathyType
-    ) -> Emotion:
+    async def feel_empathy(self, other_emotion: str, intensity: float, empathy_type: EmpathyType) -> Emotion:
         """
         Feel empathy for another's emotion.
 
@@ -724,11 +656,11 @@ class EmpathySimulator:
 
         # Map emotion string to EmotionType
         emotion_map = {
-            'sadness': EmotionType.SADNESS,
-            'joy': EmotionType.JOY,
-            'anger': EmotionType.ANGER,
-            'fear': EmotionType.FEAR,
-            'frustration': EmotionType.FRUSTRATION
+            "sadness": EmotionType.SADNESS,
+            "joy": EmotionType.JOY,
+            "anger": EmotionType.ANGER,
+            "fear": EmotionType.FEAR,
+            "frustration": EmotionType.FRUSTRATION,
         }
 
         emotion_type = emotion_map.get(other_emotion.lower(), EmotionType.HAPPINESS)
@@ -747,17 +679,10 @@ class EmpathySimulator:
         else:
             valence, arousal = 0.0, 0.3
 
-        return Emotion(
-            type=emotion_type,
-            intensity=empathic_intensity,
-            valence=valence,
-            arousal=arousal
-        )
+        return Emotion(type=emotion_type, intensity=empathic_intensity, valence=valence, arousal=arousal)
 
     async def generate_compassionate_response(
-        self,
-        situation: Dict[str, Any],
-        other_emotion: str
+        self, situation: Dict[str, Any], other_emotion: str
     ) -> EmpatheticResponse:
         """
         Generate compassionate, helping response.
@@ -776,37 +701,29 @@ class EmpathySimulator:
 
         # Feel empathy
         empathic_emotion = await self.feel_empathy(
-            other_emotion=other_emotion,
-            intensity=0.7,
-            empathy_type=EmpathyType.COMPASSIONATE
+            other_emotion=other_emotion, intensity=0.7, empathy_type=EmpathyType.COMPASSIONATE
         )
 
         # Generate compassionate response
-        if other_emotion.lower() in ['sadness', 'frustration', 'anger']:
+        if other_emotion.lower() in ["sadness", "frustration", "anger"]:
             text = "I understand this is difficult. I'm here to support you and help find a solution."
             helping_behavior = "offer_support"
-        elif other_emotion.lower() in ['joy', 'happiness']:
+        elif other_emotion.lower() in ["joy", "happiness"]:
             text = "That's wonderful! I'm glad things are going well for you."
             helping_behavior = "celebrate_with"
-        elif other_emotion.lower() == 'fear':
+        elif other_emotion.lower() == "fear":
             text = "I can see this is concerning. Let's work through this together step by step."
             helping_behavior = "provide_reassurance"
         else:
             text = "I'm here to help however I can."
             helping_behavior = "offer_assistance"
 
-        self.empathy_history.append({
-            'situation': situation,
-            'other_emotion': other_emotion,
-            'response': text,
-            'timestamp': datetime.now()
-        })
+        self.empathy_history.append(
+            {"situation": situation, "other_emotion": other_emotion, "response": text, "timestamp": datetime.now()}
+        )
 
         return EmpatheticResponse(
-            text=text,
-            empathic_emotion=empathic_emotion,
-            helping_behavior=helping_behavior,
-            appropriateness=0.85
+            text=text, empathic_emotion=empathic_emotion, helping_behavior=helping_behavior, appropriateness=0.85
         )
 
 
@@ -814,8 +731,10 @@ class EmpathySimulator:
 # 4. EMOTIONAL INTELLIGENCE SYSTEM
 # ============================================================================
 
+
 class EmotionalSkill(Enum):
     """Emotional intelligence skills."""
+
     CONFLICT_RESOLUTION = "conflict_resolution"
     INSPIRATIONAL_COMMUNICATION = "inspirational_communication"
     INFLUENCE = "influence"
@@ -827,6 +746,7 @@ class EmotionalSkill(Enum):
 @dataclass
 class EQAssessment:
     """Emotional intelligence assessment."""
+
     overall_score: float  # 0-1
     dimensions: Dict[str, float]
     strengths: List[str]
@@ -836,6 +756,7 @@ class EQAssessment:
 @dataclass
 class SkillApplication:
     """Result of applying emotional skill."""
+
     skill: EmotionalSkill
     strategy: str
     actions: List[str]
@@ -850,11 +771,7 @@ class EmotionalIntelligenceSystem:
     Social awareness, Relationship management.
     """
 
-    def __init__(
-        self,
-        self_awareness_level: float = 0.8,
-        social_awareness_level: float = 0.75
-    ):
+    def __init__(self, self_awareness_level: float = 0.8, social_awareness_level: float = 0.75):
         self.self_awareness_level = self_awareness_level
         self.social_awareness_level = social_awareness_level
         self.self_management_level = 0.75
@@ -872,10 +789,10 @@ class EmotionalIntelligenceSystem:
         await asyncio.sleep(1.0)
 
         dimensions = {
-            'self_awareness': self.self_awareness_level,
-            'self_management': self.self_management_level,
-            'social_awareness': self.social_awareness_level,
-            'relationship_management': self.relationship_management_level
+            "self_awareness": self.self_awareness_level,
+            "self_management": self.self_management_level,
+            "social_awareness": self.social_awareness_level,
+            "relationship_management": self.relationship_management_level,
         }
 
         overall_score = np.mean(list(dimensions.values()))
@@ -885,17 +802,10 @@ class EmotionalIntelligenceSystem:
         areas_for_growth = [k for k, v in dimensions.items() if v < 0.7]
 
         return EQAssessment(
-            overall_score=overall_score,
-            dimensions=dimensions,
-            strengths=strengths,
-            areas_for_growth=areas_for_growth
+            overall_score=overall_score, dimensions=dimensions, strengths=strengths, areas_for_growth=areas_for_growth
         )
 
-    async def apply_skill(
-        self,
-        skill: EmotionalSkill,
-        situation: Dict[str, Any]
-    ) -> SkillApplication:
+    async def apply_skill(self, skill: EmotionalSkill, situation: Dict[str, Any]) -> SkillApplication:
         """
         Apply emotional intelligence skill to situation.
 
@@ -915,7 +825,7 @@ class EmotionalIntelligenceSystem:
                 "Acknowledge emotions of all parties",
                 "Identify shared interests",
                 "Brainstorm mutually beneficial solutions",
-                "Facilitate agreement"
+                "Facilitate agreement",
             ]
             expected_outcome = "Reduced conflict, restored cooperation"
 
@@ -926,7 +836,7 @@ class EmotionalIntelligenceSystem:
                 "Create compelling vision",
                 "Express genuine enthusiasm",
                 "Highlight potential and capabilities",
-                "Call to action with confidence"
+                "Call to action with confidence",
             ]
             expected_outcome = "Increased motivation and engagement"
 
@@ -937,7 +847,7 @@ class EmotionalIntelligenceSystem:
                 "Understand other's perspective and needs",
                 "Frame message to align with their interests",
                 "Use emotional appeals appropriately",
-                "Provide rational support"
+                "Provide rational support",
             ]
             expected_outcome = "Increased buy-in and cooperation"
 
@@ -946,18 +856,9 @@ class EmotionalIntelligenceSystem:
             actions = ["Assess situation", "Respond appropriately"]
             expected_outcome = "Positive emotional outcome"
 
-        return SkillApplication(
-            skill=skill,
-            strategy=strategy,
-            actions=actions,
-            expected_outcome=expected_outcome
-        )
+        return SkillApplication(skill=skill, strategy=strategy, actions=actions, expected_outcome=expected_outcome)
 
-    async def learn_from_interaction(
-        self,
-        interaction: Dict[str, Any],
-        feedback: Dict[str, Any]
-    ):
+    async def learn_from_interaction(self, interaction: Dict[str, Any], feedback: Dict[str, Any]):
         """
         Learn and improve EQ from interaction feedback.
 
@@ -967,35 +868,30 @@ class EmotionalIntelligenceSystem:
         """
         await asyncio.sleep(0.1)
 
-        effectiveness = feedback.get('effectiveness', 0.5)
+        effectiveness = feedback.get("effectiveness", 0.5)
 
         # Update EQ dimensions based on feedback
         if effectiveness > 0.8:
             # Successful interaction, reinforce
-            self.relationship_management_level = min(
-                1.0,
-                self.relationship_management_level * 1.02
-            )
+            self.relationship_management_level = min(1.0, self.relationship_management_level * 1.02)
         elif effectiveness < 0.5:
             # Need improvement
             # Identify which dimension needs work (simplified)
             # In real system, would analyze what went wrong
             pass
 
-        self.eq_learning_history.append({
-            'interaction': interaction,
-            'feedback': feedback,
-            'timestamp': datetime.now()
-        })
+        self.eq_learning_history.append({"interaction": interaction, "feedback": feedback, "timestamp": datetime.now()})
 
 
 # ============================================================================
 # 5. EMOTIONAL MEMORY SYSTEM
 # ============================================================================
 
+
 @dataclass
 class EmotionalMemory:
     """Memory tagged with emotion."""
+
     event: Dict[str, Any]
     emotion: Emotion
     importance: float  # 0-1
@@ -1007,6 +903,7 @@ class EmotionalMemory:
 @dataclass
 class MemoryQuery:
     """Query for emotional memories."""
+
     emotion_type: Optional[str] = None
     min_intensity: float = 0.0
     valence_range: Optional[Tuple[float, float]] = None
@@ -1021,11 +918,7 @@ class EmotionalMemorySystem:
     Implements mood-congruent memory and emotional learning.
     """
 
-    def __init__(
-        self,
-        capacity: int = 10000,
-        decay_rate: float = 0.01  # per day
-    ):
+    def __init__(self, capacity: int = 10000, decay_rate: float = 0.01):  # per day
         self.capacity = capacity
         self.decay_rate = decay_rate
 
@@ -1033,12 +926,7 @@ class EmotionalMemorySystem:
         self.memory_count = 0
         self.lock = threading.Lock()
 
-    async def store(
-        self,
-        event: Dict[str, Any],
-        emotion: Emotion,
-        importance: float
-    ):
+    async def store(self, event: Dict[str, Any], emotion: Emotion, importance: float):
         """
         Store emotion-tagged memory.
 
@@ -1050,11 +938,7 @@ class EmotionalMemorySystem:
         await asyncio.sleep(0.03)
 
         with self.lock:
-            memory = EmotionalMemory(
-                event=event,
-                emotion=emotion,
-                importance=importance
-            )
+            memory = EmotionalMemory(event=event, emotion=emotion, importance=importance)
 
             self.memories.append(memory)
             self.memory_count += 1
@@ -1062,11 +946,8 @@ class EmotionalMemorySystem:
             # Enforce capacity limit
             if len(self.memories) > self.capacity:
                 # Remove least important, least accessed memories
-                self.memories.sort(
-                    key=lambda m: m.importance * (1 + m.retrieval_count),
-                    reverse=True
-                )
-                self.memories = self.memories[:self.capacity]
+                self.memories.sort(key=lambda m: m.importance * (1 + m.retrieval_count), reverse=True)
+                self.memories = self.memories[: self.capacity]
 
     async def retrieve(self, query: MemoryQuery) -> List[EmotionalMemory]:
         """
@@ -1102,11 +983,11 @@ class EmotionalMemorySystem:
                 # Filter by time range
                 if query.time_range:
                     now = datetime.now()
-                    if query.time_range == 'last_day':
+                    if query.time_range == "last_day":
                         cutoff = now - timedelta(days=1)
-                    elif query.time_range == 'last_week':
+                    elif query.time_range == "last_week":
                         cutoff = now - timedelta(weeks=1)
-                    elif query.time_range == 'last_month':
+                    elif query.time_range == "last_month":
                         cutoff = now - timedelta(days=30)
                     else:
                         cutoff = datetime.min
@@ -1123,17 +1004,11 @@ class EmotionalMemorySystem:
                 memory.last_accessed = datetime.now()
 
             # Sort by importance and recency
-            matching.sort(
-                key=lambda m: m.importance * (1 + np.log1p(m.retrieval_count)),
-                reverse=True
-            )
+            matching.sort(key=lambda m: m.importance * (1 + np.log1p(m.retrieval_count)), reverse=True)
 
             return matching[:100]  # Limit results
 
-    async def retrieve_mood_congruent(
-        self,
-        current_mood: Mood
-    ) -> List[EmotionalMemory]:
+    async def retrieve_mood_congruent(self, current_mood: Mood) -> List[EmotionalMemory]:
         """
         Retrieve memories congruent with current mood.
 
@@ -1144,13 +1019,7 @@ class EmotionalMemorySystem:
             Mood-congruent memories
         """
         # Memories with similar valence to mood
-        query = MemoryQuery(
-            valence_range=(
-                current_mood.valence - 0.3,
-                current_mood.valence + 0.3
-            ),
-            min_importance=0.3
-        )
+        query = MemoryQuery(valence_range=(current_mood.valence - 0.3, current_mood.valence + 0.3), min_importance=0.3)
 
         return await self.retrieve(query)
 
@@ -1159,9 +1028,11 @@ class EmotionalMemorySystem:
 # 6. EMOTIONAL DECISION MAKING
 # ============================================================================
 
+
 @dataclass
 class DecisionOption:
     """Option in a decision."""
+
     id: str
     description: str
     rational_value: float  # 0-1
@@ -1171,6 +1042,7 @@ class DecisionOption:
 @dataclass
 class EmotionalValuation:
     """Emotional valuation of option."""
+
     option_id: str
     value: float  # 0-1
     anticipated_emotions: Dict[str, float]
@@ -1180,6 +1052,7 @@ class EmotionalValuation:
 @dataclass
 class EmotionalDecision:
     """Decision made with emotional input."""
+
     choice: str
     confidence: float
     emotion_contribution: float  # How much emotion influenced (0-1)
@@ -1194,20 +1067,13 @@ class EmotionalDecisionMaking:
     through "gut feelings" based on past emotional experiences.
     """
 
-    def __init__(
-        self,
-        emotion_weight: float = 0.4,
-        use_somatic_markers: bool = True
-    ):
+    def __init__(self, emotion_weight: float = 0.4, use_somatic_markers: bool = True):
         self.emotion_weight = emotion_weight  # 0-1 (emotion vs reason)
         self.use_somatic_markers = use_somatic_markers
 
         self.decision_history: deque = deque(maxlen=500)
 
-    async def emotionally_evaluate(
-        self,
-        option: DecisionOption
-    ) -> EmotionalValuation:
+    async def emotionally_evaluate(self, option: DecisionOption) -> EmotionalValuation:
         """
         Evaluate option emotionally (somatic marker).
 
@@ -1223,18 +1089,18 @@ class EmotionalDecisionMaking:
         description_lower = option.description.lower()
 
         # Positive markers
-        if any(word in description_lower for word in ['safe', 'certain', 'proven', 'stable']):
+        if any(word in description_lower for word in ["safe", "certain", "proven", "stable"]):
             somatic_marker = 0.6
-            anticipated_emotions = {'relief': 0.7, 'satisfaction': 0.6}
-        elif any(word in description_lower for word in ['exciting', 'innovative', 'opportunity']):
+            anticipated_emotions = {"relief": 0.7, "satisfaction": 0.6}
+        elif any(word in description_lower for word in ["exciting", "innovative", "opportunity"]):
             somatic_marker = 0.4
-            anticipated_emotions = {'excitement': 0.8, 'anxiety': 0.3}
-        elif any(word in description_lower for word in ['risky', 'uncertain', 'challenging']):
+            anticipated_emotions = {"excitement": 0.8, "anxiety": 0.3}
+        elif any(word in description_lower for word in ["risky", "uncertain", "challenging"]):
             somatic_marker = -0.3
-            anticipated_emotions = {'anxiety': 0.7, 'excitement': 0.4}
+            anticipated_emotions = {"anxiety": 0.7, "excitement": 0.4}
         else:
             somatic_marker = 0.2
-            anticipated_emotions = {'neutral': 0.5}
+            anticipated_emotions = {"neutral": 0.5}
 
         # Emotional value combines somatic marker and anticipated emotions
         emotional_value = (somatic_marker + 1.0) / 2.0  # Map to 0-1
@@ -1243,14 +1109,10 @@ class EmotionalDecisionMaking:
             option_id=option.id,
             value=emotional_value,
             anticipated_emotions=anticipated_emotions,
-            somatic_marker=somatic_marker
+            somatic_marker=somatic_marker,
         )
 
-    async def decide(
-        self,
-        options: List[DecisionOption],
-        context: Dict[str, Any]
-    ) -> EmotionalDecision:
+    async def decide(self, options: List[DecisionOption], context: Dict[str, Any]) -> EmotionalDecision:
         """
         Make decision integrating emotion and reason.
 
@@ -1270,23 +1132,20 @@ class EmotionalDecisionMaking:
             emotional = await self.emotionally_evaluate(option)
 
             # Combine rational and emotional values
-            combined_value = (
-                self.emotion_weight * emotional.value +
-                (1 - self.emotion_weight) * option.rational_value
-            )
+            combined_value = self.emotion_weight * emotional.value + (1 - self.emotion_weight) * option.rational_value
 
             option_scores[option.id] = {
-                'combined': combined_value,
-                'emotional': emotional.value,
-                'rational': option.rational_value,
-                'option': option
+                "combined": combined_value,
+                "emotional": emotional.value,
+                "rational": option.rational_value,
+                "option": option,
             }
 
         # Choose best option
-        best_id = max(option_scores, key=lambda k: option_scores[k]['combined'])
+        best_id = max(option_scores, key=lambda k: option_scores[k]["combined"])
         best = option_scores[best_id]
 
-        confidence = best['combined']
+        confidence = best["combined"]
 
         reasoning = (
             f"Chose option {best_id} with combined score {best['combined']:.2f} "
@@ -1294,26 +1153,14 @@ class EmotionalDecisionMaking:
         )
 
         decision = EmotionalDecision(
-            choice=best_id,
-            confidence=confidence,
-            emotion_contribution=self.emotion_weight,
-            reasoning=reasoning
+            choice=best_id, confidence=confidence, emotion_contribution=self.emotion_weight, reasoning=reasoning
         )
 
-        self.decision_history.append({
-            'decision': decision,
-            'options': options,
-            'timestamp': datetime.now()
-        })
+        self.decision_history.append({"decision": decision, "options": options, "timestamp": datetime.now()})
 
         return decision
 
-    async def simulate_regret(
-        self,
-        chosen: str,
-        alternative: str,
-        outcome: str
-    ) -> Dict[str, Any]:
+    async def simulate_regret(self, chosen: str, alternative: str, outcome: str) -> Dict[str, Any]:
         """
         Simulate anticipated regret/relief.
 
@@ -1327,7 +1174,7 @@ class EmotionalDecisionMaking:
         """
         await asyncio.sleep(0.2)
 
-        if outcome == 'success':
+        if outcome == "success":
             # Relief, no regret
             regret_intensity = 0.1
             relief_intensity = 0.8
@@ -1337,9 +1184,9 @@ class EmotionalDecisionMaking:
             relief_intensity = 0.2
 
         return {
-            'regret_intensity': regret_intensity,
-            'relief_intensity': relief_intensity,
-            'counterfactual_emotion': 'regret' if regret_intensity > 0.5 else 'relief'
+            "regret_intensity": regret_intensity,
+            "relief_intensity": relief_intensity,
+            "counterfactual_emotion": "regret" if regret_intensity > 0.5 else "relief",
         }
 
 
@@ -1347,8 +1194,10 @@ class EmotionalDecisionMaking:
 # 7. EMOTIONAL EXPRESSION GENERATOR
 # ============================================================================
 
+
 class EmotionalTone(Enum):
     """Tone for emotional expression."""
+
     ENTHUSIASTIC = "enthusiastic"
     APOLOGETIC = "apologetic"
     SUPPORTIVE = "supportive"
@@ -1359,6 +1208,7 @@ class EmotionalTone(Enum):
 
 class CulturalContext(Enum):
     """Cultural context for emotion expression."""
+
     WESTERN = "western"
     EASTERN = "eastern"
     NEUTRAL = "neutral"
@@ -1367,6 +1217,7 @@ class CulturalContext(Enum):
 @dataclass
 class FacialExpression:
     """Facial expression (FACS codes)."""
+
     action_units: List[str]  # FACS Action Units
     intensity: float
     emotion: str
@@ -1379,20 +1230,11 @@ class EmotionalExpressionGenerator:
     Implements emotional language, nonverbal codes, and cultural adaptation.
     """
 
-    def __init__(
-        self,
-        modalities: List[str],
-        cultural_context: CulturalContext = CulturalContext.WESTERN
-    ):
+    def __init__(self, modalities: List[str], cultural_context: CulturalContext = CulturalContext.WESTERN):
         self.modalities = modalities  # text, voice, visual
         self.cultural_context = cultural_context
 
-    async def generate_text(
-        self,
-        message: str,
-        emotion: Emotion,
-        tone: EmotionalTone
-    ) -> str:
+    async def generate_text(self, message: str, emotion: Emotion, tone: EmotionalTone) -> str:
         """
         Generate emotionally expressive text.
 
@@ -1435,11 +1277,7 @@ class EmotionalExpressionGenerator:
 
         return text
 
-    async def generate_facial_expression(
-        self,
-        emotion: str,
-        intensity: float
-    ) -> FacialExpression:
+    async def generate_facial_expression(self, emotion: str, intensity: float) -> FacialExpression:
         """
         Generate facial expression (FACS action units).
 
@@ -1453,32 +1291,24 @@ class EmotionalExpressionGenerator:
         await asyncio.sleep(0.05)
 
         # Map emotions to FACS Action Units (simplified)
-        if emotion.lower() == 'happiness':
-            action_units = ['AU6', 'AU12']  # Cheek raiser, Lip corner puller
-        elif emotion.lower() == 'sadness':
-            action_units = ['AU1', 'AU4', 'AU15']  # Inner brow raiser, frown
-        elif emotion.lower() == 'anger':
-            action_units = ['AU4', 'AU5', 'AU7', 'AU23']  # Brow lower, upper lid raise
-        elif emotion.lower() == 'fear':
-            action_units = ['AU1', 'AU2', 'AU5', 'AU20']  # Brow raise, eyes wide
-        elif emotion.lower() == 'surprise':
-            action_units = ['AU1', 'AU2', 'AU5', 'AU26']  # Brows up, jaw drop
-        elif emotion.lower() == 'disgust':
-            action_units = ['AU9', 'AU15', 'AU16']  # Nose wrinkle, lip depression
+        if emotion.lower() == "happiness":
+            action_units = ["AU6", "AU12"]  # Cheek raiser, Lip corner puller
+        elif emotion.lower() == "sadness":
+            action_units = ["AU1", "AU4", "AU15"]  # Inner brow raiser, frown
+        elif emotion.lower() == "anger":
+            action_units = ["AU4", "AU5", "AU7", "AU23"]  # Brow lower, upper lid raise
+        elif emotion.lower() == "fear":
+            action_units = ["AU1", "AU2", "AU5", "AU20"]  # Brow raise, eyes wide
+        elif emotion.lower() == "surprise":
+            action_units = ["AU1", "AU2", "AU5", "AU26"]  # Brows up, jaw drop
+        elif emotion.lower() == "disgust":
+            action_units = ["AU9", "AU15", "AU16"]  # Nose wrinkle, lip depression
         else:
             action_units = []
 
-        return FacialExpression(
-            action_units=action_units,
-            intensity=intensity,
-            emotion=emotion
-        )
+        return FacialExpression(action_units=action_units, intensity=intensity, emotion=emotion)
 
-    async def adapt_to_culture(
-        self,
-        emotion: str,
-        context: CulturalContext
-    ) -> Dict[str, Any]:
+    async def adapt_to_culture(self, emotion: str, context: CulturalContext) -> Dict[str, Any]:
         """
         Adapt emotional expression to cultural norms.
 
@@ -1494,25 +1324,21 @@ class EmotionalExpressionGenerator:
         # Cultural display rules (simplified)
         if context == CulturalContext.EASTERN:
             # More restrained emotional expression
-            if emotion.lower() in ['anger', 'pride']:
-                expression = 'subtle_expression'
+            if emotion.lower() in ["anger", "pride"]:
+                expression = "subtle_expression"
                 intensity_modifier = 0.6
             else:
-                expression = 'moderate_expression'
+                expression = "moderate_expression"
                 intensity_modifier = 0.8
         elif context == CulturalContext.WESTERN:
             # More expressive
-            expression = 'full_expression'
+            expression = "full_expression"
             intensity_modifier = 1.0
         else:
-            expression = 'balanced_expression'
+            expression = "balanced_expression"
             intensity_modifier = 0.9
 
-        return {
-            'expression': expression,
-            'intensity_modifier': intensity_modifier,
-            'cultural_appropriateness': 0.9
-        }
+        return {"expression": expression, "intensity_modifier": intensity_modifier, "cultural_appropriateness": 0.9}
 
 
 # ============================================================================

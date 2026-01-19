@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class AuditType(Enum):
     """Types of audits."""
+
     INTERNAL = "internal"
     EXTERNAL = "external"
     REGULATORY = "regulatory"
@@ -27,6 +28,7 @@ class AuditType(Enum):
 
 class Severity(Enum):
     """Finding severity levels."""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -36,6 +38,7 @@ class Severity(Enum):
 
 class FindingStatus(Enum):
     """Status of audit findings."""
+
     OPEN = "open"
     IN_PROGRESS = "in_progress"
     RESOLVED = "resolved"
@@ -45,6 +48,7 @@ class FindingStatus(Enum):
 
 class AuditStatus(Enum):
     """Audit lifecycle status."""
+
     PLANNED = "planned"
     IN_PROGRESS = "in_progress"
     FIELDWORK = "fieldwork"
@@ -56,6 +60,7 @@ class AuditStatus(Enum):
 @dataclass
 class AuditPlan:
     """Audit plan definition."""
+
     audit_id: str
     title: str
     audit_type: AuditType
@@ -74,6 +79,7 @@ class AuditPlan:
 @dataclass
 class AuditEvidence:
     """Supporting evidence for audit."""
+
     evidence_id: str
     audit_id: str
     finding_id: Optional[str] = None
@@ -88,6 +94,7 @@ class AuditEvidence:
 @dataclass
 class Remediation:
     """Corrective action for finding."""
+
     remediation_id: str
     finding_id: str
     action_plan: str
@@ -106,6 +113,7 @@ class Remediation:
 @dataclass
 class AuditFinding:
     """Audit finding/observation."""
+
     finding_id: str
     audit_id: str
     title: str
@@ -128,6 +136,7 @@ class AuditFinding:
 @dataclass
 class AuditReport:
     """Audit report summary."""
+
     report_id: str
     audit_id: str
     executive_summary: str
@@ -157,7 +166,7 @@ class AuditPlanning:
         objectives: List[str],
         start_date: datetime,
         end_date: datetime,
-        **kwargs
+        **kwargs,
     ) -> AuditPlan:
         """Create audit plan."""
         await asyncio.sleep(0.05)
@@ -174,7 +183,7 @@ class AuditPlanning:
             auditors=kwargs.get("auditors", []),
             audit_framework=kwargs.get("audit_framework"),
             risk_areas=kwargs.get("risk_areas", []),
-            created_by=kwargs.get("created_by", "")
+            created_by=kwargs.get("created_by", ""),
         )
 
         self.audits[audit.audit_id] = audit
@@ -182,11 +191,7 @@ class AuditPlanning:
         logger.info(f"Created audit plan: {title}")
         return audit
 
-    async def update_status(
-        self,
-        audit_id: str,
-        status: str
-    ) -> bool:
+    async def update_status(self, audit_id: str, status: str) -> bool:
         """Update audit status."""
         await asyncio.sleep(0.02)
 
@@ -199,17 +204,14 @@ class AuditPlanning:
         logger.info(f"Updated audit {audit_id} status to {status}")
         return True
 
-    async def get_upcoming_audits(
-        self,
-        days_ahead: int = 90
-    ) -> List[AuditPlan]:
+    async def get_upcoming_audits(self, days_ahead: int = 90) -> List[AuditPlan]:
         """Get upcoming audits."""
         cutoff = datetime.now() + timedelta(days=days_ahead)
 
         return [
-            audit for audit in self.audits.values()
-            if audit.start_date <= cutoff
-            and audit.status in [AuditStatus.PLANNED, AuditStatus.IN_PROGRESS]
+            audit
+            for audit in self.audits.values()
+            if audit.start_date <= cutoff and audit.status in [AuditStatus.PLANNED, AuditStatus.IN_PROGRESS]
         ]
 
 
@@ -220,14 +222,7 @@ class FindingTracker:
         self.findings: Dict[str, AuditFinding] = {}
 
     async def create_finding(
-        self,
-        audit_id: str,
-        title: str,
-        severity: str,
-        description: str,
-        impact: str,
-        recommendation: str,
-        **kwargs
+        self, audit_id: str, title: str, severity: str, description: str, impact: str, recommendation: str, **kwargs
     ) -> AuditFinding:
         """Create audit finding."""
         await asyncio.sleep(0.05)
@@ -245,7 +240,7 @@ class FindingTracker:
             category=kwargs.get("category"),
             assigned_to=kwargs.get("assigned_to"),
             due_date=kwargs.get("due_date"),
-            created_by=kwargs.get("created_by", "")
+            created_by=kwargs.get("created_by", ""),
         )
 
         self.findings[finding.finding_id] = finding
@@ -253,12 +248,7 @@ class FindingTracker:
         logger.info(f"Created {severity} finding: {title}")
         return finding
 
-    async def update_status(
-        self,
-        finding_id: str,
-        status: str,
-        **kwargs
-    ) -> bool:
+    async def update_status(self, finding_id: str, status: str, **kwargs) -> bool:
         """Update finding status."""
         await asyncio.sleep(0.02)
 
@@ -274,11 +264,7 @@ class FindingTracker:
         logger.info(f"Updated finding {finding_id} to {status}")
         return True
 
-    async def get_findings_by_audit(
-        self,
-        audit_id: str,
-        severity: Optional[str] = None
-    ) -> List[AuditFinding]:
+    async def get_findings_by_audit(self, audit_id: str, severity: Optional[str] = None) -> List[AuditFinding]:
         """Get findings for audit."""
         findings = [f for f in self.findings.values() if f.audit_id == audit_id]
 
@@ -288,15 +274,9 @@ class FindingTracker:
 
         return sorted(findings, key=lambda x: (x.severity.value, x.created_date))
 
-    async def get_open_findings(
-        self,
-        severity: Optional[str] = None
-    ) -> List[AuditFinding]:
+    async def get_open_findings(self, severity: Optional[str] = None) -> List[AuditFinding]:
         """Get all open findings."""
-        findings = [
-            f for f in self.findings.values()
-            if f.status in [FindingStatus.OPEN, FindingStatus.IN_PROGRESS]
-        ]
+        findings = [f for f in self.findings.values() if f.status in [FindingStatus.OPEN, FindingStatus.IN_PROGRESS]]
 
         if severity:
             severity_enum = Severity(severity)
@@ -309,10 +289,9 @@ class FindingTracker:
         now = datetime.now()
 
         return [
-            f for f in self.findings.values()
-            if f.status in [FindingStatus.OPEN, FindingStatus.IN_PROGRESS]
-            and f.due_date
-            and f.due_date < now
+            f
+            for f in self.findings.values()
+            if f.status in [FindingStatus.OPEN, FindingStatus.IN_PROGRESS] and f.due_date and f.due_date < now
         ]
 
 
@@ -323,12 +302,7 @@ class RemediationTracker:
         self.remediations: Dict[str, Remediation] = {}
 
     async def create_remediation(
-        self,
-        finding_id: str,
-        action_plan: str,
-        assigned_to: str,
-        due_date: datetime,
-        priority: str
+        self, finding_id: str, action_plan: str, assigned_to: str, due_date: datetime, priority: str
     ) -> Remediation:
         """Create remediation plan."""
         await asyncio.sleep(0.05)
@@ -340,7 +314,7 @@ class RemediationTracker:
             assigned_to=assigned_to,
             due_date=due_date,
             status=FindingStatus.OPEN,
-            priority=Severity(priority)
+            priority=Severity(priority),
         )
 
         self.remediations[remediation.remediation_id] = remediation
@@ -349,11 +323,7 @@ class RemediationTracker:
         return remediation
 
     async def update_progress(
-        self,
-        remediation_id: str,
-        progress: int,
-        status: Optional[str] = None,
-        notes: Optional[str] = None
+        self, remediation_id: str, progress: int, status: Optional[str] = None, notes: Optional[str] = None
     ) -> bool:
         """Update remediation progress."""
         await asyncio.sleep(0.02)
@@ -377,11 +347,7 @@ class RemediationTracker:
         logger.info(f"Updated remediation {remediation_id} to {progress}%")
         return True
 
-    async def verify_remediation(
-        self,
-        remediation_id: str,
-        verified_by: str
-    ) -> bool:
+    async def verify_remediation(self, remediation_id: str, verified_by: str) -> bool:
         """Verify remediation completion."""
         await asyncio.sleep(0.05)
 
@@ -401,9 +367,9 @@ class RemediationTracker:
         now = datetime.now()
 
         return [
-            r for r in self.remediations.values()
-            if r.status in [FindingStatus.OPEN, FindingStatus.IN_PROGRESS]
-            and r.due_date < now
+            r
+            for r in self.remediations.values()
+            if r.status in [FindingStatus.OPEN, FindingStatus.IN_PROGRESS] and r.due_date < now
         ]
 
 
@@ -421,7 +387,7 @@ class EvidenceManager:
         description: str,
         collected_by: str,
         finding_id: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> AuditEvidence:
         """Add audit evidence."""
         await asyncio.sleep(0.05)
@@ -434,7 +400,7 @@ class EvidenceManager:
             file_path=file_path,
             description=description,
             collected_by=collected_by,
-            metadata=kwargs.get("metadata", {})
+            metadata=kwargs.get("metadata", {}),
         )
 
         self.evidence[evidence.evidence_id] = evidence
@@ -442,17 +408,11 @@ class EvidenceManager:
         logger.info(f"Added evidence for audit {audit_id}")
         return evidence
 
-    async def get_audit_evidence(
-        self,
-        audit_id: str
-    ) -> List[AuditEvidence]:
+    async def get_audit_evidence(self, audit_id: str) -> List[AuditEvidence]:
         """Get all evidence for audit."""
         return [e for e in self.evidence.values() if e.audit_id == audit_id]
 
-    async def get_finding_evidence(
-        self,
-        finding_id: str
-    ) -> List[AuditEvidence]:
+    async def get_finding_evidence(self, finding_id: str) -> List[AuditEvidence]:
         """Get evidence for specific finding."""
         return [e for e in self.evidence.values() if e.finding_id == finding_id]
 
@@ -468,13 +428,7 @@ class AuditManager:
         self.reports: Dict[str, AuditReport] = {}
 
     async def create_audit_plan(
-        self,
-        title: str,
-        audit_type: str,
-        scope: str,
-        start_date: datetime,
-        end_date: datetime,
-        **kwargs
+        self, title: str, audit_type: str, scope: str, start_date: datetime, end_date: datetime, **kwargs
     ) -> AuditPlan:
         """Create audit plan."""
         objectives = kwargs.pop("objectives", ["Assess control effectiveness", "Identify gaps"])
@@ -483,12 +437,7 @@ class AuditManager:
         )
 
     async def create_finding(
-        self,
-        audit_id: str,
-        title: str,
-        severity: str,
-        description: str,
-        **kwargs
+        self, audit_id: str, title: str, severity: str, description: str, **kwargs
     ) -> AuditFinding:
         """Create audit finding."""
         impact = kwargs.pop("impact", "Potential control weakness")
@@ -505,26 +454,20 @@ class AuditManager:
                 action_plan=recommendation,
                 assigned_to=kwargs["assigned_to"],
                 due_date=kwargs["due_date"],
-                priority=severity
+                priority=severity,
             )
             finding.remediation_id = remediation.remediation_id
 
         return finding
 
     async def update_remediation(
-        self,
-        finding_id: str,
-        status: str,
-        progress: int = 0,
-        notes: Optional[str] = None
+        self, finding_id: str, status: str, progress: int = 0, notes: Optional[str] = None
     ) -> bool:
         """Update remediation status."""
         # Find remediation for this finding
         for remediation in self.remediation_tracker.remediations.values():
             if remediation.finding_id == finding_id:
-                await self.remediation_tracker.update_progress(
-                    remediation.remediation_id, progress, status, notes
-                )
+                await self.remediation_tracker.update_progress(remediation.remediation_id, progress, status, notes)
 
                 # Update finding status
                 await self.finding_tracker.update_status(finding_id, status)
@@ -533,25 +476,15 @@ class AuditManager:
         return False
 
     async def add_evidence(
-        self,
-        audit_id: str,
-        file_path: str,
-        description: str,
-        collected_by: str,
-        **kwargs
+        self, audit_id: str, file_path: str, description: str, collected_by: str, **kwargs
     ) -> AuditEvidence:
         """Add audit evidence."""
         return await self.evidence_manager.add_evidence(
-            audit_id, kwargs.get("evidence_type", "document"),
-            file_path, description, collected_by, **kwargs
+            audit_id, kwargs.get("evidence_type", "document"), file_path, description, collected_by, **kwargs
         )
 
     async def generate_report(
-        self,
-        audit_id: str,
-        executive_summary: str,
-        conclusion: str,
-        generated_by: str
+        self, audit_id: str, executive_summary: str, conclusion: str, generated_by: str
     ) -> AuditReport:
         """Generate audit report."""
         await asyncio.sleep(0.1)
@@ -582,7 +515,7 @@ class AuditManager:
             low_findings=findings_summary["low"],
             recommendations=recommendations,
             conclusion=conclusion,
-            generated_by=generated_by
+            generated_by=generated_by,
         )
 
         self.reports[report.report_id] = report
@@ -605,8 +538,7 @@ class AuditManager:
         return {
             "total_audits": len(self.planning.audits),
             "active_audits": sum(
-                1 for a in self.planning.audits.values()
-                if a.status in [AuditStatus.IN_PROGRESS, AuditStatus.FIELDWORK]
+                1 for a in self.planning.audits.values() if a.status in [AuditStatus.IN_PROGRESS, AuditStatus.FIELDWORK]
             ),
             "upcoming_audits": len(upcoming_audits),
             "total_findings": len(self.finding_tracker.findings),
@@ -616,7 +548,7 @@ class AuditManager:
             "overdue_findings": len(overdue_findings),
             "overdue_remediations": len(overdue_remediations),
             "total_evidence": len(self.evidence_manager.evidence),
-            "generated_at": datetime.now().isoformat()
+            "generated_at": datetime.now().isoformat(),
         }
 
 
