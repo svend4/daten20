@@ -88,8 +88,8 @@
 | v21.0 | Continual Learning | ✅ COMPLETED | 100% (FULL) | Medium |
 | v22.0 | World Models | ✅ COMPLETED | 100% (FULL) | Research |
 | v23.0 | Self-Improving AI | ✅ COMPLETED | 100% (FULL) | Research |
-| v24.0 | Emergent Intelligence | ✅ COMPLETED | 100% (SIMPLE) | Research |
-| v25.0 | AGI Universal Reasoning | ✅ COMPLETED | 100% (SIMPLE) | Research |
+| v24.0 | Emergent Intelligence | ✅ COMPLETED | 100% (FULL) | Research |
+| v25.0 | AGI Universal Reasoning | ✅ COMPLETED | 100% (FULL) | Research |
 | v26.0 | ASI Beyond Human | ✅ COMPLETED | 100% (VISIONARY) | Research |
 | v27.0 | Cosmic Universal | ✅ COMPLETED | 100% (VISIONARY) | Vision |
 | v28.0 | Meta Reality Multiverse | ✅ COMPLETED | 100% (VISIONARY) | Vision |
