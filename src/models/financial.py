@@ -72,6 +72,23 @@ class FinancialParameters:
     vacation_reserve_percent: Decimal = Decimal("0")  # Vacation reserve percentage
     surcharge_base: str = "full_cost"  # "full_cost" or "brutto_only"
 
+    def __post_init__(self):
+        """Convert numeric types to Decimal if needed"""
+        if not isinstance(self.brutto_rate, Decimal):
+            self.brutto_rate = Decimal(str(self.brutto_rate))
+        if not isinstance(self.materials_per_month, Decimal):
+            self.materials_per_month = Decimal(str(self.materials_per_month))
+        if not isinstance(self.materials_per_hour, Decimal):
+            self.materials_per_hour = Decimal(str(self.materials_per_hour))
+        if not isinstance(self.admin_percent, Decimal):
+            self.admin_percent = Decimal(str(self.admin_percent))
+        if not isinstance(self.admin_per_hour, Decimal):
+            self.admin_per_hour = Decimal(str(self.admin_per_hour))
+        if not isinstance(self.region_coefficient, Decimal):
+            self.region_coefficient = Decimal(str(self.region_coefficient))
+        if not isinstance(self.vacation_reserve_percent, Decimal):
+            self.vacation_reserve_percent = Decimal(str(self.vacation_reserve_percent))
+
 
 @dataclass
 class CostBreakdown:

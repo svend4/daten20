@@ -28,7 +28,8 @@ class TestAnalyticsEngine:
     @pytest.fixture
     def sample_services(self):
         """Create sample services for testing."""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         services = []
 
@@ -41,7 +42,7 @@ class TestAnalyticsEngine:
                     target_group="Elderly",
                     region="Berlin"
                 ),
-                financial=Financial(
+                financial=FinancialParameters(
                     brutto_rate=35.0,
                     region_coefficient=1.0
                 ),
@@ -62,7 +63,7 @@ class TestAnalyticsEngine:
                     target_group="Disabled",
                     region="Munich"
                 ),
-                financial=Financial(
+                financial=FinancialParameters(
                     brutto_rate=45.0,
                     region_coefficient=1.1
                 ),
@@ -83,7 +84,7 @@ class TestAnalyticsEngine:
                     target_group="Children",
                     region="Berlin"
                 ),
-                financial=Financial(
+                financial=FinancialParameters(
                     brutto_rate=25.0,
                     region_coefficient=1.0
                 ),
@@ -129,12 +130,13 @@ class TestAnalyticsEngine:
 
     def test_analyze_by_region_missing_region(self, analytics_engine):
         """Test analysis with services missing region"""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         service = Service(
             id=1,
             basic_info=BasicInfo(service_name="Test", target_group="Test", region=None),
-            financial=Financial(brutto_rate=30.0),
+            financial=FinancialParameters(brutto_rate=30.0),
             system_settings=SystemSettings(service_type="standard")
         )
 
@@ -152,12 +154,13 @@ class TestAnalyticsEngine:
 
     def test_analyze_by_type_missing_type(self, analytics_engine):
         """Test analysis with services missing type"""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         service = Service(
             id=1,
             basic_info=BasicInfo(service_name="Test", target_group="Test", region="Berlin"),
-            financial=Financial(brutto_rate=30.0),
+            financial=FinancialParameters(brutto_rate=30.0),
             system_settings=SystemSettings(service_type=None)
         )
 
@@ -216,19 +219,20 @@ class TestAnalyticsEngine:
 
     def test_generate_recommendations_rate_variation(self, analytics_engine):
         """Test recommendations for high rate variation"""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         services = [
             Service(
                 id=1,
                 basic_info=BasicInfo(service_name="S1", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=20.0),
+                financial=FinancialParameters(brutto_rate=20.0),
                 system_settings=SystemSettings(service_type="standard", use_umlages=False)
             ),
             Service(
                 id=2,
                 basic_info=BasicInfo(service_name="S2", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=50.0),
+                financial=FinancialParameters(brutto_rate=50.0),
                 system_settings=SystemSettings(service_type="standard", use_umlages=False)
             )
         ]
@@ -240,19 +244,20 @@ class TestAnalyticsEngine:
 
     def test_generate_recommendations_few_regions(self, analytics_engine):
         """Test recommendations for limited regional coverage"""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         services = [
             Service(
                 id=1,
                 basic_info=BasicInfo(service_name="S1", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=30.0),
+                financial=FinancialParameters(brutto_rate=30.0),
                 system_settings=SystemSettings(service_type="standard")
             ),
             Service(
                 id=2,
                 basic_info=BasicInfo(service_name="S2", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=35.0),
+                financial=FinancialParameters(brutto_rate=35.0),
                 system_settings=SystemSettings(service_type="standard")
             )
         ]
@@ -264,19 +269,20 @@ class TestAnalyticsEngine:
 
     def test_generate_recommendations_mixed_calculation_modes(self, analytics_engine):
         """Test recommendations for mixed calculation modes"""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         services = [
             Service(
                 id=1,
                 basic_info=BasicInfo(service_name="S1", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=30.0),
+                financial=FinancialParameters(brutto_rate=30.0),
                 system_settings=SystemSettings(service_type="standard", use_umlages=True)
             ),
             Service(
                 id=2,
                 basic_info=BasicInfo(service_name="S2", target_group="T", region="Munich"),
-                financial=Financial(brutto_rate=35.0),
+                financial=FinancialParameters(brutto_rate=35.0),
                 system_settings=SystemSettings(service_type="standard", use_umlages=False)
             )
         ]
@@ -305,25 +311,26 @@ class TestServiceComparison:
     @pytest.fixture
     def services_for_comparison(self):
         """Create services for comparison."""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         return [
             Service(
                 id=1,
                 basic_info=BasicInfo(service_name="Low Cost", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=25.0, region_coefficient=1.0),
+                financial=FinancialParameters(brutto_rate=25.0, region_coefficient=1.0),
                 system_settings=SystemSettings(service_type="standard")
             ),
             Service(
                 id=2,
                 basic_info=BasicInfo(service_name="High Cost", target_group="T", region="Munich"),
-                financial=Financial(brutto_rate=45.0, region_coefficient=1.1),
+                financial=FinancialParameters(brutto_rate=45.0, region_coefficient=1.1),
                 system_settings=SystemSettings(service_type="premium")
             ),
             Service(
                 id=3,
                 basic_info=BasicInfo(service_name="Medium Cost", target_group="T", region="Hamburg"),
-                financial=Financial(brutto_rate=35.0, region_coefficient=1.05),
+                financial=FinancialParameters(brutto_rate=35.0, region_coefficient=1.05),
                 system_settings=SystemSettings(service_type="standard")
             )
         ]
@@ -382,12 +389,13 @@ class TestCostForecasting:
     @pytest.fixture
     def base_service(self):
         """Create base service for forecasting."""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         return Service(
             id=1,
             basic_info=BasicInfo(service_name="Base Service", target_group="Test", region="Berlin"),
-            financial=Financial(brutto_rate=30.0, region_coefficient=1.0),
+            financial=FinancialParameters(brutto_rate=30.0, region_coefficient=1.0),
             system_settings=SystemSettings(service_type="standard")
         )
 
@@ -462,7 +470,8 @@ class TestTimeSeries:
     @pytest.fixture
     def time_series_services(self):
         """Create services with different creation dates."""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         services = []
 
@@ -472,7 +481,7 @@ class TestTimeSeries:
                 Service(
                     id=i + 1,
                     basic_info=BasicInfo(service_name=f"Jan {i}", target_group="T", region="Berlin"),
-                    financial=Financial(brutto_rate=30.0 + i * 5),
+                    financial=FinancialParameters(brutto_rate=30.0 + i * 5),
                     system_settings=SystemSettings(service_type="standard"),
                     created_at=datetime(2024, 1, 15 + i)
                 )
@@ -484,7 +493,7 @@ class TestTimeSeries:
                 Service(
                     id=i + 4,
                     basic_info=BasicInfo(service_name=f"Feb {i}", target_group="T", region="Munich"),
-                    financial=Financial(brutto_rate=35.0 + i * 5),
+                    financial=FinancialParameters(brutto_rate=35.0 + i * 5),
                     system_settings=SystemSettings(service_type="standard"),
                     created_at=datetime(2024, 2, 10 + i)
                 )
@@ -542,13 +551,14 @@ class TestTimeSeries:
 
     def test_generate_time_series_no_created_dates(self, analytics_engine):
         """Test time series with services without created_at"""
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         services = [
             Service(
                 id=1,
                 basic_info=BasicInfo(service_name="Test", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=30.0),
+                financial=FinancialParameters(brutto_rate=30.0),
                 system_settings=SystemSettings(service_type="standard"),
                 created_at=None
             )
@@ -571,7 +581,8 @@ class TestAnalyticsIntegration:
     def test_full_analytics_workflow(self):
         """Test complete analytics workflow"""
         from src.core.analytics import AnalyticsEngine
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         analytics = AnalyticsEngine()
 
@@ -589,7 +600,7 @@ class TestAnalyticsIntegration:
                         target_group="Elderly",
                         region=regions[i % 3]
                     ),
-                    financial=Financial(
+                    financial=FinancialParameters(
                         brutto_rate=25.0 + i * 3.0,
                         region_coefficient=1.0
                     ),
@@ -613,7 +624,8 @@ class TestAnalyticsIntegration:
     def test_comparison_and_forecasting_workflow(self):
         """Test comparison and forecasting together"""
         from src.core.analytics import AnalyticsEngine
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         analytics = AnalyticsEngine()
 
@@ -621,13 +633,13 @@ class TestAnalyticsIntegration:
             Service(
                 id=1,
                 basic_info=BasicInfo(service_name="Service A", target_group="T", region="Berlin"),
-                financial=Financial(brutto_rate=30.0),
+                financial=FinancialParameters(brutto_rate=30.0),
                 system_settings=SystemSettings(service_type="standard")
             ),
             Service(
                 id=2,
                 basic_info=BasicInfo(service_name="Service B", target_group="T", region="Munich"),
-                financial=Financial(brutto_rate=40.0),
+                financial=FinancialParameters(brutto_rate=40.0),
                 system_settings=SystemSettings(service_type="premium")
             )
         ]
@@ -647,7 +659,8 @@ class TestAnalyticsIntegration:
     def test_time_series_analysis_workflow(self):
         """Test time series analysis workflow"""
         from src.core.analytics import AnalyticsEngine
-        from src.models.service import Service, BasicInfo, Financial, SystemSettings
+        from src.models.service import Service, BasicInfo, SystemSettings
+        from src.models.financial import FinancialParameters
 
         analytics = AnalyticsEngine()
 
@@ -663,7 +676,7 @@ class TestAnalyticsIntegration:
                             target_group="T",
                             region="Berlin"
                         ),
-                        financial=Financial(brutto_rate=30.0 + month * 2),
+                        financial=FinancialParameters(brutto_rate=30.0 + month * 2),
                         system_settings=SystemSettings(service_type="standard"),
                         created_at=datetime(2024, month, day)
                     )
