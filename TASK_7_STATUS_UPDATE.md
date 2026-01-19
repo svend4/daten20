@@ -102,4 +102,45 @@ The project would need comprehensive tests for:
 
 ---
 
-**Status**: Week 3 completed successfully. Overall project coverage requires additional work across core modules.
+## 🔧 Test Fixes - Week 1 Modules (2026-01-19)
+
+### Email Verification Tests Fixed
+Successfully fixed all 44 tests in `tests/unit/core/test_email_verification.py`:
+
+**Issues Fixed**:
+1. **Method signature mismatches**: Updated all test calls to match actual implementation
+   - Added missing `email` parameter to `generate_verification_token()` calls
+   - Added missing `username` parameter to `send_verification_email()` calls
+   - Added missing `bcrypt_instance` parameter to `reset_password()` calls
+   - Changed `expiry_hours` to `expires_in` (seconds) parameter
+
+2. **Database schema issues**: Added missing columns to test database
+   - Added `email_verified` column (INTEGER DEFAULT 0)
+   - Added `is_active` column (INTEGER DEFAULT 1)
+   - Added `updated_at` column (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
+
+3. **Mock configuration**: Fixed mock email notifier
+   - Added `enabled` attribute to mock (required by implementation)
+
+4. **Return value handling**: Fixed tuple unpacking vs direct assignment
+   - Changed from `success, message, token = generate_verification_token()`
+   - To: `token = generate_verification_token()` (method returns string, not tuple)
+
+5. **Test expectations**: Updated assertions to match actual behavior
+   - Fixed `test_cleanup_expired_tokens`: Expected keys changed to `verification_tokens_deleted` and `reset_tokens_deleted`
+   - Fixed `test_send_password_reset_email_invalid_email`: Returns `True` for security (doesn't reveal if email exists)
+
+6. **Test pollution**: Removed @patch decorator causing test interference
+   - Rewrote singleton tests to work without mocking
+   - Added autouse fixture to reset singleton between tests
+
+**Result**: ✅ **44/44 tests passing** (was 22 failures, now 0)
+
+### Logger Tests Status
+- **Current**: 6 failures, 17 passing (23 total)
+- **Issues**: Mostly file creation and logging configuration
+- **Status**: Deferred for future work
+
+---
+
+**Status**: Week 3 completed successfully. Week 1 email verification tests fixed (44/44 passing). Overall project coverage requires additional work across core modules.
