@@ -8,9 +8,10 @@ import asyncio
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-import numpy as np
+import random
+import statistics
 
 
 class CivilizationScale(Enum):
@@ -342,7 +343,7 @@ class IntegratedCosmicSystem:
             results["planetary"] = {
                 "planets_coordinated": len(planets),
                 "total_agents": sum(p.agents_coordinated for p in planets),
-                "average_efficiency": np.mean([p.resource_efficiency for p in planets]),
+                "average_efficiency": statistics.mean([p.resource_efficiency for p in planets]),
                 "kardashev_level": 1.0,
             }
 
@@ -356,7 +357,7 @@ class IntegratedCosmicSystem:
             results["stellar"] = {
                 "dyson_spheres_built": len(dyson_spheres),
                 "total_energy_watts": sum(d.energy_watts for d in dyson_spheres),
-                "average_completion": np.mean([d.completion for d in dyson_spheres]),
+                "average_completion": statistics.mean([d.completion for d in dyson_spheres]),
                 "kardashev_level": 2.0,
             }
 
@@ -370,7 +371,7 @@ class IntegratedCosmicSystem:
             results["galactic"] = {
                 "galaxies_coordinated": len(galaxies),
                 "total_star_systems": sum(g["star_systems"] for g in galaxies),
-                "average_efficiency": np.mean([g["efficiency"] for g in galaxies]),
+                "average_efficiency": statistics.mean([g["efficiency"] for g in galaxies]),
                 "kardashev_level": 3.0,
             }
 

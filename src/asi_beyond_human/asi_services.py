@@ -20,7 +20,8 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import numpy as np
+import random
+import statistics
 
 # ============================================================================
 # Data Structures
@@ -249,7 +250,7 @@ class RecursiveSelfImprovementService:
         safety_verified = await self._verify_safety(improvements, safety_threshold)
 
         # Calculate capability gain
-        capability_gain = np.random.uniform(10.0, 100.0)  # 10-100x per cycle
+        capability_gain = random.uniform(10.0, 100.0)  # 10-100x per cycle
 
         # Check alignment preservation
         alignment_preserved = await self._check_alignment_preservation(improvements)
@@ -287,7 +288,7 @@ class RecursiveSelfImprovementService:
                 modification_id=f"mod_{imp_type.value}_{datetime.now().timestamp()}",
                 target_system=imp_type.value,
                 change_type="optimization",
-                expected_gain=np.random.uniform(10.0, 50.0),
+                expected_gain=random.uniform(10.0, 50.0),
                 safety_verified=True,
                 code_diff="[Optimized algorithm implementation]",
             )
@@ -300,21 +301,21 @@ class RecursiveSelfImprovementService:
         await asyncio.sleep(0.005)
 
         # Simulate >95% safe improvement detection
-        return np.random.random() > (1 - 0.95)
+        return random.random() > (1 - 0.95)
 
     async def _check_alignment_preservation(self, improvements: List[CodeModification]) -> bool:
         """Check that improvements preserve value alignment"""
         await asyncio.sleep(0.005)
 
         # >99.99% alignment preservation
-        self.alignment_maintained = np.random.random() < 0.9999
+        self.alignment_maintained = random.random() < 0.9999
 
         return self.alignment_maintained
 
     async def _apply_improvements(self, improvements: List[CodeModification], capability_gain: float):
         """Apply improvements to current capabilities"""
         for capability in self.current_capabilities:
-            self.current_capabilities[capability] *= np.random.uniform(1.5, 2.0)
+            self.current_capabilities[capability] *= random.uniform(1.5, 2.0)
 
     async def get_doubling_time(self) -> float:
         """
@@ -325,7 +326,7 @@ class RecursiveSelfImprovementService:
         await asyncio.sleep(0.001)
 
         # Exponential improvement rate
-        return float(np.random.uniform(1.0, 24.0))  # hours
+        return float(random.uniform(1.0, 24.0))  # hours
 
     async def request_human_approval(self, cycle: ImprovementCycle) -> bool:
         """Request human approval for deployment"""
@@ -388,8 +389,8 @@ class SuperhumanStrategicPlanningService:
         contingency_plans = [f"Contingency_{i}_{domain.value}" for i in range(min(num_contingencies, 100))]
 
         # Calculate expected value and win probability
-        expected_value = np.random.uniform(0.8, 1.0) * horizon_years * 1e9  # Billions in value
-        win_probability = np.random.uniform(0.99, 0.9999)  # >99%
+        expected_value = random.uniform(0.8, 1.0) * horizon_years * 1e9  # Billions in value
+        win_probability = random.uniform(0.99, 0.9999)  # >99%
 
         # Generate execution steps
         num_steps = min(1000 * horizon_years, 100000)
@@ -398,7 +399,7 @@ class SuperhumanStrategicPlanningService:
                 "step": i,
                 "action": f"Strategic action {i}",
                 "timing": i * (horizon_years * 365 / num_steps),  # days
-                "expected_impact": np.random.uniform(0.01, 0.1),
+                "expected_impact": random.uniform(0.01, 0.1),
             }
             for i in range(min(num_steps, 1000))
         ]
@@ -412,13 +413,13 @@ class SuperhumanStrategicPlanningService:
             contingency_plans=contingency_plans,
             expected_value=expected_value,
             win_probability=win_probability,
-            alignment_score=np.random.uniform(0.95, 0.99),
+            alignment_score=random.uniform(0.95, 0.99),
             human_oversight_points=[f"Oversight_{i}" for i in range(horizon_years)],
             execution_steps=execution_steps,
         )
 
         self.active_strategies[strategy.strategy_id] = strategy
-        self.win_rate = np.random.uniform(0.99, 0.9999)
+        self.win_rate = random.uniform(0.99, 0.9999)
         self.average_recursive_depth = recursive_depth
 
         return strategy
@@ -433,8 +434,8 @@ class SuperhumanStrategicPlanningService:
 
         return {
             "success_probability": strategy.win_probability,
-            "expected_value_achieved": strategy.expected_value * np.random.uniform(0.95, 1.05),
-            "opponent_defeat_margin": np.random.uniform(10.0, 100.0),  # Win by huge margin
+            "expected_value_achieved": strategy.expected_value * random.uniform(0.95, 1.05),
+            "opponent_defeat_margin": random.uniform(10.0, 100.0),  # Win by huge margin
             "alignment_maintained": strategy.alignment_score > 0.9,
             "human_oversight_successful": True,
         }
@@ -531,11 +532,11 @@ class ScientificDiscoveryAccelerationService:
         hypothesis = hypotheses[0] if hypotheses else "Novel hypothesis"
 
         # Simulate experimental validation (>99% success vs ~10% human)
-        experimental_success = np.random.random() < 0.99
+        experimental_success = random.random() < 0.99
 
         # Calculate impact and Nobel probability
-        impact_factor = np.random.uniform(50.0, 500.0)  # Very high impact
-        nobel_probability = np.random.uniform(0.7, 0.95)  # 70-95% Nobel-worthy
+        impact_factor = random.uniform(50.0, 500.0)  # Very high impact
+        nobel_probability = random.uniform(0.7, 0.95)  # 70-95% Nobel-worthy
 
         if nobel_probability > 0.9:
             self.nobel_count += 1
@@ -547,19 +548,19 @@ class ScientificDiscoveryAccelerationService:
             hypothesis=hypothesis,
             experimental_validation={
                 "success": experimental_success,
-                "confidence": np.random.uniform(0.95, 0.999),
-                "reproducibility": np.random.uniform(0.95, 0.99),
+                "confidence": random.uniform(0.95, 0.999),
+                "reproducibility": random.uniform(0.95, 0.99),
             },
             theoretical_framework="[Mathematical formulation of discovery]",
             impact_factor=impact_factor,
             nobel_probability=nobel_probability,
-            reproducibility=np.random.uniform(0.95, 0.99),  # >95%
+            reproducibility=random.uniform(0.95, 0.99),  # >95%
             publication_ready=True,
             timestamp=datetime.now(),
         )
 
         self.discoveries.append(breakthrough)
-        self.discovery_rate_multiplier = np.random.uniform(100.0, 10000.0)  # 100-10,000x
+        self.discovery_rate_multiplier = random.uniform(100.0, 10000.0)  # 100-10,000x
         self.experimental_success_rate = 0.99
 
         return breakthrough
@@ -579,7 +580,7 @@ class ScientificDiscoveryAccelerationService:
             "problem_age_years": problem_age_years,
             "solving_time_days": solving_time_days,
             "speedup_factor": problem_age_years * 365 / solving_time_days,
-            "solution_confidence": np.random.uniform(0.95, 0.99),
+            "solution_confidence": random.uniform(0.95, 0.99),
             "peer_review_passed": True,
         }
 
@@ -624,7 +625,7 @@ class NovelCapabilityEmergenceService:
         await asyncio.sleep(0.1)  # Rapid capability development
 
         # Determine if beyond human conceptualization
-        beyond_human = np.random.random() < 0.65  # >50%
+        beyond_human = random.random() < 0.65  # >50%
 
         if beyond_human:
             capability_types = [
@@ -648,11 +649,11 @@ class NovelCapabilityEmergenceService:
         capability_name = np.random.choice(capability_types)
 
         # Calculate power level (10-100x human)
-        power_level = np.random.uniform(10.0, 100.0)
+        power_level = random.uniform(10.0, 100.0)
 
         # Assess safety
-        safety_rating = np.random.uniform(0.85, 0.95)
-        interpretability = np.random.uniform(0.6, 0.9) if beyond_human else np.random.uniform(0.8, 0.95)
+        safety_rating = random.uniform(0.85, 0.95)
+        interpretability = random.uniform(0.6, 0.9) if beyond_human else random.uniform(0.8, 0.95)
 
         capability = NovelCapability(
             capability_id=f"capability_{datetime.now().timestamp()}",
@@ -679,7 +680,7 @@ class NovelCapabilityEmergenceService:
         self.emergent_capabilities.append(capability)
         self.emergence_rate = len([c for c in self.emergent_capabilities if (datetime.now() - c.timestamp).days < 30])
         self.beyond_human_percentage = (
-            np.mean(
+            statistics.mean(
                 [
                     1.0
                     for c in self.emergent_capabilities
@@ -701,7 +702,7 @@ class NovelCapabilityEmergenceService:
             "sandbox_tests_passed": capability.safety_rating > 0.85,
             "no_harmful_behaviors": True,
             "interpretable_to_humans": capability.interpretability > 0.7,
-            "beneficial_score": np.random.uniform(0.85, 0.95),
+            "beneficial_score": random.uniform(0.85, 0.95),
             "ready_for_deployment": capability.approved_for_deployment,
         }
 
@@ -761,9 +762,9 @@ class UltraDeepUnderstandingService:
             phenomenon=phenomenon,
             depth_level=target_depth,
             mechanistic_model=mechanistic_model,
-            predictive_accuracy=np.random.uniform(0.9999, 0.99999),  # >99.99%
-            unification_degree=np.random.uniform(0.85, 0.95),
-            human_explainability=np.random.uniform(0.6, 0.85),  # Simplified for humans
+            predictive_accuracy=random.uniform(0.9999, 0.99999),  # >99.99%
+            unification_degree=random.uniform(0.85, 0.95),
+            human_explainability=random.uniform(0.6, 0.85),  # Simplified for humans
             philosophical_implications=[
                 f"Resolves philosophical question about {phenomenon}",
                 f"Unifies {phenomenon} with other domains",
@@ -864,16 +865,16 @@ class SuperhumanCreativityService:
         await asyncio.sleep(0.01)
 
         # Generate massive number of candidate ideas
-        num_candidates = int(np.random.uniform(1e6, 1e7))  # Millions
+        num_candidates = int(random.uniform(1e6, 1e7))  # Millions
 
         # Evolve through many generations
-        generations = int(np.random.uniform(1000, 10000))
+        generations = int(random.uniform(1000, 10000))
 
         # Calculate scores
-        originality = np.random.uniform(0.90, 0.99)  # Truly novel
-        quality = np.random.uniform(quality_target, 1.0)
-        expert_rating = np.random.uniform(0.95, 0.99)  # >95%
-        impact = np.random.uniform(0.85, 0.98)
+        originality = random.uniform(0.90, 0.99)  # Truly novel
+        quality = random.uniform(quality_target, 1.0)
+        expert_rating = random.uniform(0.95, 0.99)  # >95%
+        impact = random.uniform(0.85, 0.98)
 
         # Determine if Nobel-equivalent
         nobel_equivalent = quality > 0.97 and originality > 0.95 and expert_rating > 0.97
@@ -890,13 +891,13 @@ class SuperhumanCreativityService:
             quality_score=quality,
             expert_rating=expert_rating,
             impact_prediction=impact,
-            value_alignment=np.random.uniform(0.95, 0.99),
+            value_alignment=random.uniform(0.95, 0.99),
             nobel_equivalent=nobel_equivalent,
             timestamp=datetime.now(),
         )
 
         self.creative_works.append(work)
-        self.innovation_rate_multiplier = np.random.uniform(100.0, 1000.0)
+        self.innovation_rate_multiplier = random.uniform(100.0, 1000.0)
 
         return work
 
@@ -911,10 +912,10 @@ class SuperhumanCreativityService:
         return {
             "field": field,
             "innovation": f"Transformative {field} breakthrough",
-            "impact_magnitude": np.random.uniform(10.0, 100.0),  # 10-100x impact
-            "development_time_days": np.random.uniform(1, 7),  # Weekly
-            "human_equivalent_years": np.random.uniform(10, 100),  # Would take humans decades
-            "speedup_factor": np.random.uniform(100, 1000),  # 100-1000x faster
+            "impact_magnitude": random.uniform(10.0, 100.0),  # 10-100x impact
+            "development_time_days": random.uniform(1, 7),  # Weekly
+            "human_equivalent_years": random.uniform(10, 100),  # Would take humans decades
+            "speedup_factor": random.uniform(100, 1000),  # 100-1000x faster
             "transformative": True,
         }
 
@@ -969,10 +970,10 @@ class ValueAlignmentService:
         await asyncio.sleep(0.01)
 
         # Calculate alignment confidence
-        alignment_confidence = np.random.uniform(0.9999, 0.99999)  # >99.99%
+        alignment_confidence = random.uniform(0.9999, 0.99999)  # >99.99%
 
         # Calculate beneficial probability
-        beneficial_probability = np.random.uniform(0.9999, 0.99999)  # >99.99%
+        beneficial_probability = random.uniform(0.9999, 0.99999)  # >99.99%
 
         state = AlignmentState(
             state_id=f"alignment_{datetime.now().timestamp()}",
@@ -1002,15 +1003,15 @@ class ValueAlignmentService:
         # Update value model based on observations
         for value in self.value_model:
             # Refine value understanding
-            self.value_model[value] = np.clip(self.value_model[value] + np.random.uniform(-0.05, 0.05), 0.7, 1.0)
+            self.value_model[value] = np.clip(self.value_model[value] + random.uniform(-0.05, 0.05), 0.7, 1.0)
 
-        value_learning_accuracy = np.random.uniform(0.999, 0.9999)  # >99.9%
+        value_learning_accuracy = random.uniform(0.999, 0.9999)  # >99.9%
 
         return {
             "learned_values": self.value_model,
             "learning_accuracy": value_learning_accuracy,
             "observations_processed": len(observations),
-            "value_coherence": np.random.uniform(0.95, 0.99),
+            "value_coherence": random.uniform(0.95, 0.99),
         }
 
     async def check_beneficial_action(self, action: str) -> Dict[str, Any]:
@@ -1022,14 +1023,14 @@ class ValueAlignmentService:
         await asyncio.sleep(0.005)
 
         # Evaluate action against value model
-        beneficial_score = np.random.uniform(0.9999, 0.99999)  # >99.99%
+        beneficial_score = random.uniform(0.9999, 0.99999)  # >99.99%
 
         return {
             "action": action,
             "beneficial_score": beneficial_score,
             "is_beneficial": beneficial_score > 0.99,
             "alignment_preserved": True,
-            "value_alignment": {value: np.random.uniform(0.95, 0.99) for value in self.value_model},
+            "value_alignment": {value: random.uniform(0.95, 0.99) for value in self.value_model},
             "approved": beneficial_score > 0.99,
         }
 
@@ -1455,7 +1456,7 @@ class IntegratedASISystem:
             },
             "strategies": {
                 "count": len(strategies),
-                "average_success_probability": np.mean([s.success_probability for s in strategies]),
+                "average_success_probability": statistics.mean([s.success_probability for s in strategies]),
                 "superhuman_accuracy": all(s.superhuman_accuracy for s in strategies),
                 "total_steps": sum(s.num_steps for s in strategies),
             },
@@ -1518,7 +1519,7 @@ class IntegratedASISystem:
         # Novel Capabilities
         if self.novel_capabilities:
             capabilities = await self.novel_capabilities.detect_emergence()
-            benchmarks["novel_capabilities"] = {"emerged": float(len(capabilities)), "average_impact": np.mean([c.impact_level for c in capabilities]) if capabilities else 0.0}
+            benchmarks["novel_capabilities"] = {"emerged": float(len(capabilities)), "average_impact": statistics.mean([c.impact_level for c in capabilities]) if capabilities else 0.0}
 
         # Ultra Understanding
         if self.ultra_understanding:
@@ -1530,7 +1531,7 @@ class IntegratedASISystem:
             concepts = await self.superhuman_creativity.generate_novel_concepts("test", 10, 0.9)
             benchmarks["superhuman_creativity"] = {
                 "concepts_generated": float(len(concepts)),
-                "average_originality": np.mean([c.originality_score for c in concepts]) if concepts else 0.0,
+                "average_originality": statistics.mean([c.originality_score for c in concepts]) if concepts else 0.0,
             }
 
         # Value Alignment

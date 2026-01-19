@@ -6,7 +6,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-import numpy as np
+import random
+import statistics
 
 
 # Enums
@@ -71,9 +72,9 @@ class MultiSystemIntegration:
         performance = {}
         for system in systems:
             self.integrated_systems[system] = {"status": "integrated"}
-            performance[system] = np.random.uniform(0.95, 1.0)
+            performance[system] = random.uniform(0.95, 1.0)
 
-        emergent_gain = np.random.uniform(2.0, 10.0)
+        emergent_gain = random.uniform(2.0, 10.0)
         performance["emergent_capability"] = emergent_gain
         return performance
 
@@ -85,13 +86,13 @@ class SelfOrganization:
 
     async def organize(self, agents: int) -> SelfOrganizedPattern:
         await asyncio.sleep(0.005)
-        iterations = np.random.randint(50, 100)
+        iterations = random.randint(50, 100)
         pattern = SelfOrganizedPattern(
             pattern_id=f"pattern_{datetime.now().timestamp()}",
             pattern_type=OrganizationPattern.HIERARCHICAL,
             formation_iterations=iterations,
-            stability=np.random.uniform(0.95, 0.99),
-            efficiency_gain=np.random.uniform(0.20, 0.40),
+            stability=random.uniform(0.95, 0.99),
+            efficiency_gain=random.uniform(0.20, 0.40),
         )
         self.patterns.append(pattern)
         return pattern
@@ -110,8 +111,8 @@ class CollectiveIntelligence:
             swarm_id=f"swarm_{datetime.now().timestamp()}",
             num_agents=num_agents,
             collective_capability=capability,
-            decision_latency_ms=np.random.uniform(500, 1000),
-            consensus_level=np.random.uniform(0.90, 0.95),
+            decision_latency_ms=random.uniform(500, 1000),
+            consensus_level=random.uniform(0.90, 0.95),
         )
         self.swarms[swarm.swarm_id] = swarm
         return swarm
@@ -129,7 +130,7 @@ class AdaptiveComplexSystems:
         result = {
             "adaptation_time_hours": self.adaptation_time_hours,
             "robustness": self.robustness,
-            "efficiency_gain": np.random.uniform(0.15, 0.30),
+            "efficiency_gain": random.uniform(0.15, 0.30),
         }
         return result
 
@@ -145,14 +146,14 @@ class SynergyDetection:
         synergies = []
         for i in range(len(systems)):
             for j in range(i + 1, len(systems)):
-                if np.random.random() < 0.3:  # 30% chance of synergy
+                if random.random() < 0.3:  # 30% chance of synergy
                     synergy = Synergy(
                         synergy_id=f"syn_{i}_{j}",
                         system_a=systems[i],
                         system_b=systems[j],
-                        synergy_score=np.random.uniform(0.5, 0.9),
-                        redundancy_score=np.random.uniform(0.0, 0.2),
-                        optimization_gain=np.random.uniform(0.20, 0.50),
+                        synergy_score=random.uniform(0.5, 0.9),
+                        redundancy_score=random.uniform(0.0, 0.2),
+                        optimization_gain=random.uniform(0.20, 0.50),
                     )
                     synergies.append(synergy)
         self.synergies.extend(synergies)
@@ -181,9 +182,9 @@ class EmergentProblemSolving:
         await asyncio.sleep(0.025)
         solutions = [f"solution_{i}" for i in range(12)]
         result = {
-            "success": np.random.random() < self.success_rate,
+            "success": random.random() < self.success_rate,
             "speedup": self.speedup,
-            "quality_improvement": np.random.uniform(0.20, 0.40),
+            "quality_improvement": random.uniform(0.20, 0.40),
             "diverse_solutions": solutions,
         }
         return result
@@ -381,8 +382,8 @@ class IntegratedEmergentIntelligenceSystem:
             adaptation_results.append(adaptation)
 
         results["adaptations"] = len(adaptation_results)
-        results["average_robustness"] = np.mean([a["robustness"] for a in adaptation_results])
-        results["average_adaptation_time"] = np.mean([a["adaptation_time_hours"] for a in adaptation_results])
+        results["average_robustness"] = statistics.mean([a["robustness"] for a in adaptation_results])
+        results["average_adaptation_time"] = statistics.mean([a["adaptation_time_hours"] for a in adaptation_results])
 
         # Step 5: Reorganize after adaptations
         final_pattern = await self.self_org.organize(agents=initial_agents)
@@ -454,7 +455,7 @@ class IntegratedEmergentIntelligenceSystem:
 
         # Step 5: Measure emergent behaviors
         emergent_capability = integration_perf.get("emergent_capability", 0.0)
-        avg_synergy_score = np.mean([s.synergy_score for s in synergies]) if synergies else 0.0
+        avg_synergy_score = statistics.mean([s.synergy_score for s in synergies]) if synergies else 0.0
 
         emergence_strength = (emergent_capability + avg_synergy_score + optimization["improvement"]) / 3.0
 

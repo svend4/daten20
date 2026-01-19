@@ -15,7 +15,8 @@ Total: 48 tests
 """
 
 import asyncio
-import numpy as np
+import random
+import statistics
 import pytest
 from datetime import datetime
 

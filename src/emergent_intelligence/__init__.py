@@ -21,48 +21,48 @@ __author__ = "Document Management System Team"
 
 from .emergent_intelligence_services import (
     # Core Systems
-    AdaptiveSystemEvolution,
+    AdaptiveComplexSystems,
     CollectiveIntelligence,
-    EmergentBehaviorDetection,
-    HolisticSystemOptimization,
+    EmergentProblemSolving,
+    HolisticOptimization,
     IntegratedEmergentIntelligenceSystem,
+    MultiSystemIntegration,
     SelfOrganization,
-    SwarmIntelligence,
     SynergyDetection,
     # Data Classes
     EmergentIntelligenceConfig,
     # Singleton Getters
-    get_adaptive_evolution,
+    get_adaptive_complex_systems,
     get_collective_intelligence,
-    get_emergent_behavior_detection,
     get_emergent_intelligence_system,
+    get_emergent_problem_solving,
     get_holistic_optimization,
+    get_multi_system_integration,
     get_self_organization,
-    get_swarm_intelligence,
     get_synergy_detection,
 )
 
 __all__ = [
     "__version__",
     # Core Systems
-    "SwarmIntelligence",
-    "CollectiveIntelligence",
+    "MultiSystemIntegration",
     "SelfOrganization",
-    "EmergentBehaviorDetection",
+    "CollectiveIntelligence",
+    "AdaptiveComplexSystems",
     "SynergyDetection",
-    "AdaptiveSystemEvolution",
-    "HolisticSystemOptimization",
+    "HolisticOptimization",
+    "EmergentProblemSolving",
     # Integrated System
     "IntegratedEmergentIntelligenceSystem",
     # Data Classes
     "EmergentIntelligenceConfig",
     # Singleton Getters
-    "get_swarm_intelligence",
-    "get_collective_intelligence",
+    "get_multi_system_integration",
     "get_self_organization",
-    "get_emergent_behavior_detection",
+    "get_collective_intelligence",
+    "get_adaptive_complex_systems",
     "get_synergy_detection",
-    "get_adaptive_evolution",
     "get_holistic_optimization",
+    "get_emergent_problem_solving",
     "get_emergent_intelligence_system",
 ]

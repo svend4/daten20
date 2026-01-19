@@ -2,13 +2,13 @@
 Comprehensive Test Suite for Emergent Intelligence Platform (v24.0)
 
 Tests all 7 subsystems and integrated system:
-1. SwarmIntelligence - Collective problem solving
+1. MultiSystemIntegration - Collective problem solving
 2. CollectiveIntelligence - Aggregate intelligence from multiple agents
 3. SelfOrganization - Spontaneous structure formation
-4. EmergentBehaviorDetection - Detect unexpected patterns
+4. EmergentProblemSolving - Detect unexpected patterns
 5. SynergyDetection - Identify synergistic interactions
-6. AdaptiveSystemEvolution - Evolve systems over time
-7. HolisticSystemOptimization - System-wide optimization
+6. AdaptiveComplexSystems - Evolve systems over time
+7. HolisticOptimization - System-wide optimization
 8. IntegratedEmergentIntelligenceSystem - Unified workflows
 
 Total: 48 tests
@@ -19,13 +19,13 @@ import pytest
 
 from src.emergent_intelligence import (
     # Core Systems
-    AdaptiveSystemEvolution,
+    AdaptiveComplexSystems,
     CollectiveIntelligence,
-    EmergentBehaviorDetection,
-    HolisticSystemOptimization,
+    EmergentProblemSolving,
+    HolisticOptimization,
     IntegratedEmergentIntelligenceSystem,
+    MultiSystemIntegration,
     SelfOrganization,
-    SwarmIntelligence,
     SynergyDetection,
     # Config
     EmergentIntelligenceConfig,
@@ -34,12 +34,12 @@ from src.emergent_intelligence import (
 )
 
 
-class TestSwarmIntelligence:
+class TestMultiSystemIntegration:
     """Test Swarm Intelligence subsystem"""
 
     @pytest.mark.asyncio
     async def test_create_swarm(self):
-        swarm = SwarmIntelligence()
+        swarm = MultiSystemIntegration()
         result = await swarm.create_swarm(num_agents=50)
 
         assert result is not None
@@ -48,7 +48,7 @@ class TestSwarmIntelligence:
 
     @pytest.mark.asyncio
     async def test_coordinate(self):
-        swarm = SwarmIntelligence()
+        swarm = MultiSystemIntegration()
         coordination = await swarm.coordinate("task_1", ["agent_1", "agent_2"])
 
         assert coordination is not None
@@ -56,7 +56,7 @@ class TestSwarmIntelligence:
 
     @pytest.mark.asyncio
     async def test_optimize_swarm(self):
-        swarm = SwarmIntelligence()
+        swarm = MultiSystemIntegration()
         result = await swarm.optimize(swarm_id="test_swarm", objective="maximize_coverage")
 
         assert result is not None
@@ -64,7 +64,7 @@ class TestSwarmIntelligence:
 
     @pytest.mark.asyncio
     async def test_swarm_decision_making(self):
-        swarm = SwarmIntelligence()
+        swarm = MultiSystemIntegration()
         decision = await swarm.make_decision(swarm_id="test_swarm", options=["A", "B", "C"])
 
         assert decision is not None
@@ -72,7 +72,7 @@ class TestSwarmIntelligence:
 
     @pytest.mark.asyncio
     async def test_swarm_communication(self):
-        swarm = SwarmIntelligence()
+        swarm = MultiSystemIntegration()
         result = await swarm.communicate(swarm_id="test_swarm", message="coordinate")
 
         assert result is not None
@@ -80,7 +80,7 @@ class TestSwarmIntelligence:
 
     @pytest.mark.asyncio
     async def test_swarm_adaptation(self):
-        swarm = SwarmIntelligence()
+        swarm = MultiSystemIntegration()
         result = await swarm.adapt(swarm_id="test_swarm", environmental_change="resource_scarcity")
 
         assert result is not None
@@ -192,12 +192,12 @@ class TestSelfOrganization:
         assert "phase_transition_detected" in result
 
 
-class TestEmergentBehaviorDetection:
+class TestEmergentProblemSolving:
     """Test Emergent Behavior Detection subsystem"""
 
     @pytest.mark.asyncio
     async def test_detect_emergence(self):
-        detector = EmergentBehaviorDetection()
+        detector = EmergentProblemSolving()
         result = await detector.detect(system_state={"complexity": 0.8, "organization": 0.7})
 
         assert result is not None
@@ -205,7 +205,7 @@ class TestEmergentBehaviorDetection:
 
     @pytest.mark.asyncio
     async def test_behavior_classification(self):
-        detector = EmergentBehaviorDetection()
+        detector = EmergentProblemSolving()
         result = await detector.classify_behavior(behavior_trace=[0.5, 0.6, 0.7, 0.8])
 
         assert result is not None
@@ -213,7 +213,7 @@ class TestEmergentBehaviorDetection:
 
     @pytest.mark.asyncio
     async def test_novelty_detection(self):
-        detector = EmergentBehaviorDetection()
+        detector = EmergentProblemSolving()
         result = await detector.detect_novelty(observed_patterns=["pattern_A", "pattern_B"])
 
         assert result is not None
@@ -221,7 +221,7 @@ class TestEmergentBehaviorDetection:
 
     @pytest.mark.asyncio
     async def test_complexity_measurement(self):
-        detector = EmergentBehaviorDetection()
+        detector = EmergentProblemSolving()
         complexity = await detector.measure_complexity(system_state={"agents": 100, "connections": 500})
 
         assert complexity is not None
@@ -229,7 +229,7 @@ class TestEmergentBehaviorDetection:
 
     @pytest.mark.asyncio
     async def test_predictability_analysis(self):
-        detector = EmergentBehaviorDetection()
+        detector = EmergentProblemSolving()
         result = await detector.analyze_predictability(behavior_history=[0.1, 0.2, 0.3, 0.4])
 
         assert result is not None
@@ -237,7 +237,7 @@ class TestEmergentBehaviorDetection:
 
     @pytest.mark.asyncio
     async def test_emergence_tracking(self):
-        detector = EmergentBehaviorDetection()
+        detector = EmergentProblemSolving()
         result = await detector.track_emergence(system_id="sys_1", duration_seconds=10)
 
         assert result is not None
@@ -296,12 +296,12 @@ class TestSynergyDetection:
         assert "cascade_chain" in result
 
 
-class TestAdaptiveSystemEvolution:
+class TestAdaptiveComplexSystems:
     """Test Adaptive System Evolution subsystem"""
 
     @pytest.mark.asyncio
     async def test_evolve_system(self):
-        evolution = AdaptiveSystemEvolution()
+        evolution = AdaptiveComplexSystems()
         result = await evolution.evolve(system_id="sys_1", generations=10)
 
         assert result is not None
@@ -309,7 +309,7 @@ class TestAdaptiveSystemEvolution:
 
     @pytest.mark.asyncio
     async def test_fitness_evaluation(self):
-        evolution = AdaptiveSystemEvolution()
+        evolution = AdaptiveComplexSystems()
         fitness = await evolution.evaluate_fitness(system_state={"performance": 0.8})
 
         assert fitness is not None
@@ -317,7 +317,7 @@ class TestAdaptiveSystemEvolution:
 
     @pytest.mark.asyncio
     async def test_mutation_application(self):
-        evolution = AdaptiveSystemEvolution()
+        evolution = AdaptiveComplexSystems()
         result = await evolution.mutate(system_config={"param_1": 0.5}, mutation_rate=0.1)
 
         assert result is not None
@@ -325,7 +325,7 @@ class TestAdaptiveSystemEvolution:
 
     @pytest.mark.asyncio
     async def test_selection_pressure(self):
-        evolution = AdaptiveSystemEvolution()
+        evolution = AdaptiveComplexSystems()
         result = await evolution.apply_selection(population=[{"fitness": 0.8}, {"fitness": 0.6}])
 
         assert result is not None
@@ -333,7 +333,7 @@ class TestAdaptiveSystemEvolution:
 
     @pytest.mark.asyncio
     async def test_adaptation_speed(self):
-        evolution = AdaptiveSystemEvolution()
+        evolution = AdaptiveComplexSystems()
         result = await evolution.measure_adaptation_speed(evolution_history=[0.5, 0.6, 0.7, 0.8])
 
         assert result is not None
@@ -341,19 +341,19 @@ class TestAdaptiveSystemEvolution:
 
     @pytest.mark.asyncio
     async def test_evolutionary_trajectory(self):
-        evolution = AdaptiveSystemEvolution()
+        evolution = AdaptiveComplexSystems()
         result = await evolution.track_trajectory(system_id="sys_1", num_generations=20)
 
         assert result is not None
         assert "trajectory" in result
 
 
-class TestHolisticSystemOptimization:
+class TestHolisticOptimization:
     """Test Holistic System Optimization subsystem"""
 
     @pytest.mark.asyncio
     async def test_optimize_holistically(self):
-        optimizer = HolisticSystemOptimization()
+        optimizer = HolisticOptimization()
         result = await optimizer.optimize(system_components=["A", "B", "C"])
 
         assert result is not None
@@ -361,7 +361,7 @@ class TestHolisticSystemOptimization:
 
     @pytest.mark.asyncio
     async def test_system_wide_objective(self):
-        optimizer = HolisticSystemOptimization()
+        optimizer = HolisticOptimization()
         result = await optimizer.define_objective(goals=["efficiency", "robustness"])
 
         assert result is not None
@@ -369,7 +369,7 @@ class TestHolisticSystemOptimization:
 
     @pytest.mark.asyncio
     async def test_constraint_satisfaction(self):
-        optimizer = HolisticSystemOptimization()
+        optimizer = HolisticOptimization()
         result = await optimizer.satisfy_constraints(constraints=["resource < 100", "latency < 50"])
 
         assert result is not None
@@ -377,7 +377,7 @@ class TestHolisticSystemOptimization:
 
     @pytest.mark.asyncio
     async def test_pareto_optimization(self):
-        optimizer = HolisticSystemOptimization()
+        optimizer = HolisticOptimization()
         result = await optimizer.pareto_optimize(objectives=["cost", "performance"])
 
         assert result is not None
@@ -385,7 +385,7 @@ class TestHolisticSystemOptimization:
 
     @pytest.mark.asyncio
     async def test_system_balance(self):
-        optimizer = HolisticSystemOptimization()
+        optimizer = HolisticOptimization()
         result = await optimizer.balance_system(subsystems=["A", "B", "C"])
 
         assert result is not None
@@ -393,7 +393,7 @@ class TestHolisticSystemOptimization:
 
     @pytest.mark.asyncio
     async def test_global_optimum_search(self):
-        optimizer = HolisticSystemOptimization()
+        optimizer = HolisticOptimization()
         result = await optimizer.search_global_optimum(search_space_size=1000)
 
         assert result is not None
