@@ -22,21 +22,70 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from enum import Enum
 
-# Import all integrated systems
+# Configure logger first
+logger = logging.getLogger(__name__)
+
+# Import all integrated systems (with optional fallbacks)
 from src.deployment.deployment_services import UniversalDeploymentOrchestrator, DeploymentConfig
 from src.federated_learning import run_federated_learning
 from src.autonomous import get_agent_orchestrator, get_reasoning_engine
-from src.explainable_ai import get_explainable_ai_system
-from src.neurosymbolic import get_neurosymbolic_reasoner
-from src.quantum_ml import get_quantum_ml_system
-from src.edge_ai import get_edge_ai_orchestrator
-from src.multimodal_ai import get_multimodal_ai_system
-from src.ai_safety import get_ai_safety_framework
-from src.ai_agents import get_ai_agents_system
-from src.human_ai_collab import get_human_ai_collaboration_system
 
-# Configure logger
-logger = logging.getLogger(__name__)
+# Optional imports with graceful degradation
+try:
+    from src.explainable_ai import get_explainable_ai_system
+    HAS_EXPLAINABLE_AI = True
+except ImportError:
+    HAS_EXPLAINABLE_AI = False
+    logger.warning("Explainable AI module not available (missing dependencies)")
+
+try:
+    from src.neurosymbolic import get_neurosymbolic_reasoner
+    HAS_NEUROSYMBOLIC = True
+except ImportError:
+    HAS_NEUROSYMBOLIC = False
+    logger.warning("Neurosymbolic module not available (missing dependencies)")
+
+try:
+    from src.quantum_ml import get_quantum_ml_system
+    HAS_QUANTUM_ML = True
+except ImportError:
+    HAS_QUANTUM_ML = False
+    logger.warning("Quantum ML module not available (missing dependencies)")
+
+try:
+    from src.edge_ai import get_edge_ai_orchestrator
+    HAS_EDGE_AI = True
+except ImportError:
+    HAS_EDGE_AI = False
+    logger.warning("Edge AI module not available (missing dependencies)")
+
+try:
+    from src.multimodal_ai import get_multimodal_ai_system
+    HAS_MULTIMODAL_AI = True
+except ImportError:
+    HAS_MULTIMODAL_AI = False
+    logger.warning("Multimodal AI module not available (missing dependencies)")
+
+try:
+    from src.ai_safety import get_ai_safety_framework
+    HAS_AI_SAFETY = True
+except ImportError:
+    HAS_AI_SAFETY = False
+    logger.warning("AI Safety module not available (missing dependencies)")
+
+try:
+    from src.ai_agents import get_ai_agents_system
+    HAS_AI_AGENTS = True
+except ImportError:
+    HAS_AI_AGENTS = False
+    logger.warning("AI Agents module not available (missing dependencies)")
+
+try:
+    from src.human_ai_collab import get_human_ai_collaboration_system
+    HAS_HUMAN_AI_COLLAB = True
+except ImportError:
+    HAS_HUMAN_AI_COLLAB = False
+    logger.warning("Human-AI Collaboration module not available (missing dependencies)")
 
 
 class BasicAIPipelineError(Exception):
@@ -129,39 +178,75 @@ class BasicAIPipeline:
         # Initialize all basic AI systems
         logger.info("Initializing Basic AI Pipeline (v10-v20)...")
 
-        # v10: Deployment
+        # v10: Deployment (always available)
         self.deployment = UniversalDeploymentOrchestrator()
 
-        # v12: Autonomous Systems
+        # v12: Autonomous Systems (always available)
         self.agent_orchestrator = get_agent_orchestrator()
         self.reasoning_engine = get_reasoning_engine()
 
-        # v13: Explainable AI
-        self.explainable_ai = get_explainable_ai_system()
+        # v13: Explainable AI (optional)
+        if HAS_EXPLAINABLE_AI:
+            self.explainable_ai = get_explainable_ai_system()
+        else:
+            self.explainable_ai = None
 
-        # v14: Neurosymbolic AI
-        self.neurosymbolic = get_neurosymbolic_reasoner()
+        # v14: Neurosymbolic AI (optional)
+        if HAS_NEUROSYMBOLIC:
+            self.neurosymbolic = get_neurosymbolic_reasoner()
+        else:
+            self.neurosymbolic = None
 
-        # v15: Quantum ML
-        self.quantum_ml = get_quantum_ml_system()
+        # v15: Quantum ML (optional)
+        if HAS_QUANTUM_ML:
+            self.quantum_ml = get_quantum_ml_system()
+        else:
+            self.quantum_ml = None
 
-        # v16: Edge AI
-        self.edge_ai = get_edge_ai_orchestrator()
+        # v16: Edge AI (optional)
+        if HAS_EDGE_AI:
+            self.edge_ai = get_edge_ai_orchestrator()
+        else:
+            self.edge_ai = None
 
-        # v17: Multimodal AI
-        self.multimodal_ai = get_multimodal_ai_system()
+        # v17: Multimodal AI (optional)
+        if HAS_MULTIMODAL_AI:
+            self.multimodal_ai = get_multimodal_ai_system()
+        else:
+            self.multimodal_ai = None
 
-        # v18: AI Safety
-        self.ai_safety = get_ai_safety_framework()
+        # v18: AI Safety (optional)
+        if HAS_AI_SAFETY:
+            self.ai_safety = get_ai_safety_framework()
+        else:
+            self.ai_safety = None
 
-        # v19: AI Agents
-        self.ai_agents = get_ai_agents_system()
+        # v19: AI Agents (optional)
+        if HAS_AI_AGENTS:
+            self.ai_agents = get_ai_agents_system()
+        else:
+            self.ai_agents = None
 
-        # v20: Human-AI Collaboration
-        self.human_ai_collab = get_human_ai_collaboration_system()
+        # v20: Human-AI Collaboration (optional)
+        if HAS_HUMAN_AI_COLLAB:
+            self.human_ai_collab = get_human_ai_collaboration_system()
+        else:
+            self.human_ai_collab = None
 
         self._initialized = True
-        logger.info("Basic AI Pipeline initialized successfully")
+
+        # Log which modules are available
+        available_modules = ["v10 (Deployment)", "v11 (Federated)", "v12 (Autonomous)"]
+        if HAS_EXPLAINABLE_AI: available_modules.append("v13 (Explainable AI)")
+        if HAS_NEUROSYMBOLIC: available_modules.append("v14 (Neurosymbolic)")
+        if HAS_QUANTUM_ML: available_modules.append("v15 (Quantum ML)")
+        if HAS_EDGE_AI: available_modules.append("v16 (Edge AI)")
+        if HAS_MULTIMODAL_AI: available_modules.append("v17 (Multimodal)")
+        if HAS_AI_SAFETY: available_modules.append("v18 (AI Safety)")
+        if HAS_AI_AGENTS: available_modules.append("v19 (AI Agents)")
+        if HAS_HUMAN_AI_COLLAB: available_modules.append("v20 (Human-AI Collab)")
+
+        logger.info(f"Basic AI Pipeline initialized with {len(available_modules)} modules: {', '.join(available_modules)}")
 
     async def solve_task(
         self,
