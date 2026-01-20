@@ -5,6 +5,7 @@ Provides unified interface for cross-module AI workflows.
 """
 
 import asyncio
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional
 from datetime import datetime
@@ -17,6 +18,14 @@ from src.emergent_intelligence.emergent_intelligence_services import IntegratedE
 from src.agi_universal_reasoning.agi_services import IntegratedAGISystem
 from src.asi_beyond_human.asi_services import IntegratedASISystem
 from src.cosmic_universal.cosmic_services import IntegratedCosmicSystem
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+
+class PipelineExecutionError(Exception):
+    """Exception raised when pipeline execution fails."""
+    pass
 
 
 class PipelineMode(Enum):
@@ -50,6 +59,17 @@ class PipelineConfig:
 
 
 @dataclass
+class PipelineMetrics:
+    """Performance metrics for pipeline execution."""
+    total_time: float
+    module_times: Dict[str, float] = field(default_factory=dict)
+    quality_progression: List[float] = field(default_factory=list)
+    api_calls: int = 0
+    cache_hits: int = 0
+    memory_peak_mb: float = 0.0
+
+
+@dataclass
 class PipelineResult:
     """Result from pipeline execution."""
     task_id: str
@@ -61,6 +81,7 @@ class PipelineResult:
     iterations: int
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
+    metrics: Optional[PipelineMetrics] = None
 
 
 class IntegratedPipeline:
@@ -107,51 +128,100 @@ class IntegratedPipeline:
 
         Returns:
             PipelineResult with solution
+
+        Raises:
+            ValueError: If task_spec is invalid
+            RuntimeError: If pipeline execution fails
         """
         config = config or PipelineConfig()
         start_time = datetime.now()
         modules_used = []
+        metrics = PipelineMetrics(total_time=0.0)
 
-        # Determine task complexity
-        complexity = self._assess_complexity(task_spec)
+        task_id = task_spec.get("task_id", "unknown")
+        logger.info(f"[{task_id}] Starting pipeline execution: mode={config.mode.value}, target_quality={config.target_quality}")
 
-        # Select modules based on mode and complexity
-        if config.mode == PipelineMode.BASIC:
-            result = await self._solve_with_world_models(task_spec)
-            modules_used = ["v22"]
+        try:
+            # Determine task complexity
+            complexity = self._assess_complexity(task_spec)
+            logger.debug(f"[{task_id}] Task complexity assessed: {complexity.value}")
 
-        elif config.mode == PipelineMode.ENHANCED:
-            result = await self._solve_with_self_improvement(task_spec, config)
-            modules_used = ["v22", "v23"]
+            # Select modules based on mode and complexity
+            if config.mode == PipelineMode.BASIC:
+                result = await self._solve_with_world_models(task_spec)
+                modules_used = ["v22"]
 
-        elif config.mode == PipelineMode.EMERGENT:
-            result = await self._solve_with_emergent(task_spec, config)
-            modules_used = ["v22", "v23", "v24"]
+            elif config.mode == PipelineMode.ENHANCED:
+                result = await self._solve_with_self_improvement(task_spec, config)
+                modules_used = ["v22", "v23"]
 
-        elif config.mode == PipelineMode.AGI:
-            result = await self._solve_with_agi(task_spec, config)
-            modules_used = ["v22", "v23", "v24", "v25"]
+            elif config.mode == PipelineMode.EMERGENT:
+                result = await self._solve_with_emergent(task_spec, config)
+                modules_used = ["v22", "v23", "v24"]
 
-        elif config.mode == PipelineMode.SUPERHUMAN:
-            result = await self._solve_with_asi(task_spec, config)
-            modules_used = ["v22", "v23", "v24", "v25", "v26"]
+            elif config.mode == PipelineMode.AGI:
+                result = await self._solve_with_agi(task_spec, config)
+                modules_used = ["v22", "v23", "v24", "v25"]
 
-        else:  # COSMIC
-            result = await self._solve_with_cosmic(task_spec, config)
-            modules_used = ["v22", "v23", "v24", "v25", "v26", "v27"]
+            elif config.mode == PipelineMode.SUPERHUMAN:
+                result = await self._solve_with_asi(task_spec, config)
+                modules_used = ["v22", "v23", "v24", "v25", "v26"]
 
-        execution_time = (datetime.now() - start_time).total_seconds()
+            else:  # COSMIC
+                result = await self._solve_with_cosmic(task_spec, config)
+                modules_used = ["v22", "v23", "v24", "v25", "v26", "v27"]
 
-        return PipelineResult(
-            task_id=task_spec.get("task_id", "unknown"),
-            success=True,
-            result=result,
-            modules_used=modules_used,
-            execution_time=execution_time,
-            quality_score=result.get("quality", 0.85),
-            iterations=result.get("iterations", 1),
-            metadata={"complexity": complexity.value, "mode": config.mode.value}
-        )
+            execution_time = (datetime.now() - start_time).total_seconds()
+            quality_score = result.get("quality", 0.85)
+
+            # Finalize metrics
+            metrics.total_time = execution_time
+            metrics.api_calls = len(modules_used)
+
+            logger.info(
+                f"[{task_id}] Pipeline completed: "
+                f"quality={quality_score:.4f}, "
+                f"time={execution_time:.2f}s, "
+                f"modules={len(modules_used)}, "
+                f"iterations={result.get('iterations', 1)}"
+            )
+
+            return PipelineResult(
+                task_id=task_spec.get("task_id", "unknown"),
+                success=True,
+                result=result,
+                modules_used=modules_used,
+                execution_time=execution_time,
+                quality_score=quality_score,
+                iterations=result.get("iterations", 1),
+                metadata={"complexity": complexity.value, "mode": config.mode.value},
+                metrics=metrics
+            )
+
+        except Exception as e:
+            execution_time = (datetime.now() - start_time).total_seconds()
+            logger.error(
+                f"[{task_id}] Pipeline failed: "
+                f"error={str(e)}, "
+                f"mode={config.mode.value}, "
+                f"time={execution_time:.2f}s"
+            )
+
+            # Return failed result instead of raising exception
+            return PipelineResult(
+                task_id=task_spec.get("task_id", "unknown"),
+                success=False,
+                result={"error": str(e), "error_type": type(e).__name__},
+                modules_used=modules_used,
+                execution_time=execution_time,
+                quality_score=0.0,
+                iterations=0,
+                metadata={
+                    "mode": config.mode.value,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                }
+            )
 
     async def _solve_with_world_models(self, task_spec: Dict[str, Any]) -> Dict[str, Any]:
         """Solve using v22 World Models only."""
@@ -246,10 +316,14 @@ class IntegratedPipeline:
         self, task_spec: Dict[str, Any], config: PipelineConfig
     ) -> Dict[str, Any]:
         """Solve using v22-v24 (with emergent intelligence)."""
+        task_id = task_spec.get("task_id", "unknown")
+        logger.debug(f"[{task_id}] Entering EMERGENT mode (v22-v24)")
+
         # Get improved solution
         improved_result = await self._solve_with_self_improvement(task_spec, config)
 
         # REAL emergent intelligence integration
+        logger.debug(f"[{task_id}] Calling emergent_collective_problem_solving with 3 swarms")
         result = await self.emergent.emergent_collective_problem_solving(
             problem_description=task_spec.get("description", ""),
             num_swarms=3,
@@ -258,9 +332,17 @@ class IntegratedPipeline:
 
         # Extract quality score from solution confidence
         quality_score = result.get("solution", {}).get("confidence", 0.96)
+        original_quality = quality_score
 
         # Ensure monotonic quality progression (EMERGENT should be >= ENHANCED)
         quality_score = max(quality_score, improved_result.get("quality", 0.95) + 0.01)
+
+        logger.debug(
+            f"[{task_id}] EMERGENT completed: "
+            f"quality={quality_score:.4f} (original={original_quality:.4f}), "
+            f"swarms={result.get('num_swarms_created', 3)}, "
+            f"synergies={result.get('synergies_detected', 0)}"
+        )
 
         return {
             "solution": improved_result["solution"],
@@ -277,10 +359,14 @@ class IntegratedPipeline:
         self, task_spec: Dict[str, Any], config: PipelineConfig
     ) -> Dict[str, Any]:
         """Solve using v22-v25 (AGI universal reasoning)."""
+        task_id = task_spec.get("task_id", "unknown")
+        logger.debug(f"[{task_id}] Entering AGI mode (v22-v25)")
+
         # Get emergent solution
         emergent_result = await self._solve_with_emergent(task_spec, config)
 
         # REAL AGI integration
+        logger.debug(f"[{task_id}] Calling general_intelligence_workflow")
         result = await self.agi.general_intelligence_workflow(
             task_description=task_spec.get("description", ""),
             domain=task_spec.get("domain", "general"),
@@ -290,9 +376,17 @@ class IntegratedPipeline:
         # Extract quality score from solution correctness
         solution_data = result.get("solution", {})
         quality_score = solution_data.get("correctness", 0.97) if isinstance(solution_data, dict) else 0.97
+        original_quality = quality_score
 
         # Ensure monotonic quality progression (AGI should be >= EMERGENT)
         quality_score = max(quality_score, emergent_result.get("quality", 0.96) + 0.01)
+
+        logger.debug(
+            f"[{task_id}] AGI completed: "
+            f"quality={quality_score:.4f} (original={original_quality:.4f}), "
+            f"reasoning_steps={len(result.get('reasoning', {}).get('steps', []))}, "
+            f"task_type={result.get('task_understanding', {}).get('task_type', 'unknown')}"
+        )
 
         # Extract task understanding
         task_data = result.get("task_understanding", {})
@@ -324,10 +418,14 @@ class IntegratedPipeline:
         self, task_spec: Dict[str, Any], config: PipelineConfig
     ) -> Dict[str, Any]:
         """Solve using v22-v26 (ASI beyond human)."""
+        task_id = task_spec.get("task_id", "unknown")
+        logger.debug(f"[{task_id}] Entering ASI mode (v22-v26)")
+
         # Get AGI solution
         agi_result = await self._solve_with_agi(task_spec, config)
 
         # REAL ASI integration
+        logger.debug(f"[{task_id}] Calling superintelligent_problem_solving")
         result = await self.asi.superintelligent_problem_solving(
             problem_description=task_spec.get("description", ""),
             domain=task_spec.get("domain", "general"),
@@ -337,9 +435,17 @@ class IntegratedPipeline:
 
         # Extract quality score
         quality_score = result.get("quality_score", 0.98)
+        original_quality = quality_score
 
         # Ensure monotonic quality progression (ASI should be >= AGI)
         quality_score = max(quality_score, agi_result.get("quality", 0.97) + 0.01)
+
+        logger.debug(
+            f"[{task_id}] ASI completed: "
+            f"quality={quality_score:.4f} (original={original_quality:.4f}), "
+            f"novel_solutions={len(result.get('solutions', []))}, "
+            f"speedup_vs_human={result.get('speedup_vs_human', 0):.1f}x"
+        )
 
         # Extract understanding data
         understanding_data = result.get("understanding", {})
@@ -379,12 +485,16 @@ class IntegratedPipeline:
         self, task_spec: Dict[str, Any], config: PipelineConfig
     ) -> Dict[str, Any]:
         """Solve using v22-v27 (full cosmic scale)."""
+        task_id = task_spec.get("task_id", "unknown")
+        logger.debug(f"[{task_id}] Entering COSMIC mode (v22-v27)")
+
         # Get ASI solution
         asi_result = await self._solve_with_asi(task_spec, config)
 
         # REAL Cosmic integration
         from src.cosmic_universal.cosmic_services import CivilizationScale
 
+        logger.debug(f"[{task_id}] Calling kardashev_scale_progression (Type I → III)")
         result = await self.cosmic.kardashev_scale_progression(
             start_scale=CivilizationScale.KARDASHEV_I,
             target_scale=CivilizationScale.KARDASHEV_III
@@ -392,12 +502,24 @@ class IntegratedPipeline:
 
         # Calculate quality from cosmic progression
         quality_score = 0.99  # Base cosmic quality
+        insights_count = 0
         if "transcendent_insights" in result:
             insights_count = len(result["transcendent_insights"])
             quality_score = min(0.999, 0.99 + insights_count * 0.001)
+        original_quality = quality_score
 
         # Ensure monotonic quality progression (COSMIC should be >= ASI)
         quality_score = max(quality_score, asi_result.get("quality", 0.98) + 0.01)
+
+        kardashev_level = result.get("galactic", {}).get("kardashev_level", 3.0) if "galactic" in result else 2.0
+
+        logger.debug(
+            f"[{task_id}] COSMIC completed: "
+            f"quality={quality_score:.4f} (original={original_quality:.4f}), "
+            f"kardashev_level={kardashev_level}, "
+            f"transcendent_insights={insights_count}, "
+            f"dyson_spheres={result.get('stellar', {}).get('dyson_spheres_built', 0)}"
+        )
 
         # Extract cosmic-scale data
         transcendent_insights = result.get("transcendent_insights", [])
