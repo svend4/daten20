@@ -15,7 +15,6 @@ Total: 48 tests
 """
 
 import asyncio
-import numpy as np
 import pytest
 from datetime import datetime
 
@@ -211,8 +210,8 @@ class TestDistributedEdgeTraining:
         training = DistributedEdgeTraining()
 
         device_models = {
-            "device_1": {"weights": np.array([1.0, 2.0, 3.0])},
-            "device_2": {"weights": np.array([1.5, 2.5, 3.5])},
+            "device_1": {"weights": [1.0, 2.0, 3.0]},
+            "device_2": {"weights": [1.5, 2.5, 3.5]},
         }
 
         aggregated = await training.aggregate_models(

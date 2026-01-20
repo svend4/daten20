@@ -21,7 +21,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import numpy as np
+import math
+import random
+import statistics
 
 # ============================================================================
 # Enums and Data Classes
@@ -767,13 +769,13 @@ class VisionLanguageModels:
         ]
 
         # Generate caption (random sampling for simulation)
-        caption_length = np.random.randint(8, max_length)
-        tokens = np.random.choice(sample_words, size=caption_length, replace=True).tolist()
+        caption_length = random.randint(8, max_length)
+        tokens = random.choice(sample_words, size=caption_length, replace=True).tolist()
         caption_text = " ".join(tokens)
 
         # Simulate per-token confidence scores
         confidence_scores = (np.random.rand(caption_length) * 0.3 + 0.7).tolist()
-        overall_confidence = np.mean(confidence_scores)
+        overall_confidence = statistics.mean(confidence_scores)
 
         # Simulate beam search time (beam_size * sequence_length * vocab_size operations)
         generation_time = (
@@ -818,23 +820,23 @@ class VisionLanguageModels:
         question_lower = question_text.lower()
         if any(word in question_lower for word in ["is", "are", "does", "do", "can"]):
             answer_type = "yes/no"
-            answer = np.random.choice(["yes", "no"], p=[0.7, 0.3])
+            answer = random.choice(["yes", "no"], p=[0.7, 0.3])
         elif any(word in question_lower for word in ["how many", "what number"]):
             answer_type = "number"
-            answer = str(np.random.randint(1, 10))
+            answer = str(random.randint(1, 10))
         else:
             answer_type = "other"
             sample_answers = ["person", "dog", "table", "red", "outside", "eating"]
-            answer = np.random.choice(sample_answers)
+            answer = random.choice(sample_answers)
 
         # Simulate attention regions (bounding boxes where model "looks")
-        num_regions = np.random.randint(1, 4)
+        num_regions = random.randint(1, 4)
         attention_regions = [
             (
-                np.random.randint(0, 200),
-                np.random.randint(0, 200),
-                np.random.randint(10, 100),
-                np.random.randint(10, 100),
+                random.randint(0, 200),
+                random.randint(0, 200),
+                random.randint(10, 100),
+                random.randint(10, 100),
             )
             for _ in range(num_regions)
         ]
@@ -847,7 +849,7 @@ class VisionLanguageModels:
             f"Generated answer: {answer}",
         ]
 
-        answer_confidence = float(np.random.rand() * 0.3 + 0.7)  # 0.7-1.0
+        answer_confidence = float(random.random() * 0.3 + 0.7)  # 0.7-1.0
 
         inference_time = (datetime.now() - start_time).total_seconds() * 1000 + 150
 
@@ -888,10 +890,10 @@ class VisionLanguageModels:
         # Generate region proposals
         proposals = [
             (
-                np.random.randint(0, 200),
-                np.random.randint(0, 200),
-                np.random.randint(20, 100),
-                np.random.randint(20, 100),
+                random.randint(0, 200),
+                random.randint(0, 200),
+                random.randint(20, 100),
+                random.randint(20, 100),
             )
             for _ in range(num_proposals)
         ]
@@ -908,7 +910,7 @@ class VisionLanguageModels:
         confidence_scores = [float(scores[i]) for i in top_indices]
 
         # Simulate IoU with ground truth
-        iou_score = float(np.random.rand() * 0.4 + 0.6)  # 0.6-1.0
+        iou_score = float(random.random() * 0.4 + 0.6)  # 0.6-1.0
         precision = confidence_scores[0]  # Use top score as precision
 
         grounding_id = hashlib.md5(f"grounding_{image_encoding.encoding_id}_{phrase_text}".encode()).hexdigest()[:16]
@@ -964,8 +966,8 @@ class AudioVisualProcessing:
 
         # Simulate transcription
         sample_words = ["hello", "world", "this", "is", "a", "test", "of", "speech", "recognition"]
-        num_words = np.random.randint(5, 12)
-        transcription = " ".join(np.random.choice(sample_words, size=num_words))
+        num_words = random.randint(5, 12)
+        transcription = " ".join(random.choice(sample_words, size=num_words))
 
         # Simulate WER (word error rate)
         # Audio-visual typically better than audio-only in noise
@@ -1001,17 +1003,17 @@ class AudioVisualProcessing:
         heatmap = np.random.rand(*heatmap_size)
 
         # Add peaks for sound sources
-        num_sources = np.random.randint(1, 4)
+        num_sources = random.randint(1, 4)
         for _ in range(num_sources):
-            x, y = np.random.randint(0, heatmap_size[0]), np.random.randint(0, heatmap_size[1])
+            x, y = random.randint(0, heatmap_size[0]), random.randint(0, heatmap_size[1])
             heatmap[x, y] += 2.0
 
         # Normalize heatmap
         heatmap = heatmap / heatmap.sum()
 
         # Compute metrics
-        ciou = float(np.random.rand() * 0.3 + 0.5)  # 0.5-0.8
-        auc = float(np.random.rand() * 0.2 + 0.7)  # 0.7-0.9
+        ciou = float(random.random() * 0.3 + 0.5)  # 0.5-0.8
+        auc = float(random.random() * 0.2 + 0.7)  # 0.7-0.9
 
         localization_id = hashlib.md5(
             f"localization_{audio_encoding.encoding_id}_{video_encoding.encoding_id}".encode()
@@ -1052,9 +1054,9 @@ class AudioVisualProcessing:
 
         # Estimate temporal offset if out of sync
         if not is_synchronized:
-            temporal_offset_ms = float(np.random.rand() * 2000 - 1000)  # -1s to +1s
+            temporal_offset_ms = float(random.random() * 2000 - 1000)  # -1s to +1s
         else:
-            temporal_offset_ms = float(np.random.rand() * 100 - 50)  # -50ms to +50ms
+            temporal_offset_ms = float(random.random() * 100 - 50)  # -50ms to +50ms
 
         sync_id = hashlib.md5(f"sync_{audio_encoding.encoding_id}_{video_encoding.encoding_id}".encode()).hexdigest()[
             :16
@@ -1121,8 +1123,8 @@ class MultimodalGeneration:
         image_data = np.random.rand(3, resolution[0], resolution[1]).astype(np.float32)
 
         # Simulate quality metrics
-        fid_score = float(np.random.rand() * 10 + 10)  # 10-20 FID
-        clip_score = float(np.random.rand() * 0.2 + 0.3)  # 0.3-0.5 CLIP score
+        fid_score = float(random.random() * 10 + 10)  # 10-20 FID
+        clip_score = float(random.random() * 0.2 + 0.3)  # 0.3-0.5 CLIP score
 
         generation_time = (datetime.now() - start_time).total_seconds() * 1000
 
@@ -1171,7 +1173,7 @@ class MultimodalGeneration:
         audio_data = np.random.randn(num_samples).astype(np.float32) * 0.1
 
         # Simulate quality metrics
-        mos = float(np.random.rand() * 0.5 + 4.0)  # 4.0-4.5 MOS (mean opinion score)
+        mos = float(random.random() * 0.5 + 4.0)  # 4.0-4.5 MOS (mean opinion score)
 
         generation_time = (datetime.now() - start_time).total_seconds() * 1000
 
@@ -1210,7 +1212,7 @@ class MultimodalGeneration:
             "Machine learning is transforming the world.",
         ]
 
-        transcription = np.random.choice(sample_sentences)
+        transcription = random.choice(sample_sentences)
         return transcription
 
 
@@ -1308,8 +1310,8 @@ class MultimodalAlignmentGrounding:
         num_candidates = 20
         candidates = []
         for _ in range(num_candidates):
-            start = np.random.rand() * video_duration_s
-            duration = np.random.rand() * min(10, video_duration_s - start)
+            start = random.random() * video_duration_s
+            duration = random.random() * min(10, video_duration_s - start)
             end = start + duration
             candidates.append((start, end))
 
@@ -1317,12 +1319,12 @@ class MultimodalAlignmentGrounding:
         scores = np.random.rand(num_candidates)
 
         # Select best candidate
-        best_idx = np.argmax(scores)
+        best_idx = max(scores)
         start_time, end_time = candidates[best_idx]
         confidence = float(scores[best_idx])
 
         # Simulate IoU with ground truth
-        iou_score = float(np.random.rand() * 0.4 + 0.5)  # 0.5-0.9
+        iou_score = float(random.random() * 0.4 + 0.5)  # 0.5-0.9
 
         grounding_id = hashlib.md5(f"temporal_{video_encoding.encoding_id}_{query_text}".encode()).hexdigest()[:16]
 
@@ -1429,7 +1431,7 @@ class MultimodalRetrievalSearch:
         search_time = (datetime.now() - start_time).total_seconds() * 1000
 
         # Simulate recall@k metric
-        recall_at_k = float(np.random.rand() * 0.3 + 0.6)  # 0.6-0.9
+        recall_at_k = float(random.random() * 0.3 + 0.6)  # 0.6-0.9
 
         retrieval_id = hashlib.md5(
             f"retrieval_{query_encoding.encoding_id}_{target_modality.value}".encode()
@@ -1499,8 +1501,8 @@ class MultimodalRetrievalSearch:
 
         return {
             "num_queries": len(self.retrieval_results),
-            "avg_search_time_ms": np.mean(search_times),
-            "avg_recall_at_k": np.mean(recall_scores) if recall_scores else 0.0,
+            "avg_search_time_ms": statistics.mean(search_times),
+            "avg_recall_at_k": statistics.mean(recall_scores) if recall_scores else 0.0,
             "index_size": self.index_size,
             "modality_distribution": self._get_modality_distribution(),
         }
