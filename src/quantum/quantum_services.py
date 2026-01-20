@@ -1,19 +1,27 @@
 """
-Quantum Computing Services (Pure Python v4.1.0)
+Quantum Computing Services (Pure Python v4.1.0 - ENHANCED)
 
-**PURE PYTHON VERSION** - Mock quantum operations
+**PURE PYTHON VERSION with REAL Quantum Algorithms**
 
-Version: 4.1.0 (Pure Python)
+This version includes:
+✅ Real quantum states (complex vectors)
+✅ Real gate matrices (H, X, Y, Z, CNOT, etc.)
+✅ Real gate application (matrix multiplication)
+✅ Real measurements (probabilistic outcomes)
+✅ Real Grover's algorithm (amplitude amplification)
+
+Version: 4.1.0 (Pure Python Enhanced)
 """
 
 import asyncio
+import cmath  # For complex number operations
 import math
 import random
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 # Enums
 
@@ -58,18 +66,208 @@ class QuantumResult:
     backend: str
     shots: int
 
+
+# ============================================================================
+# QUANTUM STATE AND GATE OPERATIONS (REAL IMPLEMENTATIONS)
+# ============================================================================
+
+class QuantumState:
+    """
+    Quantum State (REAL Implementation with complex amplitudes)
+
+    Represents a quantum state as a complex vector.
+    For n qubits, the state has 2^n complex amplitudes.
+
+    State normalization: Σ|amplitude|² = 1
+    """
+
+    def __init__(self, num_qubits: int):
+        """
+        Initialize quantum state in |0...0⟩
+
+        Args:
+            num_qubits: Number of qubits
+        """
+        self.num_qubits = num_qubits
+        self.dim = 2 ** num_qubits
+
+        # Initialize to |0...0⟩ state
+        self.amplitudes = [complex(0, 0)] * self.dim
+        self.amplitudes[0] = complex(1, 0)  # |0...0⟩ has amplitude 1
+
+    def get_probabilities(self) -> List[float]:
+        """Get measurement probabilities |amplitude|²"""
+        return [abs(amp) ** 2 for amp in self.amplitudes]
+
+    def normalize(self):
+        """Normalize state vector"""
+        norm = math.sqrt(sum(abs(amp) ** 2 for amp in self.amplitudes))
+        if norm > 1e-10:
+            self.amplitudes = [amp / norm for amp in self.amplitudes]
+
+    def measure_all(self) -> str:
+        """
+        Measure all qubits (REAL probabilistic measurement)
+
+        Returns:
+            Binary string of measurement outcome
+        """
+        probs = self.get_probabilities()
+
+        # Choose outcome based on probabilities
+        rand = random.random()
+        cumulative = 0.0
+
+        for i, prob in enumerate(probs):
+            cumulative += prob
+            if rand < cumulative:
+                # Convert index to binary string
+                return format(i, f'0{self.num_qubits}b')
+
+        # Fallback (should not happen if normalized)
+        return format(0, f'0{self.num_qubits}b')
+
+    def apply_single_qubit_gate(self, gate_matrix: List[List[complex]], target_qubit: int):
+        """
+        Apply single-qubit gate (REAL matrix multiplication)
+
+        Args:
+            gate_matrix: 2x2 complex matrix
+            target_qubit: Target qubit index
+        """
+        new_amplitudes = [complex(0, 0)] * self.dim
+
+        for i in range(self.dim):
+            # Check bit at target_qubit position
+            bit = (i >> target_qubit) & 1
+
+            # Find the paired state (flip bit at target_qubit)
+            paired = i ^ (1 << target_qubit)
+
+            # Apply gate matrix
+            if bit == 0:
+                # |0⟩ component
+                new_amplitudes[i] += gate_matrix[0][0] * self.amplitudes[i]
+                new_amplitudes[i] += gate_matrix[0][1] * self.amplitudes[paired]
+            else:
+                # |1⟩ component
+                new_amplitudes[i] += gate_matrix[1][0] * self.amplitudes[paired]
+                new_amplitudes[i] += gate_matrix[1][1] * self.amplitudes[i]
+
+        self.amplitudes = new_amplitudes
+
+    def apply_cnot(self, control: int, target: int):
+        """
+        Apply CNOT gate (REAL implementation)
+
+        Flips target qubit if control qubit is |1⟩
+
+        Args:
+            control: Control qubit index
+            target: Target qubit index
+        """
+        new_amplitudes = list(self.amplitudes)
+
+        for i in range(self.dim):
+            control_bit = (i >> control) & 1
+
+            if control_bit == 1:
+                # Flip target bit
+                flipped = i ^ (1 << target)
+                new_amplitudes[flipped] = self.amplitudes[i]
+
+        self.amplitudes = new_amplitudes
+
+
+def get_hadamard_matrix() -> List[List[complex]]:
+    """Hadamard gate matrix (REAL)"""
+    inv_sqrt2 = 1.0 / math.sqrt(2)
+    return [
+        [complex(inv_sqrt2, 0), complex(inv_sqrt2, 0)],
+        [complex(inv_sqrt2, 0), complex(-inv_sqrt2, 0)]
+    ]
+
+
+def get_pauli_x_matrix() -> List[List[complex]]:
+    """Pauli-X (NOT) gate matrix (REAL)"""
+    return [
+        [complex(0, 0), complex(1, 0)],
+        [complex(1, 0), complex(0, 0)]
+    ]
+
+
+def get_pauli_y_matrix() -> List[List[complex]]:
+    """Pauli-Y gate matrix (REAL)"""
+    return [
+        [complex(0, 0), complex(0, -1)],
+        [complex(0, 1), complex(0, 0)]
+    ]
+
+
+def get_pauli_z_matrix() -> List[List[complex]]:
+    """Pauli-Z gate matrix (REAL)"""
+    return [
+        [complex(1, 0), complex(0, 0)],
+        [complex(0, 0), complex(-1, 0)]
+    ]
+
+
+def get_phase_matrix(theta: float) -> List[List[complex]]:
+    """Phase gate matrix (REAL)"""
+    return [
+        [complex(1, 0), complex(0, 0)],
+        [complex(0, 0), cmath.exp(complex(0, theta))]
+    ]
+
+
+def get_rotation_x_matrix(theta: float) -> List[List[complex]]:
+    """Rotation-X gate matrix (REAL)"""
+    cos = math.cos(theta / 2)
+    sin = math.sin(theta / 2)
+    return [
+        [complex(cos, 0), complex(0, -sin)],
+        [complex(0, -sin), complex(cos, 0)]
+    ]
+
+
+def get_rotation_y_matrix(theta: float) -> List[List[complex]]:
+    """Rotation-Y gate matrix (REAL)"""
+    cos = math.cos(theta / 2)
+    sin = math.sin(theta / 2)
+    return [
+        [complex(cos, 0), complex(-sin, 0)],
+        [complex(sin, 0), complex(cos, 0)]
+    ]
+
+
+def get_rotation_z_matrix(theta: float) -> List[List[complex]]:
+    """Rotation-Z gate matrix (REAL)"""
+    return [
+        [cmath.exp(complex(0, -theta/2)), complex(0, 0)],
+        [complex(0, 0), cmath.exp(complex(0, theta/2))]
+    ]
+
+
 # Core Classes
 
 class QuantumCircuitEngine:
-    """Quantum circuit engine (Pure Python - Simplified)"""
-    
+    """
+    Quantum circuit engine (Pure Python - ENHANCED with REAL quantum simulation)
+
+    Now includes:
+    ✅ Real quantum state simulation
+    ✅ Real gate application
+    ✅ Real probabilistic measurements
+    """
+
     def __init__(self):
         self._lock = threading.Lock()
-    
+        self._state_cache = {}  # Cache quantum states
+
     def create_circuit(self, num_qubits: int) -> QuantumCircuit:
         """Create quantum circuit"""
         return QuantumCircuit(num_qubits=num_qubits)
-    
+
     def add_gate(
         self,
         circuit: QuantumCircuit,
@@ -84,28 +282,39 @@ class QuantumCircuitEngine:
             parameters=parameters or []
         )
         circuit.gates.append(gate)
-    
+
     def measure(self, circuit: QuantumCircuit, qubits: Optional[List[int]] = None):
         """Add measurements"""
         if qubits is None:
             qubits = list(range(circuit.num_qubits))
         circuit.measurements = qubits
-    
+
     async def execute(
         self,
         circuit: QuantumCircuit,
         backend: BackendType = BackendType.SIMULATOR,
         shots: int = 1024
     ) -> QuantumResult:
-        """Execute circuit (mock)"""
-        await asyncio.sleep(0.05)
-        
-        # Mock measurement results
+        """
+        Execute circuit with REAL quantum simulation
+
+        Now performs actual quantum state evolution!
+        """
+        await asyncio.sleep(0.01)
+
+        # Create quantum state
+        state = QuantumState(circuit.num_qubits)
+
+        # Apply gates sequentially
+        for gate in circuit.gates:
+            self._apply_gate_to_state(state, gate)
+
+        # Perform measurements
         counts = {}
         for _ in range(shots):
-            bitstring = ''.join(random.choice('01') for _ in range(circuit.num_qubits))
-            counts[bitstring] = counts.get(bitstring, 0) + 1
-        
+            outcome = state.measure_all()
+            counts[outcome] = counts.get(outcome, 0) + 1
+
         return QuantumResult(
             counts=counts,
             success=True,
@@ -113,29 +322,173 @@ class QuantumCircuitEngine:
             shots=shots
         )
 
+    def _apply_gate_to_state(self, state: QuantumState, gate: QuantumGate):
+        """Apply gate to quantum state (REAL Implementation)"""
+        gate_type = gate.gate_type
+        target_qubits = gate.target_qubits
+        params = gate.parameters
+
+        if gate_type == GateType.H:
+            # Hadamard gate
+            matrix = get_hadamard_matrix()
+            state.apply_single_qubit_gate(matrix, target_qubits[0])
+
+        elif gate_type == GateType.X:
+            # Pauli-X gate
+            matrix = get_pauli_x_matrix()
+            state.apply_single_qubit_gate(matrix, target_qubits[0])
+
+        elif gate_type == GateType.Y:
+            # Pauli-Y gate
+            matrix = get_pauli_y_matrix()
+            state.apply_single_qubit_gate(matrix, target_qubits[0])
+
+        elif gate_type == GateType.Z:
+            # Pauli-Z gate
+            matrix = get_pauli_z_matrix()
+            state.apply_single_qubit_gate(matrix, target_qubits[0])
+
+        elif gate_type == GateType.CNOT:
+            # CNOT gate
+            if len(target_qubits) >= 2:
+                state.apply_cnot(target_qubits[0], target_qubits[1])
+
+        elif gate_type == GateType.RX:
+            # Rotation-X gate
+            theta = params[0] if params else 0
+            matrix = get_rotation_x_matrix(theta)
+            state.apply_single_qubit_gate(matrix, target_qubits[0])
+
+        elif gate_type == GateType.RY:
+            # Rotation-Y gate
+            theta = params[0] if params else 0
+            matrix = get_rotation_y_matrix(theta)
+            state.apply_single_qubit_gate(matrix, target_qubits[0])
+
+        elif gate_type == GateType.RZ:
+            # Rotation-Z gate
+            theta = params[0] if params else 0
+            matrix = get_rotation_z_matrix(theta)
+            state.apply_single_qubit_gate(matrix, target_qubits[0])
+
 
 class QuantumAlgorithms:
-    """Quantum algorithms (Pure Python - Simplified)"""
-    
+    """
+    Quantum Algorithms (Pure Python - ENHANCED with REAL Grover's Algorithm)
+
+    Implements real quantum search using amplitude amplification
+    """
+
     def __init__(self):
         self._lock = threading.Lock()
-    
+        self._engine = QuantumCircuitEngine()
+
     async def grover_search(
         self,
-        oracle_function: str,
+        target_state: str,
         num_qubits: int
     ) -> Dict[str, Any]:
-        """Grover's search algorithm (mock)"""
-        await asyncio.sleep(0.1)
-        
-        # Mock search result
-        target = ''.join(random.choice('01') for _ in range(num_qubits))
-        
+        """
+        Grover's Search Algorithm (REAL Implementation)
+
+        Searches for target_state in O(√N) time using amplitude amplification.
+
+        Algorithm:
+        1. Initialize |0...0⟩
+        2. Apply Hadamard to all qubits → uniform superposition
+        3. Repeat √N times:
+           a. Apply oracle (phase flip target)
+           b. Apply diffusion operator (amplitude amplification)
+        4. Measure → target state with high probability
+
+        Args:
+            target_state: Binary string to search for (e.g., "101")
+            num_qubits: Number of qubits
+
+        Returns:
+            Dict with results including measured state and probability
+        """
+        await asyncio.sleep(0.01)
+
+        # Validate target state
+        if len(target_state) != num_qubits:
+            target_state = target_state[:num_qubits].ljust(num_qubits, '0')
+
+        # Calculate optimal iterations: π/4 * √(2^n)
+        n_items = 2 ** num_qubits
+        optimal_iterations = max(1, int((math.pi / 4) * math.sqrt(n_items)))
+
+        # Create quantum state
+        state = QuantumState(num_qubits)
+
+        # Step 1: Initialize superposition (Hadamard on all qubits)
+        h_matrix = get_hadamard_matrix()
+        for qubit in range(num_qubits):
+            state.apply_single_qubit_gate(h_matrix, qubit)
+
+        # Step 2: Grover iterations
+        for iteration in range(optimal_iterations):
+            # Apply oracle (mark target with phase flip)
+            self._apply_grover_oracle(state, target_state)
+
+            # Apply diffusion operator (amplitude amplification)
+            self._apply_grover_diffusion(state)
+
+        # Step 3: Measure multiple times to get probability distribution
+        shots = 1024
+        counts = {}
+        for _ in range(shots):
+            outcome = state.measure_all()
+            counts[outcome] = counts.get(outcome, 0) + 1
+
+        # Find most frequent outcome
+        best_outcome = max(counts.items(), key=lambda x: x[1])
+        measured_state = best_outcome[0]
+        probability = best_outcome[1] / shots
+
         return {
-            "target_state": target,
-            "probability": random.uniform(0.8, 0.99),
-            "iterations": math.ceil(math.sqrt(2**num_qubits)),
+            "target_state": target_state,
+            "measured_state": measured_state,
+            "probability": probability,
+            "iterations": optimal_iterations,
+            "success": measured_state == target_state,
+            "counts": counts,
+            "total_shots": shots,
         }
+
+    def _apply_grover_oracle(self, state: QuantumState, target_state: str):
+        """
+        Apply Grover oracle (REAL Implementation)
+
+        Marks the target state with a phase flip: |target⟩ → -|target⟩
+
+        Implementation:
+        - Convert target binary string to integer index
+        - Flip the sign of that amplitude
+        """
+        target_index = int(target_state, 2)
+        state.amplitudes[target_index] = -state.amplitudes[target_index]
+
+    def _apply_grover_diffusion(self, state: QuantumState):
+        """
+        Apply Grover diffusion operator (REAL Implementation)
+
+        Diffusion operator: 2|ψ⟩⟨ψ| - I (inversion about average)
+
+        This amplifies the amplitude of the marked state and reduces others.
+
+        Steps:
+        1. Compute average amplitude
+        2. Reflect each amplitude about the average: amp → 2*avg - amp
+        """
+        # Compute average amplitude
+        n = len(state.amplitudes)
+        avg_real = sum(amp.real for amp in state.amplitudes) / n
+        avg_imag = sum(amp.imag for amp in state.amplitudes) / n
+        avg = complex(avg_real, avg_imag)
+
+        # Inversion about average: amplitude → 2*average - amplitude
+        state.amplitudes = [2 * avg - amp for amp in state.amplitudes]
     
     async def shor_factorization(
         self,
