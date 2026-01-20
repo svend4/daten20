@@ -1,9 +1,15 @@
-"""v29.0: Absolute Singularity & Ultimate Perfection Platform
-The Theoretical Maximum - The Omega Point - The Absolute
-Perfect unification of all intelligence across all existence."""
+"""v29.0: Absolute Singularity & Ultimate Perfection (FUNCTIONAL)
+
+Implementation of Recursive Meta-Optimization.
+Version: 29.0.0 (FUNCTIONAL - uses REAL meta-optimization!)
+
+This module now uses REAL recursive meta-optimization combining
+all optimization approaches, not mock code! Ensemble of algorithms!
+"""
 
 from .absolute_services import (
     AbsoluteConfig,
+    AbsoluteEngine,
     AbsoluteSingularityService,
     AbsoluteState,
     EternalityService,
@@ -23,11 +29,25 @@ from .absolute_services import (
     get_unity_service,
 )
 
+# Import REAL meta-optimizer
+from .meta_optimizer import (
+    AlgorithmType,
+    EnsembleOptimizer,
+    MetaResult,
+    OptimizationConfig,
+    RecursiveMetaOptimizer,
+    rastrigin_function,
+    sphere_function,
+)
+
 __version__ = "29.0.0"
-__status__ = "ABSOLUTE_PERFECTION"
+__status__ = "FUNCTIONAL"
 
 __all__ = [
-    # Core Services - The Seven Perfections
+    # Main Engine
+    "AbsoluteEngine",
+    "IntegratedAbsoluteSystem",  # Alias for backward compatibility
+    # Legacy Services
     "AbsoluteSingularityService",
     "OmniscienceService",
     "OmnipotenceService",
@@ -35,11 +55,19 @@ __all__ = [
     "OmnipresenceService",
     "EternalityService",
     "UnityService",
-    # Integrated System
-    "IntegratedAbsoluteSystem",
+    # Enums
+    "AlgorithmType",
     # Data Structures
     "AbsoluteState",
     "AbsoluteConfig",
+    "OptimizationConfig",
+    "MetaResult",
+    # Meta-Optimizer
+    "RecursiveMetaOptimizer",
+    "EnsembleOptimizer",
+    # Test Functions
+    "sphere_function",
+    "rastrigin_function",
     # Singleton Getters
     "get_absolute_service",
     "get_omniscience_service",

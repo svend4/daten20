@@ -11,11 +11,24 @@ Provides webhook functionality:
 
 import hashlib
 import hmac
+import json
+import logging
+import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+# Optional HTTP library
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+    logger.warning("requests library not available - webhooks will be simulated. Install: pip install requests")
 
 
 class WebhookEvent(str, Enum):
@@ -106,33 +119,99 @@ class WebhookManager:
         return delivery_ids
 
     def _deliver_webhook(self, webhook: Webhook, event: WebhookEvent, payload: Dict[str, Any]) -> str:
-        """Deliver webhook"""
+        """Deliver webhook with retry logic"""
         delivery_id = str(uuid.uuid4())
 
-        # Create signature
+        # Create signature for security
         signature = self._create_signature(payload, webhook.secret)
 
         delivery = WebhookDelivery(
             id=delivery_id, webhook_id=webhook.id, event=event, payload=payload, status=WebhookStatus.PENDING
         )
 
-        # Simulate delivery
-        # In production, use requests library
-        # headers = {
-        #     'Content-Type': 'application/json',
-        #     'X-Webhook-Signature': signature,
-        #     'X-Event-Type': event.value
-        # }
-        # response = requests.post(webhook.url, json=payload, headers=headers)
+        if not HAS_REQUESTS:
+            # Fallback: simulate delivery if requests not available
+            logger.warning(f"Simulating webhook delivery (requests library not available): {event.value} to {webhook.url}")
+            delivery.status = WebhookStatus.DELIVERED
+            delivery.response_code = 200
+            delivery.delivered_at = datetime.now()
+            self.deliveries.append(delivery)
+            return delivery_id
 
-        # Simulated success
-        delivery.status = WebhookStatus.DELIVERED
-        delivery.response_code = 200
-        delivery.delivered_at = datetime.now()
+        # Real HTTP delivery with retry logic
+        headers = {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': signature,
+            'X-Event-Type': event.value,
+            'X-Delivery-ID': delivery_id,
+            'User-Agent': 'WebhookManager/1.0'
+        }
+
+        max_retries = delivery.max_attempts
+        retry_delays = [1, 2, 4]  # Exponential backoff: 1s, 2s, 4s
+
+        for attempt in range(1, max_retries + 1):
+            delivery.attempt = attempt
+            delivery.status = WebhookStatus.RETRYING if attempt > 1 else WebhookStatus.PENDING
+
+            try:
+                logger.info(f"Delivering webhook (attempt {attempt}/{max_retries}): {event.value} to {webhook.url}")
+
+                response = requests.post(
+                    webhook.url,
+                    json=payload,
+                    headers=headers,
+                    timeout=10  # 10 second timeout
+                )
+
+                delivery.response_code = response.status_code
+                delivery.response_body = response.text[:500]  # Store first 500 chars
+
+                # Success: 2xx status codes
+                if 200 <= response.status_code < 300:
+                    delivery.status = WebhookStatus.DELIVERED
+                    delivery.delivered_at = datetime.now()
+                    logger.info(f"Webhook delivered successfully: {event.value} to {webhook.url} (status {response.status_code})")
+                    break
+                else:
+                    # Server returned error
+                    delivery.error = f"HTTP {response.status_code}: {response.text[:200]}"
+                    logger.warning(f"Webhook delivery failed with status {response.status_code}: {webhook.url}")
+
+                    if attempt < max_retries:
+                        delay = retry_delays[min(attempt - 1, len(retry_delays) - 1)]
+                        logger.info(f"Retrying in {delay}s...")
+                        time.sleep(delay)
+                    else:
+                        delivery.status = WebhookStatus.FAILED
+
+            except requests.exceptions.Timeout:
+                delivery.error = f"Timeout after 10 seconds (attempt {attempt})"
+                logger.error(f"Webhook delivery timeout: {webhook.url}")
+
+                if attempt < max_retries:
+                    delay = retry_delays[min(attempt - 1, len(retry_delays) - 1)]
+                    time.sleep(delay)
+                else:
+                    delivery.status = WebhookStatus.FAILED
+
+            except requests.exceptions.ConnectionError as e:
+                delivery.error = f"Connection error: {str(e)[:200]}"
+                logger.error(f"Webhook delivery connection error: {webhook.url} - {e}")
+
+                if attempt < max_retries:
+                    delay = retry_delays[min(attempt - 1, len(retry_delays) - 1)]
+                    time.sleep(delay)
+                else:
+                    delivery.status = WebhookStatus.FAILED
+
+            except Exception as e:
+                delivery.error = f"Unexpected error: {str(e)[:200]}"
+                logger.exception(f"Webhook delivery unexpected error: {webhook.url}")
+                delivery.status = WebhookStatus.FAILED
+                break  # Don't retry on unexpected errors
 
         self.deliveries.append(delivery)
-
-        print(f"[Webhook] Delivered {event.value} to {webhook.url}")
         return delivery_id
 
     def _create_signature(self, payload: Dict[str, Any], secret: str) -> str:

@@ -16,6 +16,9 @@ Core Systems:
 """
 
 import asyncio
+import math
+import random
+import statistics
 import threading
 import time
 from dataclasses import dataclass, field
@@ -23,7 +26,68 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import numpy as np
+
+# Helper functions to replace numpy
+def mean(values: List[float]) -> float:
+    """Calculate mean of values"""
+    return statistics.mean(values) if values else 0.0
+
+
+def std(values: List[float]) -> float:
+    """Calculate standard deviation of values"""
+    return statistics.stdev(values) if len(values) > 1 else 0.0
+
+
+def percentile(values: List[float], q: float) -> float:
+    """Calculate percentile of values"""
+    if not values:
+        return 0.0
+    sorted_values = sorted(values)
+    index = (len(sorted_values) - 1) * q / 100.0
+    floor_idx = int(math.floor(index))
+    ceil_idx = int(math.ceil(index))
+    if floor_idx == ceil_idx:
+        return sorted_values[floor_idx]
+    return sorted_values[floor_idx] * (ceil_idx - index) + sorted_values[ceil_idx] * (index - floor_idx)
+
+
+def maximum(values: List[float], min_val: float) -> List[float]:
+    """Element-wise maximum between values and min_val"""
+    return [max(v, min_val) for v in values]
+
+
+def randn(size: int) -> List[float]:
+    """Generate list of random values from standard normal distribution"""
+    return [random.gauss(0, 1) for _ in range(size)]
+
+
+def zeros_like(data: List[Any]) -> List[float]:
+    """Create list of zeros with same length as data"""
+    return [0.0 for _ in range(len(data))]
+
+
+def normal(mean_val: float, std_val: float, size: int) -> List[float]:
+    """Generate list of random values from normal distribution"""
+    return [random.gauss(mean_val, std_val) for _ in range(size)]
+
+
+def matmul(a: List[List[float]], b: List[List[float]]) -> List[List[float]]:
+    """Simple matrix multiplication for 2D arrays"""
+    if not a or not b or not a[0] or not b[0]:
+        return [[]]
+    rows_a, cols_a = len(a), len(a[0])
+    rows_b, cols_b = len(b), len(b[0])
+    if cols_a != rows_b:
+        raise ValueError(f"Incompatible dimensions: {cols_a} != {rows_b}")
+    result = [[sum(a[i][k] * b[k][j] for k in range(cols_a)) for j in range(rows_a)]
+              for i in range(rows_a)]
+    return result
+
+
+def tanh_vec(values: List[float]) -> List[float]:
+    """Apply tanh to each element in list"""
+    return [math.tanh(v) for v in values]
+
 
 # Enums
 
@@ -358,8 +422,8 @@ class EdgeDeviceManager:
             "power_w": device.power_consumption_w,
             "last_heartbeat": device.last_heartbeat.isoformat(),
             "uptime_sec": (datetime.now() - device.registered_at).total_seconds(),
-            "recent_cpu_avg": np.mean([m.cpu_utilization for m in recent_metrics]) if recent_metrics else 0,
-            "recent_memory_avg": np.mean([m.memory_utilization for m in recent_metrics]) if recent_metrics else 0,
+            "recent_cpu_avg": mean([m.cpu_utilization for m in recent_metrics]) if recent_metrics else 0,
+            "recent_memory_avg": mean([m.memory_utilization for m in recent_metrics]) if recent_metrics else 0,
             "alerts": self.alerts.get(device_id, [])[-5:],  # Last 5 alerts
         }
 
@@ -453,10 +517,10 @@ class DistributedEdgeTraining:
 
         # Random weight updates
         num_params = 1000  # Simplified
-        weight_updates = np.random.randn(num_params) * 0.01
+        weight_updates = randn(num_params) * 0.01
 
-        data_size = np.random.randint(100, 1000)
-        local_loss = np.random.rand() * 2.0
+        data_size = random.randint(100, 1000)
+        local_loss = random.random() * 2.0
 
         return {"device_id": device_id, "weight_updates": weight_updates, "data_size": data_size, "loss": local_loss}
 
@@ -466,7 +530,7 @@ class DistributedEdgeTraining:
         total_data = sum(update["data_size"] for update in local_updates)
 
         # Aggregate weight updates
-        aggregated_weights = np.zeros_like(local_updates[0]["weight_updates"])
+        aggregated_weights = zeros_like(local_updates[0]["weight_updates"])
         aggregated_loss = 0.0
 
         for update in local_updates:
@@ -480,18 +544,20 @@ class DistributedEdgeTraining:
             "num_participants": len(local_updates),
         }
 
-    async def split_learning_forward(self, job_id: str, device_id: str, input_data: np.ndarray) -> np.ndarray:
+    async def split_learning_forward(self, job_id: str, device_id: str, input_data: List[float]) -> List[float]:
         """Forward pass in split learning (device layers)"""
         # Simulate device-side forward pass
         # Device computes first few layers
         # Returns "smashed data" to send to server
 
-        # Simplified: Linear transformation
-        smashed_data = np.tanh(input_data @ np.random.randn(input_data.shape[1], 64))
+        # Simplified: Apply tanh activation to input data (simulated)
+        output_size = min(64, len(input_data))
+        smashed_data = [math.tanh(sum(input_data) / len(input_data) + random.gauss(0, 0.1))
+                        for _ in range(output_size)]
 
         return smashed_data
 
-    async def split_learning_backward(self, job_id: str, device_id: str, gradients: np.ndarray):
+    async def split_learning_backward(self, job_id: str, device_id: str, gradients: List[float]):
         """Backward pass in split learning (device layers)"""
         # Simulate device-side backward pass
         # Device updates its layers using gradients from server
@@ -604,15 +670,15 @@ class EdgeInferenceOptimizer:
     async def benchmark_model(self, model_id: str, device_id: str, num_iterations: int = 100) -> Dict[str, float]:
         """Benchmark model on specific device"""
         # Simulate benchmarking
-        latencies = np.random.normal(10.0, 2.0, num_iterations)
-        latencies = np.maximum(latencies, 1.0)  # Min 1ms
+        latencies = normal(10.0, 2.0, num_iterations)
+        latencies = maximum(latencies, 1.0)  # Min 1ms
 
         return {
-            "mean_latency_ms": float(np.mean(latencies)),
-            "p50_latency_ms": float(np.percentile(latencies, 50)),
-            "p95_latency_ms": float(np.percentile(latencies, 95)),
-            "p99_latency_ms": float(np.percentile(latencies, 99)),
-            "throughput_qps": 1000.0 / np.mean(latencies),
+            "mean_latency_ms": float(mean(latencies)),
+            "p50_latency_ms": float(percentile(latencies, 50)),
+            "p95_latency_ms": float(percentile(latencies, 95)),
+            "p99_latency_ms": float(percentile(latencies, 99)),
+            "throughput_qps": 1000.0 / mean(latencies),
         }
 
 
@@ -885,7 +951,7 @@ class EdgeOrchestrationSystem:
     async def rebalance_workloads(self, devices: List[EdgeDevice]):
         """Rebalance workloads across devices"""
         # Compute average load
-        avg_load = np.mean(list(self.device_load.values())) if self.device_load else 0
+        avg_load = mean(list(self.device_load.values())) if self.device_load else 0
 
         # Find overloaded and underloaded devices
         overloaded = [d for d in devices if self.device_load.get(d.device_id, 0) > avg_load + 20]
@@ -1150,8 +1216,8 @@ class EdgeAnalyticsPipeline:
             return False
 
         # Compute z-score
-        mean = np.mean(detector["values"])
-        std = np.std(detector["values"])
+        mean = mean(detector["values"])
+        std = std(detector["values"])
 
         if std == 0:
             return False
@@ -1207,7 +1273,7 @@ class EdgeAIConfig:
 
     # Inference Optimizer
     enable_inference_optimizer: bool = True
-    default_optimization_target: OptimizationTarget = OptimizationTarget.LATENCY
+    default_optimization_target: OptimizationTarget = OptimizationTarget.ONNX
 
     # Model Compression
     enable_compression: bool = True

@@ -130,7 +130,7 @@ class RecursiveSelfImprovement:
         """Identify current system bottlenecks"""
         await asyncio.sleep(0.01)
         bottlenecks = ["memory_efficiency", "inference_speed", "sample_efficiency"]
-        return np.random.choice(bottlenecks, size=2, replace=False).tolist()
+        return random.sample(bottlenecks, 2)
 
     async def validate_improvement(self, improvement: Improvement) -> bool:
         """Validate that improvement is safe and beneficial"""
@@ -275,8 +275,8 @@ class HyperparameterOptimization:
 
         for trial in range(min(optimization_budget, 20)):
             # Sample from search space
-            lr = np.random.choice([0.0001, 0.001, 0.01, 0.1])
-            batch_size = np.random.choice([16, 32, 64, 128])
+            lr = random.choice([0.0001, 0.001, 0.01, 0.1])
+            batch_size = random.choice([16, 32, 64, 128])
             dropout = random.uniform(0.1, 0.5)
 
             # Evaluate (simulated)

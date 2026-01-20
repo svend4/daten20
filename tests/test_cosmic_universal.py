@@ -137,6 +137,8 @@ class TestPhysicsManipulation:
     @pytest.mark.asyncio
     async def test_multiple_wormholes(self):
         service = PhysicsManipulationService()
+        # Clear wormholes from previous tests (singleton pattern)
+        service.wormholes.clear()
 
         wh1 = await service.create_wormhole("a", "b")
         wh2 = await service.create_wormhole("c", "d")

@@ -4,6 +4,10 @@ Calendar & Scheduling Integration
 Integration with Google Calendar and Outlook Calendar for event management.
 
 Part of v3.7 Advanced Integrations implementation.
+
+Configuration required:
+- Google Calendar: access_token (OAuth 2.0)
+- Outlook Calendar: access_token (Microsoft Graph API OAuth 2.0)
 """
 
 import asyncio
@@ -16,6 +20,14 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
+
+# Optional HTTP library
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+    logger.warning("requests library not available - calendar will be simulated. Install: pip install requests")
 
 
 class CalendarProvider(Enum):
@@ -60,56 +72,355 @@ class BaseCalendarProvider(ABC):
 
 
 class GoogleCalendarClient(BaseCalendarProvider):
-    """Google Calendar integration."""
+    """Google Calendar integration via Google Calendar API v3.
+
+    Requires credentials:
+    - access_token: OAuth 2.0 access token
+    - calendar_id: Calendar ID (default: 'primary')
+    """
+
+    def __init__(self, credentials: Dict[str, str]):
+        super().__init__(credentials)
+        self.access_token = credentials.get('access_token')
+        self.calendar_id = credentials.get('calendar_id', 'primary')
+        self.base_url = 'https://www.googleapis.com/calendar/v3'
+
+        if not self.access_token:
+            logger.warning("Google Calendar access token missing - operations will be simulated")
 
     async def create_event(self, title: str, start_time: datetime, end_time: datetime, **kwargs) -> CalendarEvent:
-        """Create Google Calendar event."""
-        await asyncio.sleep(0.2)
+        """Create Google Calendar event via API."""
 
-        event = CalendarEvent(
-            event_id=str(uuid4()),
-            title=title,
-            start_time=start_time,
-            end_time=end_time,
-            attendees=kwargs.get("attendees", []),
-            location=kwargs.get("location"),
-            video_conference_link=kwargs.get("video_conference") and "https://meet.google.com/xyz",
-            provider=CalendarProvider.GOOGLE_CALENDAR,
-        )
+        if not HAS_REQUESTS or not self.access_token:
+            # Fallback to simulation
+            logger.warning("Simulating Google Calendar event creation (missing requests or credentials)")
+            event = CalendarEvent(
+                event_id=str(uuid4()),
+                title=title,
+                start_time=start_time,
+                end_time=end_time,
+                attendees=kwargs.get("attendees", []),
+                location=kwargs.get("location"),
+                video_conference_link=kwargs.get("video_conference") and "https://meet.google.com/xyz",
+                provider=CalendarProvider.GOOGLE_CALENDAR,
+            )
+            return event
 
-        logger.info(f"Created Google Calendar event: {title}")
-        return event
+        # Build event definition
+        event_body = {
+            "summary": title,
+            "description": kwargs.get("description", ""),
+            "start": {
+                "dateTime": start_time.isoformat(),
+                "timeZone": "UTC"
+            },
+            "end": {
+                "dateTime": end_time.isoformat(),
+                "timeZone": "UTC"
+            }
+        }
+
+        # Add location if provided
+        if kwargs.get("location"):
+            event_body["location"] = kwargs["location"]
+
+        # Add attendees if provided
+        if kwargs.get("attendees"):
+            event_body["attendees"] = [{"email": email} for email in kwargs["attendees"]]
+
+        # Add Google Meet if requested
+        if kwargs.get("video_conference"):
+            event_body["conferenceData"] = {
+                "createRequest": {
+                    "requestId": str(uuid4()),
+                    "conferenceSolutionKey": {"type": "hangoutsMeet"}
+                }
+            }
+
+        # Add reminders if provided
+        if kwargs.get("reminders"):
+            event_body["reminders"] = {
+                "useDefault": False,
+                "overrides": [{"method": "popup", "minutes": m} for m in kwargs["reminders"]]
+            }
+
+        # Make API request
+        try:
+            url = f"{self.base_url}/calendars/{self.calendar_id}/events"
+            params = {"conferenceDataVersion": 1} if kwargs.get("video_conference") else {}
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json"
+            }
+
+            response = requests.post(url, json=event_body, headers=headers, params=params, timeout=10)
+            response.raise_for_status()
+
+            result = response.json()
+            event_id = result.get('id', str(uuid4()))
+            meet_link = None
+
+            if result.get('conferenceData'):
+                meet_link = result['conferenceData'].get('entryPoints', [{}])[0].get('uri')
+
+            logger.info(f"Created Google Calendar event {event_id}: {title}")
+
+            event = CalendarEvent(
+                event_id=event_id,
+                title=title,
+                start_time=start_time,
+                end_time=end_time,
+                attendees=kwargs.get("attendees", []),
+                location=kwargs.get("location"),
+                description=kwargs.get("description"),
+                video_conference_link=meet_link,
+                reminders=kwargs.get("reminders", []),
+                provider=CalendarProvider.GOOGLE_CALENDAR,
+            )
+
+            return event
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Google Calendar API error: {e.response.status_code} - {e.response.text}")
+            raise Exception(f"Google Calendar API error: {e.response.status_code}")
+
+        except Exception as e:
+            logger.exception(f"Error creating Google Calendar event: {e}")
+            raise
 
     async def list_events(self, start_date: datetime, end_date: datetime) -> List[CalendarEvent]:
-        """List Google Calendar events."""
-        await asyncio.sleep(0.1)
-        return []
+        """List Google Calendar events via API."""
+
+        if not HAS_REQUESTS or not self.access_token:
+            logger.warning("Simulating Google Calendar event list (missing requests or credentials)")
+            return []
+
+        try:
+            url = f"{self.base_url}/calendars/{self.calendar_id}/events"
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json"
+            }
+            params = {
+                "timeMin": start_date.isoformat() + 'Z',
+                "timeMax": end_date.isoformat() + 'Z',
+                "singleEvents": True,
+                "orderBy": "startTime"
+            }
+
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            response.raise_for_status()
+
+            result = response.json()
+            items = result.get('items', [])
+
+            events = []
+            for item in items:
+                start = item['start'].get('dateTime', item['start'].get('date'))
+                end = item['end'].get('dateTime', item['end'].get('date'))
+
+                event = CalendarEvent(
+                    event_id=item['id'],
+                    title=item.get('summary', 'No Title'),
+                    start_time=datetime.fromisoformat(start.rstrip('Z')),
+                    end_time=datetime.fromisoformat(end.rstrip('Z')),
+                    attendees=[a['email'] for a in item.get('attendees', [])],
+                    location=item.get('location'),
+                    description=item.get('description'),
+                    provider=CalendarProvider.GOOGLE_CALENDAR,
+                )
+                events.append(event)
+
+            logger.info(f"Listed {len(events)} Google Calendar events")
+            return events
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Google Calendar API error: {e.response.status_code}")
+            raise Exception(f"Google Calendar API error: {e.response.status_code}")
+
+        except Exception as e:
+            logger.exception(f"Error listing Google Calendar events: {e}")
+            raise
 
 
 class OutlookCalendarClient(BaseCalendarProvider):
-    """Outlook Calendar integration."""
+    """Outlook Calendar integration via Microsoft Graph API.
+
+    Requires credentials:
+    - access_token: OAuth 2.0 access token (Microsoft identity platform)
+    - user_id: User ID or email (default: 'me')
+    """
+
+    def __init__(self, credentials: Dict[str, str]):
+        super().__init__(credentials)
+        self.access_token = credentials.get('access_token')
+        self.user_id = credentials.get('user_id', 'me')
+        self.base_url = 'https://graph.microsoft.com/v1.0'
+
+        if not self.access_token:
+            logger.warning("Outlook Calendar access token missing - operations will be simulated")
 
     async def create_event(self, title: str, start_time: datetime, end_time: datetime, **kwargs) -> CalendarEvent:
-        """Create Outlook event."""
-        await asyncio.sleep(0.2)
+        """Create Outlook Calendar event via Microsoft Graph API."""
 
-        event = CalendarEvent(
-            event_id=str(uuid4()),
-            title=title,
-            start_time=start_time,
-            end_time=end_time,
-            attendees=kwargs.get("attendees", []),
-            location=kwargs.get("location"),
-            provider=CalendarProvider.OUTLOOK_CALENDAR,
-        )
+        if not HAS_REQUESTS or not self.access_token:
+            # Fallback to simulation
+            logger.warning("Simulating Outlook Calendar event creation (missing requests or credentials)")
+            event = CalendarEvent(
+                event_id=str(uuid4()),
+                title=title,
+                start_time=start_time,
+                end_time=end_time,
+                attendees=kwargs.get("attendees", []),
+                location=kwargs.get("location"),
+                provider=CalendarProvider.OUTLOOK_CALENDAR,
+            )
+            return event
 
-        logger.info(f"Created Outlook event: {title}")
-        return event
+        # Build event definition
+        event_body = {
+            "subject": title,
+            "body": {
+                "contentType": "text",
+                "content": kwargs.get("description", "")
+            },
+            "start": {
+                "dateTime": start_time.isoformat(),
+                "timeZone": "UTC"
+            },
+            "end": {
+                "dateTime": end_time.isoformat(),
+                "timeZone": "UTC"
+            }
+        }
+
+        # Add location if provided
+        if kwargs.get("location"):
+            event_body["location"] = {
+                "displayName": kwargs["location"]
+            }
+
+        # Add attendees if provided
+        if kwargs.get("attendees"):
+            event_body["attendees"] = [
+                {
+                    "emailAddress": {"address": email},
+                    "type": "required"
+                }
+                for email in kwargs["attendees"]
+            ]
+
+        # Add Teams meeting if requested
+        if kwargs.get("video_conference"):
+            event_body["isOnlineMeeting"] = True
+            event_body["onlineMeetingProvider"] = "teamsForBusiness"
+
+        # Add reminders if provided
+        if kwargs.get("reminders"):
+            event_body["isReminderOn"] = True
+            event_body["reminderMinutesBeforeStart"] = kwargs["reminders"][0] if kwargs["reminders"] else 15
+
+        # Make API request
+        try:
+            url = f"{self.base_url}/users/{self.user_id}/calendar/events"
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json"
+            }
+
+            response = requests.post(url, json=event_body, headers=headers, timeout=10)
+            response.raise_for_status()
+
+            result = response.json()
+            event_id = result.get('id', str(uuid4()))
+            teams_link = None
+
+            if result.get('onlineMeeting'):
+                teams_link = result['onlineMeeting'].get('joinUrl')
+
+            logger.info(f"Created Outlook Calendar event {event_id}: {title}")
+
+            event = CalendarEvent(
+                event_id=event_id,
+                title=title,
+                start_time=start_time,
+                end_time=end_time,
+                attendees=kwargs.get("attendees", []),
+                location=kwargs.get("location"),
+                description=kwargs.get("description"),
+                video_conference_link=teams_link,
+                reminders=kwargs.get("reminders", []),
+                provider=CalendarProvider.OUTLOOK_CALENDAR,
+            )
+
+            return event
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Outlook Calendar API error: {e.response.status_code} - {e.response.text}")
+            raise Exception(f"Outlook Calendar API error: {e.response.status_code}")
+
+        except Exception as e:
+            logger.exception(f"Error creating Outlook Calendar event: {e}")
+            raise
 
     async def list_events(self, start_date: datetime, end_date: datetime) -> List[CalendarEvent]:
-        """List Outlook events."""
-        await asyncio.sleep(0.1)
-        return []
+        """List Outlook Calendar events via Microsoft Graph API."""
+
+        if not HAS_REQUESTS or not self.access_token:
+            logger.warning("Simulating Outlook Calendar event list (missing requests or credentials)")
+            return []
+
+        try:
+            # Use calendarView endpoint with date filter
+            url = f"{self.base_url}/users/{self.user_id}/calendar/calendarView"
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json",
+                "Prefer": "outlook.timezone=\"UTC\""
+            }
+            params = {
+                "startDateTime": start_date.isoformat(),
+                "endDateTime": end_date.isoformat(),
+                "$orderby": "start/dateTime"
+            }
+
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            response.raise_for_status()
+
+            result = response.json()
+            items = result.get('value', [])
+
+            events = []
+            for item in items:
+                start = item['start']['dateTime']
+                end = item['end']['dateTime']
+
+                attendees = [a['emailAddress']['address'] for a in item.get('attendees', [])]
+                location = item.get('location', {}).get('displayName')
+                description = item.get('body', {}).get('content', '')
+
+                event = CalendarEvent(
+                    event_id=item['id'],
+                    title=item.get('subject', 'No Title'),
+                    start_time=datetime.fromisoformat(start),
+                    end_time=datetime.fromisoformat(end),
+                    attendees=attendees,
+                    location=location,
+                    description=description,
+                    provider=CalendarProvider.OUTLOOK_CALENDAR,
+                )
+                events.append(event)
+
+            logger.info(f"Listed {len(events)} Outlook Calendar events")
+            return events
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Outlook Calendar API error: {e.response.status_code}")
+            raise Exception(f"Outlook Calendar API error: {e.response.status_code}")
+
+        except Exception as e:
+            logger.exception(f"Error listing Outlook Calendar events: {e}")
+            raise
 
 
 class CalendarManager:
