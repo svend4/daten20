@@ -1,129 +1,90 @@
 """
-6G Network Optimization Module - v4.2
+6G Network Optimization Services v4.2.0
 
-Next-generation 6G network capabilities with terahertz communication,
-intelligent reflecting surfaces, and AI-driven optimization.
-
-Modules:
-- network6g_services: Complete 6G network implementation
-
-Components:
-- 6G Network Manager: Network resource allocation and orchestration
-- Terahertz Communication: Ultra-high bandwidth THz communication
-- Intelligent Reflecting Surfaces: Programmable radio environment
-- Network Slicing 2.0: Dynamic virtual network creation
-- Edge Intelligence: Distributed AI at network edge
-- Holographic Communications: 3D hologram transmission
-- Quantum-Secured 6G: Quantum-safe network security
+**DUAL-VERSION IMPLEMENTATION**:
+- Pure Python: Mock 6G operations
+- NumPy: Full network simulation
 
 Version: 4.2.0
 """
 
 __version__ = "4.2.0"
 
-from .network6g_services import (  # 6G Network Manager; Terahertz Communication; Intelligent Reflecting Surfaces; Network Slicing 2.0; Edge Intelligence; Holographic Communications; Quantum-Secured 6G
-    AtmosphericModel,
-    BeamformingController,
-    ChannelEstimator,
-    ContentCache,
-    ContextManager,
-    DynamicScaling,
-    EdgeAI,
-    EdgeNode,
-    EntanglementManager,
-    FederatedLearner,
-    HologramEngine,
-    HologramQuality,
-    HolographicRenderer,
-    IRSSurface,
-    LinkBudget,
-    MultiSensoryStream,
-    MultiUserOptimizer,
-    NetworkDigitalTwin,
-    NetworkManager,
-    NetworkSlice,
-    OptimizationMethod,
-    PhaseController,
-    PresenceManager,
-    QKDProtocol,
-    QoSProfile,
-    QuantumAuthenticator,
-    QuantumKeyDistributor,
-    QuantumRNG,
-    ResourceAllocator,
-    RoutingOptimizer,
-    SecureChannel,
-    SLAMonitor,
-    SliceComposer,
-    SliceOrchestrator,
-    SliceTemplate,
+from .network6g_services import (
     SliceType,
-    SpectrumAnalyzer,
-    TactileInternet,
-    THzChannel,
-    THzTransceiver,
-    get_edge_intelligence,
-    get_hologram_engine,
-    get_irs_surface,
-    get_network_manager,
-    get_quantum_security,
-    get_slice_orchestrator,
-    get_thz_transceiver,
+    BeamformingType,
+    NetworkSlice,
+    IRSConfiguration,
+    
+    Network6GManager as Network6GManagerPython,
+    TerahertzCommunication as TerahertzCommunicationPython,
+    IntelligentReflectingSurface as IntelligentReflectingSurfacePython,
+    EdgeIntelligence as EdgeIntelligencePython,
+    HolographicCommunication as HolographicCommunicationPython,
+    QuantumSecured6G as QuantumSecured6GPython,
+    
+    get_network6g_manager as get_network6g_manager_python,
+    get_terahertz_communication as get_terahertz_communication_python,
+    get_intelligent_reflecting_surface as get_intelligent_reflecting_surface_python,
+    get_edge_intelligence as get_edge_intelligence_python,
+    get_holographic_communication as get_holographic_communication_python,
+    get_quantum_secured_6g as get_quantum_secured_6g_python,
 )
 
+try:
+    from .network6g_services_numpy import (
+        Network6GManager as Network6GManagerNumpy,
+        TerahertzCommunication as TerahertzCommunicationNumpy,
+        IntelligentReflectingSurface as IntelligentReflectingSurfaceNumpy,
+        EdgeIntelligence as EdgeIntelligenceNumpy,
+        HolographicCommunication as HolographicCommunicationNumpy,
+        QuantumSecured6G as QuantumSecured6GNumpy,
+        
+        get_network6g_manager as get_network6g_manager_numpy,
+        get_terahertz_communication as get_terahertz_communication_numpy,
+        get_intelligent_reflecting_surface as get_intelligent_reflecting_surface_numpy,
+        get_edge_intelligence as get_edge_intelligence_numpy,
+        get_holographic_communication as get_holographic_communication_numpy,
+        get_quantum_secured_6g as get_quantum_secured_6g_numpy,
+    )
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
+if HAS_NUMPY:
+    Network6GManager = Network6GManagerNumpy
+    TerahertzCommunication = TerahertzCommunicationNumpy
+    IntelligentReflectingSurface = IntelligentReflectingSurfaceNumpy
+    EdgeIntelligence = EdgeIntelligenceNumpy
+    HolographicCommunication = HolographicCommunicationNumpy
+    QuantumSecured6G = QuantumSecured6GNumpy
+    
+    get_network6g_manager = get_network6g_manager_numpy
+    get_terahertz_communication = get_terahertz_communication_numpy
+    get_intelligent_reflecting_surface = get_intelligent_reflecting_surface_numpy
+    get_edge_intelligence = get_edge_intelligence_numpy
+    get_holographic_communication = get_holographic_communication_numpy
+    get_quantum_secured_6g = get_quantum_secured_6g_numpy
+else:
+    Network6GManager = Network6GManagerPython
+    TerahertzCommunication = TerahertzCommunicationPython
+    IntelligentReflectingSurface = IntelligentReflectingSurfacePython
+    EdgeIntelligence = EdgeIntelligencePython
+    HolographicCommunication = HolographicCommunicationPython
+    QuantumSecured6G = QuantumSecured6GPython
+    
+    get_network6g_manager = get_network6g_manager_python
+    get_terahertz_communication = get_terahertz_communication_python
+    get_intelligent_reflecting_surface = get_intelligent_reflecting_surface_python
+    get_edge_intelligence = get_edge_intelligence_python
+    get_holographic_communication = get_holographic_communication_python
+    get_quantum_secured_6g = get_quantum_secured_6g_python
+
 __all__ = [
-    # 6G Network Manager
-    "NetworkSlice",
-    "SliceType",
-    "QoSProfile",
-    "NetworkManager",
-    "ResourceAllocator",
-    "NetworkDigitalTwin",
-    "get_network_manager",
-    # Terahertz Communication
-    "THzChannel",
-    "THzTransceiver",
-    "BeamformingController",
-    "AtmosphericModel",
-    "SpectrumAnalyzer",
-    "LinkBudget",
-    "get_thz_transceiver",
-    # Intelligent Reflecting Surfaces
-    "IRSSurface",
-    "PhaseController",
-    "MultiUserOptimizer",
-    "ChannelEstimator",
-    "OptimizationMethod",
-    "get_irs_surface",
-    # Network Slicing 2.0
-    "SliceTemplate",
-    "SliceOrchestrator",
-    "SLAMonitor",
-    "DynamicScaling",
-    "SliceComposer",
-    "get_slice_orchestrator",
-    # Edge Intelligence
-    "EdgeNode",
-    "EdgeAI",
-    "FederatedLearner",
-    "ContentCache",
-    "RoutingOptimizer",
-    "ContextManager",
-    "get_edge_intelligence",
-    # Holographic Communications
-    "HologramEngine",
-    "MultiSensoryStream",
-    "HolographicRenderer",
-    "TactileInternet",
-    "PresenceManager",
-    "HologramQuality",
-    "get_hologram_engine",
-    # Quantum-Secured 6G
-    "QuantumKeyDistributor",
-    "QKDProtocol",
-    "QuantumAuthenticator",
-    "EntanglementManager",
-    "QuantumRNG",
-    "SecureChannel",
-    "get_quantum_security",
+    "__version__", "SliceType", "BeamformingType", "NetworkSlice", "IRSConfiguration",
+    "Network6GManager", "TerahertzCommunication", "IntelligentReflectingSurface",
+    "EdgeIntelligence", "HolographicCommunication", "QuantumSecured6G",
+    "get_network6g_manager", "get_terahertz_communication", "get_intelligent_reflecting_surface",
+    "get_edge_intelligence", "get_holographic_communication", "get_quantum_secured_6g",
+    "HAS_NUMPY",
 ]
