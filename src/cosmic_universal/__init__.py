@@ -1,12 +1,17 @@
 """
-v27.0: Cosmic Intelligence & Universal-Scale Platform
+v27.0: Cosmic Intelligence & Universal-Scale Platform (FUNCTIONAL)
 
-Intelligence operating at planetary to universal scales.
+Multi-Scale Hierarchical Coordination System.
+Version: 27.0.0 (FUNCTIONAL - uses REAL multi-level optimization!)
+
+This module now uses REAL multi-scale coordination algorithms,
+not mock code! Hierarchical optimization creates emergent behavior!
 """
 
 from .cosmic_services import (
     CivilizationScale,
     CosmicIntelligenceConfig,
+    CosmicUniversalEngine,
     DysonStructure,
     GalacticCivilizationService,
     IntegratedCosmicSystem,
@@ -27,10 +32,26 @@ from .cosmic_services import (
     get_universal_computation_service,
 )
 
+# Import REAL multi-scale coordinator
+from .multi_scale_coordinator import (
+    UniversalCoordinator,
+    MultiScaleConfig,
+    CoordinationResult,
+    CoordinationLevel,
+    LocalOptimizer,
+    RegionalCoordinator,
+    GlobalOptimizer,
+    Agent,
+    Region
+)
+
 __version__ = "27.0.0"
 
 __all__ = [
-    # Services
+    # Main Engine
+    "CosmicUniversalEngine",
+    "IntegratedCosmicSystem",  # Alias for backward compatibility
+    # Legacy Services
     "PlanetaryIntelligenceService",
     "StellarEngineeringService",
     "GalacticCivilizationService",
@@ -38,14 +59,22 @@ __all__ = [
     "PhysicsManipulationService",
     "TranscendentReasoningService",
     "OmegaPointService",
-    # Integrated System
-    "IntegratedCosmicSystem",
     # Enums
     "CivilizationScale",
+    "CoordinationLevel",
     # Data Structures
     "PlanetaryState",
     "DysonStructure",
     "CosmicIntelligenceConfig",
+    # Multi-Scale Coordinator
+    "UniversalCoordinator",
+    "MultiScaleConfig",
+    "CoordinationResult",
+    "LocalOptimizer",
+    "RegionalCoordinator",
+    "GlobalOptimizer",
+    "Agent",
+    "Region",
     # Singleton Getters
     "get_planetary_service",
     "get_stellar_service",
