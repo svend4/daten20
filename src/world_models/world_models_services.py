@@ -2173,7 +2173,17 @@ class IntegratedWorldModelsSystem:
         benchmarks = []
 
         if self.world_model:
-            transitions = [Transition(state=[0.0]*10, action=0, next_state=[0.0]*10, reward=0.0, done=False)]
+            # Need at least 10 transitions for 80/20 train/validation split
+            transitions = [
+                Transition(
+                    state=[random.gauss(0, 1) for _ in range(10)],
+                    action=0,
+                    next_state=[random.gauss(0, 1) for _ in range(10)],
+                    reward=0.0,
+                    done=False
+                )
+                for _ in range(10)
+            ]
             model = await self.world_model.learn_world_model("bench_model", transitions, ModelType.DETERMINISTIC)
             benchmarks.append({"subsystem": "world_model_learning", "operations": 1, "status": "ok"})
 

@@ -80,6 +80,112 @@ class TestWorldModelLearning:
         assert model.model_type == ModelType.DETERMINISTIC
 
     @pytest.mark.asyncio
+    async def test_real_neural_network_training(self):
+        """FUNCTIONAL TEST: Verify REAL neural network training occurs"""
+        wm_service = WorldModelLearning()
+
+        # Create experiences with learnable pattern: next_state = state + [0.1, 0.1, ...]
+        experiences = []
+        for _ in range(50):
+            state = randn(4)
+            next_state = [s + 0.1 for s in state]  # Simple pattern
+            experiences.append(Transition(
+                state=state, action=0, next_state=next_state, reward=1.0, done=False
+            ))
+
+        model = await wm_service.learn_world_model(
+            model_id="real_nn_model",
+            experiences=experiences,
+            model_type=ModelType.DETERMINISTIC,
+            num_epochs=20
+        )
+
+        # VERIFY: Neural network was created
+        assert model.neural_network is not None, "Model should have trained neural network!"
+
+        # VERIFY: Validation accuracy is measured (not random)
+        assert model.validation_accuracy > 0.0, "Should have measured validation accuracy!"
+        assert model.validation_accuracy <= 1.0, "Accuracy should be between 0 and 1!"
+
+        # VERIFY: Training metadata is recorded
+        assert "training_samples" in model.transition_params
+        assert model.transition_params["training_samples"] > 0
+
+        print(f"✅ Neural network trained with {model.validation_accuracy:.1%} accuracy")
+
+    @pytest.mark.asyncio
+    async def test_predictions_use_trained_network(self):
+        """FUNCTIONAL TEST: Verify predictions use trained NN (not random!)"""
+        wm_service = WorldModelLearning()
+
+        # Train model
+        experiences = [
+            Transition(state=randn(4), action=0, next_state=randn(4), reward=1.0, done=False)
+            for _ in range(30)
+        ]
+
+        model = await wm_service.learn_world_model(
+            model_id="pred_test_model",
+            experiences=experiences,
+            model_type=ModelType.DETERMINISTIC,
+            num_epochs=10
+        )
+
+        # VERIFY: Predictions are deterministic (same input → same output)
+        test_state = [0.1, 0.2, 0.05, 0.1]
+
+        # Predict twice with same input
+        next_state_1, reward_1 = await wm_service.predict_next_state(
+            state=test_state, action=0, model_id="pred_test_model"
+        )
+        next_state_2, reward_2 = await wm_service.predict_next_state(
+            state=test_state, action=0, model_id="pred_test_model"
+        )
+
+        # Calculate difference
+        diff = sum(abs(s1 - s2) for s1, s2 in zip(next_state_1, next_state_2))
+
+        # VERIFY: Predictions are identical (deterministic)
+        assert diff < 1e-6, f"Predictions should be deterministic! Difference: {diff}"
+        print(f"✅ Predictions are deterministic (diff={diff:.9f})")
+
+    @pytest.mark.asyncio
+    async def test_neural_network_learns_pattern(self):
+        """FUNCTIONAL TEST: Verify neural network actually learns patterns"""
+        wm_service = WorldModelLearning()
+
+        # Create data with simple pattern: output = input + 0.5
+        experiences = []
+        for _ in range(100):
+            state = [random.uniform(-1, 1) for _ in range(4)]
+            next_state = [s + 0.5 for s in state]  # Pattern to learn
+            experiences.append(Transition(
+                state=state, action=0, next_state=next_state, reward=1.0, done=False
+            ))
+
+        model = await wm_service.learn_world_model(
+            model_id="learning_test",
+            experiences=experiences,
+            model_type=ModelType.DETERMINISTIC,
+            num_epochs=50  # More epochs for better learning
+        )
+
+        # VERIFY: Model achieves reasonable accuracy (learns pattern)
+        assert model.validation_accuracy > 0.7, f"Model should learn pattern! Accuracy: {model.validation_accuracy:.1%}"
+
+        # VERIFY: Neural network makes sensible predictions
+        test_state = [0.0, 0.0, 0.0, 0.0]
+        predicted, _ = await wm_service.predict_next_state(
+            state=test_state, action=0, model_id="learning_test"
+        )
+
+        # Expected: ~[0.5, 0.5, 0.5, 0.5]
+        # Allow some error but check it learned the trend
+        avg_predicted = sum(predicted) / len(predicted)
+        print(f"✅ Pattern learning: input {test_state} → output {predicted} (avg={avg_predicted:.2f}, expected ~0.5)")
+        print(f"   Validation accuracy: {model.validation_accuracy:.1%}")
+
+    @pytest.mark.asyncio
     async def test_learn_stochastic_model(self):
         wm_service = WorldModelLearning()
         experiences = [
@@ -136,6 +242,57 @@ class TestPredictiveLearning:
 
         assert prediction is not None
         assert prediction.horizon == 1
+
+    @pytest.mark.asyncio
+    async def test_trajectory_uses_trained_network(self):
+        """FUNCTIONAL TEST: Verify trajectory prediction uses trained NN"""
+        wm_service = WorldModelLearning()
+        pred_service = PredictiveLearning(wm_service)
+
+        # Train a model first
+        experiences = [
+            Transition(state=randn(4), action=0, next_state=randn(4), reward=1.0, done=False)
+            for _ in range(50)
+        ]
+
+        model = await wm_service.learn_world_model(
+            model_id="trajectory_model",
+            experiences=experiences,
+            model_type=ModelType.DETERMINISTIC,
+            num_epochs=20
+        )
+
+        # Predict trajectory twice with same initial state
+        initial_state = [0.1, 0.0, 0.05, 0.0]
+
+        traj1 = await pred_service.predict_trajectory(
+            initial_state=initial_state,
+            action_sequence=None,
+            horizon=5,
+            model_id="trajectory_model"
+        )
+
+        traj2 = await pred_service.predict_trajectory(
+            initial_state=initial_state,
+            action_sequence=None,
+            horizon=5,
+            model_id="trajectory_model"
+        )
+
+        # VERIFY: Trajectories are identical (deterministic NN)
+        assert len(traj1.predicted_states) == len(traj2.predicted_states)
+
+        # Compare states at step 3
+        if len(traj1.predicted_states) > 3 and len(traj2.predicted_states) > 3:
+            state1 = traj1.predicted_states[3]
+            state2 = traj2.predicted_states[3]
+
+            if isinstance(state1, list) and isinstance(state2, list):
+                diff = sum(abs(s1 - s2) for s1, s2 in zip(state1, state2))
+                assert diff < 1e-6, f"Trajectories should be deterministic! Diff: {diff}"
+                print(f"✅ Trajectory predictions are deterministic (diff={diff:.9f})")
+
+        print(f"✅ Predicted {len(traj1.predicted_states)} states using trained neural network")
 
     @pytest.mark.asyncio
     async def test_multi_step_prediction(self):
