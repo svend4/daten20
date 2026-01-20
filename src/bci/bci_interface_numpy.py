@@ -1,24 +1,21 @@
 """
-BCI Interface - v4.4 (Pure Python)
+BCI Interface - v4.4
 
 High-level brain-computer interface for hands-free document management.
-Pure Python implementation compatible with both NumPy and pure Python signal processing.
 
 Version: 4.4.0
 """
 
 __version__ = '4.4.0'
 
-from typing import Dict, List, Optional, Any, Callable, Union
+from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
+import numpy as np
 import logging
 
 from bci.signal_processing import SignalProcessor, ERPDetector, SignalFeatures, SignalQuality
-
-# Type alias for signal data (compatible with both versions)
-SignalData = Union[List[List[float]], List[float]]
 
 logger = logging.getLogger(__name__)
 
@@ -163,13 +160,13 @@ class BCIInterface:
         logger.warning(f"Session not found: {session_id}")
         return False
 
-    def calibrate(self, session_id: str, calibration_data: Optional[SignalData] = None) -> bool:
+    def calibrate(self, session_id: str, calibration_data: Optional[np.ndarray] = None) -> bool:
         """
         Calibrate BCI for user
 
         Args:
             session_id: Session identifier
-            calibration_data: Optional calibration EEG data (List or nested List)
+            calibration_data: Optional calibration EEG data
 
         Returns:
             True if calibration successful
@@ -199,13 +196,13 @@ class BCIInterface:
         session.calibrated = True
         return True
 
-    def process_signal(self, session_id: str, eeg_data: SignalData) -> bool:
+    def process_signal(self, session_id: str, eeg_data: np.ndarray) -> bool:
         """
         Process EEG signal and update mental state
 
         Args:
             session_id: Session identifier
-            eeg_data: Raw EEG data (List[List[float]] for multi-channel or List[float] for single channel)
+            eeg_data: Raw EEG data (channels x samples)
 
         Returns:
             True if processing successful
