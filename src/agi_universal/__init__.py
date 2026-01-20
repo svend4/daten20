@@ -9,6 +9,7 @@ not mock code! Tasks help each other through shared representations.
 """
 
 __version__ = '25.0.0'
+__status__ = 'FUNCTIONAL'
 
 from enum import Enum
 from dataclasses import dataclass

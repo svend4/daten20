@@ -9,6 +9,7 @@ not mock code! Particles cooperate to find optimal solutions.
 """
 
 __version__ = '24.0.0'
+__status__ = 'FUNCTIONAL'
 
 from enum import Enum
 from dataclasses import dataclass

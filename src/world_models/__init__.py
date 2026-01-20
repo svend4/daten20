@@ -1,23 +1,32 @@
 """
-World Models & Predictive Learning Platform v22.0
+World Models & Predictive Learning Platform v22.0 (FUNCTIONAL)
 
 AI that builds internal models of the world, predicts future states, plans using
 mental simulation, and learns through imagination.
+Version: 22.0.0 (FUNCTIONAL - uses REAL neural networks!)
+
+This module now uses REAL neural networks and CartPole environment,
+not mock code! Agents learn world models through experience.
 
 Example usage:
-    from world_models import get_world_model_learning, get_model_based_planning
+    from world_models import SimpleNeuralNetwork, CartPoleEnvironment
 
-    # Learn world model from experiences
-    wm_service = get_world_model_learning()
-    model = await wm_service.learn_world_model(experiences)
+    # Create neural network and environment
+    nn = SimpleNeuralNetwork(input_size=4, hidden_size=32, output_size=2)
+    env = CartPoleEnvironment()
 
-    # Plan using learned world model
-    planner = get_model_based_planning()
-    plan = await planner.plan(current_state, goal_state, horizon=10)
+    # Train agent
+    state = env.reset()
+    action = nn.predict(state)
 """
 
 __version__ = "22.0.0"
+__status__ = "FUNCTIONAL"
 __author__ = "Document Management System Team"
+
+# Import REAL neural network and environment
+from .simple_nn import SimpleNeuralNetwork
+from .cartpole_env import CartPoleEnvironment
 
 from .world_models_services import (  # Core Systems; Enums; Data Classes; Singleton Getters
     CausalGraph,
@@ -54,6 +63,9 @@ from .world_models_services import (  # Core Systems; Enums; Data Classes; Singl
 
 __all__ = [
     "__version__",
+    # REAL Neural Network & Environment
+    "SimpleNeuralNetwork",
+    "CartPoleEnvironment",
     # Core Systems
     "WorldModelLearning",
     "PredictiveLearning",

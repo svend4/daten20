@@ -44,6 +44,7 @@ from .world_simulator import (
 )
 
 __version__ = "28.0.0"
+__status__ = "FUNCTIONAL"
 
 __all__ = [
     # Main Engine

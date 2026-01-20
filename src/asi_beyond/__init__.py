@@ -9,6 +9,7 @@ multiple algorithms for better-than-human performance!
 """
 
 __version__ = '26.0.0'
+__status__ = 'FUNCTIONAL'
 
 from enum import Enum
 from dataclasses import dataclass

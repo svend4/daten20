@@ -46,6 +46,7 @@ from .multi_scale_coordinator import (
 )
 
 __version__ = "27.0.0"
+__status__ = "FUNCTIONAL"
 
 __all__ = [
     # Main Engine

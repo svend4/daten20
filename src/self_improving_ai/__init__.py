@@ -9,6 +9,7 @@ not mock code!
 """
 
 __version__ = '23.0.0'
+__status__ = 'FUNCTIONAL'
 
 from enum import Enum
 from dataclasses import dataclass
