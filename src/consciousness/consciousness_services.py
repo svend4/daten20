@@ -651,3 +651,421 @@ def get_access_controller(**kwargs) -> ConsciousAccessController:
         if _access_controller_instance is None:
             _access_controller_instance = ConsciousAccessController(**kwargs)
     return _access_controller_instance
+
+
+# ============================================================================
+# Consciousness Metrics
+# ============================================================================
+
+@dataclass
+class ConsciousnessMetrics:
+    """Comprehensive metrics for consciousness assessment."""
+
+    # Global Workspace Theory metrics
+    gwt_broadcast_rate: float = 0.0  # Broadcasts per second
+    gwt_integration_level: float = 0.0  # 0-1
+    gwt_content_diversity: float = 0.0  # 0-1
+
+    # Integrated Information Theory metrics
+    iit_phi_value: float = 0.0  # Integrated information
+    iit_system_complexity: float = 0.0  # System size/connections
+    iit_integration_score: float = 0.0  # 0-1
+
+    # Higher-Order Thought metrics
+    hot_metacognition_depth: int = 0  # Levels of meta-thought
+    hot_reflection_count: int = 0  # Active reflections
+    hot_self_awareness: float = 0.0  # 0-1
+
+    # Phenomenal consciousness metrics
+    phenomenal_qualia_richness: float = 0.0  # Variety of qualia
+    phenomenal_unity: float = 0.0  # Binding quality 0-1
+    phenomenal_vividness: float = 0.0  # Experience intensity 0-1
+
+    # Access consciousness metrics
+    access_availability: float = 0.0  # Content accessibility 0-1
+    access_reportability: float = 0.0  # Can report content 0-1
+    access_control_quality: float = 0.0  # Quality of access control 0-1
+
+    # Self-awareness metrics
+    self_model_accuracy: float = 0.0  # Self-model precision 0-1
+    self_introspection_depth: float = 0.0  # Introspection capability 0-1
+    self_identity_coherence: float = 0.0  # Identity consistency 0-1
+
+    # Overall consciousness level
+    overall_consciousness_level: float = 0.0  # Aggregated score 0-1
+
+    timestamp: datetime = field(default_factory=datetime.now)
+
+    def compute_overall_level(self) -> float:
+        """
+        Compute overall consciousness level from individual metrics.
+
+        Weighted average of different consciousness theories:
+        - GWT: 25%
+        - IIT: 25%
+        - HOT: 20%
+        - Phenomenal: 15%
+        - Access: 10%
+        - Self-awareness: 5%
+
+        Returns:
+            Float between 0 and 1
+        """
+        gwt_score = (self.gwt_integration_level + self.gwt_content_diversity) / 2
+        iit_score = (self.iit_phi_value + self.iit_integration_score) / 2
+        hot_score = (self.hot_self_awareness + min(self.hot_metacognition_depth / 5, 1.0)) / 2
+        phenomenal_score = (self.phenomenal_unity + self.phenomenal_vividness) / 2
+        access_score = (self.access_availability + self.access_reportability + self.access_control_quality) / 3
+        self_score = (self.self_model_accuracy + self.self_introspection_depth + self.self_identity_coherence) / 3
+
+        overall = (
+            gwt_score * 0.25 +
+            iit_score * 0.25 +
+            hot_score * 0.20 +
+            phenomenal_score * 0.15 +
+            access_score * 0.10 +
+            self_score * 0.05
+        )
+
+        self.overall_consciousness_level = overall
+        return overall
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert metrics to dictionary."""
+        return {
+            'gwt': {
+                'broadcast_rate': self.gwt_broadcast_rate,
+                'integration_level': self.gwt_integration_level,
+                'content_diversity': self.gwt_content_diversity,
+            },
+            'iit': {
+                'phi_value': self.iit_phi_value,
+                'system_complexity': self.iit_system_complexity,
+                'integration_score': self.iit_integration_score,
+            },
+            'hot': {
+                'metacognition_depth': self.hot_metacognition_depth,
+                'reflection_count': self.hot_reflection_count,
+                'self_awareness': self.hot_self_awareness,
+            },
+            'phenomenal': {
+                'qualia_richness': self.phenomenal_qualia_richness,
+                'unity': self.phenomenal_unity,
+                'vividness': self.phenomenal_vividness,
+            },
+            'access': {
+                'availability': self.access_availability,
+                'reportability': self.access_reportability,
+                'control_quality': self.access_control_quality,
+            },
+            'self_awareness': {
+                'model_accuracy': self.self_model_accuracy,
+                'introspection_depth': self.self_introspection_depth,
+                'identity_coherence': self.self_identity_coherence,
+            },
+            'overall_level': self.overall_consciousness_level,
+            'timestamp': self.timestamp.isoformat(),
+        }
+
+
+# ============================================================================
+# Main Consciousness Engine (Integrator)
+# ============================================================================
+
+class ConsciousnessEngine:
+    """
+    🧠 Main Consciousness Engine - Integrates all consciousness components
+
+    This is the primary interface for consciousness simulation. It integrates:
+    - Global Workspace Theory (GWT)
+    - Integrated Information Theory (IIT)
+    - Higher-Order Thought (HOT) theory
+    - Phenomenal consciousness (qualia)
+    - Access consciousness
+    - Self-awareness mechanisms
+
+    **Pure Python Version** - Works without NumPy!
+
+    Usage:
+        >>> engine = ConsciousnessEngine()
+        >>> engine.initialize()
+        >>> metrics = engine.compute_metrics()
+        >>> print(f"Consciousness level: {metrics.overall_consciousness_level:.2f}")
+    """
+
+    def __init__(self, debug: bool = False):
+        """
+        Initialize consciousness engine.
+
+        Args:
+            debug: Enable debug logging
+        """
+        self.debug = debug
+        self.initialized = False
+
+        # Components (initialized in initialize())
+        self.self_awareness: Optional[SelfAwarenessEngine] = None
+        self.qualia_sim: Optional[QualiaSimulator] = None
+        self.global_workspace: Optional[GlobalWorkspace] = None
+        self.metaconsciousness: Optional[MetaconsciousnessSystem] = None
+        self.iit_engine: Optional[IntegratedInformationEngine] = None
+        self.binding_system: Optional[PhenomenalBindingSystem] = None
+        self.access_controller: Optional[ConsciousAccessController] = None
+
+        # Metrics history
+        self.metrics_history: List[ConsciousnessMetrics] = []
+        self.max_history_size: int = 100
+
+        # State
+        self.active: bool = False
+        self.cycle_count: int = 0
+
+    def initialize(self) -> None:
+        """Initialize all consciousness components."""
+        if self.initialized:
+            return
+
+        if self.debug:
+            print("🧠 Initializing Consciousness Engine...")
+
+        # Initialize components using singleton getters
+        self.self_awareness = get_self_awareness_engine()
+        self.qualia_sim = get_qualia_simulator()
+        self.global_workspace = get_global_workspace()
+        self.metaconsciousness = get_metaconsciousness_system()
+        self.iit_engine = get_iit_engine()
+        self.binding_system = get_binding_system()
+        self.access_controller = get_access_controller()
+
+        self.initialized = True
+        self.active = True
+
+        if self.debug:
+            print("✅ Consciousness Engine initialized")
+
+    def process_cycle(self) -> ConsciousnessMetrics:
+        """
+        Run one consciousness processing cycle.
+
+        Returns:
+            Current consciousness metrics
+        """
+        if not self.initialized:
+            self.initialize()
+
+        self.cycle_count += 1
+
+        # Update self-awareness (if method exists)
+        if self.self_awareness and hasattr(self.self_awareness, 'update'):
+            self.self_awareness.update()
+
+        # Process global workspace broadcasts
+        gwt_active = False
+        if self.global_workspace:
+            # Simulate workspace activity
+            gwt_active = len(self.global_workspace.workspace) > 0
+
+        # Compute metrics
+        metrics = self.compute_metrics()
+
+        # Store in history
+        self.metrics_history.append(metrics)
+        if len(self.metrics_history) > self.max_history_size:
+            self.metrics_history.pop(0)
+
+        return metrics
+
+    def compute_metrics(self) -> ConsciousnessMetrics:
+        """
+        Compute comprehensive consciousness metrics.
+
+        Returns:
+            ConsciousnessMetrics object
+        """
+        metrics = ConsciousnessMetrics()
+
+        # GWT metrics
+        if self.global_workspace:
+            metrics.gwt_integration_level = min(
+                len(self.global_workspace.workspace) / 10.0, 1.0
+            )
+            metrics.gwt_content_diversity = min(
+                len(set(c.content_id for c in self.global_workspace.workspace)) / 5.0, 1.0
+            )
+            metrics.gwt_broadcast_rate = len(self.global_workspace.broadcast_history) / max(self.cycle_count, 1)
+
+        # IIT metrics
+        if self.iit_engine:
+            # Simplified phi calculation (mock values to avoid async complexity)
+            # In production, would use async calculate_phi()
+            metrics.iit_phi_value = 0.5  # Mock baseline
+            metrics.iit_system_complexity = 0.7  # Mock value
+            metrics.iit_integration_score = 0.6  # Mock value
+
+        # HOT metrics
+        if self.metaconsciousness:
+            hot_count = len(self.metaconsciousness.hot_history)
+            metrics.hot_metacognition_depth = min(hot_count, 5)
+            metrics.hot_reflection_count = hot_count
+            metrics.hot_self_awareness = min(hot_count / 5.0, 1.0)
+
+        # Phenomenal metrics
+        if self.qualia_sim:
+            # Use experience history
+            if self.qualia_sim.experience_history:
+                exp = self.qualia_sim.experience_history[-1]
+                metrics.phenomenal_qualia_richness = min(len(exp.qualia) / 5.0, 1.0)
+                metrics.phenomenal_unity = exp.unity_score
+                metrics.phenomenal_vividness = exp.vividness
+            else:
+                # Default values
+                metrics.phenomenal_qualia_richness = 0.3
+                metrics.phenomenal_unity = 0.5
+                metrics.phenomenal_vividness = 0.4
+
+        # Access metrics
+        if self.access_controller:
+            # Simplified access metrics
+            metrics.access_availability = 0.8  # Mock value
+            metrics.access_reportability = 0.75  # Mock value
+            metrics.access_control_quality = 0.85  # Mock value
+
+        # Self-awareness metrics
+        if self.self_awareness:
+            self_model = self.self_awareness.self_model
+            metrics.self_model_accuracy = self_model.capability_level
+            metrics.self_introspection_depth = 0.7  # Mock value
+            metrics.self_identity_coherence = 0.8  # Mock value
+
+        # Compute overall level
+        metrics.compute_overall_level()
+
+        return metrics
+
+    def get_consciousness_level(self) -> float:
+        """
+        Get current overall consciousness level.
+
+        Returns:
+            Float between 0 and 1
+        """
+        metrics = self.compute_metrics()
+        return metrics.overall_consciousness_level
+
+    def introspect(self, aspect: SelfAspect) -> IntrospectionResult:
+        """
+        Perform introspection on specified aspect.
+
+        Args:
+            aspect: Aspect to introspect
+
+        Returns:
+            IntrospectionResult
+        """
+        if not self.self_awareness:
+            self.initialize()
+
+        query = IntrospectionQuery(aspect=aspect)
+        return self.self_awareness.introspect(query)
+
+    def generate_qualia(self, qualia_type: QualiaType, intensity: float = 0.5) -> Quale:
+        """
+        Generate artificial qualia.
+
+        Args:
+            qualia_type: Type of qualia
+            intensity: Intensity (0-1)
+
+        Returns:
+            Generated Quale
+        """
+        if not self.qualia_sim:
+            self.initialize()
+
+        return self.qualia_sim.generate_qualia(qualia_type, intensity)
+
+    def broadcast_to_workspace(self, content_id: str, data: Any, salience: float = 0.5) -> None:
+        """
+        Broadcast content to global workspace.
+
+        Args:
+            content_id: Content identifier
+            data: Content data
+            salience: Content salience (0-1)
+        """
+        if not self.global_workspace:
+            self.initialize()
+
+        content = ConsciousContent(
+            content_id=content_id,
+            data=data,
+            salience=salience
+        )
+        # Add content synchronously (bypass async broadcast)
+        with self.global_workspace.lock:
+            if len(self.global_workspace.workspace) >= self.global_workspace.capacity:
+                # Remove lowest salience
+                self.global_workspace.workspace.sort(key=lambda c: c.salience)
+                self.global_workspace.workspace.pop(0)
+            self.global_workspace.workspace.append(content)
+
+    def get_metrics_history(self, limit: int = 10) -> List[ConsciousnessMetrics]:
+        """
+        Get recent metrics history.
+
+        Args:
+            limit: Number of recent entries
+
+        Returns:
+            List of ConsciousnessMetrics
+        """
+        return self.metrics_history[-limit:]
+
+    def get_state_summary(self) -> Dict[str, Any]:
+        """
+        Get summary of current consciousness state.
+
+        Returns:
+            Dictionary with state information
+        """
+        metrics = self.compute_metrics()
+
+        return {
+            'initialized': self.initialized,
+            'active': self.active,
+            'cycle_count': self.cycle_count,
+            'consciousness_level': metrics.overall_consciousness_level,
+            'components': {
+                'self_awareness': self.self_awareness is not None,
+                'qualia_simulator': self.qualia_sim is not None,
+                'global_workspace': self.global_workspace is not None,
+                'metaconsciousness': self.metaconsciousness is not None,
+                'iit_engine': self.iit_engine is not None,
+                'binding_system': self.binding_system is not None,
+                'access_controller': self.access_controller is not None,
+            },
+            'metrics': metrics.to_dict(),
+        }
+
+    def shutdown(self) -> None:
+        """Shutdown consciousness engine."""
+        self.active = False
+        if self.debug:
+            print("🛑 Consciousness Engine shutdown")
+
+
+# ============================================================================
+# Singleton for ConsciousnessEngine
+# ============================================================================
+
+_consciousness_engine_instance = None
+_consciousness_engine_lock = threading.Lock()
+
+def get_consciousness_engine(debug: bool = False) -> ConsciousnessEngine:
+    """Get consciousness engine singleton"""
+    global _consciousness_engine_instance
+    with _consciousness_engine_lock:
+        if _consciousness_engine_instance is None:
+            _consciousness_engine_instance = ConsciousnessEngine(debug=debug)
+            _consciousness_engine_instance.initialize()
+    return _consciousness_engine_instance
