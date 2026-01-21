@@ -57,7 +57,10 @@ markers = [
     "enterprise: marks tests for enterprise features",
     "smoke: marks tests as smoke tests",
     "regression: marks tests as regression tests",
-    "e2e: marks tests as end-to-end tests"
+    "e2e: marks tests as end-to-end tests",
+    "small: marks tests as small/fast unit tests (< 1 second, no I/O, no network)",
+    "medium: marks tests as medium integration tests (< 5 minutes, local resources allowed)",
+    "large: marks tests as large/extended e2e tests (full integration, may be slow)"
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
