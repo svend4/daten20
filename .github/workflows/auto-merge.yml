@@ -1,0 +1,140 @@
+name: Auto-Merge Dependabot PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-dependabot:
+    name: Check if Dependabot PR
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+
+    outputs:
+      should-merge: ${{ steps.check.outputs.should-merge }}
+      pr-type: ${{ steps.check.outputs.pr-type }}
+
+    steps:
+    - name: Check PR metadata
+      id: check
+      run: |
+        PR_TITLE="${{ github.event.pull_request.title }}"
+        echo "PR Title: $PR_TITLE"
+
+        # Determine update type
+        if echo "$PR_TITLE" | grep -q "patch"; then
+          echo "should-merge=true" >> $GITHUB_OUTPUT
+          echo "pr-type=patch" >> $GITHUB_OUTPUT
+        elif echo "$PR_TITLE" | grep -q "minor"; then
+          echo "should-merge=true" >> $GITHUB_OUTPUT
+          echo "pr-type=minor" >> $GITHUB_OUTPUT
+        else
+          echo "should-merge=false" >> $GITHUB_OUTPUT
+          echo "pr-type=major" >> $GITHUB_OUTPUT
+        fi
+
+  auto-approve:
+    name: Auto-Approve Dependabot PR
+    runs-on: ubuntu-latest
+    needs: check-dependabot
+    if: needs.check-dependabot.outputs.should-merge == 'true'
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+    - name: Auto-approve PR
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.pulls.createReview({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+            event: 'APPROVE',
+            body: '✅ Auto-approved by GitHub Actions (Dependabot ${{ needs.check-dependabot.outputs.pr-type }} update)'
+          });
+
+  wait-for-checks:
+    name: Wait for CI Checks
+    runs-on: ubuntu-latest
+    needs: [check-dependabot, auto-approve]
+    if: needs.check-dependabot.outputs.should-merge == 'true'
+
+    steps:
+    - name: Wait for checks to complete
+      uses: lewagon/wait-on-check-action@v1.3.1
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        check-regexp: '.*'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        wait-interval: 30
+        allowed-conclusions: success,skipped
+
+  auto-merge:
+    name: Auto-Merge PR
+    runs-on: ubuntu-latest
+    needs: [check-dependabot, wait-for-checks]
+    if: needs.check-dependabot.outputs.should-merge == 'true'
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+    - name: Enable auto-merge
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.pulls.merge({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+            merge_method: 'squash',
+            commit_title: '${{ github.event.pull_request.title }}',
+            commit_message: 'Auto-merged by GitHub Actions after CI checks passed'
+          });
+
+    - name: Add merge comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: '✅ Auto-merged after all CI checks passed successfully!\n\nUpdate type: **${{ needs.check-dependabot.outputs.pr-type }}**'
+          });
+
+  notify-manual-review:
+    name: Notify Manual Review Required
+    runs-on: ubuntu-latest
+    needs: check-dependabot
+    if: needs.check-dependabot.outputs.should-merge == 'false'
+
+    steps:
+    - name: Add review comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: '⚠️ This is a **major version update** that requires manual review.\n\nPlease review the changes carefully and test before merging.'
+          });
+
+    - name: Request review
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          await github.rest.pulls.requestReviewers({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+            reviewers: ['svend4']
+          });
