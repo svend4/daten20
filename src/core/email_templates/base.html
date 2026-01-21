@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}Document Management System{% endblock %}</title>
+    <style>
+        /* Base styles for email */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f5f5;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header */
+        .email-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .email-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .email-header .logo {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        /* Body */
+        .email-body {
+            padding: 40px 30px;
+        }
+
+        .email-body h2 {
+            color: #1a1a1a;
+            font-size: 22px;
+            margin: 0 0 20px 0;
+            font-weight: 600;
+        }
+
+        .email-body p {
+            margin: 0 0 15px 0;
+            color: #555555;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 14px 30px;
+            margin: 20px 0;
+            background-color: #667eea;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #5568d3;
+        }
+
+        .btn-secondary {
+            background-color: #48bb78;
+        }
+
+        .btn-secondary:hover {
+            background-color: #38a169;
+        }
+
+        /* Info boxes */
+        .info-box {
+            background-color: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background-color: #fff5e6;
+            border-left: 4px solid #f59e0b;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .success-box {
+            background-color: #e6fff2;
+            border-left: 4px solid #48bb78;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        /* Code/Token display */
+        .code {
+            background-color: #f7f7f7;
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            letter-spacing: 2px;
+            text-align: center;
+            margin: 20px 0;
+            color: #1a1a1a;
+        }
+
+        /* Footer */
+        .email-footer {
+            background-color: #f7f7f7;
+            padding: 25px 30px;
+            text-align: center;
+            font-size: 14px;
+            color: #777777;
+        }
+
+        .email-footer p {
+            margin: 5px 0;
+        }
+
+        .email-footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .email-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Social links */
+        .social-links {
+            margin: 15px 0;
+        }
+
+        .social-links a {
+            display: inline-block;
+            margin: 0 8px;
+            color: #777777;
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 0;
+            }
+
+            .email-body {
+                padding: 25px 20px;
+            }
+
+            .email-header {
+                padding: 20px 15px;
+            }
+
+            .btn {
+                display: block;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <div class="logo">📄</div>
+            <h1>{% block header_title %}Document Management System{% endblock %}</h1>
+        </div>
+
+        <!-- Body -->
+        <div class="email-body">
+            {% block content %}
+            <!-- Email content goes here -->
+            {% endblock %}
+        </div>
+
+        <!-- Footer -->
+        <div class="email-footer">
+            {% block footer %}
+            <p><strong>Document Management System</strong></p>
+            <p>&copy; {{ year|default(2026) }} DMS. All rights reserved.</p>
+            <p>
+                <a href="{{ unsubscribe_url|default('#') }}">Unsubscribe</a> |
+                <a href="{{ preferences_url|default('#') }}">Email Preferences</a>
+            </p>
+            <div class="social-links">
+                <a href="#">GitHub</a> |
+                <a href="#">Documentation</a> |
+                <a href="#">Support</a>
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+</body>
+</html>
