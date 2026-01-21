@@ -471,7 +471,7 @@ celery==5.3.4
 
 # Async HTTP
 aiohttp==3.9.1
-aiofiles==23.2.1
+aiofiles==25.1.0
 httpx==0.25.2
 
 # Serialization
