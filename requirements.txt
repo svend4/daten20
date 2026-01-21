@@ -427,7 +427,7 @@ mlflow==2.9.2
 wandb==0.16.2
 
 # Data Validation
-pydantic==2.5.3
+pydantic==2.12.5
 marshmallow==3.20.1
 
 # Graph Processing (v4 - Knowledge Graphs)
