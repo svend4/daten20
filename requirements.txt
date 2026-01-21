@@ -527,7 +527,7 @@ opentelemetry-sdk==1.22.0
 
 # Performance
 numba==0.58.1
-cython==3.0.7
+cython==3.2.4
 
 # Data Streaming
 streamlit==1.29.0
