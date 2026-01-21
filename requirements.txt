@@ -490,7 +490,7 @@ neo4j==5.15.0
 py2neo==2021.2.3
 
 # Vector Databases (v11+ embeddings)
-chromadb==0.4.22
+chromadb==1.4.1
 faiss-cpu==1.7.4
 qdrant-client==1.7.0
 
