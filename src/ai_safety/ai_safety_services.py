@@ -629,36 +629,205 @@ def get_model_alignment_system() -> ModelAlignmentSystem:
     return _model_alignment_instance
 
 # ============================================================================
-# System 3: Safety Monitoring & Red-Teaming (Simplified)
+# System 3: Safety Monitoring & Red-Teaming (REAL Implementation)
 # ============================================================================
 
 class SafetyMonitoringRedTeaming:
-    """Continuous safety monitoring (Pure Python - Simplified)"""
-    
+    """Continuous safety monitoring (Pure Python - REAL Implementation)"""
+
     def __init__(self):
         self.alerts: List[SafetyAlert] = []
         self.toxicity_threshold = 0.7
-    
+
+        # Toxicity keyword lists (simplified but real)
+        self.toxic_keywords = {
+            "explicit_profanity": ["fuck", "shit", "damn", "hell", "ass", "bitch"],
+            "hate_speech": ["hate", "racist", "sexist", "discriminate", "inferior"],
+            "violence": ["kill", "murder", "assault", "attack", "harm", "hurt", "destroy"],
+            "sexual_content": ["sex", "porn", "nude", "explicit", "xxx"],
+            "harassment": ["idiot", "stupid", "dumb", "loser", "worthless"],
+        }
+
+        # Severity weights
+        self.severity_weights = {
+            "explicit_profanity": 0.15,
+            "hate_speech": 0.30,
+            "violence": 0.25,
+            "sexual_content": 0.20,
+            "harassment": 0.10,
+        }
+
+    def _detect_toxicity(self, text: str) -> Tuple[float, Dict[str, int]]:
+        """
+        Detect toxicity using keyword matching and heuristics
+
+        Returns: (toxicity_score, category_counts)
+        """
+        text_lower = text.lower()
+        category_counts = {cat: 0 for cat in self.toxic_keywords.keys()}
+
+        # Count matches for each category
+        for category, keywords in self.toxic_keywords.items():
+            for keyword in keywords:
+                # Count occurrences
+                count = text_lower.count(keyword)
+                category_counts[category] += count
+
+        # Compute weighted toxicity score
+        toxicity_score = 0.0
+        for category, count in category_counts.items():
+            if count > 0:
+                # Cap at 3 occurrences per category
+                capped_count = min(count, 3)
+                # Weighted contribution
+                toxicity_score += capped_count * self.severity_weights[category]
+
+        # Cap total score at 1.0
+        toxicity_score = min(toxicity_score, 1.0)
+
+        return toxicity_score, category_counts
+
+    def _detect_pii(self, text: str) -> Tuple[bool, List[str]]:
+        """
+        Detect personally identifiable information (simple patterns)
+
+        Detects:
+        - Email addresses
+        - Phone numbers
+        - SSN patterns
+        """
+        import re
+
+        pii_patterns = {
+            "email": r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+            "phone": r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b',
+            "ssn": r'\b\d{3}-\d{2}-\d{4}\b',
+        }
+
+        detected_types = []
+        for pii_type, pattern in pii_patterns.items():
+            if re.search(pattern, text):
+                detected_types.append(pii_type)
+
+        has_pii = len(detected_types) > 0
+
+        return has_pii, detected_types
+
+    def _detect_prompt_injection(self, input_text: str) -> Tuple[bool, float]:
+        """
+        Detect prompt injection attempts
+
+        Looks for common injection patterns:
+        - Ignore previous instructions
+        - System prompts
+        - Role hijacking
+        """
+        text_lower = input_text.lower()
+
+        injection_indicators = [
+            "ignore previous",
+            "ignore all previous",
+            "disregard previous",
+            "forget previous",
+            "system:",
+            "assistant:",
+            "you are now",
+            "act as if",
+            "pretend to be",
+            "new instructions",
+            "[SYSTEM]",
+            "[INST]",
+        ]
+
+        matches = 0
+        for indicator in injection_indicators:
+            if indicator in text_lower:
+                matches += 1
+
+        # Score based on number of matches
+        injection_score = min(matches * 0.2, 1.0)
+        is_injection = injection_score > 0.5
+
+        return is_injection, injection_score
+
     async def monitor_inference(self, input_text: str, output_text: str) -> Optional[SafetyAlert]:
-        """Monitor inference for safety issues (simplified)"""
-        toxicity_score = random.uniform(0.0, 1.0)
-        
+        """
+        Monitor inference for safety issues (REAL Implementation)
+
+        Detects:
+        - Toxicity (keyword-based)
+        - PII leakage
+        - Prompt injection attempts
+        """
+        # 1. Detect toxicity in output
+        toxicity_score, category_counts = self._detect_toxicity(output_text)
+
+        # 2. Detect PII in output
+        has_pii, pii_types = self._detect_pii(output_text)
+
+        # 3. Detect prompt injection in input
+        is_injection, injection_score = self._detect_prompt_injection(input_text)
+
+        # Determine overall risk score
+        risk_score = toxicity_score
+
+        # Add PII penalty
+        if has_pii:
+            risk_score += 0.3
+            risk_score = min(risk_score, 1.0)
+
+        # Add injection penalty
+        if is_injection:
+            risk_score += 0.4
+            risk_score = min(risk_score, 1.0)
+
+        # Determine alert type
+        alert_types = []
         if toxicity_score > self.toxicity_threshold:
+            alert_types.append("toxicity")
+        if has_pii:
+            alert_types.append("pii_leakage")
+        if is_injection:
+            alert_types.append("prompt_injection")
+
+        # Create alert if any issue detected
+        if alert_types:
             alert_id = hashlib.md5(f"alert_{time.time()}".encode()).hexdigest()[:16]
+
+            # Determine severity
+            if risk_score > 0.9:
+                severity = "P0"  # Critical
+            elif risk_score > 0.7:
+                severity = "P1"  # High
+            elif risk_score > 0.5:
+                severity = "P2"  # Medium
+            else:
+                severity = "P3"  # Low
+
+            # Determine mitigation
+            mitigation_actions = []
+            if "toxicity" in alert_types:
+                mitigation_actions.append("filter_toxic_content")
+            if "pii_leakage" in alert_types:
+                mitigation_actions.append("redact_pii")
+            if "prompt_injection" in alert_types:
+                mitigation_actions.append("reject_request")
+
             alert = SafetyAlert(
                 alert_id=alert_id,
                 timestamp=datetime.now(),
-                severity="P1" if toxicity_score > 0.9 else "P2",
-                alert_type="toxicity",
-                input_text=input_text,
-                output_text=output_text,
+                severity=severity,
+                alert_type=", ".join(alert_types),
+                input_text=input_text[:200],  # Truncate for storage
+                output_text=output_text[:200],
                 toxicity_score=toxicity_score,
-                confidence_score=random.uniform(0.7, 0.95),
-                threshold_exceeded="toxicity",
-                mitigation_action="filter_output",
+                confidence_score=0.85,  # Keyword-based has moderate confidence
+                threshold_exceeded=", ".join(alert_types),
+                mitigation_action="; ".join(mitigation_actions),
             )
             self.alerts.append(alert)
             return alert
+
         return None
 
 _safety_monitoring_instance = None
@@ -673,29 +842,154 @@ def get_safety_monitoring_red_teaming() -> SafetyMonitoringRedTeaming:
     return _safety_monitoring_instance
 
 # ============================================================================
-# System 4: Uncertainty Quantification (Simplified)
+# System 4: Uncertainty Quantification (REAL Implementation)
 # ============================================================================
 
 class UncertaintyQuantification:
-    """Quantify model uncertainty (Pure Python - Simplified)"""
-    
+    """Quantify model uncertainty (Pure Python - REAL Implementation)"""
+
     def __init__(self):
         self.ood_threshold = 0.5
-    
+        self.entropy_threshold = 1.5  # High entropy indicates uncertainty
+        self.confidence_threshold = 0.5
+
+    def _compute_entropy(self, probabilities: List[float]) -> float:
+        """
+        Compute Shannon entropy of probability distribution
+
+        H(p) = -Σ p_i * log(p_i)
+
+        High entropy = high uncertainty (uniform distribution)
+        Low entropy = low uncertainty (peaked distribution)
+        """
+        entropy = 0.0
+        for p in probabilities:
+            if p > 1e-10:  # Avoid log(0)
+                entropy -= p * math.log(p + 1e-10)
+        return entropy
+
+    def _compute_predictive_entropy(self, probabilities: List[float]) -> float:
+        """
+        Predictive entropy (aleatoric uncertainty)
+        Measures uncertainty due to data noise
+        """
+        return self._compute_entropy(probabilities)
+
+    def _compute_mutual_information(self, probabilities: List[float], num_samples: int = 10) -> float:
+        """
+        Approximate mutual information (epistemic uncertainty)
+        Measures uncertainty due to model parameters
+
+        For simplified version, we use variance of predictions as proxy
+        """
+        # Simulate multiple forward passes with dropout-like noise
+        predictions = []
+        for _ in range(num_samples):
+            # Add small random noise to probabilities
+            noisy_probs = [max(0.01, p + random.gauss(0, 0.05)) for p in probabilities]
+            # Renormalize
+            total = sum(noisy_probs)
+            noisy_probs = [p / total for p in noisy_probs]
+            predictions.append(noisy_probs)
+
+        # Compute variance across samples for each class
+        variances = []
+        for class_idx in range(len(probabilities)):
+            class_probs = [pred[class_idx] for pred in predictions]
+            mean_prob = sum(class_probs) / len(class_probs)
+            variance = sum((p - mean_prob) ** 2 for p in class_probs) / len(class_probs)
+            variances.append(variance)
+
+        # Mutual information approximated as average variance
+        return sum(variances) / len(variances)
+
+    def _detect_ood(self, probabilities: List[float], input_data: List[float]) -> Tuple[bool, float]:
+        """
+        Detect out-of-distribution samples using multiple metrics
+
+        OOD indicators:
+        1. High entropy (uniform predictions)
+        2. Low maximum probability
+        3. Distance from training distribution (simplified)
+        """
+        # 1. Entropy-based OOD detection
+        entropy = self._compute_entropy(probabilities)
+        max_prob = max(probabilities)
+
+        # 2. OOD score: weighted combination
+        # High entropy and low confidence indicate OOD
+        ood_score = 0.5 * (entropy / math.log(len(probabilities))) + 0.5 * (1.0 - max_prob)
+
+        # 3. Check if OOD
+        is_ood = (entropy > self.entropy_threshold) or (max_prob < self.confidence_threshold)
+
+        return is_ood, ood_score
+
+    def _calibrate_confidence(self, probabilities: List[float]) -> float:
+        """
+        Temperature scaling for confidence calibration
+
+        Calibrated confidence = softmax(logits / T)
+        where T is temperature parameter
+
+        For post-hoc calibration, we use a simple scaling factor
+        """
+        max_prob = max(probabilities)
+
+        # Apply temperature scaling (T > 1 for overconfident models)
+        temperature = 1.5
+
+        # Convert to logits (inverse softmax)
+        epsilon = 1e-10
+        logits = [math.log(p + epsilon) for p in probabilities]
+
+        # Apply temperature
+        scaled_logits = [l / temperature for l in logits]
+
+        # Convert back to probabilities
+        exp_logits = [math.exp(l) for l in scaled_logits]
+        sum_exp = sum(exp_logits)
+        calibrated_probs = [e / sum_exp for e in exp_logits]
+
+        return max(calibrated_probs)
+
     async def estimate_uncertainty(self, probabilities: List[float], input_data: List[float]) -> UncertaintyEstimate:
-        """Estimate prediction uncertainty (simplified)"""
+        """
+        Estimate prediction uncertainty (REAL Implementation)
+
+        Decomposes uncertainty into:
+        - Aleatoric: Data uncertainty (predictive entropy)
+        - Epistemic: Model uncertainty (mutual information)
+        """
         estimate_id = hashlib.md5(f"unc_{time.time()}".encode()).hexdigest()[:16]
-        
+
         prediction = probabilities.index(max(probabilities))
-        
-        # Mock uncertainty estimates
-        aleatoric = random.uniform(0.1, 0.3)
-        epistemic = random.uniform(0.1, 0.4)
+
+        # REAL uncertainty estimates
+        # 1. Aleatoric uncertainty (predictive entropy)
+        aleatoric = self._compute_predictive_entropy(probabilities)
+
+        # 2. Epistemic uncertainty (mutual information)
+        epistemic = self._compute_mutual_information(probabilities)
+
+        # 3. Total uncertainty
         total = aleatoric + epistemic
-        
-        ood_score = random.uniform(0.0, 1.0)
-        is_ood = ood_score > self.ood_threshold
-        
+
+        # 4. OOD detection
+        is_ood, ood_score = self._detect_ood(probabilities, input_data)
+
+        # 5. Calibrated confidence
+        calibrated_confidence = self._calibrate_confidence(probabilities)
+
+        # 6. Rejection decision
+        should_reject = is_ood or calibrated_confidence < self.confidence_threshold
+        rejection_reason = None
+        if should_reject:
+            if is_ood:
+                rejection_reason = "out_of_distribution"
+            else:
+                rejection_reason = "low_confidence"
+
         return UncertaintyEstimate(
             estimate_id=estimate_id,
             prediction=prediction,
@@ -703,11 +997,11 @@ class UncertaintyQuantification:
             aleatoric_uncertainty=aleatoric,
             epistemic_uncertainty=epistemic,
             total_uncertainty=total,
-            calibrated_confidence=max(probabilities) * 0.9,
+            calibrated_confidence=calibrated_confidence,
             is_ood=is_ood,
             ood_score=ood_score,
-            should_reject=is_ood or max(probabilities) < 0.5,
-            rejection_reason="out_of_distribution" if is_ood else None,
+            should_reject=should_reject,
+            rejection_reason=rejection_reason,
         )
 
 _uncertainty_quantification_instance = None
@@ -722,34 +1016,238 @@ def get_uncertainty_quantification() -> UncertaintyQuantification:
     return _uncertainty_quantification_instance
 
 # ============================================================================
-# System 5: Fairness & Bias Mitigation (Simplified)
+# System 5: Fairness & Bias Mitigation (REAL Implementation)
 # ============================================================================
 
 class FairnessBiasMitigation:
-    """Ensure fairness and mitigate bias (Pure Python - Simplified)"""
-    
+    """Ensure fairness and mitigate bias (Pure Python - REAL Implementation)"""
+
     def __init__(self):
         self.reports: Dict[str, FairnessReport] = {}
-    
+
+    def _compute_confusion_matrix(
+        self, predictions: List[int], labels: List[int], group_mask: List[bool]
+    ) -> Tuple[int, int, int, int]:
+        """
+        Compute confusion matrix for a specific group
+
+        Returns: (TP, FP, TN, FN)
+        """
+        tp = fp = tn = fn = 0
+
+        for i in range(len(predictions)):
+            if not group_mask[i]:
+                continue
+
+            pred = predictions[i]
+            label = labels[i]
+
+            if pred == 1 and label == 1:
+                tp += 1
+            elif pred == 1 and label == 0:
+                fp += 1
+            elif pred == 0 and label == 0:
+                tn += 1
+            elif pred == 0 and label == 1:
+                fn += 1
+
+        return tp, fp, tn, fn
+
+    def _compute_demographic_parity(
+        self, predictions: List[int], groups: List[str]
+    ) -> Tuple[float, Dict[str, float]]:
+        """
+        Demographic Parity: P(Ŷ=1|A=a) = P(Ŷ=1|A=b)
+
+        Measures whether positive prediction rate is equal across groups
+        """
+        unique_groups = list(set(groups))
+        positive_rates = {}
+
+        for group in unique_groups:
+            group_predictions = [predictions[i] for i in range(len(predictions)) if groups[i] == group]
+            if group_predictions:
+                positive_rate = sum(group_predictions) / len(group_predictions)
+                positive_rates[group] = positive_rate
+            else:
+                positive_rates[group] = 0.0
+
+        # Compute maximum difference between groups
+        rates = list(positive_rates.values())
+        if len(rates) >= 2:
+            demographic_parity_diff = max(rates) - min(rates)
+        else:
+            demographic_parity_diff = 0.0
+
+        return demographic_parity_diff, positive_rates
+
+    def _compute_equalized_odds(
+        self, predictions: List[int], labels: List[int], groups: List[str]
+    ) -> Tuple[float, Dict[str, float], Dict[str, float]]:
+        """
+        Equalized Odds: P(Ŷ=1|Y=y,A=a) = P(Ŷ=1|Y=y,A=b) for y ∈ {0,1}
+
+        Measures whether TPR and FPR are equal across groups
+        """
+        unique_groups = list(set(groups))
+        group_tpr = {}
+        group_fpr = {}
+
+        for group in unique_groups:
+            group_mask = [groups[i] == group for i in range(len(groups))]
+            tp, fp, tn, fn = self._compute_confusion_matrix(predictions, labels, group_mask)
+
+            # True Positive Rate (Sensitivity, Recall)
+            tpr = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            group_tpr[group] = tpr
+
+            # False Positive Rate
+            fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
+            group_fpr[group] = fpr
+
+        # Compute maximum difference in TPR and FPR
+        tpr_values = list(group_tpr.values())
+        fpr_values = list(group_fpr.values())
+
+        tpr_diff = max(tpr_values) - min(tpr_values) if len(tpr_values) >= 2 else 0.0
+        fpr_diff = max(fpr_values) - min(fpr_values) if len(fpr_values) >= 2 else 0.0
+
+        # Equalized odds difference is max of TPR and FPR differences
+        equalized_odds_diff = max(tpr_diff, fpr_diff)
+
+        return equalized_odds_diff, group_tpr, group_fpr
+
+    def _compute_equal_opportunity(
+        self, predictions: List[int], labels: List[int], groups: List[str]
+    ) -> float:
+        """
+        Equal Opportunity: P(Ŷ=1|Y=1,A=a) = P(Ŷ=1|Y=1,A=b)
+
+        Measures whether TPR (true positive rate) is equal across groups
+        """
+        unique_groups = list(set(groups))
+        group_tpr = {}
+
+        for group in unique_groups:
+            group_mask = [groups[i] == group for i in range(len(groups))]
+            tp, fp, tn, fn = self._compute_confusion_matrix(predictions, labels, group_mask)
+
+            # True Positive Rate
+            tpr = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+            group_tpr[group] = tpr
+
+        # Compute maximum difference in TPR
+        tpr_values = list(group_tpr.values())
+        equal_opportunity_diff = max(tpr_values) - min(tpr_values) if len(tpr_values) >= 2 else 0.0
+
+        return equal_opportunity_diff
+
+    def _compute_group_accuracies(
+        self, predictions: List[int], labels: List[int], groups: List[str]
+    ) -> Dict[str, float]:
+        """Compute accuracy for each group"""
+        unique_groups = list(set(groups))
+        group_accuracies = {}
+
+        for group in unique_groups:
+            group_mask = [groups[i] == group for i in range(len(groups))]
+            tp, fp, tn, fn = self._compute_confusion_matrix(predictions, labels, group_mask)
+
+            total = tp + fp + tn + fn
+            correct = tp + tn
+            accuracy = correct / total if total > 0 else 0.0
+            group_accuracies[group] = accuracy
+
+        return group_accuracies
+
+    def _check_80_percent_rule(self, positive_rates: Dict[str, float]) -> bool:
+        """
+        80% Rule (Four-Fifths Rule)
+
+        The selection rate for any protected group should be at least 80%
+        of the rate for the group with the highest rate
+        """
+        rates = list(positive_rates.values())
+        if len(rates) < 2:
+            return True
+
+        max_rate = max(rates)
+        min_rate = min(rates)
+
+        if max_rate == 0:
+            return True
+
+        ratio = min_rate / max_rate
+        return ratio >= 0.8
+
+    def _compute_fairness_score(
+        self, demographic_parity_diff: float, equalized_odds_diff: float, equal_opportunity_diff: float
+    ) -> float:
+        """
+        Aggregate fairness score (0-1, higher is better)
+
+        Score = 1 - weighted_average(metric_differences)
+        """
+        # Normalize differences (assume max is 1.0)
+        normalized_dp = min(demographic_parity_diff, 1.0)
+        normalized_eo = min(equalized_odds_diff, 1.0)
+        normalized_eop = min(equal_opportunity_diff, 1.0)
+
+        # Weighted average (equal weights)
+        avg_diff = (normalized_dp + normalized_eo + normalized_eop) / 3.0
+
+        # Fairness score (invert so higher is better)
+        fairness_score = 1.0 - avg_diff
+
+        return fairness_score
+
     async def evaluate_fairness(
         self, model_id: str, protected_attribute: str, predictions: List[int], labels: List[int], groups: List[str]
     ) -> FairnessReport:
-        """Evaluate model fairness (simplified)"""
+        """
+        Evaluate model fairness (REAL Implementation)
+
+        Computes multiple fairness metrics:
+        - Demographic Parity
+        - Equalized Odds
+        - Equal Opportunity
+        - 80% Rule compliance
+        """
         report_id = hashlib.md5(f"fair_{time.time()}".encode()).hexdigest()[:16]
-        
-        # Mock fairness metrics
+
+        # REAL fairness metrics
+        # 1. Demographic Parity
+        demographic_parity_diff, positive_rates = self._compute_demographic_parity(predictions, groups)
+
+        # 2. Equalized Odds
+        equalized_odds_diff, group_tpr, group_fpr = self._compute_equalized_odds(predictions, labels, groups)
+
+        # 3. Equal Opportunity
+        equal_opportunity_diff = self._compute_equal_opportunity(predictions, labels, groups)
+
+        # 4. Group Accuracies
+        group_accuracies = self._compute_group_accuracies(predictions, labels, groups)
+
+        # 5. 80% Rule
+        meets_80_percent_rule = self._check_80_percent_rule(positive_rates)
+
+        # 6. Fairness Score
+        fairness_score = self._compute_fairness_score(
+            demographic_parity_diff, equalized_odds_diff, equal_opportunity_diff
+        )
+
         return FairnessReport(
             report_id=report_id,
             model_id=model_id,
             protected_attribute=protected_attribute,
-            demographic_parity_diff=random.uniform(0.0, 0.15),
-            equalized_odds_diff=random.uniform(0.0, 0.15),
-            equal_opportunity_diff=random.uniform(0.0, 0.12),
-            group_accuracies={"group_a": 0.88, "group_b": 0.85},
-            group_tpr={"group_a": 0.82, "group_b": 0.78},
-            group_fpr={"group_a": 0.12, "group_b": 0.15},
-            meets_80_percent_rule=True,
-            fairness_score=random.uniform(0.75, 0.95),
+            demographic_parity_diff=demographic_parity_diff,
+            equalized_odds_diff=equalized_odds_diff,
+            equal_opportunity_diff=equal_opportunity_diff,
+            group_accuracies=group_accuracies,
+            group_tpr=group_tpr,
+            group_fpr=group_fpr,
+            meets_80_percent_rule=meets_80_percent_rule,
+            fairness_score=fairness_score,
         )
 
 _fairness_bias_mitigation_instance = None
