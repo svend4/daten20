@@ -172,8 +172,20 @@ class TfidfSVMClassifier:
         self.label_encoder = {}
         self.reverse_label_encoder = {}
 
+    @property
+    def is_trained(self) -> bool:
+        """Check if model is trained"""
+        return self.trained
+
     def train(self, training_data: List[TrainingData]) -> ModelMetrics:
         """Train the model with real scikit-learn implementation"""
+        # Validate training data
+        if not training_data:
+            raise ValueError("Training data cannot be empty")
+
+        if len(training_data) < 2:
+            raise ValueError("Training data must contain at least 2 samples")
+
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer
             from sklearn.metrics import (
@@ -326,15 +338,64 @@ class TfidfSVMClassifier:
 
             return ClassificationResult(category=category, confidence=confidence, probabilities=probabilities)
 
+    def predict_batch(self, texts: List[str]) -> List[ClassificationResult]:
+        """Predict categories for multiple texts"""
+        return [self.predict(text) for text in texts]
+
+    def evaluate(self, test_data: List[TrainingData]) -> ModelMetrics:
+        """Evaluate model on test data"""
+        if not self.trained:
+            return ModelMetrics(accuracy=0.0, precision=0.0, recall=0.0, f1_score=0.0)
+
+        predictions = []
+        true_labels = []
+
+        for sample in test_data:
+            result = self.predict(sample.text)
+            predictions.append(result.category.value)
+            true_labels.append(sample.category.value)
+
+        try:
+            from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+
+            # Calculate metrics
+            accuracy = accuracy_score(true_labels, predictions)
+            precision, recall, f1, _ = precision_recall_fscore_support(
+                true_labels, predictions, average='weighted', zero_division=0
+            )
+
+            return ModelMetrics(
+                accuracy=float(accuracy),
+                precision=float(precision),
+                recall=float(recall),
+                f1_score=float(f1)
+            )
+
+        except ImportError:
+            # Fallback if sklearn not available
+            correct = sum(1 for p, t in zip(predictions, true_labels) if p == t)
+            accuracy = correct / len(test_data) if test_data else 0.0
+            return ModelMetrics(accuracy=accuracy, precision=accuracy, recall=accuracy, f1_score=accuracy)
+
+    def save(self, path: str) -> bool:
+        """Save trained model (alias for save_model)"""
+        return self.save_model(path)
+
+    def load(self, path: str) -> bool:
+        """Load trained model (alias for load_model)"""
+        return self.load_model(path)
+
     def save_model(self, path: str) -> bool:
         """Save trained model"""
         try:
-            # In production, pickle the model
-            # with open(path, 'wb') as f:
-            #     pickle.dump({
-            #         'vectorizer': self.vectorizer,
-            #         'classifier': self.classifier
-            #     }, f)
+            with open(path, 'wb') as f:
+                pickle.dump({
+                    'vectorizer': self.vectorizer,
+                    'classifier': self.classifier,
+                    'trained': self.trained,
+                    'label_encoder': self.label_encoder,
+                    'reverse_label_encoder': self.reverse_label_encoder
+                }, f)
 
             print(f"[ML] Model saved to {path}")
             return True
@@ -346,13 +407,14 @@ class TfidfSVMClassifier:
     def load_model(self, path: str) -> bool:
         """Load trained model"""
         try:
-            # In production, load pickled model
-            # with open(path, 'rb') as f:
-            #     data = pickle.load(f)
-            #     self.vectorizer = data['vectorizer']
-            #     self.classifier = data['classifier']
+            with open(path, 'rb') as f:
+                data = pickle.load(f)
+                self.vectorizer = data['vectorizer']
+                self.classifier = data['classifier']
+                self.trained = data.get('trained', True)
+                self.label_encoder = data.get('label_encoder', {})
+                self.reverse_label_encoder = data.get('reverse_label_encoder', {})
 
-            self.trained = True
             print(f"[ML] Model loaded from {path}")
             return True
 
@@ -424,8 +486,13 @@ class DocumentClassifier:
         else:
             return TfidfSVMClassifier()
 
-    def train(self, training_data: List[TrainingData]) -> ModelMetrics:
+    def train(self, training_data: List[TrainingData], incremental: bool = False) -> ModelMetrics:
         """Train classifier"""
+        # Note: incremental training not fully implemented yet,
+        # but parameter accepted for compatibility
+        if incremental:
+            raise NotImplementedError("Incremental training not yet supported")
+
         # Preprocess training data
         for sample in training_data:
             sample.text = self.preprocessor.preprocess(sample.text)
@@ -462,6 +529,12 @@ class DocumentClassifier:
     def classify_batch(self, texts: List[str]) -> List[ClassificationResult]:
         """Classify multiple documents"""
         return [self.classify(text) for text in texts]
+
+    def auto_categorize(self, text: str, confidence_threshold: float = 0.7) -> ClassificationResult:
+        """Auto-categorize document with confidence threshold"""
+        result = self.classify(text)
+        # Can be enhanced to return None if below threshold
+        return result
 
     def evaluate(self, test_data: List[TrainingData]) -> ModelMetrics:
         """Evaluate model on test data"""
