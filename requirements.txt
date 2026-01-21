@@ -444,7 +444,7 @@ torchmetrics==1.2.1
 
 # Reinforcement Learning (v16)
 gymnasium==0.29.1
-stable-baselines3==2.2.1
+stable-baselines3==2.7.1
 
 # Model Serving
 onnx==1.15.0
