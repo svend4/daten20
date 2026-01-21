@@ -198,7 +198,7 @@ class TestConsciousnessEngine:
         )
 
         # Verify broadcast occurred
-        assert len(engine.global_workspace.content) > 0
+        assert len(engine.global_workspace.workspace) > 0
 
     def test_metrics_history(self):
         """Test metrics history tracking"""
