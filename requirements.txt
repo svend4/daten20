@@ -475,7 +475,7 @@ aiofiles==23.2.1
 httpx==0.25.2
 
 # Serialization
-msgpack==1.0.7
+msgpack==1.1.2
 protobuf==4.25.1
 
 # Compression
