@@ -1,0 +1,41 @@
+# CODEOWNERS file for daten20
+# This file defines individuals or teams that are responsible for code in this repository.
+# More info: https://help.github.com/articles/about-codeowners/
+
+# Default owners for everything in the repo
+# These owners will be the default owners for everything in the repo
+* @svend4
+
+# Security-critical files require security team approval
+/SECURITY.md @svend4
+/src/core/auth.py @svend4
+/src/core/https_config.py @svend4
+/src/core/csrf_protection.py @svend4
+/src/core/backup_encryption.py @svend4
+/src/core/security_*.py @svend4
+/src/security/ @svend4
+/src/core/api_security.py @svend4
+
+# Configuration files
+/.github/workflows/security.yml @svend4
+/.github/dependabot.yml @svend4
+/requirements.txt @svend4
+/requirements-dev.txt @svend4
+
+# CI/CD workflows
+/.github/workflows/ @svend4
+
+# Docker security
+/Dockerfile @svend4
+/docker-compose*.yml @svend4
+
+# Infrastructure and deployment
+/k8s/ @svend4
+/alembic/ @svend4
+
+# Test files for security modules
+/tests/test_security.py @svend4
+/tests/security/ @svend4
+/tests/unit/core/test_auth_security*.py @svend4
+/tests/unit/core/test_security*.py @svend4
+/tests/unit/core/test_api_security.py @svend4
