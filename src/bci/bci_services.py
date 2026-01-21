@@ -1,5 +1,5 @@
 """
-🧠 Brain-Computer Interface Services (Pure Python v4.4.0)
+🧠 Brain-Computer Interface Services (Pure Python v4.4.1 - Enhanced)
 
 Complete BCI implementation with EEG signal processing, motor imagery classification,
 P300 detection, SSVEP processing, cognitive state monitoring, BCI control interface,
@@ -7,11 +7,15 @@ and neurofeedback systems.
 
 **PURE PYTHON VERSION** - No NumPy required!
 - Works everywhere (zero dependencies beyond stdlib)
-- 100% API compatible with NumPy version (core features)
-- Simplified DSP: Mock FFT, basic filters
+- 100% API compatible with NumPy version
+- REAL DSP Implementations:
+  * Cooley-Tukey FFT algorithm for spectral analysis
+  * Real IIR filter application
+  * Linear interpolation for artifact removal
+  * Band power computation (Delta, Theta, Alpha, Beta, Gamma)
 - ~50-100x slower than NumPy, but highly portable
 
-Version: 4.4.0 (Pure Python)
+Version: 4.4.1 (Pure Python - Enhanced)
 """
 
 import asyncio
@@ -46,6 +50,170 @@ def matrix_mean(matrix: List[List[float]], axis: int = 0) -> List[float]:
         return [list_mean([row[i] for row in matrix]) for i in range(n_cols)]
     else:
         return [list_mean(row) for row in matrix]
+
+# ============================================================================
+# DSP ALGORITHMS (REAL IMPLEMENTATIONS)
+# ============================================================================
+
+def fft_cooley_tukey(x: List[complex]) -> List[complex]:
+    """Cooley-Tukey FFT Algorithm (REAL Implementation)
+
+    Computes the Fast Fourier Transform using the radix-2 decimation-in-time algorithm.
+
+    Time Complexity: O(N log N)
+    Space Complexity: O(N)
+
+    Args:
+        x: Input signal (must have length = power of 2)
+
+    Returns:
+        FFT of input signal
+    """
+    N = len(x)
+
+    # Base case
+    if N <= 1:
+        return x
+
+    # Pad to next power of 2 if needed
+    if N & (N - 1) != 0:
+        next_pow2 = 1 << (N - 1).bit_length()
+        x = list(x) + [0+0j] * (next_pow2 - N)
+        N = next_pow2
+
+    # Divide: split into even and odd indices
+    even = fft_cooley_tukey([x[i] for i in range(0, N, 2)])
+    odd = fft_cooley_tukey([x[i] for i in range(1, N, 2)])
+
+    # Conquer: combine results
+    T = []
+    for k in range(N // 2):
+        # Twiddle factor: e^(-2πik/N)
+        angle = -2.0 * math.pi * k / N
+        twiddle = complex(math.cos(angle), math.sin(angle))
+        T.append(twiddle * odd[k])
+
+    # Combine: X[k] = E[k] + e^(-2πik/N) * O[k]
+    result = []
+    for k in range(N // 2):
+        result.append(even[k] + T[k])
+    for k in range(N // 2):
+        result.append(even[k] - T[k])
+
+    return result
+
+def fft_real(x: List[float]) -> List[complex]:
+    """FFT for real-valued input (REAL Implementation)"""
+    return fft_cooley_tukey([complex(val, 0) for val in x])
+
+def fft_power_spectrum(x: List[float]) -> List[float]:
+    """Compute power spectrum from FFT (REAL Implementation)
+
+    Power = |FFT|² = Re²+ Im²
+    """
+    fft_result = fft_real(x)
+    return [abs(c) ** 2 for c in fft_result]
+
+def fft_frequencies(n: int, sampling_rate: float) -> List[float]:
+    """Generate frequency bins for FFT (REAL Implementation)"""
+    # Frequency resolution: Δf = fs / N
+    freq_resolution = sampling_rate / n
+
+    # Generate frequencies: [0, Δf, 2Δf, ..., (N/2-1)Δf, -N/2·Δf, ..., -Δf]
+    frequencies = []
+    for k in range(n):
+        if k < n // 2:
+            frequencies.append(k * freq_resolution)
+        else:
+            frequencies.append((k - n) * freq_resolution)
+
+    return frequencies
+
+def linear_interpolation(x_points: List[float], y_points: List[float], x_interp: List[float]) -> List[float]:
+    """Linear interpolation (REAL Implementation)
+
+    Interpolates y values at x_interp positions using linear interpolation
+    between (x_points, y_points).
+
+    Args:
+        x_points: Known x coordinates (must be sorted)
+        y_points: Known y values
+        x_interp: x coordinates where to interpolate
+
+    Returns:
+        Interpolated y values
+    """
+    if not x_points or not y_points or len(x_points) != len(y_points):
+        return []
+
+    if len(x_points) == 1:
+        return [y_points[0]] * len(x_interp)
+
+    result = []
+
+    for x in x_interp:
+        # Find bracketing points
+        if x <= x_points[0]:
+            result.append(y_points[0])
+        elif x >= x_points[-1]:
+            result.append(y_points[-1])
+        else:
+            # Find interval [x_i, x_{i+1}] containing x
+            for i in range(len(x_points) - 1):
+                if x_points[i] <= x <= x_points[i + 1]:
+                    # Linear interpolation: y = y0 + (y1-y0)*(x-x0)/(x1-x0)
+                    x0, x1 = x_points[i], x_points[i + 1]
+                    y0, y1 = y_points[i], y_points[i + 1]
+
+                    if x1 - x0 > 1e-10:  # Avoid division by zero
+                        y = y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+                    else:
+                        y = y0
+
+                    result.append(y)
+                    break
+
+    return result
+
+def apply_iir_filter(x: List[float], b: List[float], a: List[float]) -> List[float]:
+    """Apply IIR (Infinite Impulse Response) filter (REAL Implementation)
+
+    Difference equation: a[0]*y[n] = b[0]*x[n] + b[1]*x[n-1] + ... - a[1]*y[n-1] - ...
+
+    Normalized form (a[0]=1): y[n] = b[0]*x[n] + b[1]*x[n-1] + ... - a[1]*y[n-1] - ...
+
+    Args:
+        x: Input signal
+        b: Numerator (feedforward) coefficients
+        a: Denominator (feedback) coefficients
+
+    Returns:
+        Filtered signal
+    """
+    if not x or not b or not a:
+        return x
+
+    # Normalize by a[0]
+    if abs(a[0]) < 1e-10:
+        return x
+
+    b_norm = [coef / a[0] for coef in b]
+    a_norm = [coef / a[0] for coef in a]
+
+    n_b = len(b_norm)
+    n_a = len(a_norm)
+    n = len(x)
+
+    y = [0.0] * n
+
+    for i in range(n):
+        # Feedforward (numerator)
+        y[i] = sum(b_norm[j] * x[i - j] for j in range(min(n_b, i + 1)))
+
+        # Feedback (denominator) - skip a[0] since it's 1
+        y[i] -= sum(a_norm[j] * y[i - j] for j in range(1, min(n_a, i + 1)))
+
+    return y
 
 # ============================================================================
 # 1. EEG SIGNAL PROCESSOR
@@ -112,26 +280,64 @@ class EEGProcessor:
         return signal
     
     def apply_filter(self, signal: List[List[float]], filter_type: FilterType) -> List[List[float]]:
-        """Apply digital filter to signal (simplified moving average)"""
+        """Apply digital filter to signal (REAL IIR Implementation)"""
+        # Select filter coefficients
+        if filter_type == FilterType.BANDPASS:
+            coeffs = self.filter_coefficients["bandpass_8_30"]
+        elif filter_type == FilterType.NOTCH:
+            coeffs = self.filter_coefficients["notch_50"]
+        elif filter_type == FilterType.LOWPASS:
+            coeffs = self.filter_coefficients["lowpass_40"]
+        else:
+            return signal
+
+        # Apply IIR filter to each channel
         filtered = []
         for ch in signal:
-            # Simple moving average filter
-            filtered_ch = []
-            window = 3
-            for i in range(len(ch)):
-                start = max(0, i - window // 2)
-                end = min(len(ch), i + window // 2 + 1)
-                filtered_ch.append(list_mean(ch[start:end]))
+            filtered_ch = apply_iir_filter(ch, coeffs["b"], coeffs["a"])
             filtered.append(filtered_ch)
+
         return filtered
     
     def _remove_artifacts(self, signal: List[List[float]]) -> List[List[float]]:
-        """Remove artifacts (simplified threshold)"""
-        threshold = 100.0
+        """Remove artifacts with linear interpolation (REAL Implementation)"""
+        threshold = 100.0  # µV
         cleaned = []
+
         for ch in signal:
-            cleaned_ch = [x if abs(x) < threshold else 0.0 for x in ch]
+            # Find artifact samples (amplitude > threshold)
+            artifact_mask = [abs(x) > threshold for x in ch]
+
+            # If no artifacts, keep original
+            if not any(artifact_mask):
+                cleaned.append(ch[:])
+                continue
+
+            # Find clean indices
+            clean_indices = [i for i, is_artifact in enumerate(artifact_mask) if not is_artifact]
+            artifact_indices = [i for i, is_artifact in enumerate(artifact_mask) if is_artifact]
+
+            if len(clean_indices) <= 1:
+                # Not enough clean samples to interpolate - use threshold clipping
+                cleaned_ch = [max(-threshold, min(threshold, x)) for x in ch]
+                cleaned.append(cleaned_ch)
+                continue
+
+            # Interpolate artifact samples
+            clean_values = [ch[i] for i in clean_indices]
+            interpolated_values = linear_interpolation(
+                clean_indices,
+                clean_values,
+                artifact_indices
+            )
+
+            # Reconstruct signal
+            cleaned_ch = ch[:]
+            for idx, value in zip(artifact_indices, interpolated_values):
+                cleaned_ch[idx] = value
+
             cleaned.append(cleaned_ch)
+
         return cleaned
     
     def apply_car(self, signal: List[List[float]]) -> List[List[float]]:
@@ -147,21 +353,54 @@ class EEGProcessor:
             car_signal.append([ch[i] - avg[i] for i in range(n_samples)])
         return car_signal
     
+    def _compute_band_power(self, signal: List[float], low_freq: float, high_freq: float) -> float:
+        """Compute power in frequency band using FFT (REAL Implementation)
+
+        Args:
+            signal: Single-channel EEG signal
+            low_freq: Lower bound of frequency band (Hz)
+            high_freq: Upper bound of frequency band (Hz)
+
+        Returns:
+            Average power in the frequency band
+        """
+        n = len(signal)
+        if n == 0:
+            return 0.0
+
+        # Compute FFT
+        fft_result = fft_real(signal)
+
+        # Generate frequency bins
+        freqs = fft_frequencies(len(fft_result), self.sampling_rate)
+
+        # Find indices within band
+        band_indices = [i for i, f in enumerate(freqs) if low_freq <= abs(f) <= high_freq]
+
+        if not band_indices:
+            return 0.0
+
+        # Compute average power in band
+        band_power = sum(abs(fft_result[i]) ** 2 for i in band_indices) / len(band_indices)
+
+        return band_power
+
     def extract_features(self, signal: EEGSignal) -> Dict[str, Any]:
-        """Extract features from EEG signal (simplified)"""
+        """Extract features from EEG signal (REAL FFT Implementation)"""
         features = {}
-        # Simplified: use random values for band power
-        features["delta_power"] = [random.uniform(0.5, 2.0) for _ in range(len(signal.data))]
-        features["theta_power"] = [random.uniform(0.5, 2.0) for _ in range(len(signal.data))]
-        features["alpha_power"] = [random.uniform(1.0, 3.0) for _ in range(len(signal.data))]
-        features["beta_power"] = [random.uniform(0.5, 2.0) for _ in range(len(signal.data))]
-        features["gamma_power"] = [random.uniform(0.2, 1.0) for _ in range(len(signal.data))]
-        
+
+        # Power spectral density in different bands (REAL FFT-based computation)
+        features["delta_power"] = [self._compute_band_power(ch, 0.5, 4) for ch in signal.data]
+        features["theta_power"] = [self._compute_band_power(ch, 4, 8) for ch in signal.data]
+        features["alpha_power"] = [self._compute_band_power(ch, 8, 13) for ch in signal.data]
+        features["beta_power"] = [self._compute_band_power(ch, 13, 30) for ch in signal.data]
+        features["gamma_power"] = [self._compute_band_power(ch, 30, 100) for ch in signal.data]
+
         # Statistical features
         features["mean"] = [list_mean(ch) for ch in signal.data]
         features["std"] = [list_std(ch) for ch in signal.data]
         features["variance"] = [list_std(ch) ** 2 for ch in signal.data]
-        
+
         return features
     
     def check_signal_quality(self, signal: List[List[float]]) -> float:
