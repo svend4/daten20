@@ -1,24 +1,13 @@
 """
-Advanced Robotics Services (Pure Python v4.4.0 - ENHANCED)
+Advanced Robotics Services (Pure Python v5.0.0 - ENHANCED)
 
-**PURE PYTHON VERSION - FULLY FUNCTIONAL** - No NumPy required!
+**PURE PYTHON VERSION with REAL Algorithms** - No NumPy required!
 - Works everywhere (zero dependencies beyond stdlib)
-- 100% API compatible with NumPy version
-- RESTORED: All 37 missing classes from NumPy version
-- Real algorithms: A*, RRT, ICP SLAM, PID control, grasp planning
-- ~20-50x slower than NumPy, but fully functional
+- ENHANCED: Real kinematics, A* path planning, trajectory control
+- Includes: Forward/inverse kinematics, grid-based A*, PID control
+- ~20-50x slower than NumPy, but highly portable
 
-RESTORED SUBSYSTEMS:
-✅ Computer Vision (8 classes) - object detection, pose estimation, depth
-✅ Motion Planning (5 classes) - A*, RRT*, obstacle avoidance
-✅ SLAM (3 classes) - mapping, localization, ICP
-✅ Manipulation (9 classes) - grasp planning, force control, pick-and-place
-✅ Human-Robot Interaction (5 classes) - speech, gestures, intent prediction
-✅ Fleet Management (4 classes) - task allocation, traffic control
-✅ Simulation (2 classes) - physics simulation, digital twin
-✅ Monitoring (5 classes) - performance, battery, safety
-
-Version: 4.4.0 (Pure Python - Enhanced)
+Version: 5.0.0 (Pure Python Enhanced)
 """
 
 import asyncio
@@ -308,7 +297,328 @@ class VoiceCommand:
     parameters: Dict[str, Any] = field(default_factory=dict)
 
 # ============================================================================
-# 1. COMPUTER VISION (8 classes) - Pure Python implementations
+# REAL ROBOTICS ALGORITHMS (Pure Python)
+# ============================================================================
+
+import heapq
+from typing import Set
+
+class AStarPathPlanner:
+    """
+    A* Path Planning Algorithm (REAL Implementation)
+
+    Finds optimal path in 2D grid with obstacles using A* search.
+    """
+
+    def __init__(self, grid_size: Tuple[int, int], obstacles: Set[Tuple[int, int]]):
+        """
+        Initialize A* planner
+
+        Args:
+            grid_size: (width, height) of grid
+            obstacles: Set of (x, y) obstacle coordinates
+        """
+        self.width, self.height = grid_size
+        self.obstacles = obstacles
+
+    def heuristic(self, a: Tuple[int, int], b: Tuple[int, int]) -> float:
+        """Manhattan distance heuristic"""
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    def get_neighbors(self, pos: Tuple[int, int]) -> List[Tuple[int, int]]:
+        """Get valid neighbor cells (4-connected)"""
+        x, y = pos
+        neighbors = []
+
+        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            nx, ny = x + dx, y + dy
+
+            # Check bounds and obstacles
+            if (0 <= nx < self.width and
+                0 <= ny < self.height and
+                (nx, ny) not in self.obstacles):
+                neighbors.append((nx, ny))
+
+        return neighbors
+
+    def plan(self, start: Tuple[int, int], goal: Tuple[int, int]) -> Optional[List[Tuple[int, int]]]:
+        """
+        A* path planning (REAL Implementation)
+
+        Algorithm:
+        1. Initialize open set (priority queue) with start
+        2. While open set not empty:
+           a. Pop node with lowest f = g + h
+           b. If goal reached, reconstruct path
+           c. Explore neighbors, update costs
+
+        Args:
+            start: Start (x, y) position
+            goal: Goal (x, y) position
+
+        Returns:
+            List of (x, y) waypoints from start to goal, or None if no path
+        """
+        if start in self.obstacles or goal in self.obstacles:
+            return None
+
+        # Priority queue: (f_score, counter, position)
+        counter = 0
+        open_set = [(0, counter, start)]
+        counter += 1
+
+        # Track best path
+        came_from = {}
+
+        # Cost from start to node
+        g_score = {start: 0}
+
+        # Estimated total cost (g + h)
+        f_score = {start: self.heuristic(start, goal)}
+
+        # Closed set
+        closed_set = set()
+
+        while open_set:
+            _, _, current = heapq.heappop(open_set)
+
+            if current in closed_set:
+                continue
+
+            # Check if goal reached
+            if current == goal:
+                # Reconstruct path
+                path = [current]
+                while current in came_from:
+                    current = came_from[current]
+                    path.append(current)
+                path.reverse()
+                return path
+
+            closed_set.add(current)
+
+            # Explore neighbors
+            for neighbor in self.get_neighbors(current):
+                if neighbor in closed_set:
+                    continue
+
+                # Tentative g_score
+                tentative_g = g_score[current] + 1
+
+                # Check if this path is better
+                if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g
+                    f_score[neighbor] = tentative_g + self.heuristic(neighbor, goal)
+
+                    # Add to open set
+                    heapq.heappush(open_set, (f_score[neighbor], counter, neighbor))
+                    counter += 1
+
+        # No path found
+        return None
+
+
+class RobotKinematics:
+    """
+    Robot Kinematics (REAL Implementation)
+
+    Forward kinematics for 2D planar robot arm.
+    """
+
+    def __init__(self, link_lengths: List[float]):
+        """
+        Initialize kinematics
+
+        Args:
+            link_lengths: Lengths of robot links (e.g., [1.0, 0.8] for 2-link arm)
+        """
+        self.link_lengths = link_lengths
+        self.num_joints = len(link_lengths)
+
+    def forward_kinematics(self, joint_angles: List[float]) -> Tuple[float, float]:
+        """
+        Forward Kinematics (REAL Implementation)
+
+        Computes end-effector position from joint angles.
+
+        For 2D planar arm:
+        x = L1*cos(θ1) + L2*cos(θ1+θ2) + ...
+        y = L1*sin(θ1) + L2*sin(θ1+θ2) + ...
+
+        Args:
+            joint_angles: Joint angles in radians
+
+        Returns:
+            (x, y) end-effector position
+        """
+        x, y = 0.0, 0.0
+        cumulative_angle = 0.0
+
+        for i, (length, angle) in enumerate(zip(self.link_lengths, joint_angles)):
+            cumulative_angle += angle
+            x += length * math.cos(cumulative_angle)
+            y += length * math.sin(cumulative_angle)
+
+        return (x, y)
+
+    def inverse_kinematics_2link(self, target_x: float, target_y: float) -> Optional[Tuple[float, float]]:
+        """
+        Inverse Kinematics for 2-link arm (REAL Implementation)
+
+        Analytically solves for joint angles to reach target position.
+        Uses geometric solution (law of cosines).
+
+        Args:
+            target_x: Target x position
+            target_y: Target y position
+
+        Returns:
+            (theta1, theta2) joint angles, or None if unreachable
+        """
+        if len(self.link_lengths) != 2:
+            return None
+
+        L1, L2 = self.link_lengths
+
+        # Distance to target
+        r = math.sqrt(target_x**2 + target_y**2)
+
+        # Check if target is reachable
+        if r > (L1 + L2) or r < abs(L1 - L2):
+            return None
+
+        # Law of cosines to find theta2
+        cos_theta2 = (r**2 - L1**2 - L2**2) / (2 * L1 * L2)
+
+        # Clamp to [-1, 1] to avoid numerical errors
+        cos_theta2 = max(-1.0, min(1.0, cos_theta2))
+
+        theta2 = math.acos(cos_theta2)
+
+        # Solve for theta1
+        k1 = L1 + L2 * math.cos(theta2)
+        k2 = L2 * math.sin(theta2)
+
+        theta1 = math.atan2(target_y, target_x) - math.atan2(k2, k1)
+
+        return (theta1, theta2)
+
+
+class PIDController:
+    """
+    PID Controller (REAL Implementation)
+
+    Proportional-Integral-Derivative controller for trajectory tracking.
+    """
+
+    def __init__(self, kp: float, ki: float, kd: float, dt: float = 0.01):
+        """
+        Initialize PID controller
+
+        Args:
+            kp: Proportional gain
+            ki: Integral gain
+            kd: Derivative gain
+            dt: Time step
+        """
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.dt = dt
+
+        self.integral = 0.0
+        self.prev_error = 0.0
+
+    def compute(self, setpoint: float, measurement: float) -> float:
+        """
+        Compute control output (REAL Implementation)
+
+        PID formula:
+        u(t) = Kp*e(t) + Ki*∫e(τ)dτ + Kd*de(t)/dt
+
+        Args:
+            setpoint: Desired value
+            measurement: Current measured value
+
+        Returns:
+            Control output
+        """
+        # Error
+        error = setpoint - measurement
+
+        # Integral term
+        self.integral += error * self.dt
+
+        # Derivative term
+        derivative = (error - self.prev_error) / self.dt
+
+        # PID output
+        output = self.kp * error + self.ki * self.integral + self.kd * derivative
+
+        # Update for next iteration
+        self.prev_error = error
+
+        return output
+
+    def reset(self):
+        """Reset controller state"""
+        self.integral = 0.0
+        self.prev_error = 0.0
+
+
+def generate_trajectory(
+    start: Tuple[float, float],
+    goal: Tuple[float, float],
+    total_time: float,
+    dt: float = 0.01
+) -> List[Tuple[float, float, float]]:
+    """
+    Generate smooth trajectory (REAL Implementation)
+
+    Uses cubic polynomial for smooth start/stop motion.
+
+    Position: s(t) = a0 + a1*t + a2*t² + a3*t³
+
+    Boundary conditions:
+    - s(0) = start, s(T) = goal
+    - s'(0) = 0, s'(T) = 0 (zero velocity at endpoints)
+
+    Args:
+        start: Start (x, y) position
+        goal: Goal (x, y) position
+        total_time: Total trajectory time
+        dt: Time step
+
+    Returns:
+        List of (x, y, t) waypoints
+    """
+    # Cubic polynomial coefficients for 0 velocity at endpoints
+    # s(t) = a0 + a1*t + a2*t² + a3*t³
+    # With s(0)=0, s'(0)=0, s(T)=1, s'(T)=0:
+    # Normalized: s(τ) = 3τ² - 2τ³, where τ = t/T
+
+    trajectory = []
+    num_steps = int(total_time / dt)
+
+    for i in range(num_steps + 1):
+        t = i * dt
+        tau = t / total_time if total_time > 0 else 1.0
+
+        # Smooth interpolation (cubic)
+        s = 3 * tau**2 - 2 * tau**3
+
+        # Interpolate position
+        x = start[0] + s * (goal[0] - start[0])
+        y = start[1] + s * (goal[1] - start[1])
+
+        trajectory.append((x, y, t))
+
+    return trajectory
+
+
+# ============================================================================
+# Core Classes (ENHANCED with REAL Algorithms)
 # ============================================================================
 
 class ObjectDetector:
