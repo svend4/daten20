@@ -499,7 +499,7 @@ sentence-transformers==2.2.2
 
 # Audio Processing (v10 - Multimodal)
 librosa==0.10.1
-soundfile==0.12.1
+soundfile==0.13.1
 
 # Video Processing
 imageio==2.33.1
