@@ -14,6 +14,13 @@ from .teams import (
     get_collaboration_engine,
 )
 
+# Import websocket handlers to register them
+try:
+    from . import websocket_handlers  # noqa: F401
+except ImportError:
+    # WebSocket handlers may not be available in all environments
+    pass
+
 __all__ = [
     "CollaborationEngine",
     "get_collaboration_engine",

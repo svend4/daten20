@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Editor - Document Management System</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        #editor-container {
+            height: calc(100vh - 200px);
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            background-color: white;
+            position: relative;
+        }
+
+        #editor {
+            width: 100%;
+            height: 100%;
+            padding: 1.5rem;
+            border: none;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+        }
+
+        .cursor {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .cursor-label {
+            position: absolute;
+            top: -20px;
+            left: 0;
+            background-color: inherit;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .selection {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.3;
+            z-index: 99;
+        }
+
+        .user-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            margin: 0.25rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            color: white;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        .status-connected {
+            background-color: #28a745;
+        }
+
+        .status-connecting {
+            background-color: #ffc107;
+        }
+
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+
+        #stats-panel {
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+
+        .toolbar {
+            background-color: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+
+        .activity-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.875rem;
+        }
+
+        .activity-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        .activity-time {
+            color: #6c757d;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Main Editor -->
+            <div class="col-lg-9">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt me-2"></i>
+                            <span id="document-name">Loading...</span>
+                            <span class="badge bg-light text-dark ms-2" id="connection-status">
+                                <span class="status-indicator status-connecting"></span>
+                                Connecting...
+                            </span>
+                        </h5>
+                    </div>
+
+                    <div class="toolbar">
+                        <button class="btn btn-sm btn-outline-primary" id="btn-save" title="Save Snapshot">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="btn-undo" title="Undo" disabled>
+                            <i class="fas fa-undo"></i> Undo
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="btn-redo" title="Redo" disabled>
+                            <i class="fas fa-redo"></i> Redo
+                        </button>
+                        <span class="ms-3 text-muted">
+                            Revision: <strong id="revision-number">0</strong>
+                        </span>
+                        <span class="ms-3 text-muted">
+                            Words: <strong id="word-count">0</strong>
+                        </span>
+                        <span class="ms-3 text-muted">
+                            Characters: <strong id="char-count">0</strong>
+                        </span>
+                    </div>
+
+                    <div id="editor-container">
+                        <textarea id="editor" placeholder="Start typing..."></textarea>
+                        <!-- Cursors will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-3">
+                <!-- Active Users -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            Active Users
+                            <span class="badge bg-light text-dark" id="user-count">0</span>
+                        </h6>
+                    </div>
+                    <div class="card-body" id="active-users">
+                        <!-- Users will be listed here -->
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Statistics
+                        </h6>
+                    </div>
+                    <div class="card-body" id="stats-panel">
+                        <div class="row">
+                            <div class="col-6 stat-item">
+                                <div class="stat-value" id="stat-operations">0</div>
+                                <div class="stat-label">Operations</div>
+                            </div>
+                            <div class="col-6 stat-item">
+                                <div class="stat-value" id="stat-snapshots">0</div>
+                                <div class="stat-label">Snapshots</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Activity Log
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="activity-log" id="activity-log">
+                            <!-- Activity items will be listed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Collaborative Editor JS -->
+    <script src="{{ url_for('static', filename='js/collaborative-editor.js') }}"></script>
+</body>
+</html>
