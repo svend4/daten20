@@ -1,0 +1,304 @@
+name: Coverage Report
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Weekly coverage report on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+
+jobs:
+  coverage:
+    name: Generate Coverage Report
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better coverage comparison
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install pytest pytest-cov coverage[toml] numpy scipy
+        python -m spacy download en_core_web_sm || true
+
+    - name: Run full test suite with coverage
+      run: |
+        pytest tests/ \
+          --verbose \
+          --cov=src \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term-missing \
+          --cov-report=json \
+          --junit-xml=test-results/pytest.xml \
+          || true  # Continue even if some tests fail
+
+    - name: Generate coverage badge
+      run: |
+        pip install coverage-badge
+        coverage-badge -o coverage.svg -f || true
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+        flags: full-test-suite
+        name: full-coverage
+        fail_ci_if_error: false
+        verbose: true
+
+    - name: Generate detailed coverage report
+      run: |
+        python << 'EOF'
+        import json
+        import os
+
+        # Read coverage.json
+        try:
+            with open('coverage.json', 'r') as f:
+                coverage_data = json.load(f)
+
+            # Extract summary
+            summary = coverage_data.get('totals', {})
+
+            # Create markdown report
+            report = f"""# 📊 Coverage Report
+
+## Overall Coverage: {summary.get('percent_covered', 0):.2f}%
+
+### Statistics
+- **Lines Covered:** {summary.get('covered_lines', 0)}
+- **Lines Total:** {summary.get('num_statements', 0)}
+- **Missing Lines:** {summary.get('missing_lines', 0)}
+- **Excluded Lines:** {summary.get('excluded_lines', 0)}
+
+### Coverage by Module
+
+| Module | Coverage | Lines | Missing |
+|--------|----------|-------|---------|
+"""
+
+            # Add module coverage
+            files = coverage_data.get('files', {})
+            modules = {}
+
+            for filepath, file_data in files.items():
+                if filepath.startswith('src/'):
+                    module = filepath.split('/')[1] if '/' in filepath else 'root'
+                    if module not in modules:
+                        modules[module] = {
+                            'covered': 0,
+                            'total': 0,
+                            'missing': 0
+                        }
+
+                    file_summary = file_data.get('summary', {})
+                    modules[module]['covered'] += file_summary.get('covered_lines', 0)
+                    modules[module]['total'] += file_summary.get('num_statements', 0)
+                    modules[module]['missing'] += file_summary.get('missing_lines', 0)
+
+            # Sort by coverage percentage
+            sorted_modules = sorted(
+                modules.items(),
+                key=lambda x: (x[1]['covered'] / x[1]['total'] * 100) if x[1]['total'] > 0 else 0,
+                reverse=True
+            )
+
+            for module_name, stats in sorted_modules:
+                coverage_pct = (stats['covered'] / stats['total'] * 100) if stats['total'] > 0 else 0
+                report += f"| {module_name} | {coverage_pct:.2f}% | {stats['total']} | {stats['missing']} |\n"
+
+            # Advanced AI modules coverage
+            report += """
+### 🧠 Advanced AI Modules Coverage
+
+| Module | Status | Coverage |
+|--------|--------|----------|
+"""
+
+            ai_modules = [
+                'ai_safety', 'explainable_ai', 'bci', 'qml',
+                'continual_learning', 'neurosymbolic', 'ai_agents', 'consciousness'
+            ]
+
+            for module in ai_modules:
+                if module in modules:
+                    stats = modules[module]
+                    coverage_pct = (stats['covered'] / stats['total'] * 100) if stats['total'] > 0 else 0
+                    status = "✅" if coverage_pct >= 80 else "⚠️" if coverage_pct >= 60 else "❌"
+                    report += f"| {module} | {status} | {coverage_pct:.2f}% |\n"
+                else:
+                    report += f"| {module} | ⚠️ | No data |\n"
+
+            # Write report
+            with open('coverage-report.md', 'w') as f:
+                f.write(report)
+
+            print("✅ Coverage report generated")
+            print(report)
+
+        except FileNotFoundError:
+            print("⚠️ coverage.json not found, skipping detailed report")
+        except Exception as e:
+            print(f"⚠️ Error generating report: {e}")
+        EOF
+
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: coverage
+        path: coverage-report.md
+
+    - name: Upload coverage HTML report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-html-report
+        path: htmlcov/
+
+    - name: Upload coverage badge
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-badge
+        path: coverage.svg
+
+    - name: Upload coverage JSON
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-json
+        path: coverage.json
+
+  coverage-comparison:
+    name: Coverage Comparison
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: coverage
+
+    steps:
+    - name: Checkout PR branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install coverage diff-cover
+
+    - name: Download PR coverage
+      uses: actions/download-artifact@v3
+      with:
+        name: coverage-json
+        path: ./pr-coverage/
+
+    - name: Checkout base branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.base.ref }}
+
+    - name: Run base branch coverage
+      run: |
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+        pytest tests/ --cov=src --cov-report=json:base-coverage.json || true
+
+    - name: Compare coverage
+      run: |
+        python << 'EOF'
+        import json
+
+        try:
+            # Read base coverage
+            with open('base-coverage.json', 'r') as f:
+                base_cov = json.load(f)
+            base_pct = base_cov['totals']['percent_covered']
+
+            # Read PR coverage
+            with open('pr-coverage/coverage.json', 'r') as f:
+                pr_cov = json.load(f)
+            pr_pct = pr_cov['totals']['percent_covered']
+
+            # Calculate difference
+            diff = pr_pct - base_pct
+
+            # Generate comparison report
+            comparison = f"""# 📊 Coverage Comparison
+
+## Summary
+- **Base coverage:** {base_pct:.2f}%
+- **PR coverage:** {pr_pct:.2f}%
+- **Difference:** {diff:+.2f}%
+
+## Status
+"""
+
+            if diff >= 0:
+                comparison += f"✅ **Coverage improved by {diff:.2f}%**\n"
+            elif diff >= -1:
+                comparison += f"⚠️ **Coverage decreased slightly by {abs(diff):.2f}%**\n"
+            else:
+                comparison += f"❌ **Coverage decreased significantly by {abs(diff):.2f}%**\n"
+
+            comparison += """
+## Guidelines
+- ✅ Coverage increase: Excellent!
+- ⚠️ Minor decrease (<1%): Acceptable if justified
+- ❌ Significant decrease (>1%): Please add more tests
+"""
+
+            # Write comparison
+            with open('coverage-comparison.md', 'w') as f:
+                f.write(comparison)
+
+            print(comparison)
+
+        except Exception as e:
+            print(f"⚠️ Could not compare coverage: {e}")
+        EOF
+
+    - name: Comment comparison on PR
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: coverage-comparison
+        path: coverage-comparison.md
+
+  coverage-badges:
+    name: Update Coverage Badges
+    runs-on: ubuntu-latest
+    needs: coverage
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download coverage badge
+      uses: actions/download-artifact@v3
+      with:
+        name: coverage-badge
+
+    - name: Commit badge to repository
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add coverage.svg
+        git diff --quiet && git diff --staged --quiet || git commit -m "chore: update coverage badge [skip ci]"
+        git push || true  # Don't fail if nothing to push
