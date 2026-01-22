@@ -254,7 +254,7 @@ def test_distance_metrics():
     # Normalize for cosine similarity
     embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 
-    docs = [{"content": f"Doc {i}"} for i in range(10)}
+    docs = [{"content": f"Doc {i}"} for i in range(10)]
     store.add(embeddings, docs)
 
     query = embeddings[0:1]
