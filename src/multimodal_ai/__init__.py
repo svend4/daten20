@@ -42,8 +42,10 @@ from .multimodal_ai_services import (  # Core Systems; Enums; Data Classes; Sing
     GenerationType,
     GroundingResult,
     ImageCaption,
+    IntegratedMultimodalAISystem,
     ModalityEncoding,
     ModalityType,
+    MultimodalAIConfig,
     MultimodalAlignmentGrounding,
     MultimodalEncoderSystem,
     MultimodalGeneration,
@@ -53,6 +55,7 @@ from .multimodal_ai_services import (  # Core Systems; Enums; Data Classes; Sing
     VQAResult,
     get_audio_visual_processing,
     get_cross_modal_attention_fusion,
+    get_multimodal_ai_system,
     get_multimodal_alignment_grounding,
     get_multimodal_encoder_system,
     get_multimodal_generation,
@@ -71,6 +74,8 @@ __all__ = [
     "MultimodalGeneration",
     "MultimodalAlignmentGrounding",
     "MultimodalRetrievalSearch",
+    # Integrated System
+    "IntegratedMultimodalAISystem",
     # Enums
     "ModalityType",
     "EncoderType",
@@ -84,6 +89,7 @@ __all__ = [
     "GeneratedContent",
     "GroundingResult",
     "RetrievalResult",
+    "MultimodalAIConfig",
     # Singleton Getters
     "get_multimodal_encoder_system",
     "get_cross_modal_attention_fusion",
@@ -92,4 +98,5 @@ __all__ = [
     "get_multimodal_generation",
     "get_multimodal_alignment_grounding",
     "get_multimodal_retrieval_search",
+    "get_multimodal_ai_system",
 ]

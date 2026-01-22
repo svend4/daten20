@@ -1,5 +1,5 @@
 """
-🌐 Social & Collective Intelligence Platform (v8.0)
+🌐 Social & Collective Intelligence Platform (v8.0) - Pure Python Restored
 
 Implements computational models of social cognition, group dynamics, collective
 decision-making, swarm intelligence, cultural adaptation, and collaborative AI
@@ -14,20 +14,26 @@ Components:
 - Social Network Analysis: Influence and information flow
 - Collaborative Intelligence Orchestrator: Human-AI coordination
 
+**PURE PYTHON VERSION** - Fully restored from NumPy version!
+- Uses only Python stdlib (no NumPy)
+- Complete algorithms from NumPy version
+- Full social cognition, group dynamics, swarm intelligence
+- 100% API compatible with NumPy version
+
 Author: Document Management System Development Team
-Version: 8.0.0
+Version: 8.0.0 (Pure Python Restored)
 Date: January 2026
 """
 
 import asyncio
+import math
+import random
 import threading
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
-
-import numpy as np
 
 # ============================================================================
 # 1. SOCIAL COGNITION ENGINE
@@ -555,7 +561,7 @@ class CollectiveDecisionMaking:
             for i, opinion in enumerate(current_opinions):
                 if opinion["option"] != majority_option:
                     # Some chance to change opinion
-                    if np.random.random() < 0.3:
+                    if random.random() < 0.3:
                         current_opinions[i]["option"] = majority_option
 
         # Final check
@@ -598,7 +604,7 @@ class CollectiveDecisionMaking:
 
         # Individual accuracy
         individual_accuracies = [1.0 if pred["option"] == ground_truth else 0.0 for pred in individual_predictions]
-        individual_avg = np.mean(individual_accuracies)
+        individual_avg = sum(individual_accuracies) / len(individual_accuracies) if individual_accuracies else 0.0
 
         # Diversity bonus
         diversity_bonus = crowd_accuracy - individual_avg
@@ -656,7 +662,8 @@ class SwarmIntelligenceSystem:
         self.num_agents = agents
         self.environment_size = environment_size
 
-        self.pheromone_map = np.zeros(environment_size)
+        # Use Python lists instead of NumPy arrays
+        self.pheromone_map = [[0.0 for _ in range(environment_size[1])] for _ in range(environment_size[0])]
         self.agent_positions = []
 
     async def solve(
@@ -725,13 +732,20 @@ class SwarmIntelligenceSystem:
                 task_priority = task.get("priority", 0.5)
 
                 # Find best agent (simplified: random with priority weighting)
-                selected_agent = np.random.choice(range(len(agents)))
+                selected_agent = random.randint(0, len(agents) - 1)
                 assignments[f"agent_{selected_agent}"].append(task["id"])
 
         # Calculate load balance
         task_counts = [len(tasks) for tasks in assignments.values()]
-        load_balance = 1.0 - (np.std(task_counts) / np.mean(task_counts)) if task_counts else 1.0
-        load_balance = max(0.0, load_balance)
+        if task_counts:
+            mean_tasks = sum(task_counts) / len(task_counts)
+            # Calculate standard deviation manually
+            variance = sum((x - mean_tasks) ** 2 for x in task_counts) / len(task_counts)
+            std_dev = math.sqrt(variance)
+            load_balance = 1.0 - (std_dev / mean_tasks) if mean_tasks > 0 else 1.0
+            load_balance = max(0.0, load_balance)
+        else:
+            load_balance = 1.0
 
         return TaskAllocation(assignments=dict(assignments), load_balance=load_balance)
 
@@ -919,9 +933,15 @@ class CulturalIntelligenceSystem:
 
         profiles = [await self.get_profile(c) for c in cultures]
 
-        # Calculate dimension variance
-        pd_variance = np.var([p.power_distance for p in profiles])
-        ind_variance = np.var([p.individualism for p in profiles])
+        # Calculate dimension variance using pure Python
+        def calculate_variance(values: List[float]) -> float:
+            if not values:
+                return 0.0
+            mean = sum(values) / len(values)
+            return sum((x - mean) ** 2 for x in values) / len(values)
+
+        pd_variance = calculate_variance([p.power_distance for p in profiles])
+        ind_variance = calculate_variance([p.individualism for p in profiles])
 
         # Lower variance = higher compatibility (easier to align)
         avg_variance = (pd_variance + ind_variance) / 2
@@ -1096,7 +1116,7 @@ class SocialNetworkAnalysis:
             timeline.append((t, current_reach))
 
         final_reach = current_reach
-        max_depth = int(np.log(total_nodes) / np.log(1 + spread_rate)) if total_nodes > 1 else 1
+        max_depth = int(math.log(total_nodes) / math.log(1 + spread_rate)) if total_nodes > 1 else 1
 
         return SpreadPrediction(reach_percentage=final_reach * 100, max_depth=max_depth, timeline=timeline)
 

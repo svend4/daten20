@@ -6,6 +6,7 @@ by 100-10,000x across all domains with robust safety and alignment.
 """
 
 from .asi_services import (  # Services; Enums; Data Structures; Singleton Getters
+    ASIConfig,
     AlignmentState,
     CodeModification,
     CreativeWork,
@@ -13,6 +14,7 @@ from .asi_services import (  # Services; Enums; Data Structures; Singleton Gette
     DiscoveryField,
     ImprovementCycle,
     ImprovementType,
+    IntegratedASISystem,
     NovelCapability,
     NovelCapabilityEmergenceService,
     RecursiveSelfImprovementService,
@@ -24,6 +26,7 @@ from .asi_services import (  # Services; Enums; Data Structures; Singleton Gette
     SuperhumanStrategy,
     UltraDeepUnderstandingService,
     ValueAlignmentService,
+    get_asi_system,
     get_novel_capability_service,
     get_scientific_discovery_service,
     get_self_improvement_service,
@@ -44,6 +47,8 @@ __all__ = [
     "UltraDeepUnderstandingService",
     "SuperhumanCreativityService",
     "ValueAlignmentService",
+    # Integrated System
+    "IntegratedASISystem",
     # Enums
     "ImprovementType",
     "StrategicDomain",
@@ -57,6 +62,7 @@ __all__ = [
     "DeepUnderstanding",
     "CreativeWork",
     "AlignmentState",
+    "ASIConfig",
     # Singleton Getters
     "get_self_improvement_service",
     "get_strategic_planning_service",
@@ -65,6 +71,7 @@ __all__ = [
     "get_ultra_understanding_service",
     "get_superhuman_creativity_service",
     "get_value_alignment_service",
+    "get_asi_system",
     # Version
     "__version__",
 ]

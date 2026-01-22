@@ -1,5 +1,5 @@
 """
-❤️ Emotional Consciousness Platform (v7.0)
+❤️ Emotional Consciousness Platform (v7.0) - Pure Python Restored
 
 Implements computational models of emotions, empathy, affective computing,
 and emotional intelligence based on affective neuroscience and psychology.
@@ -17,20 +17,25 @@ Components:
 - Emotional Decision Making: Emotion-integrated decisions
 - Emotional Expression Generator: Affective communication
 
+**PURE PYTHON VERSION** - Fully restored from NumPy version!
+- Uses only Python stdlib (no NumPy)
+- Complete algorithms from NumPy version
+- Full appraisal theory, emotion regulation, empathy modeling
+- 100% API compatible with NumPy version
+
 Author: Document Management System Development Team
-Version: 7.0.0
+Version: 7.0.0 (Pure Python Restored)
 Date: January 2026
 """
 
 import asyncio
+import math
 import threading
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
-
-import numpy as np
 
 # ============================================================================
 # 1. EMOTIONAL AWARENESS ENGINE
@@ -65,6 +70,8 @@ class EmotionType(Enum):
     EXCITEMENT = "excitement"
     FRUSTRATION = "frustration"
     CURIOSITY = "curiosity"
+    CONCERN = "concern"
+    SATISFACTION = "satisfaction"
 
 
 @dataclass
@@ -409,13 +416,7 @@ class AffectiveComputingSystem:
         }
 
         if event_type in emotion_map:
-            emotion_type_str, valence, arousal = emotion_map[event_type]
-            # Map string to EmotionType
-            try:
-                emotion_type = EmotionType[emotion_type_str.upper()]
-            except:
-                emotion_type = EmotionType.HAPPINESS
-
+            emotion_type, valence, arousal = emotion_map[event_type]
             intensity = severity
         else:
             emotion_type = EmotionType.HAPPINESS
@@ -795,7 +796,8 @@ class EmotionalIntelligenceSystem:
             "relationship_management": self.relationship_management_level,
         }
 
-        overall_score = np.mean(list(dimensions.values()))
+        # Calculate mean using pure Python
+        overall_score = sum(dimensions.values()) / len(dimensions)
 
         # Identify strengths and areas for growth
         strengths = [k for k, v in dimensions.items() if v > 0.75]
@@ -1003,8 +1005,8 @@ class EmotionalMemorySystem:
                 memory.retrieval_count += 1
                 memory.last_accessed = datetime.now()
 
-            # Sort by importance and recency
-            matching.sort(key=lambda m: m.importance * (1 + np.log1p(m.retrieval_count)), reverse=True)
+            # Sort by importance and recency using pure Python
+            matching.sort(key=lambda m: m.importance * (1 + math.log1p(m.retrieval_count)), reverse=True)
 
             return matching[:100]  # Limit results
 

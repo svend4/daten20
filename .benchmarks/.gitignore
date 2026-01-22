@@ -1,0 +1,7 @@
+# Ignore all benchmark results (temporary)
+*
+
+# Except this .gitignore
+!.gitignore
+
+# Important baselines are stored in benchmarks/historical/ instead

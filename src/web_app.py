@@ -21,8 +21,10 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, sen
 from werkzeug.utils import secure_filename
 
 from src.api_docs import api_docs_bp
+from src.core.compression import init_compression
 from src.core.csrf_protection import csrf, csrf_exempt
 from src.core.database import Database
+from src.core.session_manager import init_session_manager
 from src.core.https_config import HTTPSConfig, configure_flask_https
 from src.core.input_validation import FlaskRequestValidator, InputValidator, ValidationError
 from src.core.parser import TemplateParser
@@ -54,6 +56,13 @@ if app.config["ENV"] == "production":
 
 # Initialize CSRF protection
 csrf.init_app(app)
+
+# Initialize response compression (gzip/deflate)
+init_compression(app)
+
+# Initialize Redis-based session management
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/1")
+init_session_manager(app, redis_url=redis_url)
 
 # Initialize Swagger UI
 swagger_config = {

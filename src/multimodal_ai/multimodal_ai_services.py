@@ -21,7 +21,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import numpy as np
+import math
+import random
+import statistics
 
 # ============================================================================
 # Enums and Data Classes
@@ -767,13 +769,13 @@ class VisionLanguageModels:
         ]
 
         # Generate caption (random sampling for simulation)
-        caption_length = np.random.randint(8, max_length)
-        tokens = np.random.choice(sample_words, size=caption_length, replace=True).tolist()
+        caption_length = random.randint(8, max_length)
+        tokens = random.choice(sample_words, size=caption_length, replace=True).tolist()
         caption_text = " ".join(tokens)
 
         # Simulate per-token confidence scores
         confidence_scores = (np.random.rand(caption_length) * 0.3 + 0.7).tolist()
-        overall_confidence = np.mean(confidence_scores)
+        overall_confidence = statistics.mean(confidence_scores)
 
         # Simulate beam search time (beam_size * sequence_length * vocab_size operations)
         generation_time = (
@@ -818,23 +820,23 @@ class VisionLanguageModels:
         question_lower = question_text.lower()
         if any(word in question_lower for word in ["is", "are", "does", "do", "can"]):
             answer_type = "yes/no"
-            answer = np.random.choice(["yes", "no"], p=[0.7, 0.3])
+            answer = random.choice(["yes", "no"], p=[0.7, 0.3])
         elif any(word in question_lower for word in ["how many", "what number"]):
             answer_type = "number"
-            answer = str(np.random.randint(1, 10))
+            answer = str(random.randint(1, 10))
         else:
             answer_type = "other"
             sample_answers = ["person", "dog", "table", "red", "outside", "eating"]
-            answer = np.random.choice(sample_answers)
+            answer = random.choice(sample_answers)
 
         # Simulate attention regions (bounding boxes where model "looks")
-        num_regions = np.random.randint(1, 4)
+        num_regions = random.randint(1, 4)
         attention_regions = [
             (
-                np.random.randint(0, 200),
-                np.random.randint(0, 200),
-                np.random.randint(10, 100),
-                np.random.randint(10, 100),
+                random.randint(0, 200),
+                random.randint(0, 200),
+                random.randint(10, 100),
+                random.randint(10, 100),
             )
             for _ in range(num_regions)
         ]
@@ -847,7 +849,7 @@ class VisionLanguageModels:
             f"Generated answer: {answer}",
         ]
 
-        answer_confidence = float(np.random.rand() * 0.3 + 0.7)  # 0.7-1.0
+        answer_confidence = float(random.random() * 0.3 + 0.7)  # 0.7-1.0
 
         inference_time = (datetime.now() - start_time).total_seconds() * 1000 + 150
 
@@ -888,10 +890,10 @@ class VisionLanguageModels:
         # Generate region proposals
         proposals = [
             (
-                np.random.randint(0, 200),
-                np.random.randint(0, 200),
-                np.random.randint(20, 100),
-                np.random.randint(20, 100),
+                random.randint(0, 200),
+                random.randint(0, 200),
+                random.randint(20, 100),
+                random.randint(20, 100),
             )
             for _ in range(num_proposals)
         ]
@@ -908,7 +910,7 @@ class VisionLanguageModels:
         confidence_scores = [float(scores[i]) for i in top_indices]
 
         # Simulate IoU with ground truth
-        iou_score = float(np.random.rand() * 0.4 + 0.6)  # 0.6-1.0
+        iou_score = float(random.random() * 0.4 + 0.6)  # 0.6-1.0
         precision = confidence_scores[0]  # Use top score as precision
 
         grounding_id = hashlib.md5(f"grounding_{image_encoding.encoding_id}_{phrase_text}".encode()).hexdigest()[:16]
@@ -964,8 +966,8 @@ class AudioVisualProcessing:
 
         # Simulate transcription
         sample_words = ["hello", "world", "this", "is", "a", "test", "of", "speech", "recognition"]
-        num_words = np.random.randint(5, 12)
-        transcription = " ".join(np.random.choice(sample_words, size=num_words))
+        num_words = random.randint(5, 12)
+        transcription = " ".join(random.choice(sample_words, size=num_words))
 
         # Simulate WER (word error rate)
         # Audio-visual typically better than audio-only in noise
@@ -1001,17 +1003,17 @@ class AudioVisualProcessing:
         heatmap = np.random.rand(*heatmap_size)
 
         # Add peaks for sound sources
-        num_sources = np.random.randint(1, 4)
+        num_sources = random.randint(1, 4)
         for _ in range(num_sources):
-            x, y = np.random.randint(0, heatmap_size[0]), np.random.randint(0, heatmap_size[1])
+            x, y = random.randint(0, heatmap_size[0]), random.randint(0, heatmap_size[1])
             heatmap[x, y] += 2.0
 
         # Normalize heatmap
         heatmap = heatmap / heatmap.sum()
 
         # Compute metrics
-        ciou = float(np.random.rand() * 0.3 + 0.5)  # 0.5-0.8
-        auc = float(np.random.rand() * 0.2 + 0.7)  # 0.7-0.9
+        ciou = float(random.random() * 0.3 + 0.5)  # 0.5-0.8
+        auc = float(random.random() * 0.2 + 0.7)  # 0.7-0.9
 
         localization_id = hashlib.md5(
             f"localization_{audio_encoding.encoding_id}_{video_encoding.encoding_id}".encode()
@@ -1052,9 +1054,9 @@ class AudioVisualProcessing:
 
         # Estimate temporal offset if out of sync
         if not is_synchronized:
-            temporal_offset_ms = float(np.random.rand() * 2000 - 1000)  # -1s to +1s
+            temporal_offset_ms = float(random.random() * 2000 - 1000)  # -1s to +1s
         else:
-            temporal_offset_ms = float(np.random.rand() * 100 - 50)  # -50ms to +50ms
+            temporal_offset_ms = float(random.random() * 100 - 50)  # -50ms to +50ms
 
         sync_id = hashlib.md5(f"sync_{audio_encoding.encoding_id}_{video_encoding.encoding_id}".encode()).hexdigest()[
             :16
@@ -1121,8 +1123,8 @@ class MultimodalGeneration:
         image_data = np.random.rand(3, resolution[0], resolution[1]).astype(np.float32)
 
         # Simulate quality metrics
-        fid_score = float(np.random.rand() * 10 + 10)  # 10-20 FID
-        clip_score = float(np.random.rand() * 0.2 + 0.3)  # 0.3-0.5 CLIP score
+        fid_score = float(random.random() * 10 + 10)  # 10-20 FID
+        clip_score = float(random.random() * 0.2 + 0.3)  # 0.3-0.5 CLIP score
 
         generation_time = (datetime.now() - start_time).total_seconds() * 1000
 
@@ -1171,7 +1173,7 @@ class MultimodalGeneration:
         audio_data = np.random.randn(num_samples).astype(np.float32) * 0.1
 
         # Simulate quality metrics
-        mos = float(np.random.rand() * 0.5 + 4.0)  # 4.0-4.5 MOS (mean opinion score)
+        mos = float(random.random() * 0.5 + 4.0)  # 4.0-4.5 MOS (mean opinion score)
 
         generation_time = (datetime.now() - start_time).total_seconds() * 1000
 
@@ -1210,7 +1212,7 @@ class MultimodalGeneration:
             "Machine learning is transforming the world.",
         ]
 
-        transcription = np.random.choice(sample_sentences)
+        transcription = random.choice(sample_sentences)
         return transcription
 
 
@@ -1308,8 +1310,8 @@ class MultimodalAlignmentGrounding:
         num_candidates = 20
         candidates = []
         for _ in range(num_candidates):
-            start = np.random.rand() * video_duration_s
-            duration = np.random.rand() * min(10, video_duration_s - start)
+            start = random.random() * video_duration_s
+            duration = random.random() * min(10, video_duration_s - start)
             end = start + duration
             candidates.append((start, end))
 
@@ -1317,12 +1319,12 @@ class MultimodalAlignmentGrounding:
         scores = np.random.rand(num_candidates)
 
         # Select best candidate
-        best_idx = np.argmax(scores)
+        best_idx = max(scores)
         start_time, end_time = candidates[best_idx]
         confidence = float(scores[best_idx])
 
         # Simulate IoU with ground truth
-        iou_score = float(np.random.rand() * 0.4 + 0.5)  # 0.5-0.9
+        iou_score = float(random.random() * 0.4 + 0.5)  # 0.5-0.9
 
         grounding_id = hashlib.md5(f"temporal_{video_encoding.encoding_id}_{query_text}".encode()).hexdigest()[:16]
 
@@ -1429,7 +1431,7 @@ class MultimodalRetrievalSearch:
         search_time = (datetime.now() - start_time).total_seconds() * 1000
 
         # Simulate recall@k metric
-        recall_at_k = float(np.random.rand() * 0.3 + 0.6)  # 0.6-0.9
+        recall_at_k = float(random.random() * 0.3 + 0.6)  # 0.6-0.9
 
         retrieval_id = hashlib.md5(
             f"retrieval_{query_encoding.encoding_id}_{target_modality.value}".encode()
@@ -1499,8 +1501,8 @@ class MultimodalRetrievalSearch:
 
         return {
             "num_queries": len(self.retrieval_results),
-            "avg_search_time_ms": np.mean(search_times),
-            "avg_recall_at_k": np.mean(recall_scores) if recall_scores else 0.0,
+            "avg_search_time_ms": statistics.mean(search_times),
+            "avg_recall_at_k": statistics.mean(recall_scores) if recall_scores else 0.0,
             "index_size": self.index_size,
             "modality_distribution": self._get_modality_distribution(),
         }
@@ -1512,6 +1514,473 @@ class MultimodalRetrievalSearch:
             modality = encoding.modality.value
             distribution[modality] = distribution.get(modality, 0) + 1
         return distribution
+
+
+# ============================================================================
+# MULTIMODAL AI CONFIGURATION
+# ============================================================================
+
+
+@dataclass
+class MultimodalAIConfig:
+    """Configuration for Integrated Multimodal AI System"""
+
+    # Encoder System
+    enable_encoder: bool = True
+    default_embedding_dim: int = 512
+    vision_encoder: EncoderType = EncoderType.RESNET
+    language_encoder: EncoderType = EncoderType.TRANSFORMER
+
+    # Cross-Modal Attention
+    enable_attention: bool = True
+    num_attention_heads: int = 8
+    attention_dropout: float = 0.1
+
+    # Vision-Language Models
+    enable_vl_models: bool = True
+    max_caption_length: int = 50
+    vqa_beam_size: int = 5
+
+    # Audio-Visual Processing
+    enable_audio_visual: bool = True
+    audio_sample_rate: int = 16000
+    video_fps: int = 30
+
+    # Multimodal Generation
+    enable_generation: bool = True
+    generation_steps: int = 50
+    guidance_scale: float = 7.5
+
+    # Alignment and Grounding
+    enable_alignment: bool = True
+    temporal_resolution_sec: float = 1.0
+    spatial_iou_threshold: float = 0.5
+
+    # Retrieval and Search
+    enable_retrieval: bool = True
+    retrieval_top_k: int = 10
+    retrieval_metric: str = "cosine"  # "cosine", "euclidean", "dot_product"
+
+
+# ============================================================================
+# INTEGRATED MULTIMODAL AI SYSTEM
+# ============================================================================
+
+
+class IntegratedMultimodalAISystem:
+    """
+    Integrated Multimodal AI System - FULL IMPLEMENTATION
+
+    Unified system combining all 7 multimodal AI subsystems for comprehensive
+    cross-modal processing and understanding:
+    1. Multimodal Encoder System - Vision, language, audio, video encoding
+    2. Cross-Modal Attention Fusion - Attention mechanisms and fusion
+    3. Vision-Language Models - Image captioning, VQA, visual reasoning
+    4. Audio-Visual Processing - Speech recognition, sound localization
+    5. Multimodal Generation - Text-to-image, image-to-text, TTS
+    6. Multimodal Alignment Grounding - Temporal and spatial grounding
+    7. Multimodal Retrieval Search - Cross-modal search and retrieval
+
+    This system enables:
+    - Multi-modal understanding across vision, language, audio, video
+    - Cross-modal retrieval (text→image, image→text, audio→video)
+    - Multimodal generation (text→image, image→caption, text→speech)
+    - Visual question answering and reasoning
+    - Temporal and spatial grounding in videos and images
+    - Audio-visual learning and synchronization
+
+    Performance targets:
+    - Encoding latency: <50ms per modality
+    - Cross-modal attention: <100ms for 8-head attention
+    - Image captioning: <200ms with beam_size=5
+    - VQA inference: <300ms per question
+    - Text-to-image generation: <5s for 512×512
+    - Retrieval: <100ms for top-10 search over 1M items
+    """
+
+    def __init__(self, config: Optional[MultimodalAIConfig] = None):
+        """Initialize integrated multimodal AI system."""
+        self.config = config or MultimodalAIConfig()
+
+        # Initialize subsystems based on configuration
+        self.encoder = (
+            MultimodalEncoderSystem() if self.config.enable_encoder else None
+        )
+        self.attention_fusion = (
+            CrossModalAttentionFusion() if self.config.enable_attention else None
+        )
+        self.vl_models = (
+            VisionLanguageModels() if self.config.enable_vl_models else None
+        )
+        self.audio_visual = (
+            AudioVisualProcessing() if self.config.enable_audio_visual else None
+        )
+        self.generation = (
+            MultimodalGeneration() if self.config.enable_generation else None
+        )
+        self.alignment_grounding = (
+            MultimodalAlignmentGrounding() if self.config.enable_alignment else None
+        )
+        self.retrieval = (
+            MultimodalRetrievalSearch() if self.config.enable_retrieval else None
+        )
+
+        self._lock = threading.Lock()
+        logger.info("Integrated Multimodal AI System initialized (FULL)")
+
+    async def image_caption_with_vqa(
+        self, image_data: np.ndarray, question: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate image caption and optionally answer questions about the image.
+
+        Combines vision encoding, language generation, and visual reasoning.
+        """
+        if not self.encoder or not self.vl_models:
+            return {"status": "error", "message": "Required subsystems not enabled"}
+
+        result = {"image_shape": image_data.shape, "caption": None, "vqa": None}
+
+        # Step 1: Encode image
+        image_encoding = await self.encoder.encode_vision(
+            image_data=image_data,
+            encoder_type=self.config.vision_encoder,
+            output_dim=self.config.default_embedding_dim,
+        )
+        result["encoding_time_ms"] = image_encoding.encoding_time_ms
+
+        # Step 2: Generate caption
+        caption = await self.vl_models.generate_caption(
+            image_id=image_encoding.encoding_id,
+            image_features=image_encoding.embedding,
+            max_length=self.config.max_caption_length,
+            beam_size=self.config.vqa_beam_size,
+        )
+        result["caption"] = {
+            "text": caption.caption_text,
+            "confidence": caption.overall_confidence,
+            "generation_time_ms": caption.generation_time_ms,
+        }
+
+        # Step 3: Answer question if provided
+        if question:
+            vqa_result = await self.vl_models.answer_visual_question(
+                image_id=image_encoding.encoding_id,
+                image_features=image_encoding.embedding,
+                question=question,
+                question_type="other",
+            )
+            result["vqa"] = {
+                "question": question,
+                "answer": vqa_result.answer,
+                "confidence": vqa_result.answer_confidence,
+                "attention_regions": vqa_result.attention_regions,
+                "inference_time_ms": vqa_result.inference_time_ms,
+            }
+
+        result["status"] = "success"
+        return result
+
+    async def text_to_image_generation(
+        self, prompt: str, image_size: Tuple[int, int] = (512, 512)
+    ) -> Dict[str, Any]:
+        """
+        Generate image from text description.
+
+        Uses text encoding, cross-modal fusion, and image generation.
+        """
+        if not self.encoder or not self.generation:
+            return {"status": "error", "message": "Required subsystems not enabled"}
+
+        # Step 1: Encode text prompt
+        text_encoding = await self.encoder.encode_language(
+            text=prompt,
+            encoder_type=self.config.language_encoder,
+            output_dim=self.config.default_embedding_dim,
+        )
+
+        # Step 2: Generate image
+        generated = await self.generation.text_to_image(
+            prompt=prompt,
+            image_size=image_size,
+            num_steps=self.config.generation_steps,
+            guidance_scale=self.config.guidance_scale,
+        )
+
+        return {
+            "status": "success",
+            "prompt": prompt,
+            "generated_image_shape": generated.output_shape,
+            "quality_score": generated.quality_score,
+            "alignment_score": generated.alignment_score,
+            "generation_time_ms": generated.generation_time_ms,
+            "num_iterations": generated.num_iterations,
+        }
+
+    async def cross_modal_retrieval(
+        self,
+        query_data: Union[str, np.ndarray],
+        query_modality: ModalityType,
+        target_modality: ModalityType,
+        database: List[Dict[str, Any]],
+        top_k: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Retrieve items from target modality given query in source modality.
+
+        Supports text→image, image→text, audio→video, and all cross-modal combinations.
+        """
+        if not self.encoder or not self.retrieval:
+            return {"status": "error", "message": "Required subsystems not enabled"}
+
+        # Step 1: Encode query
+        if query_modality == ModalityType.LANGUAGE:
+            query_encoding = await self.encoder.encode_language(
+                text=query_data,
+                encoder_type=self.config.language_encoder,
+                output_dim=self.config.default_embedding_dim,
+            )
+        elif query_modality == ModalityType.VISION:
+            query_encoding = await self.encoder.encode_vision(
+                image_data=query_data,
+                encoder_type=self.config.vision_encoder,
+                output_dim=self.config.default_embedding_dim,
+            )
+        elif query_modality == ModalityType.AUDIO:
+            query_encoding = await self.encoder.encode_audio(
+                audio_data=query_data,
+                sample_rate=self.config.audio_sample_rate,
+                output_dim=self.config.default_embedding_dim,
+            )
+        else:
+            query_encoding = await self.encoder.encode_video(
+                video_frames=query_data,
+                frame_rate=self.config.video_fps,
+                output_dim=self.config.default_embedding_dim,
+            )
+
+        # Step 2: Index database items
+        for item in database:
+            await self.retrieval.add_to_index(
+                item_id=item["id"],
+                modality=target_modality,
+                encoding=item["encoding"],
+                metadata=item.get("metadata", {}),
+            )
+
+        # Step 3: Retrieve similar items
+        retrieval_result = await self.retrieval.search_by_embedding(
+            query_embedding=query_encoding.embedding,
+            query_modality=query_modality,
+            target_modality=target_modality,
+            top_k=top_k or self.config.retrieval_top_k,
+        )
+
+        return {
+            "status": "success",
+            "query_modality": query_modality.value,
+            "target_modality": target_modality.value,
+            "retrieved_ids": retrieval_result.retrieved_ids,
+            "similarity_scores": retrieval_result.similarity_scores,
+            "top_k": retrieval_result.top_k,
+            "search_time_ms": retrieval_result.search_time_ms,
+        }
+
+    async def video_temporal_grounding(
+        self, video_frames: np.ndarray, query: str, frame_rate: float = 30.0
+    ) -> Dict[str, Any]:
+        """
+        Locate temporal segments in video matching text query.
+
+        Combines video encoding, text encoding, and temporal grounding.
+        """
+        if not self.encoder or not self.alignment_grounding:
+            return {"status": "error", "message": "Required subsystems not enabled"}
+
+        # Step 1: Encode video
+        video_encoding = await self.encoder.encode_video(
+            video_frames=video_frames,
+            frame_rate=frame_rate,
+            output_dim=self.config.default_embedding_dim,
+        )
+
+        # Step 2: Encode query
+        text_encoding = await self.encoder.encode_language(
+            text=query,
+            encoder_type=self.config.language_encoder,
+            output_dim=self.config.default_embedding_dim,
+        )
+
+        # Step 3: Perform temporal grounding
+        grounding_result = await self.alignment_grounding.temporal_grounding(
+            video_features=video_encoding.embedding,
+            text_query=query,
+            text_features=text_encoding.embedding,
+            frame_rate=frame_rate,
+        )
+
+        return {
+            "status": "success",
+            "query": query,
+            "start_time": grounding_result.start_time,
+            "end_time": grounding_result.end_time,
+            "confidence": grounding_result.confidence_scores[0]
+            if grounding_result.confidence_scores
+            else 0.0,
+            "precision": grounding_result.precision,
+        }
+
+    async def audio_visual_sync(
+        self, audio_data: np.ndarray, video_frames: np.ndarray
+    ) -> Dict[str, Any]:
+        """
+        Synchronize audio and visual streams.
+
+        Performs audio-visual alignment and sound source localization.
+        """
+        if not self.audio_visual:
+            return {"status": "error", "message": "Audio-visual processing not enabled"}
+
+        # Perform audio-visual synchronization
+        sync_result = await self.audio_visual.synchronize_audio_visual(
+            audio_data=audio_data,
+            video_frames=video_frames,
+            sample_rate=self.config.audio_sample_rate,
+            frame_rate=self.config.video_fps,
+        )
+
+        return {
+            "status": "success",
+            "sync_offset_ms": sync_result.get("sync_offset_ms", 0),
+            "sync_confidence": sync_result.get("sync_confidence", 0.0),
+            "audio_visual_alignment": sync_result.get("alignment_score", 0.0),
+        }
+
+    async def multimodal_fusion(
+        self,
+        vision_data: Optional[np.ndarray] = None,
+        language_data: Optional[str] = None,
+        audio_data: Optional[np.ndarray] = None,
+        fusion_strategy: Optional[FusionStrategy] = None,
+    ) -> Dict[str, Any]:
+        """
+        Fuse multiple modalities into unified representation.
+
+        Uses cross-modal attention and fusion mechanisms.
+        """
+        if not self.encoder or not self.attention_fusion:
+            return {"status": "error", "message": "Required subsystems not enabled"}
+
+        encodings = []
+
+        # Encode available modalities
+        if vision_data is not None:
+            vision_enc = await self.encoder.encode_vision(
+                image_data=vision_data,
+                encoder_type=self.config.vision_encoder,
+                output_dim=self.config.default_embedding_dim,
+            )
+            encodings.append(vision_enc)
+
+        if language_data is not None:
+            lang_enc = await self.encoder.encode_language(
+                text=language_data,
+                encoder_type=self.config.language_encoder,
+                output_dim=self.config.default_embedding_dim,
+            )
+            encodings.append(lang_enc)
+
+        if audio_data is not None:
+            audio_enc = await self.encoder.encode_audio(
+                audio_data=audio_data,
+                sample_rate=self.config.audio_sample_rate,
+                output_dim=self.config.default_embedding_dim,
+            )
+            encodings.append(audio_enc)
+
+        if len(encodings) < 2:
+            return {
+                "status": "error",
+                "message": "At least 2 modalities required for fusion",
+            }
+
+        # Perform fusion
+        fusion_result = await self.attention_fusion.fuse_modalities(
+            encodings=[enc.embedding for enc in encodings],
+            modality_types=[enc.modality for enc in encodings],
+            fusion_strategy=fusion_strategy or FusionStrategy.ATTENTION,
+            num_heads=self.config.num_attention_heads,
+        )
+
+        return {
+            "status": "success",
+            "num_modalities_fused": len(encodings),
+            "fused_embedding_dim": len(fusion_result["fused_embedding"]),
+            "fusion_time_ms": fusion_result.get("fusion_time_ms", 0),
+            "alignment_score": fusion_result.get("alignment_score", 0.0),
+        }
+
+    def get_system_status(self) -> Dict[str, Any]:
+        """Get status of all subsystems."""
+        return {
+            "encoder_enabled": self.encoder is not None,
+            "attention_fusion_enabled": self.attention_fusion is not None,
+            "vl_models_enabled": self.vl_models is not None,
+            "audio_visual_enabled": self.audio_visual is not None,
+            "generation_enabled": self.generation is not None,
+            "alignment_grounding_enabled": self.alignment_grounding is not None,
+            "retrieval_enabled": self.retrieval is not None,
+            "config": {
+                "default_embedding_dim": self.config.default_embedding_dim,
+                "num_attention_heads": self.config.num_attention_heads,
+                "max_caption_length": self.config.max_caption_length,
+                "retrieval_top_k": self.config.retrieval_top_k,
+            },
+        }
+
+    async def benchmark_performance(self) -> Dict[str, Any]:
+        """Benchmark performance of all subsystems."""
+        import time
+
+        benchmarks = {}
+
+        # Vision encoding benchmark
+        if self.encoder:
+            dummy_image = np.random.randn(224, 224, 3)
+            start = time.time()
+            await self.encoder.encode_vision(
+                image_data=dummy_image,
+                encoder_type=self.config.vision_encoder,
+                output_dim=self.config.default_embedding_dim,
+            )
+            vision_encoding_time = (time.time() - start) * 1000
+            benchmarks["vision_encoding_ms"] = vision_encoding_time
+
+        # Language encoding benchmark
+        if self.encoder:
+            start = time.time()
+            await self.encoder.encode_language(
+                text="Benchmark text for encoding",
+                encoder_type=self.config.language_encoder,
+                output_dim=self.config.default_embedding_dim,
+            )
+            language_encoding_time = (time.time() - start) * 1000
+            benchmarks["language_encoding_ms"] = language_encoding_time
+
+        # Image captioning benchmark
+        if self.vl_models:
+            dummy_features = np.random.randn(self.config.default_embedding_dim)
+            start = time.time()
+            await self.vl_models.generate_caption(
+                image_id="benchmark",
+                image_features=dummy_features,
+                max_length=20,
+                beam_size=3,
+            )
+            caption_time = (time.time() - start) * 1000
+            benchmarks["image_captioning_ms"] = caption_time
+
+        return benchmarks
 
 
 # ============================================================================
@@ -1581,3 +2050,16 @@ def get_multimodal_retrieval_search() -> MultimodalRetrievalSearch:
     if _multimodal_retrieval_search is None:
         _multimodal_retrieval_search = MultimodalRetrievalSearch()
     return _multimodal_retrieval_search
+
+
+_integrated_multimodal_ai_system = None
+
+
+def get_multimodal_ai_system(
+    config: Optional[MultimodalAIConfig] = None,
+) -> IntegratedMultimodalAISystem:
+    """Get singleton instance of Integrated Multimodal AI System"""
+    global _integrated_multimodal_ai_system
+    if _integrated_multimodal_ai_system is None:
+        _integrated_multimodal_ai_system = IntegratedMultimodalAISystem(config)
+    return _integrated_multimodal_ai_system

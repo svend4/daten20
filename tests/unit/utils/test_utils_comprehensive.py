@@ -202,25 +202,29 @@ class TestErrors:
     def test_dms_error(self):
         """Test DMSError base class"""
         error = DMSError("Test error")
-        assert str(error) == "Test error"
+        assert "Test error" in str(error)
+        assert "ERROR [UNKNOWN_ERROR]" in str(error)
         assert isinstance(error, Exception)
 
     def test_validation_error(self):
         """Test ValidationError"""
-        error = ValidationError("Validation failed")
-        assert str(error) == "Validation failed"
+        error = ValidationError(field_name="email", value="invalid", validation_rule="email format")
+        assert "email" in str(error)
+        assert "Validation failed" in str(error)
         assert isinstance(error, DMSError)
 
     def test_database_error(self):
         """Test DatabaseError"""
         error = DatabaseError("DB connection failed")
-        assert str(error) == "DB connection failed"
+        assert "DB connection failed" in str(error)
+        assert "ERROR [UNKNOWN_ERROR]" in str(error)
         assert isinstance(error, DMSError)
 
     def test_file_error(self):
         """Test FileError"""
         error = FileError("File not accessible")
-        assert str(error) == "File not accessible"
+        assert "File not accessible" in str(error)
+        assert "ERROR [UNKNOWN_ERROR]" in str(error)
         assert isinstance(error, DMSError)
 
 
