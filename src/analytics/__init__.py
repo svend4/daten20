@@ -1,5 +1,5 @@
 """
-Analytics Module - v3.1
+Analytics Module - v3.2
 
 Advanced Analytics & Business Intelligence components.
 
@@ -11,6 +11,7 @@ Modules:
 - data_mining: Data mining and pattern discovery ✅
 - streaming_analytics: Real-time streaming analytics ✅
 - nl_query: Natural language query interface ✅
+- anomaly_detection: Anomaly detection and outlier identification ✅
 """
 
 from .bi_dashboard import (
@@ -89,6 +90,18 @@ from .streaming_analytics import (
     WindowManager,
     WindowType,
     get_stream_processor,
+)
+from .anomaly_detection import (
+    Anomaly,
+    AnomalyDetectionEngine,
+    AnomalyDetectionResult,
+    AnomalyMethod,
+    AnomalySeverity,
+    MLDetector,
+    RealTimeDetector,
+    StatisticalDetector,
+    TimeSeriesDetector,
+    get_anomaly_engine,
 )
 
 __all__ = [
@@ -169,6 +182,17 @@ __all__ = [
     "QueryIntent",
     "AggregateFunction",
     "TimeGranularity",
+    # Anomaly Detection
+    "get_anomaly_engine",
+    "AnomalyDetectionEngine",
+    "StatisticalDetector",
+    "MLDetector",
+    "TimeSeriesDetector",
+    "RealTimeDetector",
+    "Anomaly",
+    "AnomalyDetectionResult",
+    "AnomalyMethod",
+    "AnomalySeverity",
 ]
 
-__version__ = "3.1.1"
+__version__ = "3.2.0"
