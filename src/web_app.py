@@ -88,6 +88,14 @@ swagger = Swagger(app, config=swagger_config, template=swagger_template)
 # Register API documentation blueprint
 app.register_blueprint(api_docs_bp)
 
+# Register Semantic Search API blueprint
+try:
+    from src.api.semantic_search_api import semantic_search_bp
+    app.register_blueprint(semantic_search_bp)
+    print("✓ Semantic Search API registered")
+except ImportError as e:
+    print(f"⚠ Semantic Search API not available: {e}")
+
 # Initialize components
 db = Database()
 calculator = FinancialCalculator()
