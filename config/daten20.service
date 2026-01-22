@@ -1,0 +1,83 @@
+# Systemd Service File for daten20 Production Deployment
+# Place this file in /etc/systemd/system/daten20.service
+# Enable: systemctl enable daten20
+# Start: systemctl start daten20
+# Status: systemctl status daten20
+
+[Unit]
+Description=daten20 Document Management System
+Documentation=https://github.com/svend4/daten20
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=notify
+User=daten20
+Group=daten20
+WorkingDirectory=/opt/daten20
+
+# Environment configuration
+EnvironmentFile=/opt/daten20/.env
+Environment="PATH=/opt/daten20/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/opt/daten20/src"
+
+# Gunicorn configuration
+ExecStart=/opt/daten20/venv/bin/gunicorn \
+    --bind 127.0.0.1:5000 \
+    --workers 4 \
+    --threads 2 \
+    --worker-class gthread \
+    --worker-tmp-dir /dev/shm \
+    --timeout 120 \
+    --keep-alive 5 \
+    --max-requests 1000 \
+    --max-requests-jitter 100 \
+    --access-logfile /var/log/daten20/access.log \
+    --error-logfile /var/log/daten20/error.log \
+    --log-level info \
+    --pid /run/daten20/daten20.pid \
+    --capture-output \
+    wsgi:app
+
+# Graceful shutdown
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/daten20 /var/log/daten20 /var/lib/daten20 /run/daten20
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+PrivateMounts=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+TasksMax=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=daten20
+
+[Install]
+WantedBy=multi-user.target
