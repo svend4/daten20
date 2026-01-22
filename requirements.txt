@@ -316,8 +316,6 @@ opentelemetry-instrumentation-requests>=0.42b0
 # Requests instrumentation
 opentelemetry-instrumentation-sqlalchemy>=0.42b0
 # SQLAlchemy instrumentation
-opentelemetry-exporter-jaeger>=1.22.0
-# Jaeger exporter
 opentelemetry-exporter-otlp>=1.22.0
 # OTLP exporter for OpenTelemetry Collector
 
