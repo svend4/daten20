@@ -597,8 +597,9 @@ pylibmc>=1.6.3
 dramatiq>=1.15.0
 apscheduler>=3.10.4
 
-# Workflow Engines
-airflow-client>=2.8.0
+# Workflow Engines (optional - for production workflow orchestration)
+# apache-airflow>=2.8.0
+# For Apache Airflow integration (large dependency, install separately if needed)
 
 # End of AI/ML dependencies
 
