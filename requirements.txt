@@ -109,9 +109,10 @@ Flask-Compress>=1.15
 Flask-SocketIO>=5.3.0
 # WebSockets for real-time notifications
 graphene>=3.3.0
-# GraphQL support
-flask-graphql>=2.0.1
-# Flask GraphQL integration
+# GraphQL support (use with Flask views directly or flask-graphql 3.x if available)
+# flask-graphql>=2.0.1
+# Flask GraphQL integration (commented: incompatible with graphene 3.3+)
+# For GraphQL integration, use graphene directly with Flask routes
 
 # Monitoring & Metrics
 prometheus-client>=0.19.0
