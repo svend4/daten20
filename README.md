@@ -32,7 +32,9 @@
 
 ### 📄 Обработка документов
 - ✅ **Парсинг документов** - PDF, DOCX, TXT, HTML, Markdown
-- ✅ **Извлечение текста** - OCR-ready архитектура
+- ✅ **OCR (Optical Character Recognition)** - Tesseract, EasyOCR, PaddleOCR 🆕
+- ✅ **Перевод документов** - 100+ языков (Google, DeepL, Argos) 🆕
+- ✅ **Извлечение текста** - из изображений и сканов
 - ✅ **Экспорт** - TXT, HTML, Markdown, PDF, Excel, PowerPoint
 - ✅ **Пакетная обработка** - обработка множества документов одновременно
 
@@ -74,7 +76,7 @@
 
 ## 🛠️ Основные приложения (CLI)
 
-Система включает 14 готовых к использованию CLI приложений:
+Система включает 16 готовых к использованию CLI приложений:
 
 ### 1. **doc-processor.py** (18K)
 Основной обработчик документов - парсинг, извлечение текста, экспорт в различные форматы.
@@ -166,21 +168,60 @@ python doc-merger.py doc1.txt doc2.txt doc3.txt --output merged.pdf
 python doc-splitter.py large_doc.pdf --pages 10 --output chunks/
 \`\`\`
 
-### 12. **dms-admin.py** (11K)
+### 12. **doc-ocr.py** (10K) 🆕 NEW
+Извлечение текста из изображений и сканированных документов:
+- Поддержка Tesseract, EasyOCR, PaddleOCR
+- Автоматическая предобработка изображений
+- Пакетная обработка
+- Оценка уверенности распознавания
+
+\`\`\`bash
+# Извлечь текст из изображения
+python doc-ocr.py scan.png --output text.txt
+
+# Использовать EasyOCR для лучшей точности
+python doc-ocr.py photo.jpg --engine easyocr --language en
+
+# Пакетная обработка директории
+python doc-ocr.py scans/ --output-dir results/ --batch
+\`\`\`
+
+### 13. **doc-translator.py** (12K) 🆕 NEW
+Перевод документов на 100+ языков:
+- Google Translate, DeepL, Argos Translate
+- Автоматическое определение языка
+- Пакетный перевод
+- Кеширование для производительности
+
+\`\`\`bash
+# Перевести документ на испанский
+python doc-translator.py document.txt --target es --output spanish.txt
+
+# Использовать DeepL для высокого качества
+python doc-translator.py text.txt --target de --backend deepl
+
+# Определить язык документа
+python doc-translator.py unknown.txt --detect
+
+# Пакетный перевод директории
+python doc-translator.py docs/ --target fr --output-dir translated/ --batch
+\`\`\`
+
+### 14. **dms-admin.py** (11K)
 Администрирование системы - управление пользователями, backup, аудит.
 
 \`\`\`bash
 python dms-admin.py --create-user admin --role administrator
 \`\`\`
 
-### 13. **enterprise-admin.py** (23K)
+### 15. **enterprise-admin.py** (23K)
 Multi-tenant управление и биллинг.
 
 \`\`\`bash
 python enterprise-admin.py --create-tenant "Organization Name"
 \`\`\`
 
-### 14. **locustfile.py** (8.2K)
+### 16. **locustfile.py** (8.2K)
 Load testing и бенчмарки производительности.
 
 \`\`\`bash
