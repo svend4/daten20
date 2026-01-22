@@ -119,7 +119,7 @@ if [ -z "$TEST_SIZE" ]; then
 fi
 
 # Build pytest command
-PYTEST_CMD="pytest"
+PYTEST_CMD="python3 -m pytest"
 PYTEST_CMD="$PYTEST_CMD $VERBOSE"
 PYTEST_CMD="$PYTEST_CMD $COVERAGE"
 PYTEST_CMD="$PYTEST_CMD $PARALLEL"
