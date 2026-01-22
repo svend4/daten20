@@ -1,436 +1,503 @@
-#!/usr/bin/env python3
 """
-Semantic Search API Endpoints
+Semantic Search REST API
 
-Provides REST API endpoints for semantic search functionality.
+Flask REST API endpoints for BERT-based semantic search.
 
 Endpoints:
-- POST /api/semantic/index - Index documents
-- POST /api/semantic/search - Search documents
-- POST /api/semantic/hybrid-search - Hybrid semantic + keyword search
-- GET /api/semantic/stats - Get index statistics
-- DELETE /api/semantic/clear - Clear index
-- POST /api/semantic/save - Save index to disk
-- POST /api/semantic/load - Load index from disk
+- POST /api/v1/semantic-search/index - Index documents
+- POST /api/v1/semantic-search/search - Search documents
+- GET  /api/v1/semantic-search/similar/{doc_id} - Find similar documents
+- GET  /api/v1/semantic-search/stats - Get statistics
+- DELETE /api/v1/semantic-search/documents/{doc_id} - Delete document
+- DELETE /api/v1/semantic-search/clear - Clear index
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Dict, Any, List, Optional
+from flask import Blueprint, request, jsonify
+from functools import wraps
 
-from flask import Blueprint, jsonify, request
-
-from src.ml.semantic_search import SemanticSearchEngine, SearchQuery
-
-logger = logging.getLogger("dms.semantic_search_api")
-
-# Create Blueprint
-semantic_search_bp = Blueprint("semantic_search", __name__, url_prefix="/api/semantic")
-
-# Global search engine instance (can be replaced with app context)
-_search_engine: Optional[SemanticSearchEngine] = None
+try:
+    from ..search import SemanticSearch, QueryProcessor, ResultReranker
+    SEARCH_AVAILABLE = True
+except ImportError:
+    SEARCH_AVAILABLE = False
+    logging.warning("Semantic search module not available")
 
 
-def get_search_engine() -> SemanticSearchEngine:
-    """Get or create semantic search engine"""
-    global _search_engine
-    if _search_engine is None:
-        model_name = "all-MiniLM-L6-v2"  # Can be configured via env var
-        _search_engine = SemanticSearchEngine(model_name=model_name, cache_embeddings=True)
-        logger.info(f"Initialized semantic search engine with model: {model_name}")
-    return _search_engine
+# Create blueprint
+semantic_search_bp = Blueprint('semantic_search', __name__, url_prefix='/api/v1/semantic-search')
+
+# Global search instance (will be initialized on first use)
+_search_instance = None
+_query_processor = None
+_reranker = None
+
+logger = logging.getLogger(__name__)
 
 
-@semantic_search_bp.route("/index", methods=["POST"])
+def get_search_instance(
+    model_name: str = "fast",
+    store_type: str = "chroma",
+    persist_directory: str = "./semantic_search_db"
+) -> SemanticSearch:
+    """Get or create search instance."""
+    global _search_instance
+    
+    if _search_instance is None:
+        if not SEARCH_AVAILABLE:
+            raise ImportError("Semantic search module not available")
+        
+        logger.info(f"Initializing semantic search (model={model_name}, store={store_type})")
+        _search_instance = SemanticSearch(
+            model_name=model_name,
+            store_type=store_type,
+            persist_directory=persist_directory
+        )
+    
+    return _search_instance
+
+
+def get_query_processor() -> QueryProcessor:
+    """Get or create query processor."""
+    global _query_processor
+    
+    if _query_processor is None:
+        _query_processor = QueryProcessor()
+    
+    return _query_processor
+
+
+def get_reranker() -> ResultReranker:
+    """Get or create result reranker."""
+    global _reranker
+    
+    if _reranker is None:
+        _reranker = ResultReranker()
+    
+    return _reranker
+
+
+def handle_errors(f):
+    """Decorator to handle errors and return JSON responses."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except ImportError as e:
+            logger.error(f"Import error: {e}")
+            return jsonify({
+                "error": "Semantic search not available",
+                "message": str(e),
+                "install": "pip install sentence-transformers chromadb faiss-cpu"
+            }), 503
+        except ValueError as e:
+            logger.error(f"Validation error: {e}")
+            return jsonify({"error": "Validation error", "message": str(e)}), 400
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=True)
+            return jsonify({"error": "Internal server error", "message": str(e)}), 500
+    
+    return decorated_function
+
+
+@semantic_search_bp.route('/index', methods=['POST'])
+@handle_errors
 def index_documents():
     """
-    Index documents for semantic search
-
-    Request JSON:
+    Index documents for semantic search.
+    
+    Request body:
     {
         "documents": [
-            {
-                "id": "doc1",
-                "text": "Document content...",
-                "metadata": {"category": "AI", "author": "John"}
-            }
+            {"content": "text...", "metadata": {...}},
+            ...
         ],
-        "text_field": "text",  # optional, default: "text"
-        "id_field": "id",  # optional, default: "id"
-        "batch_size": 32  # optional, default: 32
+        "text_field": "content",  // optional, default: "content"
+        "batch_size": 32,          // optional, default: 32
+        "model": "fast"            // optional, default: "fast"
     }
-
+    
     Response:
     {
         "success": true,
-        "indexed_count": 100,
-        "total_documents": 150,
-        "message": "Successfully indexed 100 documents"
+        "indexed": 10,
+        "document_ids": ["doc_1", "doc_2", ...],
+        "total_documents": 100
     }
     """
-    try:
-        data = request.get_json()
-
-        if not data or "documents" not in data:
-            return jsonify({"success": False, "error": "Missing 'documents' field"}), 400
-
-        documents = data["documents"]
-        text_field = data.get("text_field", "text")
-        id_field = data.get("id_field", "id")
-        batch_size = data.get("batch_size", 32)
-
-        # Validate documents
-        if not isinstance(documents, list) or len(documents) == 0:
-            return jsonify({"success": False, "error": "Documents must be a non-empty list"}), 400
-
-        # Index documents
-        engine = get_search_engine()
-        indexed_count = engine.index_documents(
-            documents=documents, text_field=text_field, id_field=id_field, batch_size=batch_size
-        )
-
-        stats = engine.get_stats()
-
-        return (
-            jsonify(
-                {
-                    "success": True,
-                    "indexed_count": indexed_count,
-                    "total_documents": stats.total_documents,
-                    "message": f"Successfully indexed {indexed_count} documents",
-                }
-            ),
-            200,
-        )
-
-    except Exception as e:
-        logger.error(f"Error indexing documents: {e}", exc_info=True)
-        return jsonify({"success": False, "error": str(e)}), 500
+    data = request.get_json()
+    
+    if not data or 'documents' not in data:
+        return jsonify({"error": "Missing 'documents' in request body"}), 400
+    
+    documents = data['documents']
+    text_field = data.get('text_field', 'content')
+    batch_size = data.get('batch_size', 32)
+    model_name = data.get('model', 'fast')
+    
+    if not isinstance(documents, list):
+        return jsonify({"error": "'documents' must be a list"}), 400
+    
+    if not documents:
+        return jsonify({"error": "'documents' list is empty"}), 400
+    
+    # Get search instance
+    search = get_search_instance(model_name=model_name)
+    
+    # Index documents
+    doc_ids = search.add_documents(
+        documents,
+        text_field=text_field,
+        batch_size=batch_size
+    )
+    
+    return jsonify({
+        "success": True,
+        "indexed": len(doc_ids),
+        "document_ids": doc_ids,
+        "total_documents": search.count_documents()
+    }), 201
 
 
-@semantic_search_bp.route("/search", methods=["POST"])
+@semantic_search_bp.route('/search', methods=['POST'])
+@handle_errors
 def search():
     """
-    Search for similar documents
-
-    Request JSON:
+    Search for documents using semantic similarity.
+    
+    Request body:
     {
-        "query": "machine learning and AI",
-        "top_k": 10,  # optional, default: 10
-        "min_score": 0.5,  # optional, default: 0.0
-        "filters": {"category": "AI"},  # optional
-        "rerank": false  # optional, default: false
+        "query": "search query",
+        "top_k": 10,                // optional, default: 10
+        "min_score": 0.5,           // optional
+        "filters": {...},           // optional metadata filters
+        "expand_query": true,       // optional, default: false
+        "rerank": true,             // optional, default: false
+        "model": "fast"             // optional, default: "fast"
     }
-
+    
     Response:
     {
         "success": true,
-        "query": "machine learning and AI",
+        "query": "search query",
         "results": [
             {
-                "document_id": "doc1",
-                "score": 0.87,
-                "rank": 1,
-                "content": "Machine learning is...",
-                "metadata": {"category": "AI"}
-            }
+                "id": "doc_1",
+                "document": {...},
+                "score": 0.95,
+                "distance": 0.05
+            },
+            ...
         ],
-        "count": 5,
-        "search_time_ms": 45
+        "count": 10,
+        "total_time_ms": 150
     }
     """
-    try:
-        import time
-
-        start_time = time.time()
-
-        data = request.get_json()
-
-        if not data or "query" not in data:
-            return jsonify({"success": False, "error": "Missing 'query' field"}), 400
-
-        # Parse search parameters
-        query_text = data["query"]
-        top_k = data.get("top_k", 10)
-        min_score = data.get("min_score", 0.0)
-        filters = data.get("filters", {})
-        rerank = data.get("rerank", False)
-
-        # Create search query
-        query = SearchQuery(text=query_text, top_k=top_k, min_score=min_score, filters=filters, rerank=rerank)
-
-        # Execute search
-        engine = get_search_engine()
-        results = engine.search(query)
-
-        # Convert results to dict
-        results_data = [
-            {
-                "document_id": r.document_id,
-                "score": round(r.score, 4),
-                "rank": r.rank,
-                "content": r.content[:500],  # Truncate long content
-                "metadata": r.metadata,
-            }
-            for r in results
-        ]
-
-        search_time_ms = int((time.time() - start_time) * 1000)
-
-        return (
-            jsonify(
-                {
-                    "success": True,
-                    "query": query_text,
-                    "results": results_data,
-                    "count": len(results_data),
-                    "search_time_ms": search_time_ms,
-                }
-            ),
-            200,
-        )
-
-    except Exception as e:
-        logger.error(f"Error during search: {e}", exc_info=True)
-        return jsonify({"success": False, "error": str(e)}), 500
+    import time
+    start_time = time.time()
+    
+    data = request.get_json()
+    
+    if not data or 'query' not in data:
+        return jsonify({"error": "Missing 'query' in request body"}), 400
+    
+    query = data['query']
+    top_k = data.get('top_k', 10)
+    min_score = data.get('min_score')
+    filters = data.get('filters')
+    expand_query = data.get('expand_query', False)
+    rerank = data.get('rerank', False)
+    model_name = data.get('model', 'fast')
+    
+    # Validate query
+    if not isinstance(query, str) or not query.strip():
+        return jsonify({"error": "'query' must be a non-empty string"}), 400
+    
+    # Get search instance
+    search = get_search_instance(model_name=model_name)
+    
+    # Process query if requested
+    processed_query = query
+    if expand_query:
+        processor = get_query_processor()
+        processed_query = processor.process(query)
+    
+    # Search
+    results = search.search(
+        processed_query,
+        top_k=top_k,
+        filters=filters,
+        min_score=min_score
+    )
+    
+    # Re-rank if requested
+    if rerank:
+        reranker = get_reranker()
+        results = reranker.rerank(results, query)
+    
+    elapsed_ms = (time.time() - start_time) * 1000
+    
+    return jsonify({
+        "success": True,
+        "query": query,
+        "processed_query": processed_query if expand_query else None,
+        "results": results,
+        "count": len(results),
+        "total_time_ms": round(elapsed_ms, 2)
+    }), 200
 
 
-@semantic_search_bp.route("/hybrid-search", methods=["POST"])
-def hybrid_search():
+@semantic_search_bp.route('/similar/<doc_id>', methods=['GET'])
+@handle_errors
+def find_similar(doc_id: str):
     """
-    Hybrid search combining semantic and keyword search
-
-    Request JSON:
-    {
-        "query": "machine learning",
-        "keyword_results": [
-            {"id": "doc1", "score": 0.9},
-            {"id": "doc2", "score": 0.7}
-        ],
-        "top_k": 10,  # optional
-        "semantic_weight": 0.7  # optional, default: 0.7
-    }
-
+    Find documents similar to a given document.
+    
+    Query params:
+    - top_k: Number of results (default: 10)
+    - filters: JSON metadata filters
+    - model: Model name (default: "fast")
+    
     Response:
     {
         "success": true,
-        "query": "machine learning",
+        "document_id": "doc_123",
         "results": [...],
-        "count": 5
+        "count": 10
     }
     """
-    try:
-        data = request.get_json()
-
-        if not data or "query" not in data or "keyword_results" not in data:
-            return jsonify({"success": False, "error": "Missing required fields"}), 400
-
-        query_text = data["query"]
-        keyword_results = data["keyword_results"]
-        top_k = data.get("top_k", 10)
-        semantic_weight = data.get("semantic_weight", 0.7)
-
-        # Execute hybrid search
-        engine = get_search_engine()
-        results = engine.hybrid_search(
-            query=query_text, keyword_results=keyword_results, top_k=top_k, semantic_weight=semantic_weight
-        )
-
-        # Convert results to dict
-        results_data = [
-            {
-                "document_id": r.document_id,
-                "score": round(r.score, 4),
-                "rank": r.rank,
-                "content": r.content[:500],
-                "metadata": r.metadata,
-            }
-            for r in results
-        ]
-
-        return (
-            jsonify({"success": True, "query": query_text, "results": results_data, "count": len(results_data)}),
-            200,
-        )
-
-    except Exception as e:
-        logger.error(f"Error during hybrid search: {e}", exc_info=True)
-        return jsonify({"success": False, "error": str(e)}), 500
+    top_k = request.args.get('top_k', 10, type=int)
+    filters_json = request.args.get('filters')
+    model_name = request.args.get('model', 'fast')
+    
+    filters = None
+    if filters_json:
+        import json
+        try:
+            filters = json.loads(filters_json)
+        except json.JSONDecodeError:
+            return jsonify({"error": "Invalid JSON in 'filters' parameter"}), 400
+    
+    # Get search instance
+    search = get_search_instance(model_name=model_name)
+    
+    # Find similar
+    results = search.search_similar(
+        doc_id,
+        top_k=top_k,
+        filters=filters
+    )
+    
+    return jsonify({
+        "success": True,
+        "document_id": doc_id,
+        "results": results,
+        "count": len(results)
+    }), 200
 
 
-@semantic_search_bp.route("/stats", methods=["GET"])
+@semantic_search_bp.route('/stats', methods=['GET'])
+@handle_errors
 def get_stats():
     """
-    Get index statistics
-
+    Get semantic search statistics.
+    
     Response:
     {
         "success": true,
         "stats": {
-            "total_documents": 150,
-            "embedding_dimension": 384,
-            "index_size_bytes": 614400,
-            "model_name": "all-MiniLM-L6-v2",
-            "last_updated": "2026-01-16T12:30:00"
+            "total_documents": 100,
+            "embedder_info": {...},
+            "vector_store_type": "ChromaDBStore"
         }
     }
     """
-    try:
-        engine = get_search_engine()
-        stats = engine.get_stats()
-
-        return (
-            jsonify(
-                {
-                    "success": True,
-                    "stats": {
-                        "total_documents": stats.total_documents,
-                        "embedding_dimension": stats.embedding_dimension,
-                        "index_size_bytes": stats.index_size_bytes,
-                        "model_name": stats.model_name,
-                        "last_updated": stats.last_updated.isoformat(),
-                    },
-                }
-            ),
-            200,
-        )
-
-    except Exception as e:
-        logger.error(f"Error getting stats: {e}", exc_info=True)
-        return jsonify({"success": False, "error": str(e)}), 500
+    model_name = request.args.get('model', 'fast')
+    
+    # Get search instance
+    search = get_search_instance(model_name=model_name)
+    
+    stats = search.get_stats()
+    
+    return jsonify({
+        "success": True,
+        "stats": stats
+    }), 200
 
 
-@semantic_search_bp.route("/clear", methods=["DELETE"])
+@semantic_search_bp.route('/documents/<doc_id>', methods=['DELETE'])
+@handle_errors
+def delete_document(doc_id: str):
+    """
+    Delete a document by ID.
+    
+    Response:
+    {
+        "success": true,
+        "deleted": ["doc_123"]
+    }
+    """
+    model_name = request.args.get('model', 'fast')
+    
+    # Get search instance
+    search = get_search_instance(model_name=model_name)
+    
+    # Delete
+    success = search.delete_documents([doc_id])
+    
+    if success:
+        return jsonify({
+            "success": True,
+            "deleted": [doc_id]
+        }), 200
+    else:
+        return jsonify({
+            "success": False,
+            "error": "Failed to delete document"
+        }), 500
+
+
+@semantic_search_bp.route('/documents/batch', methods=['DELETE'])
+@handle_errors
+def delete_documents_batch():
+    """
+    Delete multiple documents by IDs.
+    
+    Request body:
+    {
+        "document_ids": ["doc_1", "doc_2", ...]
+    }
+    
+    Response:
+    {
+        "success": true,
+        "deleted": ["doc_1", "doc_2", ...]
+    }
+    """
+    data = request.get_json()
+    
+    if not data or 'document_ids' not in data:
+        return jsonify({"error": "Missing 'document_ids' in request body"}), 400
+    
+    doc_ids = data['document_ids']
+    model_name = data.get('model', 'fast')
+    
+    if not isinstance(doc_ids, list):
+        return jsonify({"error": "'document_ids' must be a list"}), 400
+    
+    # Get search instance
+    search = get_search_instance(model_name=model_name)
+    
+    # Delete
+    success = search.delete_documents(doc_ids)
+    
+    if success:
+        return jsonify({
+            "success": True,
+            "deleted": doc_ids
+        }), 200
+    else:
+        return jsonify({
+            "success": False,
+            "error": "Failed to delete documents"
+        }), 500
+
+
+@semantic_search_bp.route('/clear', methods=['DELETE'])
+@handle_errors
 def clear_index():
     """
-    Clear the search index
-
+    Clear all documents from index.
+    
     Response:
     {
         "success": true,
-        "message": "Index cleared successfully"
+        "message": "Index cleared"
     }
     """
-    try:
-        global _search_engine
-        _search_engine = None  # Force recreation on next request
+    model_name = request.args.get('model', 'fast')
+    
+    # Get search instance
+    search = get_search_instance(model_name=model_name)
+    
+    # Clear
+    success = search.clear_index()
+    
+    if success:
+        return jsonify({
+            "success": True,
+            "message": "Index cleared"
+        }), 200
+    else:
+        return jsonify({
+            "success": False,
+            "error": "Failed to clear index"
+        }), 500
 
-        return jsonify({"success": True, "message": "Index cleared successfully"}), 200
 
-    except Exception as e:
-        logger.error(f"Error clearing index: {e}", exc_info=True)
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@semantic_search_bp.route("/save", methods=["POST"])
-def save_index():
+@semantic_search_bp.route('/batch-search', methods=['POST'])
+@handle_errors
+def batch_search():
     """
-    Save index to disk
-
-    Request JSON:
+    Search for multiple queries in batch.
+    
+    Request body:
     {
-        "path": "/path/to/index"
+        "queries": ["query 1", "query 2", ...],
+        "top_k": 10,
+        "model": "fast"
     }
-
+    
     Response:
     {
         "success": true,
-        "message": "Index saved to /path/to/index"
+        "results": [
+            [{"id": "doc_1", ...}, ...],  // results for query 1
+            [{"id": "doc_2", ...}, ...],  // results for query 2
+            ...
+        ]
     }
     """
-    try:
-        data = request.get_json()
+    data = request.get_json()
+    
+    if not data or 'queries' not in data:
+        return jsonify({"error": "Missing 'queries' in request body"}), 400
+    
+    queries = data['queries']
+    top_k = data.get('top_k', 10)
+    model_name = data.get('model', 'fast')
+    
+    if not isinstance(queries, list):
+        return jsonify({"error": "'queries' must be a list"}), 400
+    
+    # Get search instance
+    search = get_search_instance(model_name=model_name)
+    
+    # Batch search
+    results = search.batch_search(queries, top_k=top_k)
+    
+    return jsonify({
+        "success": True,
+        "queries": queries,
+        "results": results,
+        "count": len(queries)
+    }), 200
 
-        if not data or "path" not in data:
-            return jsonify({"success": False, "error": "Missing 'path' field"}), 400
 
-        path = data["path"]
-
-        engine = get_search_engine()
-        engine.save_index(path)
-
-        return jsonify({"success": True, "message": f"Index saved to {path}"}), 200
-
-    except Exception as e:
-        logger.error(f"Error saving index: {e}", exc_info=True)
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@semantic_search_bp.route("/load", methods=["POST"])
-def load_index():
+# Health check endpoint
+@semantic_search_bp.route('/health', methods=['GET'])
+def health_check():
     """
-    Load index from disk
-
-    Request JSON:
-    {
-        "path": "/path/to/index"
-    }
-
+    Health check endpoint.
+    
     Response:
     {
-        "success": true,
-        "message": "Index loaded from /path/to/index",
-        "stats": {...}
+        "status": "healthy",
+        "semantic_search_available": true
     }
     """
-    try:
-        data = request.get_json()
-
-        if not data or "path" not in data:
-            return jsonify({"success": False, "error": "Missing 'path' field"}), 400
-
-        path = data["path"]
-
-        engine = get_search_engine()
-        engine.load_index(path)
-
-        stats = engine.get_stats()
-
-        return (
-            jsonify(
-                {
-                    "success": True,
-                    "message": f"Index loaded from {path}",
-                    "stats": {
-                        "total_documents": stats.total_documents,
-                        "embedding_dimension": stats.embedding_dimension,
-                    },
-                }
-            ),
-            200,
-        )
-
-    except Exception as e:
-        logger.error(f"Error loading index: {e}", exc_info=True)
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-def register_semantic_search_routes(app):
-    """
-    Register semantic search routes with Flask app
-
-    Args:
-        app: Flask application instance
-    """
-    app.register_blueprint(semantic_search_bp)
-    logger.info("Registered semantic search API routes")
-
-
-if __name__ == "__main__":
-    # Example Flask app setup
-    from flask import Flask
-
-    app = Flask(__name__)
-    register_semantic_search_routes(app)
-
-    print("Semantic Search API Endpoints:")
-    print("=" * 60)
-    for rule in app.url_map.iter_rules():
-        if "/api/semantic" in rule.rule:
-            methods = ",".join(sorted(rule.methods - {"HEAD", "OPTIONS"}))
-            print(f"{methods:10} {rule.rule}")
-
-    print("\nStarting development server on http://localhost:5001...")
-    # Debug mode controlled by environment variable for security
-    import os
-    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() == "true"
-    app.run(host="0.0.0.0", port=5001, debug=debug_mode)
+    return jsonify({
+        "status": "healthy",
+        "semantic_search_available": SEARCH_AVAILABLE
+    }), 200

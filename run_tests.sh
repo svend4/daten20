@@ -37,52 +37,52 @@ COMMAND=${1:-all}
 case "$COMMAND" in
     all)
         print_info "Running all tests with coverage..."
-        pytest tests/ -v --cov=src --cov=. --cov-report=html --cov-report=term-missing
+        python3 -m pytest tests/ -v --cov=src --cov=. --cov-report=html --cov-report=term-missing
         print_success "All tests completed!"
         print_info "Coverage report: htmlcov/index.html"
         ;;
 
     unit)
         print_info "Running unit tests only..."
-        pytest tests/unit/ -v
+        python3 -m pytest tests/unit/ -v
         print_success "Unit tests completed!"
         ;;
 
     integration)
         print_info "Running integration tests only..."
-        pytest tests/integration/ -v
+        python3 -m pytest tests/integration/ -v
         print_success "Integration tests completed!"
         ;;
 
     apps)
         print_info "Running application tests only..."
-        pytest tests/unit/apps/ -v
+        python3 -m pytest tests/unit/apps/ -v
         print_success "Application tests completed!"
         ;;
 
     comparator)
         print_info "Running doc-comparator tests..."
-        pytest tests/unit/apps/test_doc_comparator.py -v
+        python3 -m pytest tests/unit/apps/test_doc_comparator.py -v
         ;;
 
     anonymizer)
         print_info "Running doc-anonymizer tests..."
-        pytest tests/unit/apps/test_doc_anonymizer.py -v
+        python3 -m pytest tests/unit/apps/test_doc_anonymizer.py -v
         ;;
 
     quality)
         print_info "Running doc-quality tests..."
-        pytest tests/unit/apps/test_doc_quality.py -v
+        python3 -m pytest tests/unit/apps/test_doc_quality.py -v
         ;;
 
     master)
         print_info "Running doc-master tests..."
-        pytest tests/unit/apps/test_doc_master.py -v
+        python3 -m pytest tests/unit/apps/test_doc_master.py -v
         ;;
 
     coverage)
         print_info "Running tests and generating coverage report..."
-        pytest tests/ --cov=src --cov=. --cov-report=html --cov-report=term-missing --cov-report=xml
+        python3 -m pytest tests/ --cov=src --cov=. --cov-report=html --cov-report=term-missing --cov-report=xml
         print_success "Coverage report generated!"
         print_info "HTML report: htmlcov/index.html"
         print_info "XML report: coverage.xml"
@@ -90,19 +90,19 @@ case "$COMMAND" in
 
     quick)
         print_info "Running quick smoke tests..."
-        pytest tests/ -v -m smoke --tb=short
+        python3 -m pytest tests/ -v -m smoke --tb=short
         print_success "Smoke tests completed!"
         ;;
 
     slow)
         print_info "Running slow tests..."
-        pytest tests/ -v -m slow
+        python3 -m pytest tests/ -v -m slow
         print_success "Slow tests completed!"
         ;;
 
     failed)
         print_info "Re-running previously failed tests..."
-        pytest tests/ -v --lf
+        python3 -m pytest tests/ -v --lf
         ;;
 
     watch)
@@ -114,7 +114,7 @@ case "$COMMAND" in
     parallel)
         print_info "Running tests in parallel..."
         print_warning "This requires pytest-xdist (pip install pytest-xdist)"
-        pytest tests/ -v -n auto
+        python3 -m pytest tests/ -v -n auto
         ;;
 
     clean)

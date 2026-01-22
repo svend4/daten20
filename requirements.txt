@@ -601,3 +601,22 @@ apscheduler==3.10.4
 airflow-client==2.8.0
 
 # End of AI/ML dependencies
+
+# ==========================================
+# ADVANCED SEMANTIC SEARCH (v4.3+)
+# ==========================================
+
+# Sentence Transformers for BERT embeddings
+sentence-transformers>=2.2.0
+# Provides pre-trained BERT models for semantic search
+
+# Vector Databases
+chromadb>=0.4.0
+# Persistent vector storage with metadata filtering
+faiss-cpu>=1.7.4
+# Fast similarity search library
+
+# HuggingFace Transformers (for advanced models)
+transformers>=4.30.0
+# State-of-the-art NLP models
+
