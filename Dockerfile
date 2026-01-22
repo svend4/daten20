@@ -66,13 +66,13 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/api/health || exit 1
 
-# Run application with gunicorn
+# Run application with gunicorn (logging to stdout/stderr for Docker)
 CMD ["python", "-m", "gunicorn", \
      "--bind", "0.0.0.0:5000", \
      "--workers", "4", \
      "--threads", "2", \
      "--timeout", "60", \
-     "--access-logfile", "logs/access.log", \
-     "--error-logfile", "logs/error.log", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
      "--log-level", "info", \
      "src.web_app:app"]
