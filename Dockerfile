@@ -43,9 +43,11 @@ COPY --from=builder /root/.local /home/dms/.local
 # Copy application code
 COPY --chown=dms:dms . .
 
-# Create necessary directories
+# Create necessary directories and log files with proper permissions
 RUN mkdir -p data/db data/exports data/templates logs && \
-    chown -R dms:dms data logs
+    touch logs/access.log logs/error.log && \
+    chown -R dms:dms data logs && \
+    chmod -R 755 data logs
 
 # Switch to non-root user
 USER dms
