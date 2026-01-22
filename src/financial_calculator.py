@@ -224,7 +224,12 @@ class FinancialCalculator:
             surcharge_value = params.surcharges.get(surcharge_type)
             self.validator.validate_surcharge(surcharge_type, surcharge_value)
 
-        breakdown = self.calculate_hourly_rate(params)
+        # Get base calculation and create a copy to avoid modifying cached object
+        base_breakdown = self.calculate_hourly_rate(params)
+
+        # Create a copy of the breakdown to avoid modifying cached object
+        from copy import deepcopy
+        breakdown = deepcopy(base_breakdown)
 
         # Calculate surcharges
         total_surcharge_percent = Decimal("0")

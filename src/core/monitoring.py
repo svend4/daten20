@@ -79,3 +79,49 @@ def metrics_endpoint():
     """Prometheus metrics endpoint."""
     update_system_metrics()
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+
+
+class MonitoringService:
+    """
+    Monitoring service for tracking system metrics and performance.
+
+    Provides a centralized interface for Prometheus metrics and system monitoring.
+    """
+
+    def __init__(self):
+        """Initialize monitoring service"""
+        self.logger = logging.getLogger("dms.monitoring")
+
+    def track_request(self, method: str, endpoint: str, status: int, duration: float):
+        """Track HTTP request metrics"""
+        REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=status).inc()
+        REQUEST_DURATION.labels(method=method, endpoint=endpoint).observe(duration)
+
+    def track_cache_hit(self):
+        """Record cache hit"""
+        CACHE_HITS.inc()
+
+    def track_cache_miss(self):
+        """Record cache miss"""
+        CACHE_MISSES.inc()
+
+    def set_active_users(self, count: int):
+        """Set number of active users"""
+        ACTIVE_USERS.set(count)
+
+    def set_database_connections(self, count: int):
+        """Set number of active database connections"""
+        DATABASE_CONNECTIONS.set(count)
+
+    def update_system_metrics(self):
+        """Update system-level metrics (CPU, memory)"""
+        update_system_metrics()
+
+    def get_metrics(self) -> str:
+        """Get Prometheus metrics in text format"""
+        self.update_system_metrics()
+        return generate_latest().decode('utf-8')
+
+    def get_metrics_endpoint(self):
+        """Get Flask Response for metrics endpoint"""
+        return metrics_endpoint()
