@@ -40,6 +40,12 @@
 - ✅ **Пакетная обработка** - обработка множества документов одновременно
 
 ### 🔍 Поиск и аналитика
+- ✅ **BERT Semantic Search** - продвинутый семантический поиск с использованием BERT embeddings 🆕
+  - Dense vector embeddings с Sentence-BERT
+  - ChromaDB/FAISS vector databases
+  - Мультиязычная поддержка (100+ языков)
+  - Query expansion и re-ranking
+  - REST API и CLI инструменты
 - ✅ **Семантический поиск** - поиск по смыслу, а не только по ключевым словам
 - ✅ **Полнотекстовый поиск** - индексация и быстрый поиск
 - ✅ **Сравнение документов** - Cosine similarity, Jaccard, Levenshtein
@@ -88,7 +94,7 @@
 
 ## 🛠️ Основные приложения (CLI)
 
-Система включает 16 готовых к использованию CLI приложений:
+Система включает 17 готовых к использованию CLI приложений:
 
 ### 1. **doc-processor.py** (18K)
 Основной обработчик документов - парсинг, извлечение текста, экспорт в различные форматы.
@@ -219,21 +225,43 @@ python doc-translator.py unknown.txt --detect
 python doc-translator.py docs/ --target fr --output-dir translated/ --batch
 \`\`\`
 
-### 14. **dms-admin.py** (11K)
+### 14. **doc-semantic-search.py** (11K) 🆕 NEW
+BERT-based семантический поиск документов:
+- Dense vector embeddings с Sentence-BERT
+- Vector databases (ChromaDB, FAISS)
+- Мультиязычная поддержка (100+ языков)
+- Query expansion и re-ranking
+- Batch processing
+
+\`\`\`bash
+# Индексировать документы
+python doc-semantic-search.py index ./documents/ --recursive
+
+# Поиск по семантике
+python doc-semantic-search.py search "machine learning tutorial" --top-k 10
+
+# Найти похожие документы
+python doc-semantic-search.py similar doc_123
+
+# Статистика
+python doc-semantic-search.py stats
+\`\`\`
+
+### 15. **dms-admin.py** (11K)
 Администрирование системы - управление пользователями, backup, аудит.
 
 \`\`\`bash
 python dms-admin.py --create-user admin --role administrator
 \`\`\`
 
-### 15. **enterprise-admin.py** (23K)
+### 16. **enterprise-admin.py** (23K)
 Multi-tenant управление и биллинг.
 
 \`\`\`bash
 python enterprise-admin.py --create-tenant "Organization Name"
 \`\`\`
 
-### 16. **locustfile.py** (8.2K)
+### 17. **locustfile.py** (8.2K)
 Load testing и бенчмарки производительности.
 
 \`\`\`bash
