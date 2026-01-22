@@ -113,11 +113,11 @@ class DataBreach:
 
     id: str
     discovered_at: datetime
-    reported_at: Optional[datetime] = None
     severity: BreachSeverity
     affected_users: int
     affected_data_categories: List[DataCategory]
     description: str
+    reported_at: Optional[datetime] = None
     mitigation_steps: List[str] = field(default_factory=list)
     dpa_notified: bool = False  # Data Protection Authority
     users_notified: bool = False

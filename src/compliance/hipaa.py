@@ -110,11 +110,11 @@ class BusinessAssociate:
     name: str
     contact_email: str
     baa_signed: bool
-    baa_signed_date: Optional[datetime]
-    baa_expiry_date: Optional[datetime]
     services_provided: List[str]
     phi_categories_accessed: List[PHICategory]
-    security_assessment_date: Optional[datetime]
+    baa_signed_date: Optional[datetime] = None
+    baa_expiry_date: Optional[datetime] = None
+    security_assessment_date: Optional[datetime] = None
     compliant: bool = False
 
 
