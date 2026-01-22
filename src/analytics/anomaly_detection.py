@@ -355,7 +355,7 @@ class TimeSeriesDetector:
         pass
 
     def stl_detection(
-        self, data: pd.Series, period: int = 7, threshold: float = 3.0
+        self, data: "pd.Series", period: int = 7, threshold: float = 3.0
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         STL (Seasonal-Trend decomposition using Loess) based anomaly detection.
@@ -572,7 +572,7 @@ class AnomalyDetectionEngine:
         )
 
     def detect_time_series(
-        self, data: pd.Series, period: int = 7, method: AnomalyMethod = AnomalyMethod.STL_DECOMPOSITION
+        self, data: "pd.Series", period: int = 7, method: AnomalyMethod = AnomalyMethod.STL_DECOMPOSITION
     ) -> AnomalyDetectionResult:
         """
         Detect anomalies in time series data.
