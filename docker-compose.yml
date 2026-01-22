@@ -13,7 +13,7 @@ services:
     volumes:
       # Persistent data
       - ./data:/app/data
-      - ./logs:/app/logs
+      # Logs are sent to stdout/stderr (managed by Docker logging driver)
       # Configuration files (read-only)
       - ./config:/app/config:ro
     environment:
@@ -205,7 +205,6 @@ services:
     command: celery -A src.tasks worker --loglevel=info
     volumes:
       - ./data:/app/data
-      - ./logs:/app/logs
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
@@ -226,7 +225,6 @@ services:
     command: celery -A src.tasks beat --loglevel=info
     volumes:
       - ./data:/app/data
-      - ./logs:/app/logs
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
     depends_on:
