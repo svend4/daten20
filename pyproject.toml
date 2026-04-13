@@ -203,7 +203,7 @@ test = [
     "pytest-xdist>=3.5.0",
     "locust>=2.20.0",
     "faker>=21.0.0",
-    "factory-boy>=3.3.0"
+    "factory-boy>=3.3.3"
 ]
 ai = [
     "torch>=2.1.2",
