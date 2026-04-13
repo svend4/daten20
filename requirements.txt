@@ -380,7 +380,7 @@ scipy>=1.11.0
 torch>=2.5.0
 torchvision>=0.20.0
 tensorflow>=2.18.0
-transformers>=4.36.2
+transformers>=4.30.0
 
 # NLP Libraries (UNCOMMENTED - required for v3-v10)
 # Updated for Python 3.13 compatibility
