@@ -228,7 +228,7 @@ quantum = [
     "pennylane>=0.33.1"
 ]
 distributed = [
-    "ray>=2.9.0",
+    "ray>=2.53.0",
     "dask>=2023.12.1",
     "celery>=5.3.4",
     "kafka-python>=2.0.2"
