@@ -70,6 +70,14 @@
 - ✅ **JWT аутентификация** - безопасный доступ к API
 - ✅ **Audit logging** - полный журнал всех операций
 - ✅ **Role-based access control (RBAC)** - управление правами доступа
+- ✅ **HTTPS/TLS** - Secure communications (TLS 1.2/1.3)
+- ✅ **CSRF Protection** - Token-based validation
+- ✅ **Input Validation** - SQL injection, XSS prevention
+- ✅ **Security Scanning** - Automated Bandit, CodeQL, Semgrep
+- ✅ **Secret Detection** - Gitleaks integration
+- ✅ **Dependency Scanning** - Dependabot alerts & auto-updates
+
+> 📖 **Security Documentation:** See [SECURITY.md](SECURITY.md) for security policy and vulnerability reporting
 
 ### 📊 Бизнес-аналитика
 - ✅ **BI Dashboard** - интерактивные дашборды с аналитикой
@@ -424,10 +432,41 @@ python tests/performance/test_performance.py
 
 ---
 
+## 🔐 Безопасность / Security
+
+Мы серьёзно относимся к безопасности. Этот проект включает множество мер безопасности для защиты ваших данных.
+
+We take security seriously. This project includes multiple security measures to protect your data.
+
+### 📋 Документация по безопасности / Security Documentation
+
+- **[SECURITY.md](SECURITY.md)** - Security policy, vulnerability reporting, protection overview
+- **[Repository Protection Guide](docs/REPOSITORY_PROTECTION_GUIDE.md)** - Comprehensive guide to secure repository setup
+- **[Security Enhancements Guide](docs/SECURITY_ENHANCEMENTS_GUIDE.md)** - Application security features
+
+### 🛡️ Реализованные меры защиты / Implemented Security Measures
+
+- ✅ Automated security scanning (CodeQL, Bandit, Semgrep)
+- ✅ Dependency vulnerability scanning (Dependabot, Safety, pip-audit)
+- ✅ Secret detection (Gitleaks)
+- ✅ Branch protection rules
+- ✅ CODEOWNERS for critical files
+- ✅ Security-focused CI/CD pipeline
+- ✅ Pre-commit hooks for code quality
+
+### 🚨 Сообщить об уязвимости / Report a Vulnerability
+
+**Не создавайте публичный issue для уязвимостей!**  
+**Do not create a public issue for vulnerabilities!**
+
+Используйте / Use: [GitHub Security Advisories](https://github.com/svend4/daten20/security/advisories/new)
+
+---
+
 ## 📝 Лицензия
 
 Этот проект лицензирован под MIT License - см. LICENSE для деталей.
 
 ---
 
-**Document Management System v4.2** - Production-Ready с CI/CD - 15 января 2026 ✅
+**Document Management System v4.2** - Production-Ready с CI/CD + Advanced Security - 21 января 2026 ✅
