@@ -46,7 +46,7 @@
   ],
   "repository": "https://github.com/example/dms-react-native-sdk",
   "author": "DMS Team <team@example.com>",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "bugs": {
     "url": "https://github.com/example/dms-react-native-sdk/issues"
   },

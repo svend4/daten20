@@ -142,7 +142,7 @@ class OpenAPIGenerator:
                     "email": "support@example.com",
                     "url": "https://github.com/svend4/daten20",
                 },
-                "license": {"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
+                "license": {"name": "AGPL-3.0-only", "url": "https://www.gnu.org/licenses/agpl-3.0.html"},
             },
             "servers": [
                 {"url": "http://localhost:5000", "description": "Local Flask server"},

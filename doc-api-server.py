@@ -219,8 +219,8 @@ app = (
             "email": "support@docmanagement.example.com",
         },
         license_info={
-            "name": "MIT License",
-            "url": "https://opensource.org/licenses/MIT",
+            "name": "AGPL-3.0-only",
+            "url": "https://www.gnu.org/licenses/agpl-3.0.html",
         },
         terms_of_service="https://example.com/terms/",
         servers=[

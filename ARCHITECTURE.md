@@ -467,4 +467,4 @@ system_settings:
 
 ## 📄 Лицензия
 
-MIT License - свободное использование и модификация
+GNU Affero General Public License, версия 3 (только эта версия; SPDX: `AGPL-3.0-only`) — см. файл [LICENSE](LICENSE) в корне репозитория.

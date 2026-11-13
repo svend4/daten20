@@ -1285,7 +1285,7 @@ rule.channels = [NotificationChannel.CONSOLE]
 
 ## License
 
-MIT License - See LICENSE file for details
+GNU Affero General Public License, version 3 only (SPDX: `AGPL-3.0-only`) - see the [LICENSE](../LICENSE) file for details
 
 ---
 
