@@ -182,4 +182,4 @@ See main project CONTRIBUTING.md
 
 ## License
 
-MIT
+GNU Affero General Public License, version 3 only (SPDX: `AGPL-3.0-only`). See the [LICENSE](../LICENSE) file in the repository root.

@@ -385,7 +385,7 @@ Add these badges to README.md:
 ![CI](https://github.com/svend4/daten20/actions/workflows/ci.yml/badge.svg)
 ![Security](https://github.com/svend4/daten20/actions/workflows/security.yml/badge.svg)
 ![Performance](https://github.com/svend4/daten20/actions/workflows/performance.yml/badge.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11-blue)
 ![Coverage](https://codecov.io/gh/svend4/daten20/branch/main/graph/badge.svg)
 ```

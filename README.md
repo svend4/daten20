@@ -1,7 +1,7 @@
 # 📋 Document Management System
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Tests](https://img.shields.io/badge/tests-284%20passed-green.svg)](tests/)
 [![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen.svg)]()
@@ -426,7 +426,9 @@ python tests/performance/test_performance.py
 
 ## 📝 Лицензия
 
-Этот проект лицензирован под MIT License - см. LICENSE для деталей.
+Проект распространяется на условиях GNU Affero General Public License, версия 3 (только эта версия; SPDX: `AGPL-3.0-only`) — см. файл [LICENSE](LICENSE). Лицензия действует со 2 ноября 2026 г.
+
+Иные указания на лицензию в более ранних документах репозитория (например, MIT в журналах изменений, архивных README и отчётах) описывают прежнее состояние проекта и к текущей версии не применяются.
 
 ---
 

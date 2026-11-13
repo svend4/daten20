@@ -510,7 +510,7 @@ v3.0:  + Enterprise Guide (500+ lines)
 
 **Name:** Document Management System (DMS)
 **Current Version:** 3.0.0
-**License:** MIT
+**License:** AGPL-3.0-only (since 2 November 2026)
 **Status:** Production Ready
 **Maintained:** Yes
 **Language:** Python 3.9+

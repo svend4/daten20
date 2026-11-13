@@ -1009,7 +1009,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 ### D. License
 
-Copyright © 2026 Your Company. All rights reserved.
+GNU Affero General Public License, version 3 only (SPDX: `AGPL-3.0-only`). See the [LICENSE](../LICENSE) file in the repository root.
 
 ---
 

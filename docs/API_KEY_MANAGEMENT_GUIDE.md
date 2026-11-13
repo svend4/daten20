@@ -1367,7 +1367,7 @@ A: INACTIVE is temporary (can be reactivated). REVOKED is permanent (cannot be u
 
 ## License
 
-MIT License - See LICENSE file for details
+GNU Affero General Public License, version 3 only (SPDX: `AGPL-3.0-only`) - see the [LICENSE](../LICENSE) file for details
 
 ---
 
