@@ -94,7 +94,7 @@ class Config:
         "description": "REST API for Document Management System",
         "termsOfService": "",
         "contact": {"email": "admin@dms.local"},
-        "license": {"name": "MIT", "url": "https://opensource.org/licenses/MIT"},
+        "license": {"name": "AGPL-3.0-only", "url": "https://www.gnu.org/licenses/agpl-3.0.html"},
     }
 
     # PDF Export
